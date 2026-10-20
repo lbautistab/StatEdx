@@ -1,4 +1,4 @@
-/* Muestra · clase 8, regresión lineal simple */
+/* StatEdx · clase 8, regresión lineal simple */
 (() => {
   const $ = id => document.getElementById(id);
   const mono = () => '11px ' + M.tok('--f-mono');

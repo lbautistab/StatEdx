@@ -1,4 +1,4 @@
-/* Muestra · clase 3, distribución normal */
+/* StatEdx · clase 3, distribución normal */
 (() => {
   const { fit, tok, fmt, pct, randn, npdf, erf, Phi, tq, segBind, axisTicks } = M;
 

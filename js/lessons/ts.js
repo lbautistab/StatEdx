@@ -1,4 +1,4 @@
-/* Muestra · clase 10, series de tiempo */
+/* StatEdx · clase 10, series de tiempo */
 (() => {
   const $ = id => document.getElementById(id);
   function rng(seed) {

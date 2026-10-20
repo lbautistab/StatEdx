@@ -1,4 +1,4 @@
-/* Muestra · clase 9, regresión logística */
+/* StatEdx · clase 9, regresión logística */
 (() => {
   const $ = id => document.getElementById(id);
   // reproducible RNG (mulberry32) so the lesson always opens with the same data

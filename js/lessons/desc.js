@@ -1,4 +1,4 @@
-/* Muestra · clase 1, medidas de tendencia central y dispersión */
+/* StatEdx · clase 1, medidas de tendencia central y dispersión */
 (() => {
   // ---------- lesson: desc ----------
   const $ = id => document.getElementById(id);

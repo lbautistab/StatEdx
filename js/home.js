@@ -1,4 +1,4 @@
-/* Muestra · portada: tablero de Galton animado */
+/* StatEdx · portada: tablero de Galton animado */
 (() => {
   const { fit, tok, fmt, pct, randn, npdf, erf, Phi, tq, segBind, axisTicks } = M;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;

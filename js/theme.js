@@ -1,4 +1,4 @@
-/* Muestra · fondo negro o blanco
+/* StatEdx · fondo negro o blanco
  * Se carga en el <head> para aplicar el tema antes de pintar la página y evitar un parpadeo.
  * Por defecto el fondo es negro; la elección del visitante se recuerda en este navegador.
  */

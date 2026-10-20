@@ -1,4 +1,4 @@
-/* Muestra · clase 14, árboles de decisión y random forest */
+/* StatEdx · clase 14, árboles de decisión y random forest */
 (() => {
   const $ = id => document.getElementById(id);
   const mono = () => '11px ' + M.tok('--f-mono');

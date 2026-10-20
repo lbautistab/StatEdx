@@ -1,4 +1,4 @@
-/* Muestra · clase 4, Teorema del Límite Central */
+/* StatEdx · clase 4, Teorema del Límite Central */
 (() => {
   const { fit, tok, fmt, pct, randn, npdf, erf, Phi, tq, segBind, axisTicks } = M;
 

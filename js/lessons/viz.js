@@ -1,4 +1,4 @@
-/* Muestra · clase 12, visualización de datos */
+/* StatEdx · clase 12, visualización de datos */
 (() => {
   const { fit, tok, fmt, pct, segBind } = M;
 

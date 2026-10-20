@@ -1,4 +1,4 @@
-/* Muestra · clase 5, intervalos de confianza */
+/* StatEdx · clase 5, intervalos de confianza */
 (() => {
   const { fit, tok, fmt, pct, randn, npdf, erf, Phi, tq, segBind, axisTicks } = M;
   const ZQ = { '0.90': 1.6449, '0.95': 1.96, '0.99': 2.5758 };

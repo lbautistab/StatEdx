@@ -1,4 +1,4 @@
-/* Muestra · clase 2, probabilidad y variables aleatorias */
+/* StatEdx · clase 2, probabilidad y variables aleatorias */
 (() => {
   // ---------- lesson: prob ----------
   const $ = id => document.getElementById(id);

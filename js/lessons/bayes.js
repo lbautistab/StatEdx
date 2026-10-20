@@ -1,4 +1,4 @@
-/* Muestra · clase 7, inferencia bayesiana */
+/* StatEdx · clase 7, inferencia bayesiana */
 (() => {
   const $ = id => document.getElementById(id);
   const mono = () => '11px ' + M.tok('--f-mono');

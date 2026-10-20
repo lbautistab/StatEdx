@@ -1,4 +1,4 @@
-/* Muestra · clase 13, validación cruzada y sobreajuste */
+/* StatEdx · clase 13, validación cruzada y sobreajuste */
 (() => {
   const $ = id => document.getElementById(id);
   const mono = () => '11px ' + M.tok('--f-mono');

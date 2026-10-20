@@ -1,4 +1,4 @@
-/* Muestra · clase 11, análisis exploratorio de datos */
+/* StatEdx · clase 11, análisis exploratorio de datos */
 (() => {
   const { fit, tok, fmt, pct, segBind } = M;
 

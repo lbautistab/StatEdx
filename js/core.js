@@ -1,4 +1,4 @@
-/* Muestra · núcleo del sitio
+/* StatEdx · núcleo del sitio
  * Datos del catálogo, navegación entre vistas, catálogo filtrable, quizzes,
  * índice de cada clase, pestañas R/Python y utilidades compartidas (window.M)
  * que usan los simuladores de js/lessons/.

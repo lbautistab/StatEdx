@@ -1,4 +1,4 @@
-# Muestra Academia
+# StatEdx
 
 Clases de estadística y ciencia de datos en español. Cada clase empieza con un simulador interactivo, sigue con la teoría y las fórmulas, y termina con código en R y en Python, un quiz y ejercicios propuestos con solución.
 
@@ -21,6 +21,7 @@ No hace falta instalar nada más: no hay dependencias ni paso de compilación. T
 ```
 StatEdx/
 ├── index.html              Todo el contenido: portada, catálogo y las 14 clases
+├── assets/                Logo de StatEdx (versión para fondo blanco y para fondo negro) e íconos
 ├── css/
 │   └── styles.css          Estilos, colores del tema claro y oscuro, tipografía
 ├── js/
@@ -63,6 +64,7 @@ En `index.html`, cada clase empieza con un comentario como `<!-- ===============
 - **Texto de una clase:** busca su `<div id="view-<slug>">` en `index.html`. Las fórmulas van entre `\( ... \)` (en línea) y `\[ ... \]` (en bloque), con sintaxis LaTeX.
 - **Catálogo** (título, duración, nivel, descripción de cada tarjeta): arreglo `CLASSES` al inicio de `js/core.js`.
 - **Colores y tipografía:** variables en `:root` al inicio de `css/styles.css`. Hay un bloque para el modo claro y dos para el modo oscuro; si cambias un color, cámbialo en los tres.
+- **Logo:** está en `assets/`. Los archivos `*-dark.png` son la versión con letras claras para el fondo negro; el sitio muestra una u otra según el tema.
 - **Fondo por defecto:** el sitio abre con fondo negro y el botón del encabezado cambia a blanco; la elección se recuerda en el navegador. Para cambiar el valor inicial, edita `let theme = 'dark'` en `js/theme.js`.
 - **Simuladores:** `js/lessons/<slug>.js`.
 

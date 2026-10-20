@@ -1,4 +1,4 @@
-/* Muestra · clase 6, pruebas de hipótesis */
+/* StatEdx · clase 6, pruebas de hipótesis */
 (() => {
   const { fit, tok, fmt, pct, randn, npdf, erf, Phi, tq, segBind, axisTicks } = M;
 
