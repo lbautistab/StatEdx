@@ -25,6 +25,7 @@ StatEdx/
 │   └── styles.css          Estilos, colores del tema claro y oscuro, tipografía
 ├── js/
 │   ├── mathjax-config.js   Configuración de las fórmulas (MathJax)
+│   ├── theme.js            Fondo negro (por defecto) o blanco, con el botón del encabezado
 │   ├── core.js             Catálogo, navegación, quizzes, pestañas R/Python y utilidades (window.M)
 │   ├── home.js             Tablero de Galton animado de la portada
 │   └── lessons/            Un archivo por clase con sus simuladores
@@ -62,6 +63,7 @@ En `index.html`, cada clase empieza con un comentario como `<!-- ===============
 - **Texto de una clase:** busca su `<div id="view-<slug>">` en `index.html`. Las fórmulas van entre `\( ... \)` (en línea) y `\[ ... \]` (en bloque), con sintaxis LaTeX.
 - **Catálogo** (título, duración, nivel, descripción de cada tarjeta): arreglo `CLASSES` al inicio de `js/core.js`.
 - **Colores y tipografía:** variables en `:root` al inicio de `css/styles.css`. Hay un bloque para el modo claro y dos para el modo oscuro; si cambias un color, cámbialo en los tres.
+- **Fondo por defecto:** el sitio abre con fondo negro y el botón del encabezado cambia a blanco; la elección se recuerda en el navegador. Para cambiar el valor inicial, edita `let theme = 'dark'` en `js/theme.js`.
 - **Simuladores:** `js/lessons/<slug>.js`.
 
 ### Piezas reutilizables
