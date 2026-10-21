@@ -1,0 +1,306 @@
+<!-- StatEdx · sesión: holt -->
+<div id="view-holt" data-view="holt" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Suavizamiento exponencial y Holt-Winters</h1>
+      <p>Pronosticar con un promedio que recuerda más lo reciente que lo antiguo. Empiezas con el suavizamiento simple, le agregas una pendiente con Holt, una estacionalidad aditiva o multiplicativa con Holt-Winters y terminas con el marco ETS, que convierte estos métodos en modelos estadísticos con intervalos.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: introducción a las series de tiempo</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#holt-idea" data-sec="holt-idea">La idea</a></li>
+        <li><a href="#holt-ses" data-sec="holt-ses">Suavizamiento simple</a></li>
+        <li><a href="#holt-tend" data-sec="holt-tend">Tendencia: el método de Holt</a></li>
+        <li><a href="#holt-hw" data-sec="holt-hw">Estacionalidad: Holt-Winters</a></li>
+        <li><a href="#holt-lab" data-sec="holt-lab">Laboratorio</a></li>
+        <li><a href="#holt-ets" data-sec="holt-ets">El marco ETS</a></li>
+        <li><a href="#holt-code" data-sec="holt-code">En R y Python</a></li>
+        <li><a href="#holt-quiz" data-sec="holt-quiz">Comprueba</a></li>
+        <li><a href="#holt-ej" data-sec="holt-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="holt-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una cafetería universitaria tiene que decidir cada viernes cuántos litros de leche pedir para la semana siguiente. Tiene dos reglas a mano. La primera, “pide lo mismo que se gastó esta semana”, reacciona rápido pero se deja engañar por una semana rara. La segunda, “pide el promedio de todo el año”, es estable pero tarda meses en notar que el consumo cambió. Lo razonable está en medio: <b>un promedio que le dé más peso a lo reciente</b> y que vaya olvidando lo antiguo poco a poco.</p>
+      <p>Esa es la idea del <b>suavizamiento exponencial</b>. En la sesión introductoria lo viste en una línea; aquí lo desarrollas completo: cómo se calcula, cómo se elige el parámetro de suavizado, cómo se le agregan tendencia y estacionalidad, y cómo se obtiene un intervalo de pronóstico honesto.</p>
+      <div class="callout"><b>Por qué importa:</b> estos métodos son baratos, se actualizan con una sola cuenta por período y funcionan muy bien en la práctica. En las competencias de pronóstico M3 y M4, variantes del suavizamiento exponencial quedaron por encima de muchos métodos más sofisticados.</div>
+
+      <h2 id="holt-ses"><span class="sec">§ 2</span>Suavizamiento exponencial simple</h2>
+      <p>El <b>suavizamiento exponencial simple</b> (SES) sirve para series <b>sin tendencia ni estacionalidad</b>. Mantiene una sola cantidad, el <b>nivel</b> \(\ell_t\), que es la mejor estimación del valor “típico” de la serie en el instante \(t\). Cada vez que llega un dato nuevo, el nivel se actualiza como una mezcla entre el dato y el nivel anterior:</p>
+      <div class="eq">\[ \hat y_{t+h\mid t} = \ell_t, \qquad \ell_t = \alpha\, y_t + (1 - \alpha)\, \ell_{t-1}, \qquad 0 \le \alpha \le 1 \]
+        <div class="note">El pronóstico es <b>plano</b>: para cualquier horizonte \(h\), el mejor pronóstico es el último nivel. \(\alpha\) es el parámetro de suavizado y \(\ell_0\) el nivel inicial.</div>
+      </div>
+      <p>Hay una segunda forma de escribir lo mismo que se lee mejor. Si llamas \(e_t = y_t - \ell_{t-1}\) al error de pronóstico a un paso, la actualización queda así:</p>
+      <div class="eq">\[ \ell_t = \ell_{t-1} + \alpha\, e_t \]
+        <div class="note">Forma de <b>corrección del error</b>: si el dato salió por encima de lo esperado, el nivel sube una fracción \(\alpha\) de la sorpresa. Con \(\alpha = 0\) nunca corriges; con \(\alpha = 1\) corriges todo y el pronóstico es el último valor (el pronóstico ingenuo).</div>
+      </div>
+      <p>Si sustituyes la recursión una y otra vez, aparece el promedio ponderado del que viene el nombre:</p>
+      <div class="eq">\[ \ell_T = \sum_{j=0}^{T-1} \alpha (1-\alpha)^j\, y_{T-j} \;+\; (1-\alpha)^T \ell_0 \]
+        <div class="note">El dato de hace \(j\) períodos pesa \(\alpha(1-\alpha)^j\): los pesos caen como una exponencial y suman 1. La <b>edad media</b> de los datos que usa el pronóstico es \(\sum_j j\,\alpha(1-\alpha)^j = (1-\alpha)/\alpha\). Con \(\alpha = 0{,}2\), el pronóstico “mira” en promedio 4 períodos hacia atrás.</div>
+      </div>
+      <p><b>¿Cómo se elige \(\alpha\)?</b> No a ojo. Se estiman \(\alpha\) y \(\ell_0\) minimizando la suma de errores al cuadrado a un paso dentro de la muestra, \(\text{SSE} = \sum_{t=1}^{T} e_t^2\), que equivale a máxima verosimilitud cuando los errores son normales (lo verás en el § 6). Un \(\alpha\) estimado alto indica que el nivel cambia mucho de un período a otro; uno bajo, que la serie fluctúa alrededor de un nivel casi fijo.</p>
+      <div class="callout"><b>Error común:</b> leer un \(\alpha\) alto como “buen ajuste”. Solo describe qué tan rápido se mueve el nivel. Si la serie tiene tendencia, el SES la persigue con un \(\alpha\) cercano a 1 y siempre llega tarde: el pronóstico plano queda sistemáticamente por debajo.</div>
+
+      <h2 id="holt-tend"><span class="sec">§ 3</span>Tendencia: el método de Holt</h2>
+      <p>Charles Holt (1957) agregó una segunda cantidad: la <b>pendiente</b> \(b_t\), cuánto sube o baja la serie por período. Ahora hay dos ecuaciones de suavizado, una para cada componente:</p>
+      <div class="eq">\[ \begin{aligned} \hat y_{t+h\mid t} &amp;= \ell_t + h\, b_t \\ \ell_t &amp;= \alpha\, y_t + (1-\alpha)(\ell_{t-1} + b_{t-1}) \\ b_t &amp;= \beta\, (\ell_t - \ell_{t-1}) + (1-\beta)\, b_{t-1} \end{aligned} \]
+        <div class="note">El nivel mezcla el dato con lo que esperabas (\(\ell_{t-1} + b_{t-1}\)). La pendiente mezcla el cambio de nivel más reciente con la pendiente anterior. \(\beta\) controla qué tan rápido se adapta la tendencia; en statsmodels se llama <code>smoothing_trend</code>.</div>
+      </div>
+      <p>El pronóstico de Holt es una recta que se prolonga para siempre. A 24 meses eso suele ser demasiado optimista (o pesimista): pocas tendencias reales se sostienen sin frenarse. Gardner y McKenzie (1985) propusieron la <b>tendencia amortiguada</b>, que agrega un factor \(0 &lt; \phi &lt; 1\):</p>
+      <div class="eq">\[ \hat y_{t+h\mid t} = \ell_t + (\phi + \phi^2 + \dots + \phi^h)\, b_t, \qquad \ell_t = \alpha\, y_t + (1-\alpha)(\ell_{t-1} + \phi\, b_{t-1}), \qquad b_t = \beta(\ell_t - \ell_{t-1}) + (1-\beta)\,\phi\, b_{t-1} \]
+        <div class="note">A corto plazo se comporta como Holt; a largo plazo el pronóstico se aplana y tiende a \(\ell_T + \frac{\phi}{1-\phi}\, b_T\). En la práctica \(\phi\) se estima entre 0,8 y 0,98. Con \(\phi = 1\) recuperas Holt; con \(\phi = 0\), el SES.</div>
+      </div>
+
+      <h2 id="holt-hw"><span class="sec">§ 4</span>Estacionalidad: Holt-Winters</h2>
+      <p>Peter Winters (1960) completó el método con un tercer componente, la estacionalidad \(s_t\), que guarda un valor por cada posición del ciclo (12 si los datos son mensuales con patrón anual, 7 si son diarios con patrón semanal). Su parámetro de suavizado es \(\gamma\). Como ya sabes de la sesión introductoria, la estacionalidad puede ser aditiva o multiplicativa, y eso da dos versiones del método.</p>
+      <div class="eq">\[ \textbf{Aditivo:}\quad \begin{aligned} \hat y_{t+h\mid t} &amp;= \ell_t + h\, b_t + s_{t+h-m(k+1)} \\ \ell_t &amp;= \alpha\,(y_t - s_{t-m}) + (1-\alpha)(\ell_{t-1} + b_{t-1}) \\ b_t &amp;= \beta\,(\ell_t - \ell_{t-1}) + (1-\beta)\, b_{t-1} \\ s_t &amp;= \gamma\,(y_t - \ell_{t-1} - b_{t-1}) + (1-\gamma)\, s_{t-m} \end{aligned} \]
+        <div class="note">\(m\) es el período estacional y \(k = \lfloor (h-1)/m \rfloor\) asegura que el factor estacional usado venga del último año observado. Antes de actualizar el nivel se <b>desestacionaliza</b> el dato restando \(s_{t-m}\). Los índices estacionales suman aproximadamente 0 a lo largo de un ciclo.</div>
+      </div>
+      <div class="eq">\[ \textbf{Multiplicativo:}\quad \begin{aligned} \hat y_{t+h\mid t} &amp;= (\ell_t + h\, b_t)\; s_{t+h-m(k+1)} \\ \ell_t &amp;= \alpha\,\frac{y_t}{s_{t-m}} + (1-\alpha)(\ell_{t-1} + b_{t-1}) \\ s_t &amp;= \gamma\,\frac{y_t}{\ell_{t-1} + b_{t-1}} + (1-\gamma)\, s_{t-m} \end{aligned} \]
+        <div class="note">La pendiente se actualiza igual que en el aditivo. Los factores \(s_t\) promedian aproximadamente 1: \(s = 1{,}20\) en diciembre significa “20 % por encima de la tendencia”. Como el factor multiplica, la oscilación crece cuando sube el nivel.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Método</th><th>Componentes</th><th>Parámetros</th><th>Forma del pronóstico</th></tr></thead>
+        <tbody>
+          <tr><td>SES</td><td>nivel</td><td>\(\alpha\)</td><td>Línea horizontal</td></tr>
+          <tr><td>Holt</td><td>nivel, pendiente</td><td>\(\alpha, \beta\)</td><td>Recta</td></tr>
+          <tr><td>Holt amortiguado</td><td>nivel, pendiente</td><td>\(\alpha, \beta, \phi\)</td><td>Curva que se aplana</td></tr>
+          <tr><td>Holt-Winters aditivo</td><td>nivel, pendiente, estación</td><td>\(\alpha, \beta, \gamma\)</td><td>Recta con ola de amplitud fija</td></tr>
+          <tr><td>Holt-Winters multiplicativo</td><td>nivel, pendiente, estación</td><td>\(\alpha, \beta, \gamma\)</td><td>Recta con ola que crece con el nivel</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Inicialización.</b> Las recursiones necesitan valores de partida. Una receta clásica: \(\ell_0\) es la media del primer año, \(b_0\) es la diferencia entre la media del segundo y del primer año dividida por \(m\), y cada \(s\) inicial es la diferencia (o el cociente) entre el dato del primer año y \(\ell_0\). El software moderno estima estos valores junto con \(\alpha, \beta, \gamma\). Necesitas como mínimo dos ciclos completos de datos.</p>
+      <div class="callout"><b>Cómo leer los parámetros estimados:</b> un \(\gamma\) cercano a 0 no significa que no haya estacionalidad; significa que el patrón estacional es <b>estable</b> y casi no se actualiza. Lo mismo con \(\beta \approx 0\): la pendiente es prácticamente constante. Lo que dice si un componente existe es el modelo que eliges, no el tamaño de su parámetro.</div>
+
+      <h2 id="holt-lab"><span class="sec">§ 5</span>Laboratorio: suaviza una serie</h2>
+      <p>Seis años de ventas mensuales. Los primeros 60 meses sirven para ajustar (la línea muestra el pronóstico a un paso) y los últimos 12, en blanco, para evaluar. Elige el método, mueve los parámetros y mira qué pasa con el pronóstico y con los pesos que recibe cada dato pasado. El botón <b>Optimizar</b> busca los parámetros que minimizan el error a un paso, como hace el software.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · suavizamiento exponencial</span><span class="num" id="holt-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="holt-meth-label">MÉTODO</label>
+              <div class="seg" id="holt-meth" role="group" aria-labelledby="holt-meth-label">
+                <button data-m="ses" aria-pressed="false">SES</button>
+                <button data-m="holt" aria-pressed="false">Holt</button>
+                <button data-m="hwa" aria-pressed="true">HW aditivo</button>
+                <button data-m="hwm" aria-pressed="false">HW mult.</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="holt-data-label">SERIE</label>
+              <div class="seg" id="holt-data" role="group" aria-labelledby="holt-data-label">
+                <button data-d="lvl" aria-pressed="false">Solo nivel</button>
+                <button data-d="trend" aria-pressed="false">Tendencia</button>
+                <button data-d="seas" aria-pressed="true">Tendencia y estación</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="holt-al">NIVEL · α = <b id="holt-al-v" class="num">0,30</b></label><input id="holt-al" type="range" min="0.01" max="1" step="0.01" value="0.3"></div>
+            <div class="ctrl"><label for="holt-be">PENDIENTE · β = <b id="holt-be-v" class="num">0,05</b></label><input id="holt-be" type="range" min="0" max="1" step="0.01" value="0.05"></div>
+            <div class="ctrl"><label for="holt-ga">ESTACIÓN · γ = <b id="holt-ga-v" class="num">0,20</b></label><input id="holt-ga" type="range" min="0" max="1" step="0.01" value="0.2"></div>
+            <div class="ctrl"><label for="holt-ph">AMORTIGUAMIENTO · φ = <b id="holt-ph-v" class="num">1,00</b></label><input id="holt-ph" type="range" min="0.8" max="1" step="0.01" value="1"></div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-ghost btn-sm" id="holt-opt" type="button">Optimizar</button>
+            <button class="btn btn-ghost btn-sm" id="holt-new" type="button">Nueva serie</button>
+          </div>
+          <div>
+            <div class="plot-label"><span>Ventas mensuales y pronóstico</span><span id="holt-lbl">–</span></div>
+            <canvas class="plot" id="holt-c" height="260" aria-label="Serie mensual con el ajuste a un paso y el pronóstico de 12 meses"></canvas>
+          </div>
+          <div class="legend"><span><i style="background:var(--muted)"></i>datos</span><span><i style="background:var(--accent)"></i>pronóstico a un paso</span><span><i style="background:var(--hot)"></i>pronóstico a 1-12 meses</span></div>
+          <div>
+            <div class="plot-label"><span>Peso de y_(T−j) en el nivel ℓ_T · j = meses atrás</span><span id="holt-age">–</span></div>
+            <canvas class="plot" id="holt-cw" height="150" aria-label="Pesos exponenciales que recibe cada observación pasada"></canvas>
+          </div>
+          <div class="readout">
+            <div><span>RMSE a un paso (ajuste)</span><b id="holt-rmse">–</b></div>
+            <div><span>MAE en los 12 de prueba</span><b id="holt-mae">–</b></div>
+            <div><span>nivel final ℓ_T</span><b id="holt-l">–</b></div>
+            <div><span>pendiente final b_T</span><b id="holt-b">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con la serie de solo nivel, el SES basta. Pasa a “Tendencia”: el SES queda siempre por debajo y Holt lo corrige. Con estacionalidad, solo Holt-Winters sigue la ola. Prueba α = 1 en SES: es el pronóstico ingenuo. Baja φ con Holt y mira cómo se aplana el pronóstico.</figcaption>
+      </figure>
+
+      <h2 id="holt-ets"><span class="sec">§ 6</span>El marco ETS: de método a modelo</h2>
+      <p>Hasta aquí tienes <b>métodos</b>: recetas que producen un pronóstico puntual. Hyndman, Koehler, Snyder y Grose (2002) mostraron que cada uno corresponde a un <b>modelo de espacio de estados</b> con una ecuación de observación y ecuaciones de transición. Así se gana verosimilitud, criterios de información e intervalos de pronóstico. El nombre ETS resume los tres componentes: <b>E</b>rror, <b>T</b>endencia (trend) y e<b>S</b>tacionalidad, cada uno con sus opciones: N (ninguno), A (aditivo), Ad (aditivo amortiguado) o M (multiplicativo).</p>
+      <div class="eq">\[ \text{ETS(A,N,N)}:\quad y_t = \ell_{t-1} + \varepsilon_t, \qquad \ell_t = \ell_{t-1} + \alpha\, \varepsilon_t, \qquad \varepsilon_t \sim \mathcal{N}(0, \sigma^2) \text{ i.i.d.} \]
+        <div class="note">Es el SES con errores aditivos: el error de pronóstico a un paso es justamente \(\varepsilon_t\). La versión ETS(M,N,N) usa \(y_t = \ell_{t-1}(1 + \varepsilon_t)\): da el <b>mismo pronóstico puntual</b>, pero intervalos distintos, porque el ruido crece con el nivel.</div>
+      </div>
+      <p>Con el modelo puedes calcular cuánto se abre la incertidumbre. Para ETS(A,N,N), el error a \(h\) pasos es \(\varepsilon_{T+h} + \alpha(\varepsilon_{T+1} + \dots + \varepsilon_{T+h-1})\), de modo que</p>
+      <div class="eq">\[ \operatorname{Var}(y_{T+h} - \hat y_{T+h\mid T}) = \sigma^2\left[\,1 + \alpha^2 (h-1)\,\right], \qquad \text{IC 95 \%: } \ \ell_T \pm 1{,}96\,\sigma\sqrt{1 + \alpha^2(h-1)} \]
+        <div class="note">Con \(\alpha = 1\) queda \(\sigma\sqrt h\), el intervalo del paseo aleatorio. Con \(\alpha\) pequeño casi no crece: la serie se parece a ruido alrededor de un nivel fijo.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Modelo ETS</th><th>Método equivalente</th><th>Cuándo usarlo</th></tr></thead>
+        <tbody>
+          <tr><td>ETS(A,N,N)</td><td>SES</td><td>Sin tendencia ni estación</td></tr>
+          <tr><td>ETS(A,A,N)</td><td>Holt</td><td>Tendencia lineal</td></tr>
+          <tr><td>ETS(A,Ad,N)</td><td>Holt amortiguado</td><td>Tendencia que debería frenarse</td></tr>
+          <tr><td>ETS(A,A,A)</td><td>Holt-Winters aditivo</td><td>Estación de amplitud fija</td></tr>
+          <tr><td>ETS(M,A,M)</td><td>Holt-Winters multiplicativo</td><td>Estación que crece con el nivel</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Selección de modelo.</b> Como todos se estiman por máxima verosimilitud sobre los mismos datos, puedes compararlos con el AIC corregido, \(\text{AICc} = -2\log L + 2k + \frac{2k(k+1)}{T-k-1}\), donde \(k\) cuenta parámetros de suavizado y estados iniciales. A diferencia de lo que pasará con ARIMA, aquí sí puedes comparar modelos con y sin tendencia o estacionalidad, porque ninguno transforma la serie. <code>ets()</code> en R hace esa búsqueda automáticamente; en Python, <code>ETSModel</code> de statsmodels ajusta el modelo que le indiques.</p>
+      <div class="callout"><b>Para recordar:</b> los modelos con error multiplicativo exigen datos estrictamente positivos, y combinaciones como error aditivo con estación multiplicativa son numéricamente inestables y se suelen excluir. Si tu serie tiene ceros (ventas de un repuesto raro), el suavizamiento exponencial clásico no es la herramienta: busca métodos para demanda intermitente, como el de Croston.</div>
+
+      <h2 id="holt-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
+      <p>Un hotel registra las noches vendidas por mes durante 8 años. La serie crece, el nivel deriva un poco y el pico de temporada alta es más grande cada año. Ajustamos los cuatro métodos con los primeros 84 meses, los evaluamos en los últimos 12 y luego estimamos el modelo ETS con intervalos.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> statsmodels.tsa.holtwinters <span class="k">import</span> SimpleExpSmoothing, ExponentialSmoothing
+<span class="k">from</span> statsmodels.tsa.exponential_smoothing.ets <span class="k">import</span> ETSModel
+
+<span class="c"># 96 meses de noches vendidas en un hotel: tendencia y estacionalidad multiplicativa</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
+t = np.<span class="f">arange</span>(<span class="n">96</span>)
+nivel = <span class="n">500</span> + <span class="n">4</span> * t + np.<span class="f">cumsum</span>(rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">8</span>, <span class="n">96</span>))   <span class="c"># nivel que deriva</span>
+noches = nivel * (<span class="n">1</span> + <span class="n">0.25</span> * np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * t / <span class="n">12</span>)) * rng.<span class="f">normal</span>(<span class="n">1</span>, <span class="n">0.03</span>, <span class="n">96</span>)
+y = pd.<span class="f">Series</span>(noches, index=pd.<span class="f">date_range</span>(<span class="s">"2017-01-01"</span>, periods=<span class="n">96</span>, freq=<span class="s">"MS"</span>))
+train, test = y[:-<span class="n">12</span>], y[-<span class="n">12</span>:]
+
+modelos = {
+    <span class="s">"SES"</span>: <span class="f">SimpleExpSmoothing</span>(train, initialization_method=<span class="s">"estimated"</span>),
+    <span class="s">"Holt amortiguado"</span>: <span class="f">ExponentialSmoothing</span>(train, trend=<span class="s">"add"</span>, damped_trend=<span class="k">True</span>,
+                                             initialization_method=<span class="s">"estimated"</span>),
+    <span class="s">"HW aditivo"</span>: <span class="f">ExponentialSmoothing</span>(train, trend=<span class="s">"add"</span>, seasonal=<span class="s">"add"</span>,
+                                       seasonal_periods=<span class="n">12</span>, initialization_method=<span class="s">"estimated"</span>),
+    <span class="s">"HW multiplicativo"</span>: <span class="f">ExponentialSmoothing</span>(train, trend=<span class="s">"add"</span>, seasonal=<span class="s">"mul"</span>,
+                                              seasonal_periods=<span class="n">12</span>, initialization_method=<span class="s">"estimated"</span>),
+}
+<span class="k">for</span> nombre, m <span class="k">in</span> modelos.<span class="f">items</span>():
+    ajuste = m.<span class="f">fit</span>()
+    pron = ajuste.<span class="f">forecast</span>(<span class="n">12</span>)
+    mae = np.<span class="f">mean</span>(np.<span class="f">abs</span>(test - pron))
+    <span class="f">print</span>(f<span class="s">"{nombre:18s} alpha={ajuste.params['smoothing_level']:.2f}  MAE={mae:6.1f}"</span>)
+<span class="c"># SES y Holt ≈ 137 de MAE: ignoran la estacionalidad</span>
+<span class="c"># HW aditivo ≈ 36 · HW multiplicativo ≈ 21: el patrón crece con el nivel</span>
+
+<span class="c"># Marco ETS: modelo estadístico con verosimilitud e intervalos</span>
+ets = <span class="f">ETSModel</span>(train, error=<span class="s">"mul"</span>, trend=<span class="s">"add"</span>, seasonal=<span class="s">"mul"</span>,
+               seasonal_periods=<span class="n">12</span>).<span class="f">fit</span>(disp=<span class="k">False</span>)
+<span class="f">print</span>(<span class="f">dict</span>(<span class="f">zip</span>(ets.param_names[:<span class="n">3</span>], ets.params[:<span class="n">3</span>].<span class="f">round</span>(<span class="n">3</span>))))
+<span class="f">print</span>(<span class="s">"AIC:"</span>, <span class="f">round</span>(ets.aic, <span class="n">1</span>))          <span class="c"># α ≈ 0.38, β y γ ≈ 0</span>
+pred = ets.<span class="f">get_prediction</span>(start=test.index[<span class="n">0</span>], end=test.index[-<span class="n">1</span>])
+<span class="f">print</span>(pred.<span class="f">summary_frame</span>(alpha=<span class="n">0.05</span>).<span class="f">head</span>(<span class="n">3</span>))   <span class="c"># media e intervalo al 95 %</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(forecast)
+<span class="f">set.seed</span>(<span class="n">7</span>)
+t &lt;- <span class="n">0</span>:<span class="n">95</span>
+nivel  &lt;- <span class="n">500</span> + <span class="n">4</span> * t + <span class="f">cumsum</span>(<span class="f">rnorm</span>(<span class="n">96</span>, <span class="n">0</span>, <span class="n">8</span>))     <span class="c"># nivel que deriva</span>
+noches &lt;- nivel * (<span class="n">1</span> + <span class="n">0.25</span> * <span class="f">sin</span>(<span class="n">2</span> * pi * t / <span class="n">12</span>)) * <span class="f">rnorm</span>(<span class="n">96</span>, <span class="n">1</span>, <span class="n">0.03</span>)
+y &lt;- <span class="f">ts</span>(noches, start = <span class="f">c</span>(<span class="n">2017</span>, <span class="n">1</span>), frequency = <span class="n">12</span>)
+train &lt;- <span class="f">window</span>(y, end = <span class="f">c</span>(<span class="n">2023</span>, <span class="n">12</span>))
+test  &lt;- <span class="f">window</span>(y, start = <span class="f">c</span>(<span class="n">2024</span>, <span class="n">1</span>))
+
+pron &lt;- <span class="f">list</span>(
+  SES  = <span class="f">ses</span>(train, h = <span class="n">12</span>),
+  Holt = <span class="f">holt</span>(train, h = <span class="n">12</span>, damped = <span class="k">TRUE</span>),
+  HWa  = <span class="f">hw</span>(train, seasonal = <span class="s">"additive"</span>, h = <span class="n">12</span>),
+  HWm  = <span class="f">hw</span>(train, seasonal = <span class="s">"multiplicative"</span>, h = <span class="n">12</span>)
+)
+<span class="f">sapply</span>(pron, <span class="k">function</span>(f) <span class="f">accuracy</span>(f, test)[<span class="s">"Test set"</span>, <span class="s">"MAE"</span>])
+
+<span class="c"># Marco ETS: elige error, tendencia y estacionalidad por AICc</span>
+ajuste &lt;- <span class="f">ets</span>(train)
+<span class="f">summary</span>(ajuste)                       <span class="c"># modelo elegido, alpha, beta, gamma, AICc</span>
+f &lt;- <span class="f">forecast</span>(ajuste, h = <span class="n">12</span>, level = <span class="n">95</span>)
+<span class="f">plot</span>(f); <span class="f">lines</span>(test, col = <span class="s">"red"</span>)
+
+<span class="c"># Versión de base R, sin paquetes</span>
+hw_base &lt;- <span class="f">HoltWinters</span>(train, seasonal = <span class="s">"multiplicative"</span>)
+<span class="f">c</span>(hw_base$alpha, hw_base$beta, hw_base$gamma)</code></pre>
+</div>
+      <p>Qué deberías ver: SES y Holt tienen errores enormes porque ignoran la estacionalidad (el \(\alpha\) del SES se va a 1, persiguiendo cada subida). Holt-Winters multiplicativo gana con claridad al aditivo, como era de esperar con una ola que crece. En el modelo ETS, \(\beta\) y \(\gamma\) estimados casi en cero dicen que la pendiente y el patrón estacional son estables; \(\alpha \approx 0{,}4\) recoge la deriva del nivel. Los intervalos al 95 % se ensanchan con el horizonte.</p>
+
+      <h2 id="holt-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="El dato de hace j períodos pesa α(1 − α)^j. Con j = 2: 0,25 × 0,75² = 0,25 × 0,5625 ≈ 0,141." data-wrong="Escribe el nivel como promedio ponderado: el peso de y_(T−j) es α(1 − α)^j. Aquí j = 2.">
+        <h3>En un SES con α = 0,25, ¿cuánto pesa en el nivel ℓ_T la observación de hace dos períodos, y_(T−2)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,25</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,1875</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>0,1406</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>0,0625</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Hay tendencia y una ola estacional cuya amplitud crece con el nivel: eso pide nivel, pendiente y factores estacionales multiplicativos." data-wrong="Fíjate en dos cosas: si la serie tiene pendiente y si la oscilación de diciembre se mantiene o crece a medida que sube la serie.">
+        <h3>Las ventas mensuales de una tienda crecen año a año y el pico de diciembre es cada vez más alto. ¿Qué método encaja mejor?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Holt-Winters multiplicativo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Suavizamiento exponencial simple</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Holt sin componente estacional</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Holt-Winters aditivo con γ = 0</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La suma φ + φ² + … tiende a φ/(1 − φ) = 0,9/0,1 = 9. A muy largo plazo la tendencia aporta 9 × 10 = 90 unidades y luego el pronóstico se aplana." data-wrong="Con tendencia amortiguada el aporte de la pendiente es (φ + φ² + … + φ^h)·b_T. ¿A qué valor converge esa serie geométrica cuando h crece?">
+        <h3>Un Holt amortiguado tiene φ = 0,9 y pendiente final b_T = 10. ¿Cuánto suma la tendencia al pronóstico a horizonte muy largo?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>10</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Crece sin límite</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>100</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>90</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="holt-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Resuélvelos a mano primero. El laboratorio te sirve para comprobar la intuición de los dos últimos.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>La cafetería gastó 50, 54, 49 y 58 litros de leche en cuatro semanas. Con SES, \(\alpha = 0{,}4\) y \(\ell_0 = 50\), calcula los niveles \(\ell_1, \dots, \ell_4\), los errores a un paso y el pronóstico para las semanas 5 y 6.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con la forma de corrección del error \(\ell_t = \ell_{t-1} + 0{,}4\,e_t\):</p>
+            <ul>
+              <li>\(e_1 = 50 - 50 = 0\), \(\ell_1 = 50\)</li>
+              <li>\(e_2 = 54 - 50 = 4\), \(\ell_2 = 50 + 1{,}6 = 51{,}6\)</li>
+              <li>\(e_3 = 49 - 51{,}6 = -2{,}6\), \(\ell_3 = 51{,}6 - 1{,}04 = 50{,}56\)</li>
+              <li>\(e_4 = 58 - 50{,}56 = 7{,}44\), \(\ell_4 = 50{,}56 + 2{,}976 = 53{,}536\)</li>
+            </ul>
+            <p>El pronóstico es plano: \(\hat y_5 = \hat y_6 \approx\) <b>53,5 litros</b>.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un método de Holt terminó con \(\ell_T = 120\) y \(b_T = 3\). (a) Pronostica a 1 y 6 períodos. (b) Repite con tendencia amortiguada, \(\phi = 0{,}9\), usando los mismos \(\ell_T\) y \(b_T\). (c) ¿A qué valor tiende el pronóstico amortiguado a largo plazo?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\hat y_{T+1} = 120 + 3 = 123\) y \(\hat y_{T+6} = 120 + 18 = 138\).</p>
+            <p>(b) \(\hat y_{T+1} = 120 + 0{,}9 \cdot 3 = 122{,}7\). Para \(h = 6\): \(\sum_{j=1}^{6} 0{,}9^j = 0{,}9 + 0{,}81 + 0{,}729 + 0{,}6561 + 0{,}5905 + 0{,}5314 \approx 4{,}217\), así que \(\hat y_{T+6} \approx 120 + 12{,}65 = 132{,}65\).</p>
+            <p>(c) \(120 + \frac{0{,}9}{0{,}1}\cdot 3 = 120 + 27 = \) <b>147</b>. El Holt sin amortiguar seguiría subiendo 3 por período indefinidamente.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Un Holt-Winters mensual termina en diciembre con \(\ell_T = 200\) y \(b_T = 2\). Los factores estacionales multiplicativos del último año son 0,85 para enero y 1,30 para julio. (a) Pronostica enero (\(h = 1\)) y julio (\(h = 7\)). (b) Un colega ajustó un modelo aditivo con índices −30 y +60 para esos meses y los mismos \(\ell_T, b_T\). Compara. (c) ¿Qué pasaría con ambos pronósticos de julio dentro de cinco años si el nivel se duplica?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Enero: \((200 + 2)\cdot 0{,}85 = 171{,}7\). Julio: \((200 + 14)\cdot 1{,}30 = 278{,}2\).</p>
+            <p>(b) Aditivo: enero \(202 - 30 = 172\), julio \(214 + 60 = 274\). A este nivel son casi iguales: el factor 1,30 sobre 214 equivale a sumar 64,2.</p>
+            <p>(c) Con el nivel en torno a 400, el multiplicativo pronostica un julio de unos \(400 \cdot 1{,}30 = 520\) (120 por encima del nivel), mientras que el aditivo sigue sumando 60 (460). Si la ola real crece con el nivel, el aditivo se queda cada vez más corto: por eso la elección importa más a largo plazo.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>(a) Usando ETS(A,N,N), demuestra que la primera diferencia \(y_t - y_{t-1}\) sigue un MA(1), \(\varepsilon_t + \theta\,\varepsilon_{t-1}\), y encuentra \(\theta\) en función de \(\alpha\). ¿Qué modelo ARIMA es entonces el SES? (b) Con \(\alpha = 0{,}3\), \(\sigma = 12\) y \(\ell_T = 400\), calcula los intervalos al 95 % para \(h = 1\) y \(h = 10\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) De \(y_t = \ell_{t-1} + \varepsilon_t\) y \(y_{t-1} = \ell_{t-2} + \varepsilon_{t-1}\), restando: \(y_t - y_{t-1} = (\ell_{t-1} - \ell_{t-2}) + \varepsilon_t - \varepsilon_{t-1}\). Como \(\ell_{t-1} - \ell_{t-2} = \alpha\,\varepsilon_{t-1}\):</p>
+            <div class="eq">\[ y_t - y_{t-1} = \varepsilon_t - (1 - \alpha)\,\varepsilon_{t-1} \quad\Longrightarrow\quad \theta = \alpha - 1 \]</div>
+            <p>El SES es un <b>ARIMA(0,1,1)</b> con \(\theta = \alpha - 1\). Con \(\alpha = 0{,}3\), \(\theta = -0{,}7\). Volverás a esta equivalencia en la sesión de ARIMA.</p>
+            <p>(b) \(h = 1\): \(400 \pm 1{,}96 \cdot 12 = 400 \pm 23{,}5\), es decir \([376{,}5;\ 423{,}5]\). \(h = 10\): la desviación es \(12\sqrt{1 + 0{,}09 \cdot 9} = 12\sqrt{1{,}81} \approx 16{,}14\), y el intervalo \(400 \pm 31{,}6\), es decir \([368{,}4;\ 431{,}6]\). El pronóstico puntual no cambia, pero el intervalo se abre.</p>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

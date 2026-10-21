@@ -1,0 +1,331 @@
+<!-- StatEdx · sesión: ttest -->
+<div id="view-ttest" data-view="ttest" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Pruebas t para una y dos medias</h1>
+      <p>¿La app de reparto tarda más de lo que promete? ¿El método nuevo de estudio sube las notas? ¿El tratamiento baja la presión? Las tres preguntas comparan medias con pocos datos y σ desconocida, y las tres se responden con la misma herramienta: la prueba t, en sus versiones para una muestra, dos muestras independientes y muestras pareadas.</p>
+      <div class="lmeta"><span>50 min</span><span>Nivel intermedio</span><span>Requiere: pruebas de hipótesis</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#ttest-idea" data-sec="ttest-idea">La idea</a></li>
+        <li><a href="#ttest-dist" data-sec="ttest-dist">La distribución t</a></li>
+        <li><a href="#ttest-una" data-sec="ttest-una">Una muestra</a></li>
+        <li><a href="#ttest-dos" data-sec="ttest-dos">Dos muestras independientes</a></li>
+        <li><a href="#ttest-par" data-sec="ttest-par">Muestras pareadas</a></li>
+        <li><a href="#ttest-lab" data-sec="ttest-lab">Laboratorio</a></li>
+        <li><a href="#ttest-efecto" data-sec="ttest-efecto">Tamaño del efecto</a></li>
+        <li><a href="#ttest-supuestos" data-sec="ttest-supuestos">Supuestos y errores comunes</a></li>
+        <li><a href="#ttest-code" data-sec="ttest-code">En R y Python</a></li>
+        <li><a href="#ttest-quiz" data-sec="ttest-quiz">Comprueba</a></li>
+        <li><a href="#ttest-ej" data-sec="ttest-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="ttest-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una app de reparto promete entregas en 30 minutos. Pides comida 10 veces y cronometras: 32, 35, 29, 38, 31, 34, 36, 30, 33 y 37 minutos. El promedio es 33,5. ¿La app incumple su promesa, o tuviste mala suerte con esas 10 entregas?</p>
+      <p>Para responder necesitas comparar la diferencia observada (3,5 minutos) con lo que cabría esperar por puro azar. El problema es que no conoces la desviación típica \(\sigma\) de todos los tiempos de entrega: solo tienes la de tu muestra. Esa incertidumbre extra es justamente lo que resuelve la prueba t, que aparece en tres situaciones:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Situación</th><th>Pregunta</th><th>Ejemplo de esta clase</th></tr></thead>
+        <tbody>
+          <tr><td><b>Una muestra</b></td><td>¿La media es igual a un valor de referencia \(\mu_0\)?</td><td>Tiempos de entrega frente a los 30 minutos prometidos</td></tr>
+          <tr><td><b>Dos muestras independientes</b></td><td>¿Dos grupos distintos tienen la misma media?</td><td>Notas con clase tradicional frente a clase con práctica</td></tr>
+          <tr><td><b>Muestras pareadas</b></td><td>¿Cambia la media en las mismas unidades medidas dos veces?</td><td>Presión arterial de 8 pacientes antes y después de un tratamiento</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>La pregunta de fondo siempre es la misma:</b> ¿la diferencia entre lo observado y lo esperado es grande comparada con su error estándar? La prueba t mide esa diferencia en “errores estándar” y la compara con la distribución t.</div>
+
+      <h2 id="ttest-dist"><span class="sec">§ 2</span>La distribución t</h2>
+      <p>Si conocieras \(\sigma\), el estadístico \(z = (\bar x - \mu_0)/(\sigma/\sqrt n)\) seguiría una normal estándar. Como no la conoces, la reemplazas por la desviación típica muestral \(s\). Ese cambio tiene un costo: \(s\) también varía de muestra en muestra, así que el cociente varía más que una normal.</p>
+      <div class="eq">\[ t = \frac{\bar x - \mu_0}{s/\sqrt{n}} \;\sim\; t_{n-1} \quad\text{bajo } H_0, \qquad s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)^2} \]
+        <div class="note">William Gosset la publicó en 1908 con el seudónimo “Student” mientras controlaba la calidad de la cerveza en Guinness, donde las muestras eran pequeñas. Supone que los datos vienen de una población normal.</div>
+      </div>
+      <p>La distribución \(t\) tiene forma de campana, es simétrica alrededor de 0 y tiene <b>colas más pesadas</b> que la normal. Su único parámetro son los <b>grados de libertad</b> (gl), que en una muestra valen \(n - 1\): estimar la media “gasta” un grado de libertad. Con más datos, \(s\) se parece cada vez más a \(\sigma\) y la t se acerca a la normal:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>gl</th><td>2</td><td>5</td><td>10</td><td>30</td><td>∞ (normal)</td></tr></thead>
+        <tbody><tr><th>\(t_{0{,}025}\)</th><td>4,303</td><td>2,571</td><td>2,228</td><td>2,042</td><td>1,960</td></tr></tbody>
+      </table></div>
+      <p>Con muestras pequeñas el valor crítico es bastante mayor que 1,96: hace falta más evidencia para rechazar, que es la forma honesta de pagar por no conocer \(\sigma\).</p>
+
+      <h2 id="ttest-una"><span class="sec">§ 3</span>Prueba t para una muestra</h2>
+      <p>Planteas \(H_0: \mu = \mu_0\) frente a \(H_1: \mu \neq \mu_0\) (bilateral) o \(H_1: \mu &gt; \mu_0\) (unilateral, solo si la dirección se decidió antes de ver los datos). Con los 10 tiempos de entrega y \(\mu_0 = 30\):</p>
+      <div class="eq">\[ \bar x = 33{,}5,\quad s = 3{,}03,\quad SE = \frac{3{,}03}{\sqrt{10}} = 0{,}957,\qquad t = \frac{33{,}5 - 30}{0{,}957} = 3{,}66 \text{ con } 9 \text{ gl} \]
+        <div class="note">El valor p bilateral es \(P(|T_9| \ge 3{,}66) = 0{,}0053\). Como \(3{,}66 &gt; t_{0{,}025;\,9} = 2{,}262\), se rechaza \(H_0\) con \(\alpha = 0{,}05\).</div>
+      </div>
+      <p>El intervalo de confianza del 95 % para la media usa el mismo cuantil y cuenta la historia completa:</p>
+      <div class="eq">\[ \bar x \pm t_{\alpha/2,\,n-1}\,\frac{s}{\sqrt n} = 33{,}5 \pm 2{,}262 \cdot 0{,}957 = [31{,}3;\ 35{,}7] \text{ minutos} \]
+        <div class="note">El 30 queda fuera del intervalo, lo que equivale a rechazar \(H_0\) al 5 % en la prueba bilateral. Además el intervalo dice cuánto se pasa la app: entre 1,3 y 5,7 minutos en promedio.</div>
+      </div>
+
+      <h2 id="ttest-dos"><span class="sec">§ 4</span>Dos muestras independientes: Student y Welch</h2>
+      <p>Una escuela compara dos formas de enseñar el mismo tema. Un grupo de 12 estudiantes recibe clase tradicional y otro de 10 recibe clase con práctica guiada. Los grupos son distintas personas, así que las muestras son <b>independientes</b>.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Grupo</th><th>n</th><th>Media</th><th>Desv. típica</th></tr></thead>
+        <tbody>
+          <tr><td>Tradicional: 68, 72, 61, 75, 70, 66, 73, 64, 69, 71, 62, 67</td><td>12</td><td>68,17</td><td>4,37</td></tr>
+          <tr><td>Con práctica: 74, 80, 69, 85, 77, 72, 88, 76, 79, 70</td><td>10</td><td>77,00</td><td>6,20</td></tr>
+        </tbody>
+      </table></div>
+      <p>La hipótesis nula es \(H_0: \mu_1 = \mu_2\). El estadístico siempre tiene la forma “diferencia de medias entre su error estándar”; lo que cambia es cómo se estima ese error estándar.</p>
+      <p><b>Student (varianzas iguales).</b> Si supones \(\sigma_1 = \sigma_2\), combinas ambas muestras en una varianza agrupada:</p>
+      <div class="eq">\[ s_p^2 = \frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1+n_2-2}, \qquad t = \frac{\bar x_1 - \bar x_2}{s_p\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}} \sim t_{n_1+n_2-2} \]
+        <div class="note">En el ejemplo, \(s_p = 5{,}27\), \(t = 8{,}83/2{,}26 = 3{,}91\) con 20 gl y \(p = 0{,}0009\).</div>
+      </div>
+      <p><b>Welch (varianzas distintas).</b> No supone nada sobre las varianzas: cada grupo aporta su propio error, y los grados de libertad se aproximan con la fórmula de Welch-Satterthwaite (casi nunca son enteros):</p>
+      <div class="eq">\[ t = \frac{\bar x_1 - \bar x_2}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}}, \qquad \nu = \frac{\left(\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}\right)^2}{\frac{(s_1^2/n_1)^2}{n_1-1}+\frac{(s_2^2/n_2)^2}{n_2-1}} \]
+        <div class="note">En el ejemplo, \(SE = \sqrt{4{,}37^2/12 + 6{,}20^2/10} = 2{,}33\), \(t = 8{,}83/2{,}33 = 3{,}79\), \(\nu = 15{,}8\) y \(p = 0{,}0016\). IC 95 % para la diferencia: \([3{,}9;\ 13{,}8]\) puntos.</div>
+      </div>
+      <div class="callout"><b>Usa Welch por defecto.</b> Cuando las varianzas son iguales, Welch pierde muy poca potencia frente a Student. Cuando no lo son, y sobre todo si además los tamaños de los grupos difieren, Student puede dar valores p muy equivocados. Por eso R usa Welch en <code>t.test()</code> salvo que pidas <code>var.equal = TRUE</code>. Hacer antes una prueba de igualdad de varianzas para decidir no es buena práctica: añade un paso con sus propios errores.</div>
+
+      <h2 id="ttest-par"><span class="sec">§ 5</span>Muestras pareadas</h2>
+      <p>Ahora mides la presión sistólica de 8 pacientes antes y después de un mes de tratamiento. Cada paciente aparece dos veces: las mediciones están <b>emparejadas</b>. El truco es trabajar con las diferencias \(d_i = \text{antes}_i - \text{después}_i\) y aplicar una prueba t de una muestra sobre ellas.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Paciente</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td></tr></thead>
+        <tbody>
+          <tr><th>Antes</th><td>148</td><td>142</td><td>155</td><td>139</td><td>160</td><td>151</td><td>145</td><td>158</td></tr>
+          <tr><th>Después</th><td>141</td><td>140</td><td>146</td><td>136</td><td>151</td><td>147</td><td>143</td><td>149</td></tr>
+          <tr><th>\(d_i\)</th><td>7</td><td>2</td><td>9</td><td>3</td><td>9</td><td>4</td><td>2</td><td>9</td></tr>
+        </tbody>
+      </table></div>
+      <div class="eq">\[ t = \frac{\bar d - 0}{s_d/\sqrt n} = \frac{5{,}625}{3{,}20/\sqrt 8} = 4{,}97 \text{ con } 7 \text{ gl},\qquad p = 0{,}0016 \]
+        <div class="note">IC 95 % para la reducción media: \(5{,}625 \pm 2{,}365 \cdot 1{,}133 = [2{,}9;\ 8{,}3]\) mmHg.</div>
+      </div>
+      <p>¿Y si te equivocas y tratas las dos columnas como grupos independientes? Obtienes \(t = 1{,}75\) y \(p = 0{,}10\): ¡no significativo! La razón está en la varianza de una diferencia:</p>
+      <div class="eq">\[ \operatorname{Var}(X_1 - X_2) = \sigma_1^2 + \sigma_2^2 - 2\rho\,\sigma_1\sigma_2 \]
+        <div class="note">Los pacientes difieren mucho entre sí (de 139 a 160), pero cada uno se parece mucho a sí mismo: la correlación antes-después es \(\rho = 0{,}95\). Restar elimina la variabilidad entre personas y deja solo el cambio, que es lo que interesa.</div>
+      </div>
+      <div class="callout"><b>El diseño decide la prueba, no los datos.</b> Pareado significa que cada observación de un grupo tiene una pareja natural en el otro: la misma persona, gemelos, el mismo terreno dividido en dos parcelas, el mismo producto en dos tiendas. Si las parejas existen, ignorarlas desperdicia información; si no existen, inventarlas es un error.</div>
+
+      <h2 id="ttest-lab"><span class="sec">§ 6</span>Laboratorio</h2>
+      <p>Genera dos grupos con una diferencia real \(\Delta\) entre sus medias. A la izquierda ves los datos y sus medias; a la derecha, la distribución t bajo \(H_0\) con el estadístico observado y las colas que forman el valor p. Cambia el diseño para comparar Welch, Student y la prueba pareada con los mismos ingredientes.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · prueba t</span><span class="num" id="ttest-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="ttest-design-label">DISEÑO</label>
+              <div class="seg" id="ttest-design" role="group" aria-labelledby="ttest-design-label">
+                <button data-d="welch" aria-pressed="true">Welch</button>
+                <button data-d="student" aria-pressed="false">Student</button>
+                <button data-d="par" aria-pressed="false">Pareada</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="ttest-delta">DIFERENCIA REAL · Δ = <b id="ttest-delta-v" class="num">4</b></label><input id="ttest-delta" type="range" min="0" max="15" step="0.5" value="4"></div>
+            <div class="ctrl"><label for="ttest-sd">DESVIACIÓN DEL GRUPO A · σ = <b id="ttest-sd-v" class="num">6</b></label><input id="ttest-sd" type="range" min="1" max="15" step="0.5" value="6"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="ttest-k">σ DE B / σ DE A = <b id="ttest-k-v" class="num">1,0</b></label><input id="ttest-k" type="range" min="0.5" max="3" step="0.1" value="1"></div>
+            <div class="ctrl"><label for="ttest-na">TAMAÑO A · n = <b id="ttest-na-v" class="num">10</b></label><input id="ttest-na" type="range" min="3" max="60" value="10"></div>
+            <div class="ctrl"><label for="ttest-nb">TAMAÑO B · n = <b id="ttest-nb-v" class="num">10</b></label><input id="ttest-nb" type="range" min="3" max="60" value="10"></div>
+            <div class="ctrl"><label for="ttest-rho">CORRELACIÓN DEL PAR · ρ = <b id="ttest-rho-v" class="num">0,80</b></label><input id="ttest-rho" type="range" min="0" max="0.98" step="0.02" value="0.8"></div>
+            <button class="btn btn-ghost btn-sm" id="ttest-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Datos de cada grupo</span><span id="ttest-lbl">— media</span></div>
+              <canvas class="plot" id="ttest-c-data" height="250" aria-label="Puntos de los grupos A y B con sus medias"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Distribución t bajo H₀</span><span id="ttest-lbl-t">gl = –</span></div>
+              <canvas class="plot" id="ttest-c-t" height="250" aria-label="Distribución t con el estadístico observado y las colas del valor p sombreadas"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>grupo A y curva t</span><span><i style="background:var(--hot)"></i>grupo B, t observado y valor p</span><span><i style="background:var(--muted)"></i>valores críticos al 5 %</span></div>
+          <div class="readout">
+            <div><span>estadístico t</span><b id="ttest-r-t">–</b></div>
+            <div><span>grados de libertad</span><b id="ttest-r-df">–</b></div>
+            <div><span>valor p bilateral</span><b id="ttest-r-p">–</b></div>
+            <div><span>tamaño del efecto d</span><b id="ttest-r-d">–</b></div>
+          </div>
+        </div>
+        <figcaption>Pon Δ = 4, σ = 10 y ρ = 0,9. En “Welch” el valor p suele ser grande; cambia a “Pareada” con los mismos datos y mira cómo se dispara t. Después elige n de A = 40, n de B = 5 y σ de B / σ de A = 3: Student y Welch dejan de coincidir, y Student es el que se equivoca.</figcaption>
+      </figure>
+
+      <h2 id="ttest-efecto"><span class="sec">§ 7</span>Tamaño del efecto e intervalos</h2>
+      <p>El valor p responde “¿hay evidencia de alguna diferencia?”, pero no “¿es grande?”. Con miles de datos, una diferencia de 0,3 puntos en un examen sale significativa aunque no le importe a nadie. Por eso siempre reportas también el <b>tamaño del efecto</b> y el intervalo de confianza de la diferencia.</p>
+      <div class="eq">\[ d = \frac{\bar x_1 - \bar x_2}{s_p}, \qquad g = d\left(1 - \frac{3}{4(n_1+n_2)-9}\right), \qquad d_z = \frac{\bar d}{s_d} \ \ \text{(pareado)} \]
+        <div class="note">La \(d\) de Cohen mide la diferencia en desviaciones típicas. La \(g\) de Hedges corrige el leve sesgo de \(d\) en muestras pequeñas. En el ejemplo de las clases, \(d = 8{,}83/5{,}27 = 1{,}68\) y \(g = 1{,}61\); en el pareado, \(d_z = 5{,}625/3{,}20 = 1{,}76\).</div>
+      </div>
+      <p>Como referencia muy general, Cohen propuso 0,2 (pequeño), 0,5 (mediano) y 0,8 (grande). Úsalo con criterio: en medicina, un efecto de 0,2 sobre la mortalidad puede ser enorme, y en educación un efecto de 1,7 como el del ejemplo sería sospechosamente bueno y pediría replicar el estudio. Ojo también con comparar \(d\) y \(d_z\): miden cosas distintas, porque \(d_z\) depende de la correlación entre las mediciones.</p>
+      <p>Ese mismo tamaño del efecto es el que usas para planificar un estudio. Con \(\alpha = 0{,}05\) bilateral y potencia \(1-\beta\), el número aproximado de observaciones por grupo en dos muestras independientes es:</p>
+      <div class="eq">\[ n \approx \frac{2\,(z_{\alpha/2} + z_{\beta})^2}{d^2} \]
+        <div class="note">Para detectar \(d = 0{,}5\) con potencia del 80 %: \(n \approx 2(1{,}96 + 0{,}84)^2/0{,}25 \approx 63\) por grupo; el cálculo exacto con la t da 64.</div>
+      </div>
+
+      <h2 id="ttest-supuestos"><span class="sec">§ 8</span>Supuestos y errores comunes</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Supuesto</th><th>Qué pide</th><th>Qué tan grave es que falle</th><th>Alternativa</th></tr></thead>
+        <tbody>
+          <tr><td>Independencia</td><td>Observaciones independientes dentro de cada grupo (y entre grupos, salvo en el pareado)</td><td>Muy grave: los errores estándar salen demasiado pequeños</td><td>Modelos mixtos, datos agrupados, series de tiempo</td></tr>
+          <tr><td>Normalidad</td><td>Población normal (en el pareado, de las diferencias)</td><td>Leve con n ≥ 30 por el TLC, salvo asimetría extrema o atípicos fuertes</td><td>Wilcoxon (pareado), Mann-Whitney (independientes), bootstrap, transformar con log</td></tr>
+          <tr><td>Varianzas iguales</td><td>Solo para Student</td><td>Grave si además los tamaños son distintos</td><td>Welch</td></tr>
+          <tr><td>Escala</td><td>Variable cuantitativa donde la media tiene sentido</td><td>Con escalas ordinales cortas (1 a 5) la media se interpreta con cuidado</td><td>Pruebas de rangos, modelos ordinales</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li><b>Analizar como independientes datos pareados</b>: pierdes potencia, como viste con la presión arterial. El error contrario (parear datos independientes) es igual de malo.</li>
+        <li><b>Hacer muchas pruebas t para comparar varios grupos</b>: con 5 grupos hay 10 comparaciones y la probabilidad de algún falso positivo sube mucho. Para eso está el ANOVA, la siguiente sesión.</li>
+        <li><b>Leer “no significativo” como “son iguales”</b>: con n pequeño la prueba tiene poca potencia. Mira el intervalo: si va de −2 a 15 puntos, los datos son compatibles con una diferencia nula y también con una enorme.</li>
+        <li><b>Elegir la cola después de ver los datos</b>: pasar a una prueba unilateral porque la bilateral dio 0,08 es hacer trampa con el α.</li>
+      </ul>
+
+      <h2 id="ttest-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Las tres pruebas con los datos de la clase, con intervalos y tamaño del efecto.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="c"># 1) una muestra: tiempos de entrega frente a 30 minutos</span>
+entrega = np.<span class="f">array</span>([<span class="n">32</span>, <span class="n">35</span>, <span class="n">29</span>, <span class="n">38</span>, <span class="n">31</span>, <span class="n">34</span>, <span class="n">36</span>, <span class="n">30</span>, <span class="n">33</span>, <span class="n">37</span>])
+r1 = stats.<span class="f">ttest_1samp</span>(entrega, popmean=<span class="n">30</span>)
+<span class="f">print</span>(r1.statistic, r1.pvalue)             <span class="c"># ≈ 3.66  0.0053</span>
+<span class="f">print</span>(r1.<span class="f">confidence_interval</span>())           <span class="c"># ≈ (31.33, 35.67)</span>
+
+<span class="c"># 2) dos muestras independientes: Welch (equal_var=False) y Student</span>
+trad = np.<span class="f">array</span>([<span class="n">68</span>, <span class="n">72</span>, <span class="n">61</span>, <span class="n">75</span>, <span class="n">70</span>, <span class="n">66</span>, <span class="n">73</span>, <span class="n">64</span>, <span class="n">69</span>, <span class="n">71</span>, <span class="n">62</span>, <span class="n">67</span>])
+prac = np.<span class="f">array</span>([<span class="n">74</span>, <span class="n">80</span>, <span class="n">69</span>, <span class="n">85</span>, <span class="n">77</span>, <span class="n">72</span>, <span class="n">88</span>, <span class="n">76</span>, <span class="n">79</span>, <span class="n">70</span>])
+welch = stats.<span class="f">ttest_ind</span>(prac, trad, equal_var=<span class="k">False</span>)
+<span class="f">print</span>(welch.statistic, welch.df, welch.pvalue)   <span class="c"># ≈ 3.79  15.77  0.0016</span>
+<span class="f">print</span>(welch.<span class="f">confidence_interval</span>())             <span class="c"># ≈ (3.89, 13.78)</span>
+<span class="f">print</span>(stats.<span class="f">ttest_ind</span>(prac, trad).pvalue)         <span class="c"># Student ≈ 0.00086</span>
+
+<span class="c"># d de Cohen con la desviación agrupada</span>
+n1, n2 = <span class="f">len</span>(prac), <span class="f">len</span>(trad)
+sp = np.<span class="f">sqrt</span>(((n1 - <span class="n">1</span>) * prac.<span class="f">var</span>(ddof=<span class="n">1</span>) + (n2 - <span class="n">1</span>) * trad.<span class="f">var</span>(ddof=<span class="n">1</span>)) / (n1 + n2 - <span class="n">2</span>))
+<span class="f">print</span>((prac.<span class="f">mean</span>() - trad.<span class="f">mean</span>()) / sp)          <span class="c"># ≈ 1.68</span>
+
+<span class="c"># 3) pareada: presión antes y después</span>
+antes   = np.<span class="f">array</span>([<span class="n">148</span>, <span class="n">142</span>, <span class="n">155</span>, <span class="n">139</span>, <span class="n">160</span>, <span class="n">151</span>, <span class="n">145</span>, <span class="n">158</span>])
+despues = np.<span class="f">array</span>([<span class="n">141</span>, <span class="n">140</span>, <span class="n">146</span>, <span class="n">136</span>, <span class="n">151</span>, <span class="n">147</span>, <span class="n">143</span>, <span class="n">149</span>])
+r3 = stats.<span class="f">ttest_rel</span>(antes, despues)
+<span class="f">print</span>(r3.statistic, r3.pvalue)             <span class="c"># ≈ 4.97  0.0016</span>
+<span class="f">print</span>(r3.<span class="f">confidence_interval</span>())           <span class="c"># ≈ (2.95, 8.30)</span>
+<span class="f">print</span>(stats.<span class="f">ttest_ind</span>(antes, despues).pvalue)   <span class="c"># error típico: ≈ 0.10</span>
+
+<span class="c"># alternativa no paramétrica para el pareado</span>
+<span class="f">print</span>(stats.<span class="f">wilcoxon</span>(antes, despues).pvalue)</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># 1) una muestra: tiempos de entrega frente a 30 minutos</span>
+entrega &lt;- <span class="f">c</span>(<span class="n">32</span>, <span class="n">35</span>, <span class="n">29</span>, <span class="n">38</span>, <span class="n">31</span>, <span class="n">34</span>, <span class="n">36</span>, <span class="n">30</span>, <span class="n">33</span>, <span class="n">37</span>)
+<span class="f">t.test</span>(entrega, mu = <span class="n">30</span>)          <span class="c"># t ≈ 3.66, df = 9, p ≈ 0.0053, IC ≈ [31.33, 35.67]</span>
+
+<span class="c"># 2) dos muestras independientes: Welch es el valor por defecto</span>
+trad &lt;- <span class="f">c</span>(<span class="n">68</span>, <span class="n">72</span>, <span class="n">61</span>, <span class="n">75</span>, <span class="n">70</span>, <span class="n">66</span>, <span class="n">73</span>, <span class="n">64</span>, <span class="n">69</span>, <span class="n">71</span>, <span class="n">62</span>, <span class="n">67</span>)
+prac &lt;- <span class="f">c</span>(<span class="n">74</span>, <span class="n">80</span>, <span class="n">69</span>, <span class="n">85</span>, <span class="n">77</span>, <span class="n">72</span>, <span class="n">88</span>, <span class="n">76</span>, <span class="n">79</span>, <span class="n">70</span>)
+<span class="f">t.test</span>(prac, trad)                    <span class="c"># Welch: t ≈ 3.79, df ≈ 15.77, p ≈ 0.0016</span>
+<span class="f">t.test</span>(prac, trad, var.equal = <span class="k">TRUE</span>) <span class="c"># Student: t ≈ 3.91, df = 20, p ≈ 0.00086</span>
+
+<span class="c"># d de Cohen con la desviación agrupada</span>
+n1 &lt;- <span class="f">length</span>(prac); n2 &lt;- <span class="f">length</span>(trad)
+sp &lt;- <span class="f">sqrt</span>(((n1 - <span class="n">1</span>) * <span class="f">var</span>(prac) + (n2 - <span class="n">1</span>) * <span class="f">var</span>(trad)) / (n1 + n2 - <span class="n">2</span>))
+(<span class="f">mean</span>(prac) - <span class="f">mean</span>(trad)) / sp       <span class="c"># ≈ 1.68</span>
+
+<span class="c"># 3) pareada: presión antes y después</span>
+antes   &lt;- <span class="f">c</span>(<span class="n">148</span>, <span class="n">142</span>, <span class="n">155</span>, <span class="n">139</span>, <span class="n">160</span>, <span class="n">151</span>, <span class="n">145</span>, <span class="n">158</span>)
+despues &lt;- <span class="f">c</span>(<span class="n">141</span>, <span class="n">140</span>, <span class="n">146</span>, <span class="n">136</span>, <span class="n">151</span>, <span class="n">147</span>, <span class="n">143</span>, <span class="n">149</span>)
+<span class="f">t.test</span>(antes, despues, paired = <span class="k">TRUE</span>)   <span class="c"># t ≈ 4.97, df = 7, p ≈ 0.0016, IC ≈ [2.95, 8.30]</span>
+<span class="f">t.test</span>(antes, despues)$p.value           <span class="c"># error típico: ≈ 0.10</span>
+
+<span class="c"># alternativa no paramétrica para el pareado</span>
+<span class="f">wilcox.test</span>(antes, despues, paired = <span class="k">TRUE</span>)</code></pre>
+      </div>
+
+      <h2 id="ttest-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="Los mismos estudiantes aparecen en las dos mediciones, así que cada nota de marzo tiene su pareja en junio. Se calculan las diferencias y se aplica una t de una muestra sobre ellas." data-wrong="Pregúntate si cada observación del primer grupo tiene una pareja natural en el segundo. ¿Son personas distintas o las mismas medidas dos veces?">
+        <h3>Mides la comprensión lectora de 25 estudiantes en marzo y otra vez en junio. ¿Qué prueba corresponde?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>t de Welch para dos muestras independientes</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>t de Student con varianza agrupada</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>t pareada sobre las diferencias junio − marzo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Dos pruebas t de una muestra, una por mes</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Welch no supone varianzas iguales. Cuando las varianzas y los tamaños difieren, la varianza agrupada de Student da un error estándar equivocado y valores p poco confiables." data-wrong="Piensa en qué supuesto añade Student y qué pasa con la varianza agrupada si un grupo es mucho más disperso y además tiene otro tamaño.">
+        <h3>Un grupo tiene n = 40 y s = 3; el otro tiene n = 8 y s = 12. ¿Qué prueba t usas para comparar sus medias?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Welch, porque no supone varianzas iguales</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Student, porque tiene más grados de libertad</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Pareada, porque los grupos tienen tamaños distintos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Ninguna: con varianzas distintas no se pueden comparar medias</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con 9 gl el valor crítico bilateral es 2,262. Como 2,1 es menor, el valor p es mayor que 0,05 (≈ 0,065) y no se rechaza H₀. Con la normal habrías usado 1,96 y concluido otra cosa." data-wrong="Con n = 10 hay 9 grados de libertad, y el valor crítico de la t no es 1,96. Busca t al 2,5 % con 9 gl y compáralo con 2,1.">
+        <h3>Con n = 10 obtienes t = 2,1 en una prueba bilateral con α = 0,05. ¿Qué concluyes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Se rechaza H₀, porque 2,1 es mayor que 1,96</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Se rechaza H₀, porque t es positivo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Queda probado que la media es igual a μ₀</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>No se rechaza H₀, porque el valor crítico con 9 gl es 2,262</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="ttest-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una tostadora vende bolsas de café de 250 g. Una inspectora pesa 16 bolsas y obtiene \(\bar x = 246\) g y \(s = 8\) g. ¿Hay evidencia, con \(\alpha = 0{,}05\) bilateral, de que el peso medio es distinto de 250 g? Calcula también el IC del 95 %.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(SE = 8/\sqrt{16} = 2\) y \(t = (246 - 250)/2 = -2{,}0\) con 15 gl. El valor crítico es \(t_{0{,}025;\,15} = 2{,}131\); como \(|-2{,}0| &lt; 2{,}131\), <b>no se rechaza</b> \(H_0\) (p ≈ 0,064).</p>
+            <p>IC 95 %: \(246 \pm 2{,}131 \cdot 2 = [241{,}7;\ 250{,}3]\) g. Incluye 250, coherente con la prueba. Ojo: no prueba que las bolsas pesen 250 g; con 16 bolsas, una falta media de hasta 8 g también es compatible con los datos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Seis corredores hacen 1 km con sus zapatillas viejas y con un modelo nuevo. La mejora en segundos (vieja − nueva) de cada uno es 12, 8, 15, 5, 10 y 9. ¿Las zapatillas nuevas mejoran el tiempo medio? Calcula t, el valor p y el tamaño del efecto \(d_z\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Es un diseño pareado: trabajas con las 6 diferencias. \(\bar d = 9{,}83\) s, \(s_d = 3{,}43\) s, \(SE = 3{,}43/\sqrt 6 = 1{,}40\) y \(t = 9{,}83/1{,}40 = 7{,}02\) con 5 gl, \(p \approx 0{,}0009\). Se rechaza \(H_0\).</p>
+            <p>IC 95 %: \(9{,}83 \pm 2{,}571 \cdot 1{,}40 = [6{,}2;\ 13{,}4]\) s. Tamaño del efecto: \(d_z = 9{,}83/3{,}43 = 2{,}87\), muy grande. Antes de anunciarlo, pregúntate si el orden (primero vieja, luego nueva) podría explicar parte de la mejora por cansancio o calentamiento: lo ideal es aleatorizar el orden.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Dos sucursales registran el tiempo de atención (minutos). Sucursal 1: \(n_1 = 15\), \(\bar x_1 = 52\), \(s_1 = 4\). Sucursal 2: \(n_2 = 25\), \(\bar x_2 = 48\), \(s_2 = 10\). Haz la prueba de Welch y la de Student. ¿Por qué dan resultados distintos y cuál reportas?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>Welch:</b> \(SE = \sqrt{16/15 + 100/25} = \sqrt{1{,}067 + 4} = 2{,}25\), \(t = 4/2{,}25 = 1{,}78\). Grados de libertad: \(\nu = 5{,}067^2/(1{,}067^2/14 + 4^2/24) = 34{,}3\). Valor p ≈ 0,084.</p>
+            <p><b>Student:</b> \(s_p = \sqrt{(14 \cdot 16 + 24 \cdot 100)/38} = 8{,}31\), \(SE = 8{,}31\sqrt{1/15 + 1/25} = 2{,}71\), \(t = 1{,}47\) con 38 gl, p ≈ 0,149.</p>
+            <p>La varianza agrupada está dominada por la sucursal 2 (más grande y más dispersa) y le asigna su dispersión también a la sucursal 1, que en realidad es mucho más estable. El error estándar sale inflado. Reportas <b>Welch</b>; en ambos casos no se rechaza \(H_0\) al 5 %, pero la diferencia en el valor p muestra cuánto puede importar el supuesto.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="f">print</span>(stats.<span class="f">ttest_ind_from_stats</span>(<span class="n">52</span>, <span class="n">4</span>, <span class="n">15</span>, <span class="n">48</span>, <span class="n">10</span>, <span class="n">25</span>, equal_var=<span class="k">False</span>))  <span class="c"># t ≈ 1.78, p ≈ 0.084</span>
+<span class="f">print</span>(stats.<span class="f">ttest_ind_from_stats</span>(<span class="n">52</span>, <span class="n">4</span>, <span class="n">15</span>, <span class="n">48</span>, <span class="n">10</span>, <span class="n">25</span>, equal_var=<span class="k">True</span>))   <span class="c"># t ≈ 1.47, p ≈ 0.149</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>v1 &lt;- <span class="n">4</span>^<span class="n">2</span> / <span class="n">15</span>; v2 &lt;- <span class="n">10</span>^<span class="n">2</span> / <span class="n">25</span>
+t  &lt;- (<span class="n">52</span> - <span class="n">48</span>) / <span class="f">sqrt</span>(v1 + v2)
+nu &lt;- (v1 + v2)^<span class="n">2</span> / (v1^<span class="n">2</span> / <span class="n">14</span> + v2^<span class="n">2</span> / <span class="n">24</span>)
+<span class="f">c</span>(t = t, gl = nu, p = <span class="n">2</span> * <span class="f">pt</span>(-<span class="f">abs</span>(t), nu))   <span class="c"># ≈ 1.78  34.3  0.084</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Vas a comparar dos versiones de una app de meditación midiendo el estrés con una escala. Esperas un efecto de \(d = 0{,}5\). ¿Cuántas personas necesitas por grupo para tener potencia del 80 % con \(\alpha = 0{,}05\) bilateral? ¿Qué potencia tendrías con solo 30 por grupo? Si pudieras medir a las mismas personas con ambas versiones y la correlación entre mediciones fuera 0,6, ¿qué \(d_z\) esperarías?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Aproximación normal: \(n \approx 2(1{,}96 + 0{,}842)^2/0{,}5^2 = 62{,}8\). El cálculo exacto con la distribución t da 63,8, así que necesitas <b>64 por grupo</b> (128 en total). Con 30 por grupo la potencia cae a cerca del <b>48 %</b>: sería casi lanzar una moneda.</p>
+            <p>En el diseño pareado, si ambas mediciones tienen la misma \(\sigma\), \(\sigma_d = \sigma\sqrt{2(1-\rho)} = \sigma\sqrt{0{,}8} = 0{,}894\,\sigma\), de modo que \(d_z = 0{,}5/0{,}894 \approx 0{,}56\). Además cada persona aporta dos mediciones: con potencia del 80 % bastan unas 28 personas en total (27,1 redondeado hacia arriba). Esa es la gran ventaja de los diseños intra-sujeto, siempre que controles el orden.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> statsmodels.stats.power <span class="k">import</span> TTestIndPower, TTestPower
+<span class="f">print</span>(<span class="f">TTestIndPower</span>().<span class="f">solve_power</span>(effect_size=<span class="n">0.5</span>, power=<span class="n">0.8</span>, alpha=<span class="n">0.05</span>))   <span class="c"># ≈ 63.8</span>
+<span class="f">print</span>(<span class="f">TTestIndPower</span>().<span class="f">power</span>(effect_size=<span class="n">0.5</span>, nobs1=<span class="n">30</span>, alpha=<span class="n">0.05</span>))       <span class="c"># ≈ 0.48</span>
+<span class="f">print</span>(<span class="f">TTestPower</span>().<span class="f">solve_power</span>(effect_size=<span class="n">0.559</span>, power=<span class="n">0.8</span>, alpha=<span class="n">0.05</span>))    <span class="c"># ≈ 27.1 → 28 personas</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">power.t.test</span>(delta = <span class="n">0.5</span>, sd = <span class="n">1</span>, power = <span class="n">0.8</span>)          <span class="c"># n ≈ 63.8 por grupo</span>
+<span class="f">power.t.test</span>(n = <span class="n">30</span>, delta = <span class="n">0.5</span>, sd = <span class="n">1</span>)             <span class="c"># power ≈ 0.48</span>
+<span class="f">power.t.test</span>(delta = <span class="n">0.559</span>, sd = <span class="n">1</span>, power = <span class="n">0.8</span>,
+             type = <span class="s">"paired"</span>)                          <span class="c"># n ≈ 27.1 → 28 pares</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

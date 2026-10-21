@@ -1,0 +1,341 @@
+<!-- StatEdx · sesión: transform -->
+<div id="view-transform" data-view="transform" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Transformación y escalamiento de variables</h1>
+      <p>Muchas variables reales no llegan listas para analizar: ingresos con una cola larguísima, edades y montos en escalas que no se pueden comparar, categorías escritas como texto. Aquí aprendes a corregir la forma con logaritmos y Box-Cox, a poner las variables en una escala común y a convertir categorías en números sin inventar información.</p>
+      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: análisis exploratorio</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#transform-idea" data-sec="transform-idea">La idea</a></li>
+        <li><a href="#transform-forma" data-sec="transform-forma">Cambiar la forma</a></li>
+        <li><a href="#transform-boxcox" data-sec="transform-boxcox">Box-Cox y Yeo-Johnson</a></li>
+        <li><a href="#transform-lab" data-sec="transform-lab">Laboratorio: Box-Cox</a></li>
+        <li><a href="#transform-escala" data-sec="transform-escala">Escalamiento</a></li>
+        <li><a href="#transform-lab2" data-sec="transform-lab2">Laboratorio: escala y distancia</a></li>
+        <li><a href="#transform-cat" data-sec="transform-cat">Codificar categorías</a></li>
+        <li><a href="#transform-code" data-sec="transform-code">En R y Python</a></li>
+        <li><a href="#transform-quiz" data-sec="transform-quiz">Comprueba</a></li>
+        <li><a href="#transform-ej" data-sec="transform-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="transform-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una cadena de tiendas quiere agrupar a sus clientes según su <b>edad</b> (entre 18 y 75 años) y su <b>ingreso mensual</b> (entre 500 y 9 000 dólares, con unos pocos que ganan mucho más). Si calculas la distancia entre dos clientes así, tal cual, una diferencia de 1 dólar pesa lo mismo que una diferencia de 1 año. El resultado: la edad prácticamente desaparece y el agrupamiento depende solo del ingreso.</p>
+      <p>Hay además un segundo problema. El histograma del ingreso tiene una cola larga a la derecha: la media queda arrastrada por los ingresos altos, la varianza crece con el nivel y cualquier modelo que suponga errores simétricos se ajusta mal. Las dos cosas se resuelven antes de modelar, con decisiones distintas:</p>
+      <ul>
+        <li><b>Transformar</b> cambia la <i>forma</i> de la distribución (por ejemplo, con un logaritmo). Es una función no lineal.</li>
+        <li><b>Escalar</b> cambia solo las <i>unidades</i>: resta un centro y divide por una medida de dispersión. Es una función lineal y no cambia la forma.</li>
+        <li><b>Codificar</b> convierte categorías (“Norte”, “Centro”, “Sur”) en columnas numéricas que un modelo pueda usar.</li>
+      </ul>
+      <div class="callout"><b>La idea central:</b> una transformación no es un truco para “arreglar” los datos, es una forma de elegir la escala en la que el fenómeno es más simple. Muchas variables positivas (ingresos, precios, tiempos, concentraciones) varían de forma <i>multiplicativa</i>, y en escala logarítmica esos cambios se vuelven sumas.</div>
+
+      <h2 id="transform-forma"><span class="sec">§ 2</span>Cambiar la forma: logaritmos y potencias</h2>
+      <p>La transformación más usada es el <b>logaritmo</b>. Convierte razones en diferencias: pasar de 1 000 a 2 000 dólares y pasar de 4 000 a 8 000 es el mismo salto en escala log, porque en ambos casos el ingreso se duplica.</p>
+      <div class="eq">\[ \log(x_2) - \log(x_1) = \log\!\left(\frac{x_2}{x_1}\right), \qquad \operatorname{Var}\big(\log X\big) \approx \frac{\operatorname{Var}(X)}{\mu^2} = CV^2 \]
+        <div class="note">La aproximación (método delta) dice que si la desviación típica crece en proporción a la media, el logaritmo deja la varianza aproximadamente constante. Por eso el log estabiliza la varianza de precios y montos.</div>
+      </div>
+      <p>El logaritmo es un caso de una familia más amplia, la <b>escalera de potencias</b> de Tukey. Bajar en la escalera comprime más fuerte la cola derecha; subir la estira:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Potencia</th><th>Transformación</th><th>Efecto típico</th><th>Uso frecuente</th></tr></thead>
+        <tbody>
+          <tr><td>\(2\)</td><td>\(x^2\)</td><td>Estira la cola derecha</td><td>Asimetría negativa (cola a la izquierda)</td></tr>
+          <tr><td>\(1\)</td><td>\(x\)</td><td>Sin cambio</td><td>Datos ya simétricos</td></tr>
+          <tr><td>\(1/2\)</td><td>\(\sqrt{x}\)</td><td>Compresión suave</td><td>Conteos; con Poisson, \(\operatorname{Var}(\sqrt{X}) \approx 1/4\)</td></tr>
+          <tr><td>\(0\)</td><td>\(\log x\)</td><td>Compresión fuerte</td><td>Ingresos, precios, tiempos, concentraciones</td></tr>
+          <tr><td>\(-1\)</td><td>\(-1/x\)</td><td>Compresión muy fuerte</td><td>Tasas inversas (minutos por tarea ↔ tareas por minuto)</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Con ceros o negativos.</b> El log no está definido en 0. Las salidas habituales son \(\log(1 + x)\) (en código, <code>log1p</code>), útil para conteos con muchos ceros, o la transformación de Yeo-Johnson que verás en la sección siguiente. Sumar una constante arbitraria como \(\log(x + 0{,}001)\) es mala idea: el resultado depende muchísimo de esa constante.</p>
+      <p><b>Interpretar en escala log.</b> Si ajustas \(\log y = \beta_0 + \beta_1 x\), un aumento de una unidad en \(x\) multiplica a \(y\) por \(e^{\beta_1}\): un cambio porcentual de \(100\,(e^{\beta_1} - 1)\,\%\), que para \(\beta_1\) pequeño es casi \(100\,\beta_1\,\%\). Si ambos lados están en log, \(\beta_1\) es una <b>elasticidad</b>: el cambio porcentual en \(y\) por cada 1 % de cambio en \(x\).</p>
+      <div class="callout"><b>Error común:</b> devolver a la escala original la media de los logaritmos con \(e^{\bar y}\) no da la media de \(x\), sino la <b>media geométrica</b>, que en una lognormal coincide con la mediana. Si \(\log X \sim \mathcal{N}(\mu, \sigma^2)\), la media es \(E[X] = e^{\mu + \sigma^2/2}\), más grande que \(e^{\mu}\). Olvidarlo subestima sistemáticamente los totales.</div>
+
+      <h2 id="transform-boxcox"><span class="sec">§ 3</span>Box-Cox y Yeo-Johnson</h2>
+      <p>En lugar de probar potencias a ojo, Box y Cox (1964) propusieron una familia continua indexada por \(\lambda\) y elegir \(\lambda\) con los datos. Para \(x &gt; 0\):</p>
+      <div class="eq">\[ x^{(\lambda)} = \begin{cases} \dfrac{x^{\lambda} - 1}{\lambda}, &amp; \lambda \neq 0 \\[2mm] \log x, &amp; \lambda = 0 \end{cases} \]
+        <div class="note">Restar 1 y dividir por \(\lambda\) hace que la familia sea continua en \(\lambda\): cuando \(\lambda \to 0\), \((x^\lambda - 1)/\lambda \to \log x\). Así \(\lambda = 1\) es “no transformar” (salvo un corrimiento), \(\lambda = 0{,}5\) es la raíz y \(\lambda = 0\) es el logaritmo.</div>
+      </div>
+      <p>El \(\lambda\) se estima por <b>máxima verosimilitud</b> suponiendo que los datos transformados son normales. Al cambiar de escala hay que incluir el jacobiano \(\prod x_i^{\lambda - 1}\), y la log-verosimilitud perfilada queda:</p>
+      <div class="eq">\[ \ell(\lambda) = -\frac{n}{2}\log \hat\sigma^2(\lambda) + (\lambda - 1)\sum_{i=1}^{n} \log x_i, \qquad \hat\sigma^2(\lambda) = \frac{1}{n}\sum_{i=1}^n \big(x_i^{(\lambda)} - \bar x^{(\lambda)}\big)^2 \]
+        <div class="note">Se elige \(\hat\lambda\) que maximiza \(\ell\). Un intervalo de confianza del 95 % para \(\lambda\) son los valores con \(\ell(\lambda) \ge \ell(\hat\lambda) - 1{,}92\) (la mitad del cuantil 3,84 de una \(\chi^2_1\)). En la práctica se redondea a un valor interpretable dentro del intervalo: si contiene al 0, usa el log.</div>
+      </div>
+      <p>Box-Cox exige valores estrictamente positivos. <b>Yeo-Johnson</b> (2000) la extiende a toda la recta real aplicando una versión de Box-Cox a \(x + 1\) en los valores no negativos y otra, reflejada, en los negativos:</p>
+      <div class="eq">\[ \psi(x, \lambda) = \begin{cases} \big((x+1)^{\lambda} - 1\big)/\lambda, &amp; x \ge 0,\ \lambda \ne 0 \\ \log(x + 1), &amp; x \ge 0,\ \lambda = 0 \\ -\big((1 - x)^{2 - \lambda} - 1\big)/(2 - \lambda), &amp; x &lt; 0,\ \lambda \ne 2 \\ -\log(1 - x), &amp; x &lt; 0,\ \lambda = 2 \end{cases} \]</div>
+      <div class="callout"><b>Para recordar:</b> Box-Cox busca que los datos <i>se parezcan</i> a una normal, pero no lo garantiza. Una variable con dos modas sigue teniendo dos modas después de cualquier potencia. Y en regresión lo que importa es la forma de los <b>residuos</b>, no la de la variable sola: muchas veces basta transformar la respuesta para que la relación se vuelva lineal y la varianza constante.</div>
+
+      <h2 id="transform-lab"><span class="sec">§ 4</span>Laboratorio: elige λ</h2>
+      <p>El simulador genera 300 valores positivos. A la izquierda ves el histograma de \(x^{(\lambda)}\) con la normal que mejor se le ajusta; a la derecha, la log-verosimilitud perfilada \(\ell(\lambda)\) con su intervalo del 95 % sombreado. Mueve \(\lambda\) y mira cómo cambia la asimetría.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · transformación de Box-Cox</span><span class="num" id="transform-bc-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="transform-src-label">DATOS</label>
+              <div class="seg" id="transform-src" role="group" aria-labelledby="transform-src-label">
+                <button data-s="ing" aria-pressed="true">Ingresos</button>
+                <button data-s="tie" aria-pressed="false">Tiempos</button>
+                <button data-s="sim" aria-pressed="false">Simétricos</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="transform-lam">POTENCIA · λ = <b id="transform-lam-v" class="num">1,00</b></label><input id="transform-lam" type="range" min="-1" max="2.5" step="0.05" value="1"></div>
+            <button class="btn btn-ghost btn-sm" id="transform-opt" type="button">Usar λ óptimo</button>
+            <button class="btn btn-ghost btn-sm" id="transform-new" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Histograma de x<sup>(λ)</sup></span><span id="transform-bc-lbl">–</span></div>
+              <canvas class="plot" id="transform-c-bc" height="230" aria-label="Histograma de los datos transformados con la curva normal ajustada"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Log-verosimilitud ℓ(λ)</span><span>■ IC 95 %</span></div>
+              <canvas class="plot" id="transform-c-ll" height="230" aria-label="Curva de log-verosimilitud perfilada de Box-Cox con el lambda elegido y el óptimo"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>asimetría original</span><b id="transform-sk0">–</b></div>
+            <div><span>asimetría con λ</span><b id="transform-sk1">–</b></div>
+            <div><span>λ óptimo (MV)</span><b id="transform-lhat">–</b></div>
+            <div><span>IC 95 % de λ</span><b id="transform-lci">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con los ingresos (lognormales) el óptimo cae cerca de 0: el logaritmo. Con los tiempos (gamma) queda cerca de 0,3, entre el log y la raíz. Con datos simétricos el intervalo contiene al 1: no hace falta transformar.</figcaption>
+      </figure>
+
+      <h2 id="transform-escala"><span class="sec">§ 5</span>Escalamiento: poner las variables en la misma unidad</h2>
+      <p>Escalar es aplicar \(x' = (x - c)/s\) con un centro \(c\) y una escala \(s\). No cambia la forma ni las correlaciones, pero sí las distancias y el tamaño de los coeficientes. Las opciones más comunes:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Método</th><th>Fórmula</th><th>Resultado</th><th>Sensible a atípicos</th></tr></thead>
+        <tbody>
+          <tr><td>Estandarización (z)</td><td>\(\dfrac{x - \bar x}{s}\)</td><td>media 0, desviación 1</td><td>Sí, media y \(s\) se mueven</td></tr>
+          <tr><td>Min-max</td><td>\(\dfrac{x - \min}{\max - \min}\)</td><td>rango \([0, 1]\)</td><td>Mucho: un solo extremo comprime a todos</td></tr>
+          <tr><td>Robusto</td><td>\(\dfrac{x - \operatorname{mediana}}{\operatorname{RIC}}\)</td><td>mediana 0, RIC 1</td><td>Poco</td></tr>
+          <tr><td>Máximo absoluto</td><td>\(\dfrac{x}{\max \lvert x \rvert}\)</td><td>rango \([-1, 1]\), conserva los ceros</td><td>Mucho</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Cuándo importa.</b> Todo método basado en <b>distancias o en magnitudes</b>: k vecinos más cercanos, k-medias, clustering jerárquico, componentes principales, máquinas de vectores de soporte, regresión con penalización (ridge, lasso) y redes neuronales entrenadas por gradiente. En la distancia euclidiana \(d(\mathbf{a}, \mathbf{b})^2 = \sum_j (a_j - b_j)^2\), cada variable aporta en proporción a su varianza, así que la que tenga números más grandes domina.</p>
+      <p><b>Cuándo no.</b> Los árboles de decisión y sus ensambles (random forest, boosting) solo comparan una variable con un umbral, así que cualquier transformación monótona deja los cortes iguales. En la regresión lineal por mínimos cuadrados sin penalización, escalar cambia los coeficientes pero no las predicciones ni los valores p.</p>
+      <div class="callout"><b>Fuga de datos:</b> la media, la desviación, el mínimo o el \(\hat\lambda\) de Box-Cox son parámetros que se <i>aprenden</i> de los datos. Estímalos solo con el conjunto de entrenamiento y aplica esos mismos números al de prueba. Si escalas todo junto antes de dividir, el modelo “ve” información del conjunto de prueba y tus métricas salen optimistas. Por eso conviene meter el escalador dentro de un <i>pipeline</i>.</div>
+
+      <h2 id="transform-lab2"><span class="sec">§ 6</span>Laboratorio: escala y distancia</h2>
+      <p>Cuarenta clientes con edad (años) e ingreso mensual (dólares). El gráfico usa la <b>misma escala en los dos ejes</b>, así que lo que ves es la geometría que usa la distancia euclidiana. El punto resaltado Q se une con sus 3 vecinos más cercanos. Cambia el método de escalamiento y agrega un cliente con un ingreso extremo. El primer indicador mide qué parte de las distancias al cuadrado entre los 40 clientes habituales se debe a la edad.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · vecinos más cercanos</span><span class="num" id="transform-kn-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="transform-sc-label">ESCALAMIENTO</label>
+              <div class="seg" id="transform-sc" role="group" aria-labelledby="transform-sc-label">
+                <button data-m="raw" aria-pressed="true">Ninguno</button>
+                <button data-m="z" aria-pressed="false">z</button>
+                <button data-m="mm" aria-pressed="false">Min-max</button>
+                <button data-m="rob" aria-pressed="false">Robusto</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="transform-out-label">CLIENTE CON INGRESO DE 60 000</label>
+              <div class="seg" id="transform-out" role="group" aria-labelledby="transform-out-label">
+                <button data-o="0" aria-pressed="true">No</button>
+                <button data-o="1" aria-pressed="false">Sí</button>
+              </div>
+            </div>
+          </div>
+          <canvas class="plot" id="transform-c-knn" height="300" aria-label="Diagrama de dispersión de edad e ingreso escalados, con un punto Q unido a sus tres vecinos más cercanos"></canvas>
+          <div class="legend"><span><i style="background:var(--hot)"></i>Q y sus 3 vecinos</span><span><i style="background:var(--accent)"></i>clientes</span><span><i style="background:var(--ink)"></i>cliente extremo (fuera del encuadre)</span></div>
+          <div class="readout">
+            <div><span>peso de la edad en d²</span><b id="transform-wage">–</b></div>
+            <div><span>edad de los 3 vecinos</span><b id="transform-nb">–</b></div>
+            <div><span>rango escalado · edad</span><b id="transform-rx">–</b></div>
+            <div><span>rango escalado · ingreso</span><b id="transform-ry">–</b></div>
+          </div>
+        </div>
+        <figcaption>Sin escalar, la edad aporta menos del 0,1 % de la distancia: Q tiene como vecinos a personas de cualquier edad con ingreso parecido. Con min-max y el cliente extremo, casi todos los ingresos quedan apretados cerca de 0 y ahora domina la edad. El escalamiento robusto resiste mejor.</figcaption>
+      </figure>
+
+      <h2 id="transform-cat"><span class="sec">§ 7</span>Codificar variables categóricas</h2>
+      <p>Un modelo no sabe qué hacer con “Norte”. La forma de convertirlo en números depende de si la categoría tiene orden y de cuántos niveles tiene.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Codificación</th><th>Cómo funciona</th><th>Cuándo usarla</th><th>Cuidado</th></tr></thead>
+        <tbody>
+          <tr><td>One-hot</td><td>Una columna 0/1 por categoría</td><td>Nominales con pocos niveles; modelos sin intercepto, árboles, redes</td><td>Muchas columnas si hay muchos niveles</td></tr>
+          <tr><td>Dummy (referencia)</td><td>\(k - 1\) columnas; una categoría queda como base</td><td>Regresión con intercepto</td><td>Con las \(k\) columnas y el intercepto, la matriz es singular</td></tr>
+          <tr><td>Ordinal</td><td>Enteros que respetan el orden (bajo = 1, medio = 2, alto = 3)</td><td>Variables con orden real</td><td>Supone saltos iguales entre niveles</td></tr>
+          <tr><td>Frecuencia</td><td>Cada categoría se reemplaza por su proporción</td><td>Muchos niveles, modelos de árboles</td><td>Dos categorías con igual frecuencia se confunden</td></tr>
+          <tr><td>Target encoding</td><td>Cada categoría se reemplaza por la media de \(y\) en ella, suavizada</td><td>Muchos niveles (códigos postales, productos)</td><td>Fuga de datos: calcúlala dentro de la validación cruzada</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con codificación dummy, el coeficiente de cada columna es la <b>diferencia</b> respecto a la categoría base. Si en \(\text{gasto} = \beta_0 + \beta_1 D_{\text{Centro}} + \beta_2 D_{\text{Sur}}\) la base es Norte, \(\beta_0\) es el gasto medio en el Norte y \(\beta_2\) cuánto más (o menos) gastan en el Sur que en el Norte.</p>
+      <div class="eq">\[ \underbrace{D_{\text{Norte}} + D_{\text{Centro}} + D_{\text{Sur}}}_{\text{one-hot completo}} = 1 = \text{columna del intercepto} \]
+        <div class="note">Esa igualdad es la <b>trampa de las variables ficticias</b>: las columnas son linealmente dependientes y los coeficientes no se pueden identificar. Por eso con intercepto se deja fuera una categoría (en R lo hace <code>model.matrix</code> automáticamente; en pandas, <code>drop_first=True</code>).</div>
+      </div>
+      <div class="callout"><b>Para recordar:</b> nunca codifiques una variable nominal como 1, 2, 3 en un modelo lineal o de distancias. Estarías afirmando que el Sur está “el doble de lejos” del Norte que el Centro, algo que los datos no dicen.</div>
+
+      <h2 id="transform-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Simulamos 500 clientes con edad, ingreso lognormal y región; estimamos Box-Cox para el ingreso y armamos un pipeline que transforma, escala y codifica, ajustando todo solo con el conjunto de entrenamiento.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">from</span> sklearn.compose <span class="k">import</span> ColumnTransformer
+<span class="k">from</span> sklearn.pipeline <span class="k">import</span> make_pipeline
+<span class="k">from</span> sklearn.preprocessing <span class="k">import</span> StandardScaler, OneHotEncoder, PowerTransformer
+<span class="k">from</span> sklearn.neighbors <span class="k">import</span> KNeighborsRegressor
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> train_test_split
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+n = <span class="n">500</span>
+df = pd.<span class="f">DataFrame</span>({
+    <span class="s">"edad"</span>: rng.<span class="f">integers</span>(<span class="n">18</span>, <span class="n">76</span>, n),
+    <span class="s">"ingreso"</span>: np.<span class="f">exp</span>(rng.<span class="f">normal</span>(np.<span class="f">log</span>(<span class="n">2500</span>), <span class="n">0.6</span>, n)).<span class="f">round</span>(),
+    <span class="s">"region"</span>: rng.<span class="f">choice</span>([<span class="s">"Norte"</span>, <span class="s">"Centro"</span>, <span class="s">"Sur"</span>], n),
+})
+df[<span class="s">"gasto"</span>] = (<span class="n">0.05</span> * df.ingreso + <span class="n">8</span> * df.edad
+               + df.region.<span class="f">map</span>({<span class="s">"Norte"</span>: <span class="n">0</span>, <span class="s">"Centro"</span>: <span class="n">60</span>, <span class="s">"Sur"</span>: -<span class="n">40</span>})
+               + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">60</span>, n))
+
+<span class="c"># 1) Box-Cox del ingreso: λ por máxima verosimilitud</span>
+y_bc, lam = stats.<span class="f">boxcox</span>(df.ingreso)
+<span class="f">print</span>(<span class="f">round</span>(lam, <span class="n">2</span>))                               <span class="c"># ≈ 0.05: casi un logaritmo</span>
+<span class="f">print</span>(<span class="f">round</span>(stats.<span class="f">skew</span>(df.ingreso), <span class="n">2</span>), <span class="f">round</span>(stats.<span class="f">skew</span>(y_bc), <span class="n">2</span>))  <span class="c"># ≈ 2.1 → 0.0</span>
+
+<span class="c"># 2) media geométrica vs media aritmética</span>
+<span class="f">print</span>(np.<span class="f">exp</span>(np.<span class="f">log</span>(df.ingreso).<span class="f">mean</span>()), df.ingreso.<span class="f">mean</span>())  <span class="c"># ≈ 2442 y 2921</span>
+
+<span class="c"># 3) pipeline: Yeo-Johnson + z para numéricas, one-hot para la región</span>
+X, y = df[[<span class="s">"edad"</span>, <span class="s">"ingreso"</span>, <span class="s">"region"</span>]], df.gasto
+X_tr, X_te, y_tr, y_te = <span class="f">train_test_split</span>(X, y, test_size=<span class="n">0.25</span>, random_state=<span class="n">0</span>)
+prep = <span class="f">ColumnTransformer</span>([
+    (<span class="s">"num"</span>, <span class="f">PowerTransformer</span>(method=<span class="s">"yeo-johnson"</span>, standardize=<span class="k">True</span>), [<span class="s">"edad"</span>, <span class="s">"ingreso"</span>]),
+    (<span class="s">"cat"</span>, <span class="f">OneHotEncoder</span>(handle_unknown=<span class="s">"ignore"</span>), [<span class="s">"region"</span>]),
+])
+modelo = <span class="f">make_pipeline</span>(prep, <span class="f">KNeighborsRegressor</span>(n_neighbors=<span class="n">15</span>))
+modelo.<span class="f">fit</span>(X_tr, y_tr)                  <span class="c"># los parámetros se aprenden solo con entrenamiento</span>
+<span class="f">print</span>(<span class="f">round</span>(modelo.<span class="f">score</span>(X_te, y_te), <span class="n">2</span>))   <span class="c"># R² en prueba ≈ 0.83</span>
+
+<span class="c"># comparación: el mismo kNN sin escalar</span>
+crudo = <span class="f">KNeighborsRegressor</span>(n_neighbors=<span class="n">15</span>).<span class="f">fit</span>(pd.<span class="f">get_dummies</span>(X_tr), y_tr)
+<span class="f">print</span>(<span class="f">round</span>(crudo.<span class="f">score</span>(pd.<span class="f">get_dummies</span>(X_te), y_te), <span class="n">2</span>))   <span class="c"># ≈ 0.26: la edad casi no cuenta</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(MASS)
+<span class="f">set.seed</span>(<span class="n">1</span>)
+n &lt;- <span class="n">500</span>
+df &lt;- <span class="f">data.frame</span>(
+  edad    = <span class="f">sample</span>(<span class="n">18</span>:<span class="n">75</span>, n, replace = <span class="k">TRUE</span>),
+  ingreso = <span class="f">round</span>(<span class="f">exp</span>(<span class="f">rnorm</span>(n, <span class="f">log</span>(<span class="n">2500</span>), <span class="n">0.6</span>))),
+  region  = <span class="f">factor</span>(<span class="f">sample</span>(<span class="f">c</span>(<span class="s">"Norte"</span>, <span class="s">"Centro"</span>, <span class="s">"Sur"</span>), n, replace = <span class="k">TRUE</span>),
+                   levels = <span class="f">c</span>(<span class="s">"Norte"</span>, <span class="s">"Centro"</span>, <span class="s">"Sur"</span>))
+)
+efecto &lt;- <span class="f">c</span>(Norte = <span class="n">0</span>, Centro = <span class="n">60</span>, Sur = -<span class="n">40</span>)
+df$gasto &lt;- <span class="n">0.05</span> * df$ingreso + <span class="n">8</span> * df$edad + efecto[<span class="f">as.character</span>(df$region)] + <span class="f">rnorm</span>(n, <span class="n">0</span>, <span class="n">60</span>)
+
+<span class="c"># 1) Box-Cox: perfil de verosimilitud de λ (gráfico con su IC 95 %)</span>
+bc &lt;- <span class="f">boxcox</span>(ingreso ~ <span class="n">1</span>, data = df, lambda = <span class="f">seq</span>(-<span class="n">1</span>, <span class="n">2</span>, <span class="n">0.01</span>))
+lam &lt;- bc$x[<span class="f">which.max</span>(bc$y)]
+lam                                           <span class="c"># cerca de 0: usar log</span>
+df$log_ing &lt;- <span class="f">log</span>(df$ingreso)
+
+<span class="c"># 2) media geométrica vs media aritmética</span>
+<span class="f">c</span>(geometrica = <span class="f">exp</span>(<span class="f">mean</span>(df$log_ing)), aritmetica = <span class="f">mean</span>(df$ingreso))
+
+<span class="c"># 3) dividir y escalar con los parámetros del entrenamiento</span>
+idx &lt;- <span class="f">sample</span>(n, <span class="n">0.75</span> * n)
+tr &lt;- df[idx, ]; te &lt;- df[-idx, ]
+num &lt;- <span class="f">c</span>(<span class="s">"edad"</span>, <span class="s">"log_ing"</span>)
+mu &lt;- <span class="f">colMeans</span>(tr[num]); s &lt;- <span class="f">apply</span>(tr[num], <span class="n">2</span>, sd)
+tr_z &lt;- <span class="f">scale</span>(tr[num], center = mu, scale = s)
+te_z &lt;- <span class="f">scale</span>(te[num], center = mu, scale = s)   <span class="c"># mismos μ y s</span>
+
+<span class="c"># 4) codificación dummy: model.matrix deja Norte como base</span>
+<span class="f">head</span>(<span class="f">model.matrix</span>(~ region, data = tr), <span class="n">3</span>)
+<span class="f">coef</span>(<span class="f">lm</span>(gasto ~ edad + log_ing + region, data = tr))</code></pre>
+</div>
+      <p>Fíjate en el orden: primero se divide en entrenamiento y prueba, después se estiman \(\lambda\), las medias y las desviaciones con el entrenamiento, y por último se aplican esos mismos números a la prueba. En Python el <code>ColumnTransformer</code> lo hace solo; en R puedes lograr lo mismo con el paquete <code>recipes</code> (<code>step_YeoJohnson</code>, <code>step_normalize</code>, <code>step_dummy</code>).</p>
+
+      <h2 id="transform-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="Un árbol solo compara cada variable con un umbral. Cualquier transformación monótona, como escalar, mueve el umbral pero deja las mismas particiones." data-wrong="Piensa en qué modelos usan distancias o magnitudes de los coeficientes. ¿Cuál solo pregunta si x es mayor o menor que un valor?">
+        <h3>¿En cuál de estos modelos estandarizar las variables casi no cambia el resultado?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>k vecinos más cercanos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>k-medias</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Un árbol de decisión</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Regresión ridge</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Cuando λ tiende a 0, (x^λ − 1)/λ tiende a log x. Por eso Box-Cox incluye al logaritmo como caso λ = 0." data-wrong="Revisa la definición: λ = 1 deja los datos casi iguales y λ = 0,5 es la raíz. ¿Qué queda en el caso especial λ = 0?">
+        <h3>En la transformación de Box-Cox, ¿qué corresponde a λ = 0?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>No transformar</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La raíz cuadrada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El recíproco 1/x</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>El logaritmo</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La media y la desviación son parámetros aprendidos. Si los calculas con todo el conjunto, la evaluación usa información de la prueba y sale optimista." data-wrong="El conjunto de prueba debe simular datos nuevos que el modelo nunca vio. ¿Con qué datos deberías calcular la media y la desviación?">
+        <h3>Vas a estandarizar antes de entrenar un kNN. ¿Qué es lo correcto?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Calcular media y desviación en entrenamiento y aplicarlas también a prueba</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Calcular media y desviación con todos los datos antes de dividir</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Estandarizar entrenamiento y prueba cada uno con su propia media</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No estandarizar la prueba</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="transform-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Los laboratorios de arriba te sirven para comprobar las ideas.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Los puntajes de una prueba tienen media 72, desviación típica 12, mínimo 40 y máximo 100. Calcula el valor estandarizado (z) y el valor min-max de un puntaje de 90.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Estandarizado: \(z = (90 - 72)/12 = 1{,}5\). Está una desviación y media por encima del promedio.</p>
+            <p>Min-max: \(x' = (90 - 40)/(100 - 40) = 50/60 \approx 0{,}833\). Está al 83 % del recorrido entre el mínimo y el máximo.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Tres ventas mensuales valen 1 000, 10 000 y 100 000 dólares. Calcula su logaritmo en base 10, su media aritmética y su media geométrica. ¿Cuál describe mejor el “valor típico”?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Los logaritmos son 3, 4 y 5: en escala log los tres están igualmente espaciados, porque cada uno multiplica al anterior por 10.</p>
+            <p>Media aritmética: \((1\,000 + 10\,000 + 100\,000)/3 = 37\,000\). Media geométrica: \(10^{(3+4+5)/3} = 10^4 = 10\,000\).</p>
+            <p>La geométrica (que aquí coincide con la mediana) describe mejor al valor del centro; la aritmética está arrastrada por la venta grande. Las dos son correctas, responden preguntas distintas: si te interesa el total, usa la aritmética.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Un conjunto de datos tiene la variable <i>ciudad</i> (Lima, Bogotá, Quito, Santiago) y <i>nivel educativo</i> (primaria, secundaria, universitaria). Vas a ajustar una regresión lineal con intercepto. ¿Cuántas columnas genera cada variable y cómo las codificas? ¿Qué significa el coeficiente de la columna “Quito”?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>Ciudad</b> es nominal con 4 niveles: con intercepto usa codificación dummy de \(4 - 1 = 3\) columnas (por ejemplo, Bogotá, Quito y Santiago, con Lima como base). Si incluyeras las 4 junto al intercepto caerías en la trampa de las variables ficticias.</p>
+            <p><b>Nivel educativo</b> es ordinal. Puedes codificarlo como 1, 2, 3 si aceptas que el salto entre niveles es parecido (un solo coeficiente), o con 2 columnas dummy si no quieres imponer esa suposición (más flexible, un parámetro más).</p>
+            <p>El coeficiente de “Quito” es la diferencia media en la respuesta entre Quito y Lima, manteniendo fijas las demás variables.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Ajustas \(\log(\text{precio}) = 2{,}1 + 0{,}08\,\text{habitaciones}\) y los residuos tienen desviación típica \(\hat\sigma = 0{,}4\). (a) ¿En qué porcentaje cambia el precio por cada habitación extra? (b) Para una vivienda de 3 habitaciones, ¿cuál es la predicción de la mediana y de la media del precio? (c) Verifica (b) con una simulación.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Cada habitación multiplica el precio por \(e^{0{,}08} \approx 1{,}083\): un aumento de 8,3 %.</p>
+            <p>(b) El log predicho es \(2{,}1 + 0{,}24 = 2{,}34\). Si los residuos son normales, el precio es lognormal: la mediana es \(e^{2{,}34} \approx 10{,}38\) y la media es \(e^{2{,}34 + 0{,}4^2/2} = e^{2{,}42} \approx 11{,}25\) (en las unidades del precio). Usar solo \(e^{2{,}34}\) como “precio esperado” lo subestima en un 8 %.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+precio = np.<span class="f">exp</span>(<span class="n">2.34</span> + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">0.4</span>, <span class="n">1_000_000</span>))
+<span class="f">print</span>(np.<span class="f">median</span>(precio), precio.<span class="f">mean</span>())   <span class="c"># ≈ 10.38 y ≈ 11.25</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>precio &lt;- <span class="f">exp</span>(<span class="n">2.34</span> + <span class="f">rnorm</span>(<span class="n">1e6</span>, <span class="n">0</span>, <span class="n">0.4</span>))
+<span class="f">c</span>(<span class="f">median</span>(precio), <span class="f">mean</span>(precio))   <span class="c"># ≈ 10.38 y ≈ 11.25</span></code></pre>
+</div>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

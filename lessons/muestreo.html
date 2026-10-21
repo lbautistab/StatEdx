@@ -1,0 +1,281 @@
+<!-- StatEdx · sesión: muestreo -->
+<div id="view-muestreo" data-view="muestreo" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Fundamentos del muestreo</h1>
+      <p>Para saber si la sopa está salada no te la tomas toda: pruebas una cucharada, pero antes la revuelves. Esa es la idea del muestreo. Aquí aprendes el vocabulario básico (población, marco, unidades), por qué el azar es lo que hace confiable a una muestra y cómo separar el error de muestreo de los errores que ningún tamaño de muestra corrige.</p>
+      <div class="lmeta"><span>35 min</span><span>Nivel básico</span><span>Requiere: medidas descriptivas</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#muestreo-idea" data-sec="muestreo-idea">La idea</a></li>
+        <li><a href="#muestreo-pob" data-sec="muestreo-pob">Población, marco y unidades</a></li>
+        <li><a href="#muestreo-prob" data-sec="muestreo-prob">Muestreo probabilístico</a></li>
+        <li><a href="#muestreo-error" data-sec="muestreo-error">Sesgo, varianza y error total</a></li>
+        <li><a href="#muestreo-lab" data-sec="muestreo-lab">Laboratorio</a></li>
+        <li><a href="#muestreo-tipos" data-sec="muestreo-tipos">Mapa de diseños</a></li>
+        <li><a href="#muestreo-code" data-sec="muestreo-code">En R y Python</a></li>
+        <li><a href="#muestreo-quiz" data-sec="muestreo-quiz">Comprueba</a></li>
+        <li><a href="#muestreo-ej" data-sec="muestreo-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="muestreo-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>En 1936 la revista <i>Literary Digest</i> envió 10 millones de boletas por correo para predecir la elección presidencial de Estados Unidos. Recibió 2,4 millones de respuestas, una de las muestras más grandes de la historia, y pronosticó que Alf Landon ganaría con el 57 % de los votos. Ganó Franklin Roosevelt con cerca del 61 %. Ese mismo año, George Gallup acertó con una muestra de unas 50 000 personas.</p>
+      <p>¿Cómo pudo perder una muestra de 2,4 millones contra una mucho más pequeña? Por dos razones que son el centro de esta clase:</p>
+      <ul>
+        <li>Las direcciones salieron de guías telefónicas, registros de automóviles y listas de suscriptores. En plena Gran Depresión, esas listas dejaban fuera a buena parte de los votantes de menores ingresos, que apoyaban a Roosevelt. El <b>marco</b> no cubría la población.</li>
+        <li>Solo respondió uno de cada cuatro. Quienes contestaron, más molestos con el gobierno, no se parecían a quienes no contestaron. Hubo <b>sesgo de no respuesta</b>.</li>
+      </ul>
+      <div class="callout"><b>La lección:</b> una muestra grande reduce la variación por azar, pero no corrige un mecanismo de selección torcido. Lo que hace representativa a una muestra no es su tamaño, sino <i>cómo</i> se eligieron sus unidades.</div>
+
+      <h2 id="muestreo-pob"><span class="sec">§ 2</span>Población, marco y unidades</h2>
+      <p>Antes de sacar cualquier muestra hay que definir con precisión de qué hablamos. Usaremos como ejemplo una encuesta municipal sobre la ampliación del metro.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Concepto</th><th>Definición</th><th>En el ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td><b>Población objetivo</b></td><td>El conjunto completo sobre el que quieres concluir</td><td>Todos los hogares de la ciudad</td></tr>
+          <tr><td><b>Marco muestral</b></td><td>La lista o el mecanismo con que puedes identificar y seleccionar unidades</td><td>El padrón catastral de viviendas</td></tr>
+          <tr><td><b>Unidad de muestreo</b></td><td>Lo que se selecciona</td><td>La vivienda</td></tr>
+          <tr><td><b>Unidad de observación</b></td><td>De quién se mide la variable</td><td>Una persona adulta del hogar</td></tr>
+          <tr><td><b>Parámetro</b></td><td>Número fijo y desconocido de la población</td><td>Proporción \(P\) de hogares que apoyan la ampliación</td></tr>
+          <tr><td><b>Estimador</b></td><td>Regla para calcular un número a partir de la muestra</td><td>Proporción muestral \(\hat p\)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Si la población tiene \(N\) unidades con valores \(y_1, \dots, y_N\), los parámetros más comunes son la media, el total y la proporción (que es la media de una variable que vale 1 o 0):</p>
+      <div class="eq">\[ \bar Y = \frac{1}{N}\sum_{i=1}^{N} y_i, \qquad Y = \sum_{i=1}^{N} y_i = N\bar Y, \qquad P = \frac{1}{N}\sum_{i=1}^{N} \mathbb{1}\{y_i = 1\} \]
+        <div class="note">Usamos mayúsculas para la población y minúsculas para la muestra: \(\bar y\), \(\hat p\), \(n\). La fracción de muestreo es \(f = n/N\).</div>
+      </div>
+      <p>Cuando el marco no coincide con la población objetivo hay un problema de <b>cobertura</b>: <i>subcobertura</i> si faltan unidades (viviendas nuevas que aún no están en el padrón) y <i>sobrecobertura</i> si sobran (locales comerciales registrados como viviendas, duplicados). Ninguna técnica posterior arregla del todo un marco malo, por eso se revisa al principio.</p>
+
+      <h2 id="muestreo-prob"><span class="sec">§ 3</span>Muestreo probabilístico</h2>
+      <p>Un diseño es <b>probabilístico</b> cuando cada unidad del marco tiene una probabilidad de inclusión conocida y mayor que cero, y la selección la hace un mecanismo aleatorio, no la persona que encuesta ni la persona encuestada.</p>
+      <div class="eq">\[ \pi_i = P(\text{la unidad } i \text{ entra en la muestra}) > 0, \qquad w_i = \frac{1}{\pi_i} \]
+        <div class="note">El <b>peso de diseño</b> \(w_i\) se lee como “a cuántas unidades de la población representa la unidad \(i\)”. Si \(\pi_i = 1/50\), cada hogar de la muestra vale por 50 hogares.</div>
+      </div>
+      <p>Con las probabilidades de inclusión se construye el estimador de <b>Horvitz-Thompson</b> del total, que es insesgado para <i>cualquier</i> diseño probabilístico:</p>
+      <div class="eq">\[ \hat Y_{HT} = \sum_{i \in s} \frac{y_i}{\pi_i} = \sum_{i \in s} w_i\, y_i, \qquad E\big[\hat Y_{HT}\big] = \sum_{i=1}^{N} \pi_i \frac{y_i}{\pi_i} = Y \]
+        <div class="note">La demostración es una línea: cada \(y_i\) aparece en el estimador con probabilidad \(\pi_i\) y, cuando aparece, se multiplica por \(1/\pi_i\). Por eso no se necesita que la muestra “se parezca” a la población; basta con conocer \(\pi_i\).</div>
+      </div>
+      <p>Este es el argumento de fondo de todo el bloque. En un diseño probabilístico la aleatoriedad la pones tú, así que sabes calcular el sesgo (cero) y la varianza del estimador. En un diseño <b>no probabilístico</b> (conveniencia, voluntarios, cuotas, bola de nieve) las probabilidades de inclusión son desconocidas o cero para algunos, y cualquier conclusión sobre la población depende de supuestos que no puedes verificar con los mismos datos.</p>
+      <div class="callout"><b>Aleatorio no es “al azar” en el sentido cotidiano.</b> Pararse en una esquina y entrevistar “a quien pase” no es aleatorio: depende de la hora, del lugar y de quién acepta detenerse. Aleatorio significa que un sorteo con probabilidades conocidas decide quién entra.</div>
+
+      <h2 id="muestreo-error"><span class="sec">§ 4</span>Sesgo, varianza y error total</h2>
+      <p>Un estimador \(\hat\theta\) es una variable aleatoria: cada muestra posible da un valor distinto. Su calidad se resume con el <b>error cuadrático medio</b>, que se descompone en dos partes:</p>
+      <div class="eq">\[ \mathrm{ECM}(\hat\theta) = E\big[(\hat\theta - \theta)^2\big] = \underbrace{\mathrm{Var}(\hat\theta)}_{\text{error de muestreo}} + \underbrace{\big(E[\hat\theta] - \theta\big)^2}_{\text{sesgo}^2} \]
+        <div class="note">La varianza baja como \(1/n\) al aumentar la muestra. El sesgo, en general, no depende de \(n\): si el mecanismo está torcido, una muestra más grande solo te da una respuesta equivocada con más seguridad.</div>
+      </div>
+      <p>El <b>error de muestreo</b> es la diferencia que aparece solo porque observaste unas unidades y no otras. Existe incluso en un diseño perfecto y se cuantifica con el error estándar. Los <b>errores ajenos al muestreo</b> aparecerían aunque hicieras un censo:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Error</th><th>Qué pasa</th><th>Ejemplo</th><th>Cómo se mitiga</th></tr></thead>
+        <tbody>
+          <tr><td>Cobertura</td><td>El marco no coincide con la población</td><td>Encuesta telefónica fija que excluye hogares solo con celular</td><td>Mejores marcos, marcos múltiples, ajustes de calibración</td></tr>
+          <tr><td>No respuesta</td><td>Parte de la muestra no contesta y es distinta del resto</td><td>Personas que trabajan de noche nunca están en casa</td><td>Revisitas, incentivos, ponderación por no respuesta</td></tr>
+          <tr><td>Medición</td><td>La respuesta registrada no es el valor real</td><td>Subdeclarar el consumo de alcohol; pregunta sugestiva</td><td>Buena redacción, prueba piloto, modo autoadministrado</td></tr>
+          <tr><td>Procesamiento</td><td>Errores al capturar, codificar o editar</td><td>Un 7 tecleado como 1</td><td>Validaciones automáticas, doble captura</td></tr>
+        </tbody>
+      </table></div>
+      <p>La cobertura y la no respuesta producen el mismo tipo de sesgo. Si una fracción \(R\) de la población es observable (está en el marco o responde) con media \(\bar Y_R\), y el resto tiene media \(\bar Y_{NR}\), entonces \(\bar Y = R\,\bar Y_R + (1-R)\,\bar Y_{NR}\), y el sesgo de usar solo a los observables es:</p>
+      <div class="eq">\[ \bar Y_R - \bar Y = (1 - R)\,\big(\bar Y_R - \bar Y_{NR}\big) \]
+        <div class="note">El sesgo es grande cuando falta mucha gente <b>y</b> esa gente es distinta. Una tasa de respuesta baja no siempre implica mucho sesgo, pero te deja sin defensa: no sabes cuánto se diferencian quienes no respondieron.</div>
+      </div>
+
+      <h2 id="muestreo-lab"><span class="sec">§ 5</span>Laboratorio</h2>
+      <p>La ciudad tiene 1 200 hogares. Los puntos de color apoyan la ampliación del metro; el apoyo es mayor cerca del centro, donde está la estación. Elige un método de selección, saca muchas muestras y mira dónde caen las estimaciones respecto del valor real.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cómo se elige la muestra</span><span class="num" id="muestreo-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="muestreo-met-label">MÉTODO DE SELECCIÓN</label>
+              <div class="seg" id="muestreo-met" role="group" aria-labelledby="muestreo-met-label">
+                <button data-m="mas" aria-pressed="true">Aleatorio</button>
+                <button data-m="conv" aria-pressed="false">Conveniencia</button>
+                <button data-m="vol" aria-pressed="false">Voluntarios</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="muestreo-n">TAMAÑO · n = <b id="muestreo-n-v" class="num">60</b></label><input id="muestreo-n" type="range" min="10" max="300" step="5" value="60"></div>
+            <div class="ctrl"><label for="muestreo-cob">FUERA DEL MARCO = <b id="muestreo-cob-v" class="num">0 %</b></label><input id="muestreo-cob" type="range" min="0" max="50" step="5" value="0"></div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-ghost btn-sm" id="muestreo-one" type="button">Sacar 1 muestra</button>
+            <button class="btn btn-ghost btn-sm" id="muestreo-many" type="button">Sacar 200 muestras</button>
+            <button class="btn btn-ghost btn-sm" id="muestreo-reset" type="button">Borrar</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>La ciudad y la última muestra</span><span>■ estación</span></div>
+              <canvas class="plot" id="muestreo-c-map" height="280" aria-label="Mapa de hogares con la última muestra marcada"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Estimaciones de P</span><span id="muestreo-cnt">0 muestras</span></div>
+              <canvas class="plot" id="muestreo-c-hist" height="280" aria-label="Histograma de las estimaciones de la proporción"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>apoya</span><span><i style="background:var(--muted)"></i>no apoya</span><span><i style="background:var(--hot)"></i>en la muestra</span><span><i style="background:var(--ink)"></i>valor real P</span></div>
+          <div class="readout">
+            <div><span>valor real P</span><b id="muestreo-r-p">–</b></div>
+            <div><span>última estimación</span><b id="muestreo-r-last">–</b></div>
+            <div><span>sesgo promedio</span><b id="muestreo-r-bias">–</b></div>
+            <div><span>error típico</span><b id="muestreo-r-se">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con “Aleatorio” el histograma se centra en P y se angosta al subir n. Con “Conveniencia” (entrevistar cerca de la estación) o “Voluntarios” (contesta más quien apoya), sube n hasta 300: el histograma se angosta igual, pero lejos de P. Sacar hogares del marco desplaza incluso al muestreo aleatorio.</figcaption>
+      </figure>
+
+      <h2 id="muestreo-tipos"><span class="sec">§ 6</span>Mapa de diseños</h2>
+      <p>Las siguientes sesiones del bloque desarrollan los diseños probabilísticos básicos. Todos cumplen \(\pi_i &gt; 0\) conocida; difieren en cómo organizan el sorteo para ganar precisión o bajar costos.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Diseño</th><th>Cómo se elige</th><th>Cuándo conviene</th></tr></thead>
+        <tbody>
+          <tr><td>Aleatorio simple (MAS)</td><td>Todas las muestras de tamaño \(n\) son igual de probables</td><td>Marco completo, población sin estructura útil</td></tr>
+          <tr><td>Sistemático</td><td>Arranque aleatorio y luego una de cada \(k\) unidades de la lista</td><td>Listas largas en papel o en fila; cuidado con periodicidades</td></tr>
+          <tr><td>Estratificado</td><td>MAS independiente dentro de grupos que cubren la población</td><td>Grupos homogéneos por dentro; resultados por región o tipo</td></tr>
+          <tr><td>Por conglomerados</td><td>Se sortean grupos (escuelas, manzanas) y se mide a todos o a algunos</td><td>No hay lista de individuos o visitar cada uno es caro</td></tr>
+          <tr><td>Probabilidad proporcional al tamaño</td><td>\(\pi_i\) proporcional a una medida de tamaño conocida</td><td>Unidades muy desiguales (empresas, municipios)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Los métodos no probabilísticos también tienen su lugar: para una prueba piloto, un estudio cualitativo o una población sin marco (personas en situación de calle, usuarios de una droga ilegal). Lo importante es no presentar sus resultados con márgenes de error como si fueran de una muestra aleatoria.</p>
+
+      <h2 id="muestreo-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>Simulamos una ciudad de 100 000 hogares: el 40 % vive en el centro (70 % de apoyo) y el resto en la periferia (40 % de apoyo), así que \(P = 0{,}4 \cdot 0{,}7 + 0{,}6 \cdot 0{,}4 = 0{,}52\). Comparamos tres mecanismos repitiendo cada uno 2 000 veces.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">2024</span>)
+N = <span class="n">100_000</span>
+centro = rng.<span class="f">random</span>(N) &lt; <span class="n">0.4</span>                      <span class="c"># 40 % vive en el centro</span>
+y = rng.<span class="f">random</span>(N) &lt; np.<span class="f">where</span>(centro, <span class="n">0.70</span>, <span class="n">0.40</span>)
+<span class="f">print</span>(<span class="s">"P real:"</span>, y.<span class="f">mean</span>())                         <span class="c"># ≈ 0.52</span>
+
+<span class="c"># marco: el padrón solo tiene a la mitad de la periferia</span>
+en_marco = centro | (rng.<span class="f">random</span>(N) &lt; <span class="n">0.5</span>)
+todos, marco = np.<span class="f">arange</span>(N), np.<span class="f">flatnonzero</span>(en_marco)
+
+<span class="k">def</span> <span class="f">mas</span>(pobl, n):
+    <span class="k">return</span> y[rng.<span class="f">choice</span>(pobl, size=n, replace=<span class="k">False</span>)].<span class="f">mean</span>()
+
+<span class="k">def</span> <span class="f">voluntaria</span>():
+    <span class="c"># se invita a 5 000; responde 20 % de quienes apoyan y 10 % del resto</span>
+    inv = rng.<span class="f">choice</span>(N, size=<span class="n">5000</span>, replace=<span class="k">False</span>)
+    resp = rng.<span class="f">random</span>(<span class="n">5000</span>) &lt; np.<span class="f">where</span>(y[inv], <span class="n">0.20</span>, <span class="n">0.10</span>)
+    <span class="k">return</span> y[inv][resp].<span class="f">mean</span>()
+
+reps = <span class="n">2000</span>
+res = {
+    <span class="s">"MAS"</span>: [<span class="f">mas</span>(todos, <span class="n">500</span>) <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps)],
+    <span class="s">"marco incompleto"</span>: [<span class="f">mas</span>(marco, <span class="n">500</span>) <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps)],
+    <span class="s">"voluntaria"</span>: [<span class="f">voluntaria</span>() <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps)],
+}
+<span class="k">for</span> nombre, e <span class="k">in</span> res.<span class="f">items</span>():
+    e = np.<span class="f">array</span>(e)
+    <span class="f">print</span>(<span class="s">f"{nombre:18s} sesgo={e.mean() - y.mean():+.3f}  error típico={e.std():.3f}"</span>)
+<span class="c"># MAS                sesgo≈+0.000  error típico≈0.022</span>
+<span class="c"># marco incompleto   sesgo≈+0.052  error típico≈0.023</span>
+<span class="c"># voluntaria         sesgo≈+0.164  error típico≈0.017   (¡unas 760 respuestas!)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">2024</span>)
+N &lt;- <span class="n">100000</span>
+centro &lt;- <span class="f">runif</span>(N) &lt; <span class="n">0.4</span>                         <span class="c"># 40 % vive en el centro</span>
+y &lt;- <span class="f">runif</span>(N) &lt; <span class="f">ifelse</span>(centro, <span class="n">0.70</span>, <span class="n">0.40</span>)
+<span class="f">mean</span>(y)                                            <span class="c"># ≈ 0.52</span>
+
+<span class="c"># marco: el padrón solo tiene a la mitad de la periferia</span>
+en_marco &lt;- centro | (<span class="f">runif</span>(N) &lt; <span class="n">0.5</span>)
+marco &lt;- <span class="f">which</span>(en_marco)
+
+mas &lt;- <span class="k">function</span>(pobl, n) <span class="f">mean</span>(y[<span class="f">sample</span>(pobl, n)])
+voluntaria &lt;- <span class="k">function</span>() {
+  inv &lt;- <span class="f">sample</span>(N, <span class="n">5000</span>)
+  resp &lt;- <span class="f">runif</span>(<span class="n">5000</span>) &lt; <span class="f">ifelse</span>(y[inv], <span class="n">0.20</span>, <span class="n">0.10</span>)
+  <span class="f">mean</span>(y[inv][resp])
+}
+
+res &lt;- <span class="f">list</span>(
+  MAS        = <span class="f">replicate</span>(<span class="n">2000</span>, <span class="f">mas</span>(<span class="n">1</span>:N, <span class="n">500</span>)),
+  marco      = <span class="f">replicate</span>(<span class="n">2000</span>, <span class="f">mas</span>(marco, <span class="n">500</span>)),
+  voluntaria = <span class="f">replicate</span>(<span class="n">2000</span>, <span class="f">voluntaria</span>())
+)
+<span class="f">sapply</span>(res, <span class="k">function</span>(e) <span class="f">c</span>(sesgo = <span class="f">mean</span>(e) - <span class="f">mean</span>(y), error_tipico = <span class="f">sd</span>(e)))
+<span class="c">#               MAS   marco  voluntaria</span>
+<span class="c"># sesgo        ≈0.000 ≈0.052  ≈0.164</span>
+<span class="c"># error_tipico ≈0.022 ≈0.023  ≈0.017</span></code></pre>
+      </div>
+      <p>La muestra voluntaria tiene más respuestas y el error típico más pequeño de las tres, y aun así es la peor: su ECM es \(0{,}164^2 + 0{,}017^2 \approx 0{,}027\), contra \(0{,}022^2 \approx 0{,}0005\) del MAS. Esa es la trampa del <i>Literary Digest</i> en 15 líneas de código.</p>
+
+      <h2 id="muestreo-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="Más respuestas reducen la varianza, pero si quienes responden son distintos de quienes no, el sesgo se mantiene. Una muestra aleatoria de 1 000 suele tener menor error total." data-wrong="Piensa en el ECM = varianza + sesgo². ¿Cuál de los dos términos baja al aumentar n y cuál no?">
+        <h3>Una encuesta en línea recibe 50 000 respuestas voluntarias. Otra usa un muestreo aleatorio de 1 000 personas con buena tasa de respuesta. ¿Qué es lo más correcto?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La de 50 000 es mejor porque su margen de error es menor</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Son equivalentes si ambas tienen más de 30 respuestas</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>La de 50 000 tiene menos varianza, pero su autoselección puede dejar un sesgo que n no corrige</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La de 1 000 es mejor solo si la población tiene menos de 100 000 personas</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El marco es la herramienta operativa para llegar a las unidades: una lista, un mapa, un directorio. Si no coincide con la población objetivo, hay error de cobertura." data-wrong="Distingue lo que quieres estudiar (población objetivo) de lo que realmente puedes sortear (el marco).">
+        <h3>¿Qué es el marco muestral?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>La lista o el mecanismo con que se identifican y seleccionan las unidades</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El conjunto de unidades que efectivamente respondieron</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El cuestionario que se aplica a cada unidad</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El rango de valores que puede tomar el estimador</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El error de muestreo nace solo de observar una parte. Las otras tres opciones aparecerían aunque entrevistaras a toda la población: son errores ajenos al muestreo." data-wrong="Pregúntate: ¿este error desaparecería si hicieras un censo? Si no desaparece, es ajeno al muestreo.">
+        <h3>¿Cuál de estos es un error de muestreo?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Las personas subdeclaran su consumo de alcohol</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El padrón no incluye las viviendas construidas este año</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Un encuestador captura mal varias respuestas</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>La estimación difiere del valor real porque, por azar, salieron unos hogares y no otros</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="muestreo-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una universidad quiere medir la satisfacción de sus estudiantes de licenciatura. Toma la lista de correos institucionales de los estudiantes inscritos este semestre, sortea 800 direcciones y envía un cuestionario. Responden 240. Identifica la población objetivo, el marco, la unidad de muestreo, el parámetro de interés y la tasa de respuesta. ¿Qué error ajeno al muestreo te preocupa más?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Población objetivo: estudiantes de licenciatura de la universidad. Marco: la lista de correos de inscritos este semestre. Unidad de muestreo (y de observación): el estudiante. Parámetro: por ejemplo, la proporción \(P\) de estudiantes satisfechos o la satisfacción media. Tasa de respuesta: 240/800 = <b>30 %</b>.</p><p>La mayor preocupación es la <b>no respuesta</b>: 70 % no contestó, y es plausible que quienes están muy contentos o muy molestos respondan más. También hay un posible error de cobertura si hay estudiantes inscritos sin correo activo.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un padrón cubre al 80 % de los hogares de una región. Entre los hogares del padrón, el 60 % tiene acceso a internet; entre los que no están, solo el 35 %. Si haces un MAS perfecto del padrón, ¿qué proporción vas a estimar en promedio, cuál es la proporción real y cuánto vale el sesgo?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>En promedio estimarás la proporción del marco, 0,60. La real es \(P = 0{,}8 \cdot 0{,}60 + 0{,}2 \cdot 0{,}35 = 0{,}55\).</p><p>Sesgo = \((1-R)(\bar Y_R - \bar Y_{NR}) = 0{,}2 \cdot (0{,}60 - 0{,}35) = \) <b>+0,05</b>, es decir, 5 puntos porcentuales por encima, sin importar el tamaño de la muestra.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Para estimar una proporción cercana a 0,5 tienes dos opciones. A: muestra aleatoria de 400 personas, sin sesgo, con error estándar 0,025. B: panel en línea de 20 000 personas, con error estándar 0,0035 pero un sesgo estimado de 4 puntos. Compara la raíz del ECM de ambas. ¿Cuál prefieres?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>A: \(\mathrm{ECM} = 0{,}025^2 + 0 = 0{,}000625\), raíz = <b>0,025</b>.</p><p>B: \(\mathrm{ECM} = 0{,}0035^2 + 0{,}04^2 = 0{,}0000123 + 0{,}0016 = 0{,}0016123\), raíz ≈ <b>0,040</b>.</p><p>A tiene un error típico total 1,6 veces menor aunque usa 50 veces menos personas. Además, el intervalo de B (±0,7 puntos) daría una falsa sensación de precisión: casi nunca contendría el valor real.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Un hospital tiene 200 pacientes de urgencias y 800 de consulta externa. Para un estudio de reingresos sortea pacientes con probabilidades distintas: \(\pi = 0{,}05\) para urgencias y \(\pi = 0{,}01\) para consulta. Salen 10 de urgencias (4 reingresaron) y 8 de consulta (1 reingresó). Estima con Horvitz-Thompson el total y la proporción de reingresos, y compáralos con la proporción “ingenua” de la muestra. ¿Por qué difieren?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Pesos: \(w = 1/0{,}05 = 20\) en urgencias y \(w = 1/0{,}01 = 100\) en consulta. Total estimado: \(\hat Y_{HT} = 4 \cdot 20 + 1 \cdot 100 = 180\) reingresos. Proporción: \(180 / 1\,000 = \) <b>0,18</b>.</p><p>La proporción ingenua es 5/18 ≈ 0,28. Está inflada porque los pacientes de urgencias, que reingresan más, están sobrerrepresentados en la muestra (se eligieron con probabilidad 5 veces mayor). Los pesos corrigen esa sobrerrepresentación.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+y  = np.<span class="f">array</span>([<span class="n">1</span>]*<span class="n">4</span> + [<span class="n">0</span>]*<span class="n">6</span> + [<span class="n">1</span>] + [<span class="n">0</span>]*<span class="n">7</span>)
+pi = np.<span class="f">array</span>([<span class="n">0.05</span>]*<span class="n">10</span> + [<span class="n">0.01</span>]*<span class="n">8</span>)
+total = (y / pi).<span class="f">sum</span>()
+<span class="f">print</span>(total, total / <span class="n">1000</span>, y.<span class="f">mean</span>())   <span class="c"># 180.0 0.18 0.2777...</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>y  &lt;- <span class="f">c</span>(<span class="f">rep</span>(<span class="n">1</span>, <span class="n">4</span>), <span class="f">rep</span>(<span class="n">0</span>, <span class="n">6</span>), <span class="n">1</span>, <span class="f">rep</span>(<span class="n">0</span>, <span class="n">7</span>))
+pi &lt;- <span class="f">c</span>(<span class="f">rep</span>(<span class="n">0.05</span>, <span class="n">10</span>), <span class="f">rep</span>(<span class="n">0.01</span>, <span class="n">8</span>))
+total &lt;- <span class="f">sum</span>(y / pi)
+<span class="f">c</span>(total, total / <span class="n">1000</span>, <span class="f">mean</span>(y))        <span class="c"># 180  0.18  0.278</span></code></pre>
+</div></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>
