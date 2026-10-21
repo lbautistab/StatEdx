@@ -1,0 +1,314 @@
+<!-- StatEdx · sesión: reg -->
+<div id="view-reg" data-view="reg" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Regresión lineal simple</h1>
+      <p>¿Cuántos puntos sube la calificación por cada hora extra de estudio? La regresión lineal responde con una recta: mide la relación entre dos variables, la resume en dos números y te dice qué tan confiable es ese resumen.</p>
+      <div class="lmeta"><span>50 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#reg-idea" data-sec="reg-idea">La idea</a></li>
+        <li><a href="#reg-cor" data-sec="reg-cor">Covarianza y correlación</a></li>
+        <li><a href="#reg-modelo" data-sec="reg-modelo">El modelo y la recta</a></li>
+        <li><a href="#reg-lab" data-sec="reg-lab">Laboratorio</a></li>
+        <li><a href="#reg-r2" data-sec="reg-r2">Interpretar y medir el ajuste</a></li>
+        <li><a href="#reg-supuestos" data-sec="reg-supuestos">Residuos y supuestos</a></li>
+        <li><a href="#reg-inf" data-sec="reg-inf">Inferencia sobre β₁</a></li>
+        <li><a href="#reg-pred" data-sec="reg-pred">Predecir sin extrapolar</a></li>
+        <li><a href="#reg-causa" data-sec="reg-causa">Causalidad e influyentes</a></li>
+        <li><a href="#reg-code" data-sec="reg-code">En R y Python</a></li>
+        <li><a href="#reg-quiz" data-sec="reg-quiz">Comprueba</a></li>
+        <li><a href="#reg-ej" data-sec="reg-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="reg-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una profesora anota cuántas horas estudió cada uno de sus 12 estudiantes para el examen final y qué calificación sacó (sobre 100). Si pones las horas en el eje horizontal y la calificación en el vertical, cada estudiante es un punto: eso es un <b>diagrama de dispersión</b>, el primer gráfico que debes hacer antes de cualquier modelo.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Horas</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td></tr></thead>
+        <tbody><tr><th>Nota</th><td>52</td><td>61</td><td>55</td><td>64</td><td>68</td><td>62</td><td>74</td><td>71</td><td>79</td><td>76</td><td>85</td><td>82</td></tr></tbody>
+      </table></div>
+      <p>Los puntos suben de izquierda a derecha, con algo de ruido: no todos los que estudian 8 horas sacan lo mismo. La regresión lineal simple busca la recta que mejor resume esa tendencia y la usa para dos cosas: <b>describir</b> la relación (“cada hora extra se asocia con unos 2,8 puntos más”) y <b>predecir</b> (“con 7 horas, espera alrededor de 70”).</p>
+      <div class="callout"><b>Vocabulario:</b> \(y\) es la variable <i>respuesta</i> (o dependiente) y \(x\) la variable <i>explicativa</i> (o predictora). Elegir cuál es cuál no es simétrico: la recta de \(y\) sobre \(x\) no es la misma que la de \(x\) sobre \(y\).</div>
+
+      <h2 id="reg-cor"><span class="sec">§ 2</span>Covarianza y correlación</h2>
+      <p>La <b>covarianza</b> mide si dos variables se mueven juntas. Cada punto aporta el producto de sus desvíos respecto de las medias: positivo si está arriba a la derecha o abajo a la izquierda de \((\bar x, \bar y)\), negativo en los otros dos cuadrantes.</p>
+      <div class="eq">\[ s_{xy} = \frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)(y_i-\bar y), \qquad r = \frac{s_{xy}}{s_x\,s_y} = \frac{\sum (x_i-\bar x)(y_i-\bar y)}{\sqrt{\sum (x_i-\bar x)^2\,\sum (y_i-\bar y)^2}} \]
+        <div class="note">Con los datos del ejemplo: \(s_{xy} = 35{,}86\), \(s_x = 3{,}61\) h y \(s_y = 10{,}56\) puntos, así que \(r = 35{,}86 / (3{,}61 \cdot 10{,}56) \approx 0{,}94\).</div>
+      </div>
+      <p>La covarianza depende de las unidades (horas × puntos), por eso es difícil de interpretar. La <b>correlación de Pearson</b> \(r\) la estandariza y tiene propiedades muy útiles:</p>
+      <ul>
+        <li>Siempre está entre −1 y 1. Vale ±1 solo si todos los puntos caen exactamente en una recta.</li>
+        <li>No tiene unidades y no cambia si reescalas las variables (horas a minutos, notas sobre 100 a notas sobre 10).</li>
+        <li>Es simétrica: la correlación de \(x\) con \(y\) es la misma que la de \(y\) con \(x\).</li>
+        <li>Mide solo relación <b>lineal</b>. Una relación en forma de U perfecta puede tener \(r \approx 0\).</li>
+        <li>Es muy sensible a valores atípicos: un solo punto puede subirla o bajarla mucho.</li>
+      </ul>
+      <div class="callout"><b>Siempre grafica:</b> el famoso cuarteto de Anscombe son cuatro conjuntos de datos con la misma media, varianza, correlación (0,82) y recta de regresión, pero con formas completamente distintas: una nube lineal, una curva, una recta con un atípico y un solo punto que fabrica toda la relación.</div>
+
+      <h2 id="reg-modelo"><span class="sec">§ 3</span>El modelo y la recta de mínimos cuadrados</h2>
+      <p>El modelo de regresión lineal simple supone que, para cada valor de \(x\), la respuesta es una recta más un error aleatorio:</p>
+      <div class="eq">\[ y_i = \beta_0 + \beta_1 x_i + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2) \text{ independientes} \]
+        <div class="note">\(\beta_0\) (intercepto) y \(\beta_1\) (pendiente) son parámetros desconocidos de la población; \(\sigma\) mide cuánto se dispersan los puntos alrededor de la recta. Equivale a decir que la media de \(y\) dado \(x\) es \(E[y \mid x] = \beta_0 + \beta_1 x\).</div>
+      </div>
+      <p>Para estimar los parámetros usamos <b>mínimos cuadrados ordinarios</b> (MCO): de todas las rectas posibles, elegimos la que hace más pequeña la suma de los <b>residuos</b> al cuadrado, donde el residuo \(e_i = y_i - \hat y_i\) es la distancia vertical entre el punto y la recta.</p>
+      <div class="eq">\[ \min_{b_0,\,b_1}\ \sum_{i=1}^{n}\big(y_i - b_0 - b_1 x_i\big)^2 \quad\Longrightarrow\quad \hat\beta_1 = \frac{S_{xy}}{S_{xx}} = r\,\frac{s_y}{s_x}, \qquad \hat\beta_0 = \bar y - \hat\beta_1\,\bar x \]
+        <div class="note">\(S_{xy} = \sum (x_i-\bar x)(y_i-\bar y)\) y \(S_{xx} = \sum (x_i - \bar x)^2\). En el ejemplo: \(\hat\beta_1 = 394{,}5 / 143 = 2{,}76\) y \(\hat\beta_0 = 69{,}08 - 2{,}76 \cdot 6{,}5 = 51{,}15\). La recta ajustada es \(\hat y = 51{,}15 + 2{,}76\,x\).</div>
+      </div>
+      <p>Tres propiedades que salen directo de las fórmulas: la recta siempre pasa por el punto \((\bar x, \bar y)\); los residuos suman cero; y la pendiente tiene el mismo signo que \(r\). Elevar al cuadrado castiga mucho los errores grandes, por eso MCO es sensible a puntos alejados.</p>
+
+      <h2 id="reg-lab"><span class="sec">§ 4</span>Laboratorio</h2>
+      <p>El simulador genera estudiantes con una pendiente real y un nivel de ruido que tú eliges. La recta de color es la de mínimos cuadrados, la punteada es la verdadera y los segmentos son los residuos. A la derecha está el gráfico de residuos contra valores ajustados, la herramienta principal para revisar supuestos.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · mínimos cuadrados</span><span class="num" id="reg-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="reg-b1">PENDIENTE REAL · β₁ = <b id="reg-b1-v" class="num">2,8</b></label><input id="reg-b1" type="range" min="-3" max="5" step="0.1" value="2.8"></div>
+            <div class="ctrl"><label for="reg-sd">RUIDO · σ = <b id="reg-sd-v" class="num">5</b></label><input id="reg-sd" type="range" min="0" max="20" step="0.5" value="5"></div>
+            <div class="ctrl"><label for="reg-n">ESTUDIANTES · n = <b id="reg-n-v" class="num">30</b></label><input id="reg-n" type="range" min="5" max="120" value="30"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="reg-shape-label">RELACIÓN REAL</label>
+              <div class="seg" id="reg-shape" role="group" aria-labelledby="reg-shape-label">
+                <button data-s="lin" aria-pressed="true">Lineal</button>
+                <button data-s="curva" aria-pressed="false">Curva</button>
+                <button data-s="embudo" aria-pressed="false">Embudo</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="reg-out-label">PUNTO ATÍPICO</label>
+              <div class="seg" id="reg-out" role="group" aria-labelledby="reg-out-label">
+                <button data-o="none" aria-pressed="true">Ninguno</button>
+                <button data-o="mid" aria-pressed="false">En el centro</button>
+                <button data-o="far" aria-pressed="false">Lejos en x</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="reg-oy">NOTA DEL ATÍPICO = <b id="reg-oy-v" class="num">30</b></label><input id="reg-oy" type="range" min="0" max="100" value="30"></div>
+            <button class="btn btn-ghost btn-sm" id="reg-again" type="button">Nuevos estudiantes</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Nota según horas de estudio</span><span id="reg-lbl">┄ recta real</span></div>
+              <canvas class="plot" id="reg-c-xy" height="250" aria-label="Diagrama de dispersión con la recta de mínimos cuadrados y los residuos"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Residuos vs ajustados</span><span>— cero</span></div>
+              <canvas class="plot" id="reg-c-res" height="250" aria-label="Gráfico de residuos contra valores ajustados"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>recta de MCO</span><span><i style="background:var(--ink)"></i>recta real</span><span><i style="background:var(--hot)"></i>residuos y atípico</span><span><i style="background:var(--muted)"></i>MCO sin el atípico</span></div>
+          <div class="readout">
+            <div><span>intercepto estimado</span><b id="reg-r-b0">–</b></div>
+            <div><span>pendiente estimada</span><b id="reg-r-b1">–</b></div>
+            <div><span>correlación r</span><b id="reg-r-r">–</b></div>
+            <div><span>R²</span><b id="reg-r-r2">–</b></div>
+          </div>
+        </div>
+        <figcaption>Elige “Lejos en x” y baja la nota del atípico: un solo estudiante con 22 horas tumba la pendiente. El mismo punto “En el centro” apenas la mueve. Luego prueba “Curva” y “Embudo”: la recta se sigue ajustando, pero los residuos delatan el problema.</figcaption>
+      </figure>
+
+      <h2 id="reg-r2"><span class="sec">§ 5</span>Interpretar los coeficientes y medir el ajuste</h2>
+      <ul>
+        <li><b>Pendiente</b> \(\hat\beta_1 = 2{,}76\): por cada hora adicional de estudio, la calificación <i>promedio</i> es 2,76 puntos mayor. Habla de promedios, no de cada estudiante, y está en unidades de \(y\) por unidad de \(x\).</li>
+        <li><b>Intercepto</b> \(\hat\beta_0 = 51{,}15\): la calificación promedio predicha con 0 horas. Solo tiene sentido si \(x = 0\) está dentro del rango observado o es razonable; en muchos problemas es solo un ancla matemática de la recta.</li>
+      </ul>
+      <p>¿Qué tan bien resume la recta los datos? La variabilidad total de \(y\) se descompone en una parte explicada por la recta y una parte residual:</p>
+      <div class="eq">\[ \underbrace{\sum (y_i-\bar y)^2}_{SST} = \underbrace{\sum (\hat y_i-\bar y)^2}_{SSR} + \underbrace{\sum (y_i-\hat y_i)^2}_{SSE}, \qquad R^2 = \frac{SSR}{SST} = 1 - \frac{SSE}{SST} \]
+        <div class="note">En el ejemplo, \(SST = 1\,226{,}9\) y \(SSE = 138{,}6\), así que \(R^2 = 1 - 138{,}6/1\,226{,}9 = 0{,}887\). En regresión simple, \(R^2 = r^2\): \(0{,}942^2 \approx 0{,}887\).</div>
+      </div>
+      <p>Se lee así: el 88,7 % de la variación en las calificaciones se explica por su relación lineal con las horas de estudio. El 11,3 % restante se debe a todo lo demás (sueño, conocimientos previos, suerte en el examen).</p>
+      <div class="callout"><b>Cuidado con R²:</b> un R² alto no prueba que el modelo sea correcto (una curva puede dar R² alto con una recta) ni que haya causalidad, y un R² bajo no significa que la pendiente sea inútil: en ciencias sociales, relaciones reales y relevantes suelen tener R² de 0,1 o 0,2. R² siempre se lee junto con el gráfico de residuos.</div>
+
+      <h2 id="reg-supuestos"><span class="sec">§ 6</span>Residuos y supuestos</h2>
+      <p>Las fórmulas de MCO funcionan con cualquier nube de puntos, pero los errores estándar, intervalos y valores p dependen de cuatro supuestos. Una regla para recordarlos es <b>LINE</b>:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Supuesto</th><th>Qué significa</th><th>Cómo revisarlo</th><th>Si falla</th></tr></thead>
+        <tbody>
+          <tr><td><b>L</b>inealidad</td><td>La media de \(y\) cambia en línea recta con \(x\)</td><td>Residuos vs ajustados sin patrón curvo</td><td>Transformar \(x\) o \(y\), agregar \(x^2\)</td></tr>
+          <tr><td><b>I</b>ndependencia</td><td>Los errores no están relacionados entre sí</td><td>Diseño del estudio; residuos vs tiempo u orden</td><td>Modelos para series de tiempo o datos agrupados</td></tr>
+          <tr><td><b>N</b>ormalidad</td><td>Los errores siguen una normal</td><td>Gráfico Q-Q de residuos, histograma</td><td>Con n grande importa poco (TLC); si no, bootstrap</td></tr>
+          <tr><td><b>E</b>qual varianza (homocedasticidad)</td><td>La dispersión es la misma para todo \(x\)</td><td>Residuos vs ajustados sin forma de embudo</td><td>Transformar \(y\) (log), errores robustos, mínimos cuadrados ponderados</td></tr>
+        </tbody>
+      </table></div>
+      <p>El gráfico de residuos contra ajustados ideal es una franja horizontal sin forma alrededor de cero. Una <b>curva</b> en los residuos indica que la relación no es lineal; un <b>embudo</b> (residuos que se abren o se cierran) indica heterocedasticidad. Ambos patrones los puedes generar en el laboratorio. En el ejemplo de las horas de estudio los residuos van de −5,7 a 4,3 sin patrón visible, y la prueba de Shapiro-Wilk no rechaza la normalidad (p ≈ 0,09).</p>
+
+      <h2 id="reg-inf"><span class="sec">§ 7</span>Inferencia sobre la pendiente</h2>
+      <p>\(\hat\beta_1\) se calculó con una muestra; otra muestra daría otra pendiente. Su variabilidad se mide con el <b>error estándar</b>, que depende del ruido y de qué tan dispersos están los valores de \(x\):</p>
+      <div class="eq">\[ s = \sqrt{\frac{SSE}{n-2}}, \qquad SE(\hat\beta_1) = \frac{s}{\sqrt{S_{xx}}}, \qquad t = \frac{\hat\beta_1 - 0}{SE(\hat\beta_1)} \sim t_{n-2} \text{ bajo } H_0\!:\ \beta_1 = 0 \]
+        <div class="note">Se divide entre \(n-2\) porque estimamos dos parámetros. En el ejemplo: \(s = \sqrt{138{,}6/10} = 3{,}72\) puntos y \(SE(\hat\beta_1) = 3{,}72/\sqrt{143} = 0{,}311\).</div>
+      </div>
+      <p>La prueba de \(H_0: \beta_1 = 0\) pregunta si hay relación lineal en la población. Aquí \(t = 2{,}76 / 0{,}311 = 8{,}86\) con 10 grados de libertad, un valor p menor que 0,001. El intervalo de confianza del 95 % usa el cuantil \(t_{0{,}025;\,10} = 2{,}228\):</p>
+      <div class="eq">\[ \hat\beta_1 \pm t_{\alpha/2,\,n-2}\,SE(\hat\beta_1) = 2{,}76 \pm 2{,}228 \cdot 0{,}311 = [2{,}07;\ 3{,}45] \]
+        <div class="note">Con 95 % de confianza, cada hora extra se asocia con entre 2,1 y 3,5 puntos más en promedio. Para estimar mejor la pendiente: más datos, menos ruido o valores de \(x\) más dispersos (aumentan \(S_{xx}\)).</div>
+      </div>
+
+      <h2 id="reg-pred"><span class="sec">§ 8</span>Predecir sin extrapolar</h2>
+      <p>Para un nuevo valor \(x_0\), la recta da \(\hat y_0 = \hat\beta_0 + \hat\beta_1 x_0\). Pero hay dos preguntas distintas, con dos intervalos distintos:</p>
+      <div class="eq">\[ \text{media en } x_0:\ \hat y_0 \pm t\, s\sqrt{\tfrac{1}{n} + \tfrac{(x_0-\bar x)^2}{S_{xx}}} \qquad\quad \text{un individuo:}\ \hat y_0 \pm t\, s\sqrt{1 + \tfrac{1}{n} + \tfrac{(x_0-\bar x)^2}{S_{xx}}} \]
+        <div class="note">Con \(x_0 = 7\) h: \(\hat y_0 = 70{,}5\). El intervalo para la nota <b>promedio</b> de todos los que estudian 7 horas es \([68{,}0;\ 72{,}9]\); el intervalo de <b>predicción</b> para un estudiante concreto es \([61{,}8;\ 79{,}1]\), mucho más ancho porque suma el ruido individual \(\sigma\).</div>
+      </div>
+      <p>Ambos intervalos se ensanchan cuando \(x_0\) se aleja de \(\bar x\). Y fuera del rango observado aparece un peligro mayor: la <b>extrapolación</b>. Nada garantiza que la relación siga siendo lineal donde no tienes datos. Con 20 horas, la recta predice 106,3 puntos en un examen sobre 100: un resultado imposible que delata que el modelo solo vale entre 1 y 12 horas.</p>
+
+      <h2 id="reg-causa"><span class="sec">§ 9</span>Correlación, causalidad y puntos influyentes</h2>
+      <p>Una pendiente significativa dice que \(x\) y \(y\) se mueven juntos, no que \(x\) cause \(y\). Las ventas de helado y los ahogamientos están correlacionados porque ambos suben en verano: el calor es una <b>variable de confusión</b>. También puede haber causalidad inversa o pura coincidencia en datos con muchas variables. Para hablar de causa necesitas un experimento aleatorizado o un diseño que controle las confusiones (lo verás en regresión múltiple).</p>
+      <p>Respecto de los puntos raros, conviene distinguir tres ideas:</p>
+      <ul>
+        <li><b>Atípico</b>: un punto con residuo grande, lejos de la recta en dirección vertical.</li>
+        <li><b>Alto apalancamiento</b>: un punto con \(x\) muy alejado de \(\bar x\). Se mide con \(h_{ii} = \tfrac{1}{n} + \tfrac{(x_i - \bar x)^2}{S_{xx}}\).</li>
+        <li><b>Influyente</b>: un punto que, si lo quitas, cambia mucho la recta. Suele combinar apalancamiento y residuo grande. Se mide con la <b>distancia de Cook</b> \(D_i\); valores mayores que 1 (o que \(4/n\), según el criterio) merecen revisión.</li>
+      </ul>
+      <div class="callout"><b>No borres puntos por comodidad:</b> un punto influyente puede ser un error de captura (corrígelo) o el dato más informativo que tienes. Reporta el análisis con y sin él, y explica la decisión.</div>
+
+      <h2 id="reg-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>El ejemplo completo con los 12 estudiantes: correlación, ajuste, inferencia, predicción y diagnóstico.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> matplotlib.pyplot <span class="k">as</span> plt
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+
+df = pd.<span class="f">DataFrame</span>({
+    <span class="s">"horas"</span>: <span class="f">range</span>(<span class="n">1</span>, <span class="n">13</span>),
+    <span class="s">"nota"</span>: [<span class="n">52</span>, <span class="n">61</span>, <span class="n">55</span>, <span class="n">64</span>, <span class="n">68</span>, <span class="n">62</span>, <span class="n">74</span>, <span class="n">71</span>, <span class="n">79</span>, <span class="n">76</span>, <span class="n">85</span>, <span class="n">82</span>],
+})
+<span class="f">print</span>(df[<span class="s">"horas"</span>].<span class="f">corr</span>(df[<span class="s">"nota"</span>]))               <span class="c"># ≈ 0.942</span>
+
+modelo = smf.<span class="f">ols</span>(<span class="s">"nota ~ horas"</span>, data=df).<span class="f">fit</span>()
+<span class="f">print</span>(modelo.<span class="f">summary</span>())       <span class="c"># coeficientes, errores estándar, t, p y R²</span>
+<span class="f">print</span>(modelo.params)          <span class="c"># Intercept ≈ 51.15, horas ≈ 2.759</span>
+<span class="f">print</span>(modelo.rsquared)        <span class="c"># ≈ 0.887</span>
+<span class="f">print</span>(modelo.<span class="f">conf_int</span>())      <span class="c"># horas: ≈ [2.07, 3.45]</span>
+
+<span class="c"># predicción para 7 horas: media e individuo</span>
+nuevo = pd.<span class="f">DataFrame</span>({<span class="s">"horas"</span>: [<span class="n">7</span>]})
+<span class="f">print</span>(modelo.<span class="f">get_prediction</span>(nuevo).<span class="f">summary_frame</span>(alpha=<span class="n">0.05</span>))
+<span class="c"># mean ≈ 70.46, mean_ci ≈ [68.04, 72.88], obs_ci ≈ [61.82, 79.10]</span>
+
+<span class="c"># diagnóstico: residuos vs ajustados y distancia de Cook</span>
+plt.<span class="f">scatter</span>(modelo.fittedvalues, modelo.resid)
+plt.<span class="f">axhline</span>(<span class="n">0</span>, linestyle=<span class="s">"--"</span>)
+plt.<span class="f">xlabel</span>(<span class="s">"ajustados"</span>); plt.<span class="f">ylabel</span>(<span class="s">"residuos"</span>)
+plt.<span class="f">show</span>()
+<span class="f">print</span>(modelo.<span class="f">get_influence</span>().cooks_distance[<span class="n">0</span>].<span class="f">max</span>())   <span class="c"># ≈ 0.25, sin puntos influyentes</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>df &lt;- <span class="f">data.frame</span>(
+  horas = <span class="n">1</span>:<span class="n">12</span>,
+  nota  = <span class="f">c</span>(<span class="n">52</span>, <span class="n">61</span>, <span class="n">55</span>, <span class="n">64</span>, <span class="n">68</span>, <span class="n">62</span>, <span class="n">74</span>, <span class="n">71</span>, <span class="n">79</span>, <span class="n">76</span>, <span class="n">85</span>, <span class="n">82</span>)
+)
+<span class="f">cor</span>(df$horas, df$nota)                      <span class="c"># ≈ 0.942</span>
+
+modelo &lt;- <span class="f">lm</span>(nota ~ horas, data = df)
+<span class="f">summary</span>(modelo)     <span class="c"># coeficientes, errores estándar, t, p y R²</span>
+<span class="f">coef</span>(modelo)        <span class="c"># (Intercept) ≈ 51.15, horas ≈ 2.759</span>
+<span class="f">confint</span>(modelo)     <span class="c"># horas: ≈ 2.07 3.45</span>
+
+<span class="c"># predicción para 7 horas: media e individuo</span>
+nuevo &lt;- <span class="f">data.frame</span>(horas = <span class="n">7</span>)
+<span class="f">predict</span>(modelo, nuevo, interval = <span class="s">"confidence"</span>)   <span class="c"># ≈ 70.46 [68.04, 72.88]</span>
+<span class="f">predict</span>(modelo, nuevo, interval = <span class="s">"prediction"</span>)   <span class="c"># ≈ 70.46 [61.82, 79.10]</span>
+
+<span class="c"># diagnóstico: los cuatro gráficos clásicos y distancia de Cook</span>
+<span class="f">par</span>(mfrow = <span class="f">c</span>(<span class="n">2</span>, <span class="n">2</span>))
+<span class="f">plot</span>(modelo)
+<span class="f">max</span>(<span class="f">cooks.distance</span>(modelo))                <span class="c"># ≈ 0.25, sin puntos influyentes</span></code></pre>
+      </div>
+
+      <h2 id="reg-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <div class="quiz" data-right="La pendiente es el cambio en la nota promedio por cada hora adicional. Describe una asociación en promedio, no una garantía para cada estudiante ni una relación causal." data-wrong="La pendiente está en unidades de y por unidad de x. ¿Qué cambia en la nota promedio cuando x aumenta en 1?">
+        <h3>En el modelo ŷ = 51,15 + 2,76 · horas, ¿cómo se interpreta 2,76?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Un estudiante que no estudia saca 2,76 puntos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Por cada hora extra de estudio, la nota promedio es 2,76 puntos mayor</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Estudiar una hora más causa exactamente 2,76 puntos más a cada estudiante</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La correlación entre horas y nota es 2,76</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="En regresión simple R² = r². Si R² = 0,64 y la pendiente es negativa, r = −√0,64 = −0,8: el signo de r siempre coincide con el de la pendiente." data-wrong="Recuerda que en regresión simple R² = r², y que r tiene el mismo signo que la pendiente. ¿Cuál es la raíz de 0,64 y con qué signo?">
+        <h3>Una regresión de consumo de combustible sobre peso del auto da pendiente negativa y R² = 0,64. ¿Cuánto vale la correlación?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,64</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,80</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>−0,64</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>−0,80</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Un embudo significa que la dispersión de los residuos cambia con el valor ajustado: la varianza no es constante. Los errores estándar dejan de ser confiables; prueba transformar y con logaritmo o usa errores robustos." data-wrong="Piensa en qué supuesto habla de la dispersión de los errores. Si los residuos se abren como un embudo, ¿qué es lo que no se mantiene constante?">
+        <h3>En el gráfico de residuos contra ajustados, los residuos están cerca de cero a la izquierda y se abren cada vez más hacia la derecha. ¿Qué supuesto falla?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Homocedasticidad (varianza constante)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Linealidad</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Ninguno: así se ve un buen ajuste</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Que la media de x sea cero</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="reg-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una tienda registra 8 semanas de gasto en publicidad \(x\) (miles de pesos) y ventas \(y\) (miles de pesos). Obtiene \(\bar x = 5\), \(\bar y = 40\), \(S_{xx} = 42\) y \(S_{xy} = 126\). Calcula la recta de mínimos cuadrados e interpreta la pendiente.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(\hat\beta_1 = S_{xy}/S_{xx} = 126/42 = 3\) y \(\hat\beta_0 = \bar y - \hat\beta_1\bar x = 40 - 3 \cdot 5 = 25\). La recta es \(\hat y = 25 + 3x\).</p>
+            <p>Por cada mil pesos adicionales en publicidad, las ventas promedio semanales son 3 mil pesos mayores, dentro del rango de gasto observado.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>En un estudio, la correlación entre la estatura de padres e hijos es \(r = 0{,}5\), con \(s_x = 7\) cm para los padres y \(s_y = 8\) cm para los hijos. Calcula la pendiente de la regresión de la estatura del hijo sobre la del padre y el R². ¿Qué porcentaje de la variación queda sin explicar?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(\hat\beta_1 = r\,s_y/s_x = 0{,}5 \cdot 8/7 \approx 0{,}57\): por cada centímetro más de estatura del padre, el hijo mide en promedio 0,57 cm más.</p>
+            <p>\(R^2 = r^2 = 0{,}25\). La estatura del padre explica el 25 % de la variación; el 75 % queda sin explicar. Que la pendiente sea menor que 1 es la “regresión a la media” que le dio nombre al método.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con los 12 estudiantes de la clase, \(\hat\beta_1 = 2{,}759\) y \(SE(\hat\beta_1) = 0{,}311\). Construye el intervalo de confianza del 95 % para \(\beta_1\) y prueba \(H_0: \beta_1 = 0\) con \(\alpha = 0{,}05\). Después, ¿la evidencia es compatible con que cada hora valga 4 puntos?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Grados de libertad: \(n - 2 = 10\), con \(t_{0{,}025;\,10} = 2{,}228\). Intervalo: \(2{,}759 \pm 2{,}228 \cdot 0{,}311 = 2{,}759 \pm 0{,}693 = [2{,}07;\ 3{,}45]\).</p>
+            <p>\(t = 2{,}759/0{,}311 = 8{,}87\), muy por encima de 2,228: se rechaza \(H_0\) (p &lt; 0,001). El valor 4 queda fuera del intervalo, así que una pendiente de 4 puntos por hora no es compatible con los datos al 95 %.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>La tienda del ejercicio 1 tiene estos datos: publicidad 1, 2, 3, 4, 5, 6, 7, 8 y ventas 28, 31, 36, 37, 41, 44, 48, 50. Una novena semana con una campaña enorme registra publicidad 20 y ventas 45. Ajusta la regresión con y sin esa semana, compara pendiente y R², y calcula su apalancamiento y su distancia de Cook. ¿Qué le recomiendas a la tienda?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+
+d = pd.<span class="f">DataFrame</span>({<span class="s">"pub"</span>: [<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">8</span>, <span class="n">20</span>],
+                  <span class="s">"ventas"</span>: [<span class="n">28</span>, <span class="n">31</span>, <span class="n">36</span>, <span class="n">37</span>, <span class="n">41</span>, <span class="n">44</span>, <span class="n">48</span>, <span class="n">50</span>, <span class="n">45</span>]})
+con = smf.<span class="f">ols</span>(<span class="s">"ventas ~ pub"</span>, data=d).<span class="f">fit</span>()
+sin = smf.<span class="f">ols</span>(<span class="s">"ventas ~ pub"</span>, data=d.iloc[:<span class="n">8</span>]).<span class="f">fit</span>()
+<span class="f">print</span>(con.params, con.rsquared)   <span class="c"># pendiente ≈ 0.83, R² ≈ 0.38</span>
+<span class="f">print</span>(sin.params, sin.rsquared)   <span class="c"># pendiente ≈ 3.18, R² ≈ 0.99</span>
+inf = con.<span class="f">get_influence</span>()
+<span class="f">print</span>(inf.hat_matrix_diag[<span class="n">8</span>], inf.cooks_distance[<span class="n">0</span>][<span class="n">8</span>])   <span class="c"># ≈ 0.85  ≈ 20</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>d &lt;- <span class="f">data.frame</span>(pub = <span class="f">c</span>(<span class="n">1</span>:<span class="n">8</span>, <span class="n">20</span>),
+                ventas = <span class="f">c</span>(<span class="n">28</span>, <span class="n">31</span>, <span class="n">36</span>, <span class="n">37</span>, <span class="n">41</span>, <span class="n">44</span>, <span class="n">48</span>, <span class="n">50</span>, <span class="n">45</span>))
+con &lt;- <span class="f">lm</span>(ventas ~ pub, data = d)
+sin &lt;- <span class="f">lm</span>(ventas ~ pub, data = d[<span class="n">1</span>:<span class="n">8</span>, ])
+<span class="f">coef</span>(con); <span class="f">summary</span>(con)$r.squared     <span class="c"># pendiente ≈ 0.83, R² ≈ 0.38</span>
+<span class="f">coef</span>(sin); <span class="f">summary</span>(sin)$r.squared     <span class="c"># pendiente ≈ 3.18, R² ≈ 0.99</span>
+<span class="f">hatvalues</span>(con)[<span class="n">9</span>]; <span class="f">cooks.distance</span>(con)[<span class="n">9</span>]   <span class="c"># ≈ 0.85  ≈ 20</span></code></pre>
+            </div>
+            <p>Sin la semana 9, cada mil pesos de publicidad se asocian con unos 3,2 mil pesos más de ventas (R² ≈ 0,99). Con ella, la pendiente cae a 0,83 y el R² a 0,38. Su apalancamiento es 0,85 (casi toda la recta depende de ese punto) y su distancia de Cook ≈ 20, muy por encima de 1: es un punto extremadamente influyente.</p>
+            <p>Recomendación: no mezclar ambas situaciones en una sola recta. Los datos sugieren que la relación es lineal hasta 8 mil pesos y que con gastos muy grandes el efecto se satura (rendimientos decrecientes). Para decidir sobre campañas grandes hacen falta más semanas con gastos intermedios, no extrapolar la recta.</p>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

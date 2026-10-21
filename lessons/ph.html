@@ -1,0 +1,197 @@
+<!-- StatEdx · sesión: ph -->
+<div id="view-ph" data-view="ph" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Pruebas de hipótesis y valor p</h1>
+      <p>¿El nuevo diseño de la página realmente vende más, o fue suerte? Una prueba de hipótesis responde comparando lo que observaste con lo que el azar produciría si no hubiera ningún efecto.</p>
+      <div class="lmeta"><span>55 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza</span><span>Python · SciPy</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#ph-idea" data-sec="ph-idea">La idea</a></li>
+        <li><a href="#ph-lab" data-sec="ph-lab">Laboratorio: la moneda</a></li>
+        <li><a href="#ph-pvalor" data-sec="ph-pvalor">Qué es el valor p</a></li>
+        <li><a href="#ph-errores" data-sec="ph-errores">Errores y potencia</a></li>
+        <li><a href="#ph-code" data-sec="ph-code">En R y Python</a></li>
+        <li><a href="#ph-quiz" data-sec="ph-quiz">Comprueba</a></li>
+        <li><a href="#ph-ej" data-sec="ph-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="ph-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una prueba de hipótesis funciona como un juicio. Partimos de la <b>hipótesis nula</b> \(H_0\): no hay efecto, la diferencia es puro azar. Solo la rechazamos si los datos serían muy raros en un mundo donde \(H_0\) es cierta.</p>
+      <div class="eq">\[ H_0:\ p = 0{,}5 \qquad\text{frente a}\qquad H_1:\ p \neq 0{,}5 \]
+        <div class="note">Ejemplo: \(p\) es la probabilidad de que una moneda caiga en cara. \(H_0\) dice que la moneda es justa.</div>
+      </div>
+
+      <h2 id="ph-lab"><span class="sec">§ 2</span>Laboratorio: la moneda</h2>
+      <p>Lanzas una moneda 100 veces. Las barras muestran qué tan probable es cada número de caras si la moneda es justa. Las barras resaltadas son los resultados al menos tan extremos como el tuyo; su suma es el valor p.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · distribución bajo H₀</span><span class="num" id="ph-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="ph-k">CARAS OBSERVADAS EN 100 LANZAMIENTOS · <b id="ph-k-v" class="num">60</b></label><input id="ph-k" type="range" min="25" max="75" value="60"></div>
+            <div class="ctrl">
+              <label id="ph-a-label">NIVEL DE SIGNIFICANCIA α</label>
+              <div class="seg" id="ph-alpha" role="group" aria-labelledby="ph-a-label">
+                <button data-a="0.10" aria-pressed="false">0,10</button>
+                <button data-a="0.05" aria-pressed="true">0,05</button>
+                <button data-a="0.01" aria-pressed="false">0,01</button>
+              </div>
+            </div>
+          </div>
+          <canvas class="plot" id="c-ph" height="250" aria-label="Distribución binomial de caras bajo la hipótesis nula, con las colas del valor p resaltadas"></canvas>
+          <div class="readout">
+            <div><span>caras observadas</span><b id="ph-o">–</b></div>
+            <div><span>valor p (dos colas)</span><b id="ph-p">–</b></div>
+            <div><span>α elegido</span><b id="ph-a">–</b></div>
+            <div><span>decisión sobre H₀</span><b id="ph-d">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con 60 caras el valor p queda muy cerca de 0,05. Prueba 59 y 61: una sola cara cambia la decisión. Por eso conviene reportar el valor p y no solo “significativo o no”.</figcaption>
+      </figure>
+
+      <h2 id="ph-pvalor"><span class="sec">§ 3</span>Qué es el valor p</h2>
+      <div class="eq">\[ p\text{-valor} = P\big(\text{un resultado al menos tan extremo como el observado} \;\big|\; H_0 \text{ es cierta}\big) \]</div>
+      <p>Si el valor p es menor que \(\alpha\), decimos que el resultado es <b>estadísticamente significativo</b> y rechazamos \(H_0\). Tres malentendidos frecuentes:</p>
+      <ul>
+        <li>El valor p <b>no</b> es la probabilidad de que \(H_0\) sea cierta.</li>
+        <li>Un valor p grande <b>no</b> prueba que no haya efecto; puede que tu muestra sea pequeña.</li>
+        <li>Significativo <b>no</b> quiere decir importante. Con muestras enormes, efectos diminutos dan valores p pequeños.</li>
+      </ul>
+
+      <h2 id="ph-errores"><span class="sec">§ 4</span>Errores y potencia</h2>
+      <p>Toda decisión puede equivocarse de dos formas. Un <b>error tipo I</b> es rechazar \(H_0\) cuando era cierta (un falso positivo); ocurre con probabilidad \(\alpha\). Un <b>error tipo II</b> es no detectar un efecto que sí existe. La <b>potencia</b> es la probabilidad de detectarlo: \(1-\beta\).</p>
+      <p>El simulador corre 200 pruebas A/B. En cada una, 50 personas ven la página A y 50 la página B, y se compara su tiempo en la página. Tú decides si existe un efecto real.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · 200 experimentos A/B</span><span class="num" id="ab-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="ab-d-label">EFECTO REAL DE LA PÁGINA B</label>
+              <div class="seg" id="ab-d" role="group" aria-labelledby="ab-d-label">
+                <button data-d="0" aria-pressed="true">Ninguno</button>
+                <button data-d="0.3" aria-pressed="false">Pequeño (0,3σ)</button>
+                <button data-d="0.6" aria-pressed="false">Grande (0,6σ)</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="ab-again" type="button">Correr otros 200</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Cada punto es un experimento</span><span>● p &lt; 0,05</span></div>
+              <canvas class="plot" id="c-ab" height="220" aria-label="Doscientos experimentos; los significativos aparecen resaltados"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Histograma de los 200 valores p</span><span>┄ esperado si H₀</span></div>
+              <canvas class="plot" id="c-ab-h" height="220" aria-label="Histograma de los valores p de los doscientos experimentos"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>experimentos significativos</span><b id="ab-sig">–</b></div>
+            <div><span>proporción</span><b id="ab-rate">–</b></div>
+            <div><span>esto mide</span><b id="ab-what">–</b></div>
+            <div><span>valor teórico</span><b id="ab-theory">–</b></div>
+          </div>
+        </div>
+        <figcaption>Sin efecto real, los valores p se reparten parejo entre 0 y 1, y aun así cerca del 5 % sale “significativo” por azar. Si corres 20 pruebas sin efecto, lo esperable es que una salga significativa.</figcaption>
+      </figure>
+
+      <h2 id="ph-code"><span class="sec">§ 5</span>En R y Python</h2>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="c"># 1. ¿Está cargada la moneda? 60 caras en 100 lanzamientos</span>
+res = stats.<span class="f">binomtest</span>(<span class="n">60</span>, n=<span class="n">100</span>, p=<span class="n">0.5</span>)
+<span class="f">print</span>(<span class="s">f"p = {res.pvalue:.4f}"</span>)                    <span class="c"># 0.0569</span>
+
+<span class="c"># 2. Prueba A/B: comparar dos medias con la t de Welch</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+a = rng.<span class="f">normal</span>(<span class="n">0.0</span>, <span class="n">1</span>, <span class="n">50</span>)
+b = rng.<span class="f">normal</span>(<span class="n">0.6</span>, <span class="n">1</span>, <span class="n">50</span>)
+t, p = stats.<span class="f">ttest_ind</span>(b, a, equal_var=<span class="k">False</span>)
+<span class="f">print</span>(<span class="s">f"t = {t:.2f}, p = {p:.4f}"</span>)</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># 1. ¿Está cargada la moneda? 60 caras en 100 lanzamientos</span>
+<span class="f">binom.test</span>(<span class="n">60</span>, n = <span class="n">100</span>, p = <span class="n">0.5</span>)$p.value      <span class="c"># 0.0569</span>
+
+<span class="c"># 2. Prueba A/B: comparar dos medias con la t de Welch</span>
+<span class="f">set.seed</span>(<span class="n">1</span>)
+a &lt;- <span class="f">rnorm</span>(<span class="n">50</span>, mean = <span class="n">0.0</span>, sd = <span class="n">1</span>)
+b &lt;- <span class="f">rnorm</span>(<span class="n">50</span>, mean = <span class="n">0.6</span>, sd = <span class="n">1</span>)
+<span class="f">t.test</span>(b, a)              <span class="c"># Welch por defecto (var.equal = FALSE)</span></code></pre>
+</div>
+
+      <h2 id="ph-quiz"><span class="sec">§ 6</span>Comprueba</h2>
+      <div class="quiz" data-right="El valor p se calcula suponiendo que H₀ es cierta: mide qué tan raros son tus datos en ese mundo. No dice la probabilidad de que H₀ sea cierta." data-wrong="Recuerda la definición: el valor p es una probabilidad sobre los datos, calculada suponiendo H₀. ¿Cuál de las opciones habla de los datos y no de la hipótesis?">
+        <h3>Una prueba A/B da p = 0,03. ¿Cuál es la interpretación correcta?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Hay 3 % de probabilidad de que la página B no tenga efecto</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Hay 97 % de probabilidad de que la página B sea mejor</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Si B no tuviera efecto, una diferencia así o mayor saldría el 3 % de las veces</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El efecto de la página B es pequeño, de 3 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Es un falso positivo: anunciar un efecto que no existe. Su probabilidad es α, que tú eliges antes de ver los datos." data-wrong="Hay dos formas de equivocarse. ¿Cuál corresponde a ver un efecto donde no lo hay?">
+        <h3>¿Qué es un error tipo I?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Rechazar H₀ cuando en realidad es cierta</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>No rechazar H₀ cuando es falsa</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Usar un α demasiado pequeño</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Equivocarse al calcular el valor p</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con más datos el error estándar baja, la diferencia observada se separa mejor del ruido y es más fácil detectar un efecto real." data-wrong="Piensa en el error estándar σ/√n: ¿qué le pasa cuando n crece, y cómo afecta eso a la capacidad de ver un efecto?">
+        <h3>Si aumentas el tamaño de muestra y mantienes α = 0,05, ¿qué le pasa a la potencia de la prueba?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Disminuye</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>No cambia, depende solo de α</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se vuelve igual a 1 − α</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Aumenta</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="ph-ej"><span class="sec">§ 7</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una empresa afirma que sus focos duran en promedio 1 000 horas. Sospechas que duran menos. Plantea H₀ y H₁ y di si la prueba es de una o de dos colas.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>H₀: μ = 1 000 frente a H₁: μ &lt; 1 000. Es una prueba de <b>una cola</b> (cola izquierda), porque solo te interesa detectar una duración menor.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Una prueba da p = 0,08 con α = 0,05. ¿Qué decides y cómo lo redactarías en un informe?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Como 0,08 &gt; 0,05, <b>no se rechaza H₀</b>. Una buena redacción: “Los datos no aportan evidencia suficiente de un efecto al 5 % (p = 0,08)”. No digas que “se acepta H₀” ni que “no hay efecto”.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Lanzas una moneda 100 veces y salen 62 caras. Calcula el valor p de dos colas con la aproximación normal y con la prueba binomial exacta.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Con la normal: z = (62 − 50)/5 = 2,4, y p = 2(1 − Φ(2,4)) ≈ <b>0,016</b>. La prueba exacta da p ≈ <b>0,021</b>. En ambos casos se rechaza H₀ al 5 %.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="f">print</span>(stats.<span class="f">binomtest</span>(<span class="n">62</span>, n=<span class="n">100</span>, p=<span class="n">0.5</span>).pvalue)   <span class="c"># 0.021</span>
+<span class="f">print</span>(<span class="n">2</span> * stats.norm.<span class="f">sf</span>(<span class="n">2.4</span>))                     <span class="c"># 0.016</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">binom.test</span>(<span class="n">62</span>, n = <span class="n">100</span>, p = <span class="n">0.5</span>)$p.value   <span class="c"># 0.021</span>
+<span class="n">2</span> * <span class="f">pnorm</span>(<span class="n">2.4</span>, lower.tail = <span class="k">FALSE</span>)           <span class="c"># 0.016</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Tu equipo corre 20 pruebas A/B independientes en un trimestre, y en ninguna hay efecto real. Con α = 0,05, ¿cuál es la probabilidad de obtener al menos un resultado “significativo”? ¿Qué α por prueba tendrías que usar con la corrección de Bonferroni?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>P(ningún falso positivo) = 0,95²⁰ ≈ 0,358, así que P(al menos uno) ≈ <b>0,64</b>. Con Bonferroni, cada prueba usa α = 0,05/20 = <b>0,0025</b>.</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

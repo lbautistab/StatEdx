@@ -1,0 +1,383 @@
+<!-- StatEdx · sesión: bayes -->
+<div id="view-bayes" data-view="bayes" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Inferencia bayesiana</h1>
+      <p>En lugar de preguntar qué tan raros son tus datos si no hay efecto, la estadística bayesiana pregunta directamente: dado lo que sabía y lo que observé, ¿qué tan probable es cada valor del parámetro? Aquí aprendes a combinar un prior con los datos, a leer una posterior y a decidir una prueba A/B con probabilidades.</p>
+      <div class="lmeta"><span>60 min</span><span>Nivel avanzado</span><span>Requiere: probabilidad y pruebas de hipótesis</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#bayes-idea" data-sec="bayes-idea">La idea</a></li>
+        <li><a href="#bayes-teorema" data-sec="bayes-teorema">Bayes para parámetros</a></li>
+        <li><a href="#bayes-beta" data-sec="bayes-beta">El modelo Beta-Binomial</a></li>
+        <li><a href="#bayes-lab" data-sec="bayes-lab">Laboratorio</a></li>
+        <li><a href="#bayes-resumen" data-sec="bayes-resumen">Resumir la posterior</a></li>
+        <li><a href="#bayes-prior" data-sec="bayes-prior">El peso del prior</a></li>
+        <li><a href="#bayes-pred" data-sec="bayes-pred">Predictiva posterior</a></li>
+        <li><a href="#bayes-ab" data-sec="bayes-ab">Prueba A/B bayesiana</a></li>
+        <li><a href="#bayes-mcmc" data-sec="bayes-mcmc">Más allá: MCMC</a></li>
+        <li><a href="#bayes-code" data-sec="bayes-code">En R y Python</a></li>
+        <li><a href="#bayes-quiz" data-sec="bayes-quiz">Comprueba</a></li>
+        <li><a href="#bayes-ej" data-sec="bayes-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="bayes-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una tienda en línea estrena un botón de “comprar con un clic”. De las primeras 20 personas que lo ven, 7 lo usan: un 35 %. ¿Es esa la tasa real? Con tan pocos datos, nadie apostaría a que sí. Pero el equipo tiene experiencia: botones parecidos que lanzaron antes rondaban el 20 %, casi nunca más del 40 %.</p>
+      <p>La estadística frecuentista que viste en las clases anteriores trata la tasa real \(\theta\) como un número fijo y desconocido, y razona sobre lo que pasaría con muchas muestras repetidas. La estadística <b>bayesiana</b> usa la probabilidad para describir tu <i>incertidumbre</i> sobre \(\theta\): antes de ver datos tienes una distribución (el <b>prior</b>), los datos la corrigen, y obtienes una distribución actualizada (la <b>posterior</b>).</p>
+      <div class="callout"><b>La idea central:</b> lo que crees después = lo que creías antes, corregido por lo que viste. Y la posterior de hoy es el prior de mañana: cuando lleguen 200 visitas más, partes de donde te quedaste.</div>
+
+      <h2 id="bayes-teorema"><span class="sec">§ 2</span>Bayes para parámetros</h2>
+      <p>Ya conoces el teorema de Bayes para eventos: \(P(A \mid B) = P(B \mid A)\,P(A)/P(B)\). La inferencia bayesiana aplica la misma regla a un parámetro \(\theta\) y a los datos observados \(y\):</p>
+      <div class="eq">\[ p(\theta \mid y) \;=\; \frac{p(y \mid \theta)\; p(\theta)}{p(y)}, \qquad p(y) = \int p(y \mid \theta)\, p(\theta)\, d\theta \]
+        <div class="note">Como \(p(y)\) no depende de \(\theta\), casi siempre se escribe en forma proporcional: \(\;p(\theta \mid y) \propto p(y \mid \theta)\, p(\theta)\), es decir, <b>posterior ∝ verosimilitud × prior</b>.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Pieza</th><th>Notación</th><th>Qué representa</th></tr></thead>
+        <tbody>
+          <tr><td>Prior</td><td>\(p(\theta)\)</td><td>Lo que sabes de \(\theta\) antes de ver estos datos: experiencia, estudios previos o, si no sabes nada, una distribución plana.</td></tr>
+          <tr><td>Verosimilitud</td><td>\(p(y \mid \theta)\)</td><td>Qué tan compatibles son los datos observados con cada valor posible de \(\theta\). Es el mismo modelo que usa la estadística clásica.</td></tr>
+          <tr><td>Evidencia</td><td>\(p(y)\)</td><td>Probabilidad total de los datos promediando sobre el prior. Solo sirve para que la posterior integre 1.</td></tr>
+          <tr><td>Posterior</td><td>\(p(\theta \mid y)\)</td><td>Tu conocimiento actualizado: una distribución completa, no un solo número.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Error común:</b> la verosimilitud no es una distribución de probabilidad sobre \(\theta\). Si la integras en \(\theta\) no tiene por qué dar 1. Es una función que pondera: multiplica al prior y lo empuja hacia los valores de \(\theta\) que mejor explican los datos.</div>
+      <p>Dos consecuencias prácticas. Primero, todas las conclusiones se expresan como probabilidades sobre \(\theta\): “hay 71 % de probabilidad de que la tasa supere el 25 %” es una frase bayesiana legítima, algo que un valor p nunca te da. Segundo, el precio es que debes declarar un prior, y otra persona con otro prior puede llegar a otra posterior con los mismos datos. Por eso el prior se justifica y se reporta, igual que cualquier otro supuesto del modelo.</p>
+
+      <h2 id="bayes-beta"><span class="sec">§ 3</span>El modelo Beta-Binomial</h2>
+      <p>Para una proporción \(\theta \in [0, 1]\) (tasa de conversión, de aprobación, de defectos) el prior más usado es la distribución <b>Beta</b>, con dos parámetros positivos \(a\) y \(b\):</p>
+      <div class="eq">\[ p(\theta) = \frac{\theta^{\,a-1}(1-\theta)^{\,b-1}}{B(a, b)}, \qquad E[\theta] = \frac{a}{a+b}, \qquad \operatorname{Var}(\theta) = \frac{ab}{(a+b)^2(a+b+1)} \]
+        <div class="note">\(B(a,b)\) es la función beta, una constante. \(\text{Beta}(1,1)\) es la uniforme en [0, 1]. Puedes leer \(a\) como “éxitos imaginarios” y \(b\) como “fracasos imaginarios”: \(a+b\) mide cuánta información aporta el prior.</div>
+      </div>
+      <p>Si observas \(k\) éxitos en \(n\) ensayos independientes, la verosimilitud es binomial, \(p(y \mid \theta) = \binom{n}{k}\theta^{k}(1-\theta)^{n-k}\). Multiplica prior por verosimilitud y junta exponentes:</p>
+      <div class="eq">\[ p(\theta \mid y) \;\propto\; \theta^{\,k}(1-\theta)^{\,n-k}\cdot\theta^{\,a-1}(1-\theta)^{\,b-1} = \theta^{\,a+k-1}(1-\theta)^{\,b+n-k-1} \]
+        <div class="note">Esa es la forma de otra Beta. Por lo tanto \(\;\theta \mid y \sim \text{Beta}(a + k,\; b + n - k)\). Actualizar es sumar: los éxitos van a \(a\) y los fracasos a \(b\).</div>
+      </div>
+      <p>Cuando la posterior pertenece a la misma familia que el prior se dice que el prior es <b>conjugado</b> de la verosimilitud. No es obligatorio usar priors conjugados, pero permiten hacer todo con fórmulas cerradas. Los pares más comunes:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Datos</th><th>Verosimilitud</th><th>Prior conjugado</th><th>Posterior</th></tr></thead>
+        <tbody>
+          <tr><td>Éxitos en \(n\) ensayos</td><td>Binomial(\(n, \theta\))</td><td>Beta(\(a, b\))</td><td>Beta(\(a+k,\ b+n-k\))</td></tr>
+          <tr><td>Conteos por intervalo</td><td>Poisson(\(\lambda\))</td><td>Gamma(\(\alpha, \beta\))</td><td>Gamma(\(\alpha+\sum y_i,\ \beta+n\))</td></tr>
+          <tr><td>Mediciones con σ conocida</td><td>Normal(\(\mu, \sigma^2\))</td><td>Normal(\(\mu_0, \tau_0^2\))</td><td>Normal (promedio ponderado por precisión)</td></tr>
+          <tr><td>Categorías</td><td>Multinomial</td><td>Dirichlet(\(\alpha_1,\dots,\alpha_K\))</td><td>Dirichlet(\(\alpha_j + n_j\))</td></tr>
+        </tbody>
+      </table></div>
+      <p>La media posterior tiene una lectura muy útil: es un <b>promedio ponderado</b> entre la media del prior y la proporción observada, con pesos que dependen de cuánta información aporta cada uno.</p>
+      <div class="eq">\[ E[\theta \mid y] = \frac{a+k}{a+b+n} = \underbrace{\frac{a+b}{a+b+n}}_{\text{peso del prior}}\cdot\frac{a}{a+b} \;+\; \underbrace{\frac{n}{a+b+n}}_{\text{peso de los datos}}\cdot\frac{k}{n} \]
+        <div class="note">Botón de un clic: prior \(\text{Beta}(2, 8)\) (media 0,20, equivale a 10 observaciones) y datos 7 de 20. Posterior \(\text{Beta}(9, 21)\), con media \(\tfrac{10}{30}\cdot 0{,}20 + \tfrac{20}{30}\cdot 0{,}35 = 0{,}30\).</div>
+      </div>
+
+      <h2 id="bayes-lab"><span class="sec">§ 4</span>Laboratorio</h2>
+      <p>El simulador dibuja las tres curvas del teorema de Bayes. La verosimilitud está reescalada para que se pueda comparar (equivale a la posterior que tendrías con un prior plano). La zona sombreada es el intervalo de credibilidad del 95 %: deja 2,5 % de probabilidad posterior a cada lado.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · prior × verosimilitud</span><span class="num" id="bayes-bb-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="bayes-a">PRIOR · a = <b id="bayes-a-v" class="num">2</b></label><input id="bayes-a" type="range" min="0.5" max="60" step="0.5" value="2"></div>
+            <div class="ctrl"><label for="bayes-b">PRIOR · b = <b id="bayes-b-v" class="num">8</b></label><input id="bayes-b" type="range" min="0.5" max="60" step="0.5" value="8"></div>
+            <div class="ctrl">
+              <label id="bayes-pre-label">PRIORS TÍPICOS</label>
+              <div class="seg" id="bayes-pre" role="group" aria-labelledby="bayes-pre-label">
+                <button data-a="1" data-b="1" aria-pressed="false">Plano</button>
+                <button data-a="2" data-b="8" aria-pressed="true">Débil</button>
+                <button data-a="12" data-b="48" aria-pressed="false">Fuerte</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="bayes-n">ENSAYOS · n = <b id="bayes-n-v" class="num">20</b></label><input id="bayes-n" type="range" min="1" max="200" value="20"></div>
+            <div class="ctrl"><label for="bayes-k">ÉXITOS · k = <b id="bayes-k-v" class="num">7</b></label><input id="bayes-k" type="range" min="0" max="20" value="7"></div>
+          </div>
+          <canvas class="plot" id="bayes-c-bb" height="260" aria-label="Prior, verosimilitud y posterior de una proporción, con el intervalo de credibilidad del 95 % sombreado"></canvas>
+          <div class="legend"><span><i style="background:var(--muted)"></i>prior</span><span><i style="background:var(--hot)"></i>verosimilitud</span><span><i style="background:var(--accent)"></i>posterior</span><span><i style="background:var(--ink)"></i>media posterior</span></div>
+          <div class="readout">
+            <div><span>media posterior</span><b id="bayes-bb-mean">–</b></div>
+            <div><span>moda (MAP)</span><b id="bayes-bb-mode">–</b></div>
+            <div><span>intervalo 95 %</span><b id="bayes-bb-ci">–</b></div>
+            <div><span>peso de los datos</span><b id="bayes-bb-w">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con el prior débil, sube n a 200 manteniendo la proporción (k = 70): la posterior se pega a la verosimilitud. Ahora elige el prior fuerte con n = 20: la posterior queda entre ambas y mucho más cerca del prior.</figcaption>
+      </figure>
+
+      <h2 id="bayes-resumen"><span class="sec">§ 5</span>Resumir la posterior</h2>
+      <p>La posterior es la respuesta completa, pero a menudo necesitas resumirla:</p>
+      <ul>
+        <li><b>Media posterior</b> \(\frac{a'}{a'+b'}\), donde \(a' = a+k\) y \(b' = b+n-k\). Es la estimación que minimiza el error cuadrático esperado.</li>
+        <li><b>Mediana posterior</b>: deja 50 % de probabilidad a cada lado; minimiza el error absoluto esperado.</li>
+        <li><b>Moda o MAP</b> (máximo a posteriori) \(\frac{a'-1}{a'+b'-2}\), válida si \(a', b' > 1\). Con prior plano \(\text{Beta}(1,1)\) coincide con el estimador de máxima verosimilitud \(k/n\).</li>
+      </ul>
+      <p>Para la incertidumbre se usa un <b>intervalo de credibilidad</b>: un rango \([l, u]\) tal que \(P(l \le \theta \le u \mid y) = 0{,}95\). El más sencillo toma los cuantiles 2,5 % y 97,5 % de la posterior (intervalo de colas iguales). Otra opción es el intervalo de <b>máxima densidad posterior</b> (HDI), el más corto posible con 95 % de probabilidad; difiere del anterior cuando la posterior es asimétrica.</p>
+      <div class="eq">\[ \theta \mid y \sim \text{Beta}(9, 21): \quad E[\theta\mid y] = 0{,}300, \quad \text{moda} = 0{,}286, \quad \text{IC}_{95\%} = [0{,}153;\ 0{,}472] \]
+        <div class="note">Con el mismo dato (7 de 20), el intervalo de confianza de Wald frecuentista es \([0{,}141;\ 0{,}559]\). El bayesiano es más angosto porque el prior aporta información equivalente a 10 observaciones.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th></th><th>Intervalo de confianza</th><th>Intervalo de credibilidad</th></tr></thead>
+        <tbody>
+          <tr><td>Qué es aleatorio</td><td>El intervalo; \(\theta\) es fijo</td><td>\(\theta\), descrito por la posterior; los datos son fijos</td></tr>
+          <tr><td>Qué garantiza el 95 %</td><td>El procedimiento atrapa a \(\theta\) en 95 % de las muestras</td><td>Hay 95 % de probabilidad de que \(\theta\) esté dentro, dado el modelo y el prior</td></tr>
+          <tr><td>Requiere prior</td><td>No</td><td>Sí</td></tr>
+          <tr><td>Muestras grandes</td><td colspan="2">Con un prior razonable ambos casi coinciden (teorema de Bernstein-von Mises)</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Para recordar:</b> la interpretación que la gente suele dar por error a un intervalo de confianza (“hay 95 % de probabilidad de que μ esté aquí”) es exactamente la interpretación correcta de un intervalo de credibilidad. Esa claridad es una de las razones por las que el enfoque bayesiano es popular en la industria.</div>
+
+      <h2 id="bayes-prior"><span class="sec">§ 6</span>El peso del prior y del tamaño de muestra</h2>
+      <p>Como el prior equivale a \(a+b\) observaciones, su influencia depende de cuántos datos tengas. La tabla aplica tres priors a los mismos datos, primero con 20 ensayos y luego con 200 (misma proporción observada, 35 %):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Prior</th><th>Datos 7 / 20</th><th>IC 95 %</th><th>Datos 70 / 200</th><th>IC 95 %</th></tr></thead>
+        <tbody>
+          <tr><td>Plano Beta(1, 1)</td><td>media 0,364</td><td>[0,181 ; 0,570]</td><td>media 0,351</td><td>[0,287 ; 0,418]</td></tr>
+          <tr><td>Débil Beta(2, 8)</td><td>media 0,300</td><td>[0,153 ; 0,472]</td><td>media 0,343</td><td>[0,280 ; 0,408]</td></tr>
+          <tr><td>Fuerte Beta(20, 80)</td><td>media 0,225</td><td>[0,155 ; 0,304]</td><td>media 0,300</td><td>[0,250 ; 0,353]</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con 20 datos el prior importa mucho; con 200 los dos primeros casi coinciden, y solo el prior fuerte (que vale 100 observaciones) sigue tirando. Cuando \(n \to \infty\), cualquier prior que no asigne probabilidad cero a la verdad termina dominado por los datos.</p>
+      <ul>
+        <li><b>Prior plano o poco informativo</b>: Beta(1, 1) o Beta(0,5 ; 0,5) (el de Jeffreys). Deja hablar a los datos, aunque “plano” en una escala no es plano en otra.</li>
+        <li><b>Prior débilmente informativo</b>: descarta valores absurdos sin imponer mucho. Suele ser la opción por defecto razonable.</li>
+        <li><b>Prior informativo</b>: resume estudios previos o datos históricos. Muy útil cuando los datos nuevos son escasos, pero hay que justificarlo.</li>
+      </ul>
+      <div class="callout"><b>Buenas prácticas:</b> fija el prior antes de ver los datos, nunca le asignes probabilidad cero a un valor posible (ningún dato podría revivirlo) y haz un <b>análisis de sensibilidad</b>: repite el análisis con dos o tres priors y reporta si la conclusión cambia.</div>
+
+      <h2 id="bayes-pred"><span class="sec">§ 7</span>Predictiva posterior</h2>
+      <p>Muchas veces no te interesa \(\theta\) sino lo que va a pasar: ¿cuántas de las próximas 10 personas usarán el botón? La <b>distribución predictiva posterior</b> promedia el modelo sobre toda la incertidumbre de \(\theta\):</p>
+      <div class="eq">\[ p(\tilde y \mid y) = \int p(\tilde y \mid \theta)\; p(\theta \mid y)\, d\theta, \qquad P(\text{próximo ensayo es éxito} \mid y) = \frac{a+k}{a+b+n} \]
+        <div class="note">Para \(m\) ensayos nuevos el resultado sigue una distribución Beta-Binomial\((m,\ a',\ b')\). Con \(\text{Beta}(9, 21)\) y \(m = 10\): se esperan 3 usos y \(P(\tilde y \ge 3) \approx 0{,}59\).</div>
+      </div>
+      <p>Si en vez de eso enchufaras la estimación puntual \(\hat\theta = 0{,}30\) en una binomial, obtendrías la misma media pero una varianza de 2,1 en lugar de 2,71. La predictiva posterior es más ancha porque reconoce que no conoces \(\theta\) con exactitud. Comparar datos simulados de la predictiva con los datos reales (<i>posterior predictive checks</i>) es la forma bayesiana estándar de revisar si el modelo es adecuado.</p>
+
+      <h2 id="bayes-ab"><span class="sec">§ 8</span>Prueba A/B bayesiana</h2>
+      <p>Vuelve una prueba A/B como las de la clase anterior, ahora con conversiones: la página A convierte 120 de 1 000 visitas y la página B, 145 de 1 000. En lugar de un valor p, el enfoque bayesiano calcula una posterior para cada tasa y responde la pregunta que de verdad interesa: <b>¿qué tan probable es que B sea mejor que A?</b></p>
+      <div class="eq">\[ \theta_A \mid y \sim \text{Beta}(1+120,\ 1+880), \qquad \theta_B \mid y \sim \text{Beta}(1+145,\ 1+855), \qquad P(\theta_B &gt; \theta_A \mid y) = \;? \]
+        <div class="note">No hay fórmula sencilla para esa probabilidad, pero es fácil estimarla por <b>Monte Carlo</b>: simula muchos pares \((\theta_A, \theta_B)\) de las posteriores y cuenta en qué fracción gana B.</div>
+      </div>
+      <p>Con 200 000 simulaciones, \(P(\theta_B &gt; \theta_A) \approx 0{,}95\), la diferencia media es de unos 2,5 puntos porcentuales y su intervalo de credibilidad del 95 % va de −0,5 a 5,5 puntos. Las mismas simulaciones permiten calcular la <b>pérdida esperada</b> de elegir B, \(E[\max(\theta_A - \theta_B, 0)]\): cuánto perderías en promedio si B resultara peor. Aquí es de apenas 0,03 puntos, así que elegir B es una apuesta de bajo riesgo.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · A/B con Monte Carlo</span><span class="num" id="bayes-ab-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="bayes-ra">TASA OBSERVADA A · <b id="bayes-ra-v" class="num">12,0 %</b></label><input id="bayes-ra" type="range" min="2" max="30" step="0.5" value="12"></div>
+            <div class="ctrl"><label for="bayes-rb">TASA OBSERVADA B · <b id="bayes-rb-v" class="num">14,5 %</b></label><input id="bayes-rb" type="range" min="2" max="30" step="0.5" value="14.5"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="bayes-abn-label">VISITAS POR PÁGINA</label>
+              <div class="seg" id="bayes-abn" role="group" aria-labelledby="bayes-abn-label">
+                <button data-n="200" aria-pressed="false">200</button>
+                <button data-n="1000" aria-pressed="true">1 000</button>
+                <button data-n="5000" aria-pressed="false">5 000</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="bayes-ab-again" type="button">Otras 20 000 simulaciones</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Posteriores de cada tasa</span><span id="bayes-ab-lbl">–</span></div>
+              <canvas class="plot" id="bayes-c-ab" height="220" aria-label="Densidades posteriores de las tasas de conversión de las páginas A y B"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Diferencia θB − θA (puntos)</span><span>■ B gana</span></div>
+              <canvas class="plot" id="bayes-c-diff" height="220" aria-label="Histograma de la diferencia simulada entre las tasas de B y A"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>P(B &gt; A)</span><b id="bayes-ab-p">–</b></div>
+            <div><span>diferencia media</span><b id="bayes-ab-d">–</b></div>
+            <div><span>IC 95 % diferencia</span><b id="bayes-ab-ci">–</b></div>
+            <div><span>pérdida esperada con B</span><b id="bayes-ab-loss">–</b></div>
+          </div>
+        </div>
+        <figcaption>Deja las tasas fijas y cambia el número de visitas: con 200 por página la misma diferencia da P(B &gt; A) cerca de 76 %; con 5 000 pasa del 99 %. La evidencia depende tanto del tamaño del efecto como de la cantidad de datos.</figcaption>
+      </figure>
+      <div class="callout"><b>Cuidado:</b> \(P(\theta_B &gt; \theta_A) = 0{,}95\) no es lo mismo que “p = 0,05”, aunque con priors planos los números suelen parecerse (aquí la prueba z de una cola da p ≈ 0,050). Además, decide de antemano tu regla (por ejemplo, “lanzar B si la pérdida esperada es menor que 0,1 puntos”) y el tamaño de muestra. Mirar los datos cada hora y parar en cuanto te convenga también sesga las conclusiones bayesianas en la práctica.</div>
+
+      <h2 id="bayes-mcmc"><span class="sec">§ 9</span>Más allá de los conjugados: MCMC</h2>
+      <p>Los priors conjugados son la excepción. En una regresión logística con varios coeficientes, por ejemplo, la integral \(p(y)\) no tiene solución cerrada y la posterior no pertenece a ninguna familia conocida. La salida es no calcular la posterior sino <b>muestrear</b> de ella con métodos de <b>Monte Carlo por cadenas de Markov</b> (MCMC).</p>
+      <p>El algoritmo más simple es el de <b>Metropolis</b>: desde un valor actual \(\theta\), propones \(\theta^{*}\) cercano al azar y lo aceptas con probabilidad \(\min\!\big(1,\ \tfrac{p(y\mid\theta^*)p(\theta^*)}{p(y\mid\theta)p(\theta)}\big)\). La constante \(p(y)\) se cancela en el cociente, así que nunca necesitas calcularla. Tras muchas iteraciones, los valores visitados se distribuyen como la posterior.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="k">def</span> <span class="f">log_post</span>(t):
+    <span class="k">if</span> t &lt;= <span class="n">0</span> <span class="k">or</span> t &gt;= <span class="n">1</span>:
+        <span class="k">return</span> -np.inf
+    <span class="k">return</span> stats.beta.<span class="f">logpdf</span>(t, <span class="n">2</span>, <span class="n">8</span>) + stats.binom.<span class="f">logpmf</span>(<span class="n">7</span>, <span class="n">20</span>, t)
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+t, cadena = <span class="n">0.5</span>, []
+<span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="n">20000</span>):
+    prop = t + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">0.1</span>)
+    <span class="k">if</span> np.<span class="f">log</span>(rng.<span class="f">uniform</span>()) &lt; <span class="f">log_post</span>(prop) - <span class="f">log_post</span>(t):
+        t = prop
+    cadena.<span class="f">append</span>(t)
+
+cadena = np.<span class="f">array</span>(cadena[<span class="n">2000</span>:])   <span class="c"># descarta el calentamiento</span>
+<span class="f">print</span>(cadena.<span class="f">mean</span>())                  <span class="c"># ≈ 0.30, la media exacta de Beta(9, 21)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>log_post &lt;- <span class="k">function</span>(t) {
+  <span class="k">if</span> (t &lt;= <span class="n">0</span> || t &gt;= <span class="n">1</span>) <span class="k">return</span>(-<span class="k">Inf</span>)
+  <span class="f">dbeta</span>(t, <span class="n">2</span>, <span class="n">8</span>, log = <span class="k">TRUE</span>) + <span class="f">dbinom</span>(<span class="n">7</span>, <span class="n">20</span>, t, log = <span class="k">TRUE</span>)
+}
+
+<span class="f">set.seed</span>(<span class="n">0</span>)
+t &lt;- <span class="n">0.5</span>; cadena &lt;- <span class="f">numeric</span>(<span class="n">20000</span>)
+<span class="k">for</span> (i <span class="k">in</span> <span class="n">1</span>:<span class="n">20000</span>) {
+  prop &lt;- t + <span class="f">rnorm</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="n">0.1</span>)
+  <span class="k">if</span> (<span class="f">log</span>(<span class="f">runif</span>(<span class="n">1</span>)) &lt; <span class="f">log_post</span>(prop) - <span class="f">log_post</span>(t)) t &lt;- prop
+  cadena[i] &lt;- t
+}
+<span class="f">mean</span>(cadena[-(<span class="n">1</span>:<span class="n">2000</span>)])   <span class="c"># ≈ 0.30, la media exacta de Beta(9, 21)</span></code></pre>
+      </div>
+      <p>En la práctica nadie programa su propio Metropolis: se usan herramientas como <b>Stan</b> (desde R con <code>brms</code> o <code>rstanarm</code>) o <b>PyMC</b> en Python, que implementan variantes mucho más eficientes (Hamiltonian Monte Carlo, NUTS). Lo que sí debes hacer siempre es revisar el diagnóstico: gráficos de traza de varias cadenas, el estadístico \(\hat R\) (debe estar muy cerca de 1) y el tamaño efectivo de muestra.</p>
+
+      <h2 id="bayes-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>El ejemplo completo: posterior del botón de un clic, sus resúmenes, la predictiva para las próximas 10 visitas y la prueba A/B por Monte Carlo.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="c"># 1. Botón de un clic: prior Beta(2, 8), datos 7 de 20</span>
+a0, b0, k, n = <span class="n">2</span>, <span class="n">8</span>, <span class="n">7</span>, <span class="n">20</span>
+post = stats.<span class="f">beta</span>(a0 + k, b0 + n - k)                <span class="c"># Beta(9, 21)</span>
+<span class="f">print</span>(post.<span class="f">mean</span>())                                  <span class="c"># 0.300</span>
+<span class="f">print</span>(post.<span class="f">interval</span>(<span class="n">0.95</span>))                           <span class="c"># ≈ (0.153, 0.472)</span>
+<span class="f">print</span>(post.<span class="f">sf</span>(<span class="n">0.25</span>))                                 <span class="c"># P(θ &gt; 0.25) ≈ 0.713</span>
+
+<span class="c"># 2. Predictiva posterior para las próximas 10 visitas</span>
+pred = stats.<span class="f">betabinom</span>(<span class="n">10</span>, a0 + k, b0 + n - k)
+<span class="f">print</span>(pred.<span class="f">mean</span>(), pred.<span class="f">sf</span>(<span class="n">2</span>))                       <span class="c"># 3.0  P(≥ 3) ≈ 0.591</span>
+
+<span class="c"># 3. Prueba A/B con prior plano Beta(1, 1)</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+S = <span class="n">200_000</span>
+tA = rng.<span class="f">beta</span>(<span class="n">1</span> + <span class="n">120</span>, <span class="n">1</span> + <span class="n">880</span>, S)
+tB = rng.<span class="f">beta</span>(<span class="n">1</span> + <span class="n">145</span>, <span class="n">1</span> + <span class="n">855</span>, S)
+<span class="f">print</span>(<span class="s">"P(B &gt; A) ="</span>, (tB &gt; tA).<span class="f">mean</span>())                <span class="c"># ≈ 0.95</span>
+<span class="f">print</span>(<span class="s">"IC 95 % de la diferencia:"</span>, np.<span class="f">percentile</span>(tB - tA, [<span class="n">2.5</span>, <span class="n">97.5</span>]))
+<span class="f">print</span>(<span class="s">"pérdida esperada con B:"</span>, np.<span class="f">maximum</span>(tA - tB, <span class="n">0</span>).<span class="f">mean</span>())   <span class="c"># ≈ 0.0003</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># 1. Botón de un clic: prior Beta(2, 8), datos 7 de 20</span>
+a0 &lt;- <span class="n">2</span>; b0 &lt;- <span class="n">8</span>; k &lt;- <span class="n">7</span>; n &lt;- <span class="n">20</span>
+a1 &lt;- a0 + k; b1 &lt;- b0 + n - k                        <span class="c"># Beta(9, 21)</span>
+a1 / (a1 + b1)                                        <span class="c"># 0.300</span>
+<span class="f">qbeta</span>(<span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>), a1, b1)                      <span class="c"># ≈ 0.153 0.472</span>
+<span class="f">pbeta</span>(<span class="n">0.25</span>, a1, b1, lower.tail = <span class="k">FALSE</span>)               <span class="c"># P(θ &gt; 0.25) ≈ 0.713</span>
+
+<span class="c"># 2. Predictiva posterior (Beta-Binomial) para 10 visitas</span>
+m &lt;- <span class="n">10</span>; y &lt;- <span class="n">0</span>:m
+pred &lt;- <span class="f">choose</span>(m, y) * <span class="f">beta</span>(y + a1, m - y + b1) / <span class="f">beta</span>(a1, b1)
+<span class="f">sum</span>(y * pred); <span class="f">sum</span>(pred[y &gt;= <span class="n">3</span>])                      <span class="c"># 3  P(≥ 3) ≈ 0.591</span>
+
+<span class="c"># 3. Prueba A/B con prior plano Beta(1, 1)</span>
+<span class="f">set.seed</span>(<span class="n">42</span>)
+S &lt;- <span class="n">200000</span>
+tA &lt;- <span class="f">rbeta</span>(S, <span class="n">1</span> + <span class="n">120</span>, <span class="n">1</span> + <span class="n">880</span>)
+tB &lt;- <span class="f">rbeta</span>(S, <span class="n">1</span> + <span class="n">145</span>, <span class="n">1</span> + <span class="n">855</span>)
+<span class="f">mean</span>(tB &gt; tA)                                         <span class="c"># ≈ 0.95</span>
+<span class="f">quantile</span>(tB - tA, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))                    <span class="c"># ≈ -0.005 0.055</span>
+<span class="f">mean</span>(<span class="f">pmax</span>(tA - tB, <span class="n">0</span>))                                 <span class="c"># pérdida esperada ≈ 0.0003</span></code></pre>
+      </div>
+
+      <h2 id="bayes-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <div class="quiz" data-right="Los éxitos se suman a a y los fracasos a b: Beta(2 + 8, 2 + 2) = Beta(10, 4), con media 10/14 ≈ 0,71." data-wrong="Recuerda la regla de actualización Beta-Binomial: la posterior es Beta(a + k, b + n − k). ¿Cuántos fracasos hubo en los 10 ensayos?">
+        <h3>Partes de un prior Beta(2, 2) y observas 8 éxitos en 10 ensayos. ¿Cuál es la posterior?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Beta(8, 2)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Beta(10, 12)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Beta(16, 4)</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Beta(10, 4)</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Un intervalo de credibilidad es una afirmación de probabilidad sobre el parámetro, condicionada al modelo, al prior y a los datos observados." data-wrong="Esa interpretación corresponde al intervalo de confianza frecuentista. En el enfoque bayesiano el parámetro tiene una distribución posterior; ¿qué dice el intervalo sobre esa distribución?">
+        <h3>Un intervalo de credibilidad del 95 % para una tasa de conversión es [0,15 ; 0,47]. ¿Qué significa?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Dados el prior y los datos, hay 95 % de probabilidad de que la tasa esté entre 0,15 y 0,47</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Si repitieras el experimento muchas veces, el 95 % de los intervalos contendría la tasa real</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El 95 % de los usuarios tiene una probabilidad de compra entre 0,15 y 0,47</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El valor p de la prueba es menor que 0,05</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El prior vale a + b observaciones y los datos valen n. Al crecer n, el peso n/(a + b + n) tiende a 1 y la posterior se concentra alrededor de k/n." data-wrong="Mira la fórmula de la media posterior como promedio ponderado. ¿Qué pasa con el peso n/(a + b + n) cuando n es muy grande?">
+        <h3>Mantienes el mismo prior Beta(20, 80) pero pasas de 20 a 20 000 ensayos con la misma proporción observada. ¿Qué ocurre con la posterior?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>No cambia, porque el prior es fuerte</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Se angosta y se acerca a la proporción observada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se acerca a la media del prior, 0,20</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Se vuelve más ancha porque hay más variabilidad</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="bayes-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una encuesta piloto pregunta a 40 estudiantes si usan la biblioteca cada semana; 12 responden que sí. Con un prior plano Beta(1, 1), escribe la posterior y calcula su media y su moda.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>La posterior es \(\text{Beta}(1 + 12,\ 1 + 28) = \text{Beta}(13, 29)\).</p>
+            <p>Media: \(13/42 \approx 0{,}310\). Moda: \((13-1)/(13+29-2) = 12/40 = 0{,}30\), que coincide con la proporción observada porque el prior es plano. La media queda un poco más cerca de 0,5 porque Beta(1, 1) suma un éxito y un fracaso imaginarios.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un prior Beta(3, 7) resume la experiencia de un equipo con tasas de aprobación. Luego observan 30 aprobados en 50 casos. ¿Cuántas observaciones “vale” el prior? Calcula la media posterior como promedio ponderado y comprueba con la fórmula directa.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>El prior vale \(a + b = 10\) observaciones, con media 0,30. Los datos valen 50, con proporción 0,60. Pesos: \(10/60\) y \(50/60\).</p>
+            <p>\(E[\theta\mid y] = \tfrac{1}{6}(0{,}30) + \tfrac{5}{6}(0{,}60) = 0{,}05 + 0{,}50 = 0{,}55\). Directo: posterior \(\text{Beta}(33, 27)\), media \(33/60 = 0{,}55\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con la posterior Beta(33, 27) del ejercicio anterior, calcula el intervalo de credibilidad del 95 % de colas iguales y la probabilidad posterior de que la tasa de aprobación supere el 50 %. ¿Cómo comunicarías el resultado a alguien que no sabe estadística?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
+post = stats.<span class="f">beta</span>(<span class="n">33</span>, <span class="n">27</span>)
+<span class="f">print</span>(post.<span class="f">interval</span>(<span class="n">0.95</span>))   <span class="c"># ≈ (0.424, 0.673)</span>
+<span class="f">print</span>(post.<span class="f">sf</span>(<span class="n">0.5</span>))          <span class="c"># ≈ 0.783</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">qbeta</span>(<span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>), <span class="n">33</span>, <span class="n">27</span>)        <span class="c"># ≈ 0.424 0.673</span>
+<span class="f">pbeta</span>(<span class="n">0.5</span>, <span class="n">33</span>, <span class="n">27</span>, lower.tail = <span class="k">FALSE</span>)  <span class="c"># ≈ 0.783</span></code></pre>
+            </div>
+            <p>Mensaje: “Con lo que sabíamos y lo que vimos, la tasa de aprobación está muy probablemente entre 42 % y 67 %, y hay cerca de 78 % de probabilidad de que supere el 50 %”. Es una afirmación directa sobre la tasa, sin hablar de muestras hipotéticas.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Una app prueba dos mensajes de bienvenida. El mensaje A logra 40 registros en 500 usuarios y el B, 55 en 500. Con priors Beta(1, 1), estima por Monte Carlo \(P(\theta_B &gt; \theta_A)\), la diferencia media y la pérdida esperada de elegir B. La regla acordada es: lanzar B si \(P(\theta_B &gt; \theta_A) &gt; 0{,}9\) y la pérdida esperada es menor que 0,1 puntos porcentuales. ¿Qué decides?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+tA = rng.<span class="f">beta</span>(<span class="n">41</span>, <span class="n">461</span>, <span class="n">200_000</span>)
+tB = rng.<span class="f">beta</span>(<span class="n">56</span>, <span class="n">446</span>, <span class="n">200_000</span>)
+<span class="f">print</span>((tB &gt; tA).<span class="f">mean</span>())                 <span class="c"># ≈ 0.947</span>
+<span class="f">print</span>((tB - tA).<span class="f">mean</span>())                 <span class="c"># ≈ 0.030</span>
+<span class="f">print</span>(np.<span class="f">maximum</span>(tA - tB, <span class="n">0</span>).<span class="f">mean</span>())    <span class="c"># ≈ 0.0004</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
+tA &lt;- <span class="f">rbeta</span>(<span class="n">200000</span>, <span class="n">41</span>, <span class="n">461</span>)
+tB &lt;- <span class="f">rbeta</span>(<span class="n">200000</span>, <span class="n">56</span>, <span class="n">446</span>)
+<span class="f">mean</span>(tB &gt; tA)              <span class="c"># ≈ 0.947</span>
+<span class="f">mean</span>(tB - tA)              <span class="c"># ≈ 0.030</span>
+<span class="f">mean</span>(<span class="f">pmax</span>(tA - tB, <span class="n">0</span>))      <span class="c"># ≈ 0.0004</span></code></pre>
+            </div>
+            <p>Las posteriores son \(\text{Beta}(41, 461)\) y \(\text{Beta}(56, 446)\). \(P(\theta_B &gt; \theta_A) \approx 0{,}95\), la diferencia media es de unos 3 puntos (8,2 % frente a 11,2 %) y la pérdida esperada es de unos 0,04 puntos. Las dos condiciones se cumplen: se lanza B. Observa que la decisión no depende de un umbral de significancia, sino de una probabilidad y de un costo que el equipo acordó antes.</p>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

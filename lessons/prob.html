@@ -1,0 +1,341 @@
+<!-- StatEdx · sesión: prob -->
+<div id="view-prob" data-view="prob" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Probabilidad y variables aleatorias</h1>
+      <p>La probabilidad es el lenguaje de la incertidumbre. En esta clase defines con precisión qué es un evento y su probabilidad, aprendes a actualizarla con información nueva y das el salto a las variables aleatorias: su esperanza, su varianza y tres distribuciones que vas a usar todo el tiempo.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel básico</span><span>Requiere: medidas descriptivas</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#prob-idea" data-sec="prob-idea">La idea</a></li>
+        <li><a href="#prob-eventos" data-sec="prob-eventos">Experimentos y eventos</a></li>
+        <li><a href="#prob-reglas" data-sec="prob-reglas">Axiomas y reglas</a></li>
+        <li><a href="#prob-cond" data-sec="prob-cond">Condicional y Bayes</a></li>
+        <li><a href="#prob-lgn" data-sec="prob-lgn">Laboratorio: grandes números</a></li>
+        <li><a href="#prob-va" data-sec="prob-va">Variables aleatorias</a></li>
+        <li><a href="#prob-dist" data-sec="prob-dist">Bernoulli, binomial y Poisson</a></li>
+        <li><a href="#prob-lab" data-sec="prob-lab">Laboratorio: distribuciones</a></li>
+        <li><a href="#prob-code" data-sec="prob-code">En R y Python</a></li>
+        <li><a href="#prob-quiz" data-sec="prob-quiz">Comprueba</a></li>
+        <li><a href="#prob-ej" data-sec="prob-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="prob-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>La app del clima dice “70 % de probabilidad de lluvia”. Mañana lloverá o no lloverá; no va a llover un 70 %. Entonces, ¿qué significa ese número? Una lectura útil es esta: de todos los días con condiciones parecidas a las de mañana, en cerca de 7 de cada 10 llovió. La probabilidad describe lo que pasa <b>a la larga</b> cuando repites una situación incierta muchas veces.</p>
+      <p>Con esa idea puedes responder preguntas muy prácticas: ¿cuántos pedidos tardíos esperar en un día?, ¿qué tan confiable es una prueba médica positiva?, ¿conviene comprar el seguro extendido? Todas se resuelven con unas pocas reglas y con el concepto de <b>variable aleatoria</b>, que convierte resultados inciertos en números con los que puedes calcular promedios y dispersiones, igual que en la clase anterior.</p>
+
+      <h2 id="prob-eventos"><span class="sec">§ 2</span>Experimentos, espacio muestral y eventos</h2>
+      <p>Un <b>experimento aleatorio</b> es un proceso cuyo resultado no puedes predecir con certeza, aunque conoces todos los resultados posibles: lanzar un dado, elegir un cliente al azar, medir el tiempo de espera en una fila.</p>
+      <p>El <b>espacio muestral</b> \(\Omega\) es el conjunto de todos los resultados posibles. Para un dado, \(\Omega = \{1, 2, 3, 4, 5, 6\}\). Para el tiempo de espera, \(\Omega = [0, \infty)\). Un <b>evento</b> es un subconjunto de \(\Omega\): “sale par” es \(A = \{2, 4, 6\}\). Decimos que el evento ocurre si el resultado cae dentro de él.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Notación</th><th>Se lee</th><th>Ocurre cuando</th><th>Dado: A = par, B = {1, 2}</th></tr></thead>
+        <tbody>
+          <tr><td>\(A \cup B\)</td><td>A o B</td><td>ocurre al menos uno</td><td>{1, 2, 4, 6}</td></tr>
+          <tr><td>\(A \cap B\)</td><td>A y B</td><td>ocurren ambos</td><td>{2}</td></tr>
+          <tr><td>\(A^c\)</td><td>no A</td><td>A no ocurre</td><td>{1, 3, 5}</td></tr>
+          <tr><td>\(A \cap B = \varnothing\)</td><td>A y B son disjuntos</td><td>no pueden ocurrir juntos</td><td>“par” y “sale 3”</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="prob-reglas"><span class="sec">§ 3</span>Axiomas y reglas básicas</h2>
+      <p>Una <b>probabilidad</b> es una función \(P\) que asigna a cada evento un número y cumple los tres axiomas de Kolmogorov:</p>
+      <div class="eq">\[ \text{(1)}\ P(A) \ge 0 \qquad \text{(2)}\ P(\Omega) = 1 \qquad \text{(3)}\ P(A \cup B) = P(A) + P(B) \ \text{ si } A \cap B = \varnothing \]
+        <div class="note">El tercer axioma se extiende a cualquier sucesión de eventos disjuntos dos a dos. Todo lo demás se deduce de estas tres reglas.</div>
+      </div>
+      <p>Consecuencias inmediatas que usarás a diario:</p>
+      <ul>
+        <li><b>Complemento:</b> \(P(A^c) = 1 - P(A)\). Es la vía corta para eventos del tipo “al menos uno”.</li>
+        <li><b>Rango:</b> \(0 \le P(A) \le 1\) y \(P(\varnothing) = 0\).</li>
+        <li><b>Monotonía:</b> si \(A \subseteq B\), entonces \(P(A) \le P(B)\).</li>
+      </ul>
+      <p><b>Regla de la suma general.</b> Si los eventos no son disjuntos, al sumar \(P(A) + P(B)\) cuentas dos veces la intersección, así que hay que restarla:</p>
+      <div class="eq">\[ P(A \cup B) = P(A) + P(B) - P(A \cap B) \]
+        <div class="note">Dado: \(P(\text{par} \cup \{1,2\}) = 3/6 + 2/6 - 1/6 = 4/6\), que coincide con contar \(\{1, 2, 4, 6\}\).</div>
+      </div>
+      <p><b>Resultados equiprobables (regla de Laplace).</b> Si \(\Omega\) es finito y todos sus resultados son igual de probables, \(P(A) = |A| / |\Omega|\): casos favorables entre casos posibles. Ojo: “igual de probables” es un supuesto. La probabilidad de ganar la lotería no es 1/2 solo porque hay dos resultados, ganar o perder.</p>
+      <div class="callout"><b>Dos interpretaciones.</b> La <b>frecuentista</b> entiende \(P(A)\) como la proporción de veces que ocurre \(A\) en infinitas repeticiones. La <b>bayesiana</b> la entiende como un grado de creencia que se actualiza con datos. Las dos obedecen los mismos axiomas; difieren en qué preguntas permiten hacer.</div>
+
+      <h2 id="prob-cond"><span class="sec">§ 4</span>Probabilidad condicional, independencia y Bayes</h2>
+      <p>La <b>probabilidad condicional</b> de \(A\) dado \(B\) responde: si ya sé que ocurrió \(B\), ¿qué tan probable es \(A\)? Restringimos el universo a \(B\) y miramos qué fracción de él también es \(A\):</p>
+      <div class="eq">\[ P(A \mid B) = \frac{P(A \cap B)}{P(B)}, \quad P(B) &gt; 0 \qquad\Longrightarrow\qquad P(A \cap B) = P(A \mid B)\,P(B) \]
+        <div class="note">La segunda igualdad es la <b>regla del producto</b>. Dado: \(P(\text{par} \mid \{1, 2\}) = (1/6)/(2/6) = 1/2\).</div>
+      </div>
+      <p><b>Independencia.</b> \(A\) y \(B\) son independientes si saber que ocurrió uno no cambia la probabilidad del otro: \(P(A \mid B) = P(A)\). Equivale a</p>
+      <div class="eq">\[ P(A \cap B) = P(A)\,P(B) \]
+        <div class="note">No confundas independientes con disjuntos. Si \(A\) y \(B\) son disjuntos y ambos tienen probabilidad positiva, son muy <b>dependientes</b>: saber que ocurrió \(A\) te dice que \(B\) no ocurrió.</div>
+      </div>
+      <p><b>Probabilidad total.</b> Si \(B_1, \dots, B_k\) parten \(\Omega\) en piezas disjuntas, \(P(A) = \sum_j P(A \mid B_j)\,P(B_j)\). Es la herramienta para calcular una probabilidad “promediando por casos”.</p>
+      <p><b>Teorema de Bayes.</b> Combina las dos fórmulas anteriores para invertir una condicional: pasar de \(P(\text{dato} \mid \text{causa})\), que suele ser fácil de conocer, a \(P(\text{causa} \mid \text{dato})\), que es lo que te interesa.</p>
+      <div class="eq">\[ P(B \mid A) = \frac{P(A \mid B)\,P(B)}{P(A \mid B)\,P(B) + P(A \mid B^c)\,P(B^c)} \]</div>
+      <p>Ejemplo clásico. Una enfermedad afecta al 1 % de la población. Una prueba detecta al 95 % de los enfermos (sensibilidad) y da negativo al 90 % de los sanos (especificidad), o sea, 10 % de falsos positivos. Si tu prueba sale positiva, ¿qué tan probable es que estés enfermo?</p>
+      <div class="eq">\[ P(E \mid +) = \frac{0{,}95 \cdot 0{,}01}{0{,}95 \cdot 0{,}01 + 0{,}10 \cdot 0{,}99} = \frac{0{,}0095}{0{,}1085} \approx 0{,}088 \]
+        <div class="note">Solo un 8,8 %. Piensa en 1 000 personas: 10 enfermas, de las que 9,5 dan positivo, y 990 sanas, de las que 99 dan positivo. La mayoría de los positivos son falsos porque la enfermedad es rara.</div>
+      </div>
+      <p>Ignorar la probabilidad inicial \(P(B)\) se llama <b>falacia de la tasa base</b>, y es uno de los errores de razonamiento más comunes. Lo retomamos a fondo en la clase de inferencia bayesiana.</p>
+
+      <h2 id="prob-lgn"><span class="sec">§ 5</span>Laboratorio: la ley de los grandes números</h2>
+      <p>¿Por qué la frecuencia en muchas repeticiones se parece a la probabilidad? La <b>ley de los grandes números</b> lo garantiza: si repites un experimento de forma independiente, la frecuencia relativa \(\hat{p}_n\) de un evento se acerca a su probabilidad \(p\) a medida que crece \(n\).</p>
+      <div class="eq">\[ P\big(\,|\hat{p}_n - p| &gt; \varepsilon\,\big) \xrightarrow[n \to \infty]{} 0 \quad \text{para todo } \varepsilon &gt; 0 \]
+        <div class="note">El error típico de \(\hat{p}_n\) es \(\sqrt{p(1-p)/n}\): para reducirlo a la mitad necesitas cuatro veces más repeticiones. La banda sombreada del simulador es \(p \pm 2\sqrt{p(1-p)/n}\).</div>
+      </div>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · frecuencia relativa acumulada</span><span class="num" id="prob-lg-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="prob-lg-mode-label">EXPERIMENTO</label>
+              <div class="seg" id="prob-lg-mode" role="group" aria-labelledby="prob-lg-mode-label">
+                <button data-m="coin" aria-pressed="true">Moneda: cara</button>
+                <button data-m="die" aria-pressed="false">Dado: sale 6</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="prob-lg-add-label">LANZAR</label>
+              <div class="seg" id="prob-lg-add" role="group" aria-labelledby="prob-lg-add-label">
+                <button data-n="10" aria-pressed="false">+10</button>
+                <button data-n="100" aria-pressed="false">+100</button>
+                <button data-n="1000" aria-pressed="false">+1 000</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="prob-lg-reset" type="button">Reiniciar</button>
+          </div>
+          <div class="plot-label"><span>Frecuencia relativa según n (escala log)</span><span>┄ probabilidad p</span></div>
+          <canvas class="plot" id="prob-lg-plot" height="250" aria-label="Frecuencia relativa acumulada del evento frente al número de lanzamientos, con la probabilidad teórica como línea de referencia"></canvas>
+          <div class="readout">
+            <div><span>lanzamientos n</span><b id="prob-lg-n">–</b></div>
+            <div><span>veces que ocurrió</span><b id="prob-lg-k">–</b></div>
+            <div><span>frecuencia relativa</span><b id="prob-lg-f">–</b></div>
+            <div><span>diferencia con p</span><b id="prob-lg-d">–</b></div>
+          </div>
+        </div>
+        <figcaption>Al principio la línea salta mucho: con 10 lanzamientos, sacar 7 caras es normal. Después de miles se pega a p. Lo que converge es la <i>proporción</i>; la diferencia absoluta entre caras y cruces suele crecer.</figcaption>
+      </figure>
+      <div class="callout"><b>La falacia del jugador.</b> La ley no dice que el azar “compense” lo pasado. Si salieron cinco cruces seguidas, la siguiente sigue teniendo probabilidad 1/2 de ser cara. La frecuencia converge porque los primeros resultados se diluyen entre miles de nuevos, no porque se corrijan.</div>
+
+      <h2 id="prob-va"><span class="sec">§ 6</span>Variables aleatorias</h2>
+      <p>Una <b>variable aleatoria</b> \(X\) es una función que asigna un número a cada resultado del experimento. Al lanzar tres monedas, \(X\) = “número de caras” convierte el resultado (cara, cruz, cara) en el número 2. Usamos mayúsculas para la variable y minúsculas para sus valores concretos.</p>
+      <p><b>Discreta.</b> Toma valores aislados que puedes listar (0, 1, 2, …). Se describe con su <b>función de probabilidad</b> \(p(x) = P(X = x)\), que cumple \(p(x) \ge 0\) y \(\sum_x p(x) = 1\).</p>
+      <p><b>Continua.</b> Toma valores en un intervalo (estatura, tiempo). Se describe con una <b>función de densidad</b> \(f(x) \ge 0\) cuya área total es 1. Las probabilidades son áreas, y la probabilidad de un valor exacto es cero:</p>
+      <div class="eq">\[ P(a \le X \le b) = \int_a^b f(x)\,dx, \qquad P(X = a) = 0, \qquad F(x) = P(X \le x) \]
+        <div class="note">\(F\) es la <b>función de distribución acumulada</b>; existe para variables discretas y continuas, es no decreciente y va de 0 a 1.</div>
+      </div>
+      <p><b>Esperanza.</b> Es el promedio de los valores de \(X\) ponderados por su probabilidad: el valor medio que verías a la larga. <b>Varianza.</b> Es la esperanza de la desviación al cuadrado respecto a \(\mu = E[X]\):</p>
+      <div class="eq">\[ E[X] = \sum_x x\,p(x) \ \ \text{o}\ \ \int x\,f(x)\,dx \qquad\qquad \operatorname{Var}(X) = E\big[(X - \mu)^2\big] = E[X^2] - \mu^2 \]
+        <div class="note">Son las versiones “de población” de la media y la varianza de la clase anterior. La desviación típica es \(\sigma = \sqrt{\operatorname{Var}(X)}\).</div>
+      </div>
+      <p>Ejemplo: en una rifa compras un boleto de 50 pesos; con probabilidad 0,01 ganas 3 000 y si no, nada. Tu ganancia neta \(X\) vale 2 950 con probabilidad 0,01 y −50 con probabilidad 0,99, así que \(E[X] = 29{,}5 - 49{,}5 = -20\). A la larga pierdes 20 pesos por boleto.</p>
+      <p>Propiedades clave, para constantes \(a\) y \(b\):</p>
+      <div class="eq">\[ E[aX + b] = a\,E[X] + b \qquad \operatorname{Var}(aX + b) = a^2 \operatorname{Var}(X) \qquad E[X + Y] = E[X] + E[Y] \]
+        <div class="note">La esperanza de una suma es la suma de esperanzas <b>siempre</b>. La varianza de una suma es la suma de varianzas <b>solo si</b> \(X\) y \(Y\) son independientes (más en general, si no están correlacionadas).</div>
+      </div>
+
+      <h2 id="prob-dist"><span class="sec">§ 7</span>Bernoulli, binomial y Poisson</h2>
+      <p><b>Bernoulli.</b> Un solo ensayo con dos resultados: éxito (1) con probabilidad \(p\) o fracaso (0). Un cliente compra o no; un correo es spam o no. \(E[X] = p\) y \(\operatorname{Var}(X) = p(1-p)\), máxima cuando \(p = 0{,}5\).</p>
+      <p><b>Binomial.</b> Cuenta los éxitos en \(n\) ensayos Bernoulli <b>independientes</b> con la <b>misma</b> \(p\). Sus supuestos son: número de ensayos fijo, dos resultados, independencia y probabilidad constante.</p>
+      <div class="eq">\[ P(X = k) = \binom{n}{k} p^k (1-p)^{n-k}, \quad k = 0, 1, \dots, n \qquad E[X] = np \qquad \operatorname{Var}(X) = np(1-p) \]
+        <div class="note">\(\binom{n}{k} = \frac{n!}{k!\,(n-k)!}\) cuenta de cuántas formas se pueden ubicar los \(k\) éxitos. Como \(X\) es la suma de \(n\) Bernoulli independientes, la media y la varianza salen de sumar \(n\) veces \(p\) y \(p(1-p)\).</div>
+      </div>
+      <p>Ejemplo: el 30 % de quienes visitan una tienda en línea compra algo. De 10 visitantes, la probabilidad de que compren exactamente 3 es \(\binom{10}{3}\,0{,}3^3\,0{,}7^7 \approx 0{,}267\).</p>
+      <p><b>Poisson.</b> Cuenta eventos que ocurren al azar en un intervalo de tiempo o espacio, a una tasa media \(\lambda\) constante y de forma independiente: llamadas por hora, errores por página, accidentes por mes.</p>
+      <div class="eq">\[ P(X = k) = \frac{e^{-\lambda}\lambda^k}{k!}, \quad k = 0, 1, 2, \dots \qquad E[X] = \operatorname{Var}(X) = \lambda \]
+        <div class="note">Si los datos de conteo tienen una varianza muy superior a la media (sobredispersión), el modelo de Poisson probablemente no es adecuado.</div>
+      </div>
+      <p>La Poisson es además el límite de la binomial cuando \(n\) es grande y \(p\) pequeña, con \(\lambda = np\). Por ejemplo, con \(n = 100\) y \(p = 0{,}03\), \(P(X = 2)\) vale 0,2252 con la binomial y 0,2240 con Poisson(3).</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Distribución</th><th>Cuenta</th><th>Valores</th><th>E[X]</th><th>Var(X)</th></tr></thead>
+        <tbody>
+          <tr><td>Bernoulli(p)</td><td>un éxito o fracaso</td><td>0, 1</td><td>\(p\)</td><td>\(p(1-p)\)</td></tr>
+          <tr><td>Binomial(n, p)</td><td>éxitos en n ensayos</td><td>0, …, n</td><td>\(np\)</td><td>\(np(1-p)\)</td></tr>
+          <tr><td>Poisson(λ)</td><td>eventos en un intervalo</td><td>0, 1, 2, …</td><td>\(\lambda\)</td><td>\(\lambda\)</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="prob-lab"><span class="sec">§ 8</span>Laboratorio: explora las distribuciones</h2>
+      <p>Elige una distribución y mueve sus parámetros. Las barras son \(P(X = k)\); las resaltadas suman \(P(X \le k)\) para el \(k\) que elijas, y la línea punteada marca la esperanza. En la binomial puedes superponer la aproximación de Poisson con \(\lambda = np\).</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · función de probabilidad</span><span class="num" id="prob-pd-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="prob-pd-dist-label">DISTRIBUCIÓN</label>
+              <div class="seg" id="prob-pd-dist" role="group" aria-labelledby="prob-pd-dist-label">
+                <button data-d="bin" aria-pressed="true">Binomial</button>
+                <button data-d="poi" aria-pressed="false">Poisson</button>
+              </div>
+            </div>
+            <div class="ctrl" id="prob-pd-ov-wrap">
+              <label id="prob-pd-ov-label">SUPERPONER POISSON(np)</label>
+              <div class="seg" id="prob-pd-ov" role="group" aria-labelledby="prob-pd-ov-label">
+                <button data-o="0" aria-pressed="true">No</button>
+                <button data-o="1" aria-pressed="false">Sí</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl" id="prob-pd-n-wrap"><label for="prob-pd-n">ENSAYOS · n = <b id="prob-pd-n-v" class="num">10</b></label><input id="prob-pd-n" type="range" min="1" max="60" value="10"></div>
+            <div class="ctrl" id="prob-pd-p-wrap"><label for="prob-pd-p">ÉXITO · p = <b id="prob-pd-p-v" class="num">0,30</b></label><input id="prob-pd-p" type="range" min="1" max="99" value="30"></div>
+            <div class="ctrl" id="prob-pd-l-wrap" style="display:none"><label for="prob-pd-l">TASA · λ = <b id="prob-pd-l-v" class="num">4,0</b></label><input id="prob-pd-l" type="range" min="1" max="40" value="8"></div>
+            <div class="ctrl"><label for="prob-pd-k">UMBRAL · k = <b id="prob-pd-k-v" class="num">3</b></label><input id="prob-pd-k" type="range" min="0" max="10" value="3"></div>
+          </div>
+          <canvas class="plot" id="prob-pd-plot" height="250" aria-label="Diagrama de barras de la función de probabilidad, con las barras hasta k resaltadas y la esperanza marcada"></canvas>
+          <div class="readout">
+            <div><span>esperanza E[X]</span><b id="prob-pd-e">–</b></div>
+            <div><span>varianza Var(X)</span><b id="prob-pd-v">–</b></div>
+            <div><span id="prob-pd-pk-l">P(X = k)</span><b id="prob-pd-pk">–</b></div>
+            <div><span id="prob-pd-ck-l">P(X ≤ k)</span><b id="prob-pd-ck">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con n = 60 y p = 0,05 la binomial y la Poisson casi coinciden. Sube p a 0,5 y la Poisson se vuelve demasiado ancha: su varianza λ = np ya no se parece a np(1 − p).</figcaption>
+      </figure>
+
+      <h2 id="prob-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Simulamos la ley de los grandes números con un dado y calculamos probabilidades exactas de la binomial y la Poisson. En R, el prefijo indica qué calcula la función: <code>d</code> probabilidad puntual, <code>p</code> acumulada, <code>q</code> cuantil y <code>r</code> simulación. En SciPy son los métodos <code>pmf</code>, <code>cdf</code>, <code>ppf</code> y <code>rvs</code>.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="c"># 1. Ley de los grandes números: frecuencia del 6 en 10 000 lanzamientos</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+dado = rng.<span class="f">integers</span>(<span class="n">1</span>, <span class="n">7</span>, size=<span class="n">10_000</span>)
+freq = np.<span class="f">cumsum</span>(dado == <span class="n">6</span>) / np.<span class="f">arange</span>(<span class="n">1</span>, <span class="n">10_001</span>)
+<span class="f">print</span>(freq[[<span class="n">9</span>, <span class="n">99</span>, <span class="n">999</span>, <span class="n">9999</span>]])   <span class="c"># se acerca a 1/6 ≈ 0.1667</span>
+
+<span class="c"># 2. Binomial(10; 0,3): compras entre 10 visitantes</span>
+X = stats.<span class="f">binom</span>(n=<span class="n">10</span>, p=<span class="n">0.3</span>)
+<span class="f">print</span>(X.<span class="f">pmf</span>(<span class="n">3</span>))              <span class="c"># 0.2668  P(X = 3)</span>
+<span class="f">print</span>(X.<span class="f">cdf</span>(<span class="n">3</span>))              <span class="c"># 0.6496  P(X ≤ 3)</span>
+<span class="f">print</span>(X.<span class="f">mean</span>(), X.<span class="f">var</span>())    <span class="c"># 3.0  2.1</span>
+
+<span class="c"># 3. Poisson(4): llamadas por hora</span>
+Y = stats.<span class="f">poisson</span>(mu=<span class="n">4</span>)
+<span class="f">print</span>(Y.<span class="f">pmf</span>(<span class="n">2</span>))              <span class="c"># 0.1465  P(Y = 2)</span>
+<span class="f">print</span>(Y.<span class="f">sf</span>(<span class="n">5</span>))               <span class="c"># 0.2149  P(Y ≥ 6) = 1 − P(Y ≤ 5)</span>
+
+<span class="c"># 4. Bayes: prueba médica</span>
+prev, sens, esp = <span class="n">0.01</span>, <span class="n">0.95</span>, <span class="n">0.90</span>
+p_pos = sens * prev + (<span class="n">1</span> - esp) * (<span class="n">1</span> - prev)
+<span class="f">print</span>(sens * prev / p_pos)      <span class="c"># 0.0876</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># 1. Ley de los grandes números: frecuencia del 6 en 10 000 lanzamientos</span>
+<span class="f">set.seed</span>(<span class="n">42</span>)
+dado &lt;- <span class="f">sample</span>(<span class="n">1</span>:<span class="n">6</span>, size = <span class="n">10000</span>, replace = <span class="k">TRUE</span>)
+freq &lt;- <span class="f">cumsum</span>(dado == <span class="n">6</span>) / <span class="f">seq_along</span>(dado)
+freq[<span class="f">c</span>(<span class="n">10</span>, <span class="n">100</span>, <span class="n">1000</span>, <span class="n">10000</span>)]    <span class="c"># se acerca a 1/6 ≈ 0.1667</span>
+<span class="f">plot</span>(freq, type = <span class="s">"l"</span>, log = <span class="s">"x"</span>, ylab = <span class="s">"frecuencia del 6"</span>)
+<span class="f">abline</span>(h = <span class="n">1</span>/<span class="n">6</span>, lty = <span class="n">2</span>)
+
+<span class="c"># 2. Binomial(10; 0,3)</span>
+<span class="f">dbinom</span>(<span class="n">3</span>, size = <span class="n">10</span>, prob = <span class="n">0.3</span>)   <span class="c"># 0.2668  P(X = 3)</span>
+<span class="f">pbinom</span>(<span class="n">3</span>, size = <span class="n">10</span>, prob = <span class="n">0.3</span>)   <span class="c"># 0.6496  P(X ≤ 3)</span>
+
+<span class="c"># 3. Poisson(4)</span>
+<span class="f">dpois</span>(<span class="n">2</span>, lambda = <span class="n">4</span>)               <span class="c"># 0.1465</span>
+<span class="f">ppois</span>(<span class="n">5</span>, lambda = <span class="n">4</span>, lower.tail = <span class="k">FALSE</span>)   <span class="c"># 0.2149  P(Y ≥ 6)</span>
+
+<span class="c"># 4. Bayes: prueba médica</span>
+prev &lt;- <span class="n">0.01</span>; sens &lt;- <span class="n">0.95</span>; esp &lt;- <span class="n">0.90</span>
+p_pos &lt;- sens * prev + (<span class="n">1</span> - esp) * (<span class="n">1</span> - prev)
+sens * prev / p_pos                  <span class="c"># 0.0876</span></code></pre>
+      </div>
+
+      <h2 id="prob-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="Como son independientes, P(A ∩ B) = 0,4 · 0,5 = 0,2. Por la regla de la suma, P(A ∪ B) = 0,4 + 0,5 − 0,2 = 0,7." data-wrong="Primero calcula la intersección con la regla de independencia, y luego usa la regla de la suma general sin contar dos veces esa intersección.">
+        <h3>A y B son independientes, con P(A) = 0,4 y P(B) = 0,5. ¿Cuánto vale P(A ∪ B)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,9</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,2</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>0,7</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>0,45</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Para una binomial, E[X] = np = 20 · 0,25 = 5 y Var(X) = np(1 − p) = 20 · 0,25 · 0,75 = 3,75." data-wrong="Usa las fórmulas de la binomial: la media es np y la varianza es np(1 − p). No confundas varianza con desviación típica.">
+        <h3>Un examen tiene 20 preguntas de 4 opciones y alguien responde todas al azar. Si X es el número de aciertos, ¿cuánto valen E[X] y Var(X)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>E[X] = 5 y Var(X) = 3,75</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>E[X] = 5 y Var(X) = 5</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>E[X] = 10 y Var(X) = 5</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>E[X] = 5 y Var(X) = 1,94</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Los lanzamientos son independientes: la moneda no recuerda los resultados anteriores. La ley de los grandes números habla de proporciones a largo plazo, no de compensaciones." data-wrong="Pregúntate si el lanzamiento número 6 depende de los cinco anteriores. ¿La ley de los grandes números dice que el azar corrige rachas?">
+        <h3>Una moneda justa cayó cruz 5 veces seguidas. ¿Cuál es la probabilidad de que el siguiente lanzamiento sea cara?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Mayor que 0,5, porque la ley de los grandes números la compensa</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Menor que 0,5, porque hay una racha de cruces</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>(1/2)⁶ ≈ 0,016</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Exactamente 0,5</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="prob-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Lanzas dos dados justos. Calcula la probabilidad de que la suma sea 7 y la probabilidad de que la suma sea al menos 10.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Hay \(6 \times 6 = 36\) resultados equiprobables. La suma es 7 en (1,6), (2,5), (3,4), (4,3), (5,2) y (6,1): \(P = 6/36 = 1/6 \approx 0{,}167\).</p>
+            <p>Suma 10: 3 casos; suma 11: 2 casos; suma 12: 1 caso. En total 6 casos y \(P(\text{suma} \ge 10) = 6/36 = 1/6\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>El 60 % de las visitas a una tienda en línea llega desde el celular y el 40 % desde una computadora. Compra el 5 % de las visitas desde celular y el 8 % de las de computadora. ¿Qué proporción de visitas termina en compra? Si una visita compró, ¿cuál es la probabilidad de que viniera del celular?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Probabilidad total: \(P(C) = 0{,}05 \cdot 0{,}6 + 0{,}08 \cdot 0{,}4 = 0{,}030 + 0{,}032 = 0{,}062\). El 6,2 % de las visitas compra.</p>
+            <p>Bayes: \(P(\text{cel} \mid C) = 0{,}030 / 0{,}062 \approx 0{,}484\). Aunque el 60 % de las visitas es desde el celular, solo el 48 % de las compras viene de ahí, porque ese canal convierte peor.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>El número de devoluciones diarias \(X\) en una tienda tiene esta distribución: \(P(X=0) = 0{,}1\), \(P(X=1) = 0{,}3\), \(P(X=2) = 0{,}4\) y \(P(X=3) = 0{,}2\). Calcula \(E[X]\), \(\operatorname{Var}(X)\) y la desviación típica. Si cada devolución cuesta 2 mil pesos más un costo fijo diario de 3 mil, ¿cuál es la media y la varianza del costo diario?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(E[X] = 0 \cdot 0{,}1 + 1 \cdot 0{,}3 + 2 \cdot 0{,}4 + 3 \cdot 0{,}2 = 1{,}7\).</p>
+            <p>\(E[X^2] = 0 + 0{,}3 + 1{,}6 + 1{,}8 = 3{,}7\), así que \(\operatorname{Var}(X) = 3{,}7 - 1{,}7^2 = 0{,}81\) y \(\sigma = 0{,}9\).</p>
+            <p>El costo es \(C = 2X + 3\) (en miles): \(E[C] = 2 \cdot 1{,}7 + 3 = 6{,}4\) mil y \(\operatorname{Var}(C) = 2^2 \cdot 0{,}81 = 3{,}24\), con desviación 1,8 mil. El costo fijo no agrega variabilidad.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Un centro de soporte recibe en promedio 3 llamadas por hora, y las llamadas llegan de forma independiente. (a) ¿Cuál es la probabilidad de que en una hora no llegue ninguna? (b) ¿Y de que lleguen más de 5? (c) ¿Cuál es la probabilidad de recibir al menos una llamada en media hora? Verifica (b) con una simulación.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Modelamos con \(X \sim \text{Poisson}(3)\). (a) \(P(X = 0) = e^{-3} \approx 0{,}0498\).</p>
+            <p>(b) \(P(X &gt; 5) = 1 - P(X \le 5) = 1 - \sum_{k=0}^{5} e^{-3}3^k/k! \approx 1 - 0{,}9161 = 0{,}0839\).</p>
+            <p>(c) En media hora la tasa es \(\lambda = 1{,}5\), así que \(P(Y \ge 1) = 1 - e^{-1{,}5} \approx 0{,}777\). La clave es escalar \(\lambda\) con la longitud del intervalo.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="f">print</span>(stats.poisson.<span class="f">pmf</span>(<span class="n">0</span>, <span class="n">3</span>))        <span class="c"># 0.0498</span>
+<span class="f">print</span>(stats.poisson.<span class="f">sf</span>(<span class="n">5</span>, <span class="n">3</span>))         <span class="c"># 0.0839  P(X &gt; 5)</span>
+<span class="f">print</span>(<span class="n">1</span> - stats.poisson.<span class="f">pmf</span>(<span class="n">0</span>, <span class="n">1.5</span>))  <span class="c"># 0.7769</span>
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+sim = rng.<span class="f">poisson</span>(<span class="n">3</span>, size=<span class="n">100_000</span>)
+<span class="f">print</span>((sim &gt; <span class="n">5</span>).<span class="f">mean</span>())                 <span class="c"># ≈ 0.084</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">dpois</span>(<span class="n">0</span>, lambda = <span class="n">3</span>)                     <span class="c"># 0.0498</span>
+<span class="f">ppois</span>(<span class="n">5</span>, lambda = <span class="n">3</span>, lower.tail = <span class="k">FALSE</span>)  <span class="c"># 0.0839  P(X &gt; 5)</span>
+<span class="n">1</span> - <span class="f">dpois</span>(<span class="n">0</span>, lambda = <span class="n">1.5</span>)               <span class="c"># 0.7769</span>
+
+<span class="f">set.seed</span>(<span class="n">1</span>)
+sim &lt;- <span class="f">rpois</span>(<span class="n">100000</span>, lambda = <span class="n">3</span>)
+<span class="f">mean</span>(sim &gt; <span class="n">5</span>)                             <span class="c"># ≈ 0.084</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

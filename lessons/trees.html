@@ -1,0 +1,380 @@
+<!-- StatEdx · sesión: trees -->
+<div id="view-trees" data-view="trees" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Árboles de decisión y random forest</h1>
+      <p>Un árbol de decisión clasifica haciendo preguntas de sí o no, una tras otra. Es fácil de leer, pero inestable. Un bosque aleatorio promedia cientos de árboles distintos y se convierte en uno de los modelos más fiables para datos tabulares.</p>
+      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: validación cruzada</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#trees-idea" data-sec="trees-idea">La idea</a></li>
+        <li><a href="#trees-como" data-sec="trees-como">Cómo decide un árbol</a></li>
+        <li><a href="#trees-impureza" data-sec="trees-impureza">Impureza y ganancia</a></li>
+        <li><a href="#trees-reg" data-sec="trees-reg">Árboles de regresión</a></li>
+        <li><a href="#trees-poda" data-sec="trees-poda">Profundidad y poda</a></li>
+        <li><a href="#trees-lab" data-sec="trees-lab">Laboratorio: fronteras</a></li>
+        <li><a href="#trees-bosque" data-sec="trees-bosque">Bagging y random forest</a></li>
+        <li><a href="#trees-imp" data-sec="trees-imp">Importancia de variables</a></li>
+        <li><a href="#trees-comp" data-sec="trees-comp">¿Árbol, bosque o logística?</a></li>
+        <li><a href="#trees-code" data-sec="trees-code">En R y Python</a></li>
+        <li><a href="#trees-quiz" data-sec="trees-quiz">Comprueba</a></li>
+        <li><a href="#trees-ej" data-sec="trees-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="trees-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>En la sala de urgencias de un hospital, una enfermera decide en segundos quién pasa primero. No calcula una fórmula: hace preguntas en orden. ¿Respira con dificultad? Si sí, pasa ya. Si no, ¿tiene fiebre de más de 39 °C? ¿Tiene más de 65 años? Cada respuesta la lleva por una rama distinta hasta una decisión.</p>
+      <p>Un <b>árbol de decisión</b> es exactamente eso, pero aprendido de los datos: el algoritmo elige qué pregunta hacer primero, con qué umbral, y cuándo dejar de preguntar. El resultado se puede dibujar y explicar a cualquiera. El problema es que un árbol cambia mucho si cambias un poco los datos. La solución, que veremos en la segunda mitad, es preguntarle a muchos árboles y promediar.</p>
+
+      <h2 id="trees-como"><span class="sec">§ 2</span>Cómo decide un árbol</h2>
+      <p>El algoritmo más usado se llama <b>CART</b> (<i>Classification and Regression Trees</i>). Funciona por <b>particiones binarias recursivas</b>:</p>
+      <ol>
+        <li>Empieza con todos los datos de entrenamiento en un solo nodo, la raíz.</li>
+        <li>Para cada variable \(x_j\) y cada umbral posible \(s\), considera dividir el nodo en dos: \(\{x_j \le s\}\) y \(\{x_j > s\}\). Elige la división que deja a los dos hijos lo más “puros” posible.</li>
+        <li>Repite el paso 2 dentro de cada hijo, por separado.</li>
+        <li>Se detiene cuando se alcanza una regla de parada: profundidad máxima, un mínimo de observaciones por nodo, o que ninguna división mejore lo suficiente.</li>
+      </ol>
+      <p>Cada nodo final se llama <b>hoja</b>. Para clasificar una observación nueva la haces bajar por el árbol respondiendo las preguntas, y predices la clase mayoritaria de su hoja (o la proporción de cada clase, si quieres una probabilidad). Geométricamente, el árbol parte el espacio de variables en <b>rectángulos</b> con lados paralelos a los ejes.</p>
+      <div class="callout"><b>Es un algoritmo voraz:</b> en cada paso elige la mejor división inmediata, sin mirar hacia adelante. No garantiza el mejor árbol posible (encontrarlo es un problema computacionalmente intratable), pero es rápido y funciona bien en la práctica.</div>
+
+      <h2 id="trees-impureza"><span class="sec">§ 3</span>Impureza y ganancia de información</h2>
+      <p>Sea \(\hat p_{mk}\) la proporción de observaciones de la clase \(k\) en el nodo \(m\). Un nodo es puro si todas sus observaciones son de la misma clase. Las dos medidas de impureza más usadas son:</p>
+      <div class="eq">\[ G_m = \sum_{k=1}^{K} \hat p_{mk}\,(1 - \hat p_{mk}) = 1 - \sum_{k=1}^{K} \hat p_{mk}^{\,2} \qquad\qquad H_m = -\sum_{k=1}^{K} \hat p_{mk}\,\log_2 \hat p_{mk} \]
+        <div class="note">A la izquierda, el <b>índice de Gini</b>; a la derecha, la <b>entropía</b>. Con dos clases, Gini vale como máximo 0,5 y la entropía como máximo 1 bit, ambos cuando las clases están 50/50. Los dos valen 0 en un nodo puro.</div>
+      </div>
+      <p>Si un nodo padre \(P\) con \(n\) observaciones se divide en un hijo izquierdo \(L\) con \(n_L\) y uno derecho \(R\) con \(n_R\), la <b>ganancia</b> de la división es cuánto baja la impureza promedio ponderada:</p>
+      <div class="eq">\[ \Delta = I(P) - \left( \frac{n_L}{n}\, I(L) + \frac{n_R}{n}\, I(R) \right) \]
+        <div class="note">Cuando \(I\) es la entropía, \(\Delta\) se llama <b>ganancia de información</b>. CART elige la variable y el umbral con mayor \(\Delta\). Con una variable numérica basta probar los puntos medios entre valores consecutivos ordenados.</div>
+      </div>
+      <p>¿Por qué no usar directamente la tasa de error de clasificación? Porque es poco sensible: dos divisiones pueden dejar el mismo error y, sin embargo, una producir un hijo totalmente puro, que es mucho más útil para seguir dividiendo. Gini y entropía premian esa pureza porque son funciones estrictamente cóncavas. En la práctica dan árboles muy parecidos.</p>
+      <p>Prueba tú: 20 observaciones ordenadas por una variable. Mueve el corte y mira cómo cambia la impureza de cada lado.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · elegir el mejor corte</span><span class="num" id="trees-sp-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="trees-sp-s">OBSERVACIONES A LA IZQUIERDA DEL CORTE · <b id="trees-sp-s-v" class="num">4</b></label><input id="trees-sp-s" type="range" min="0" max="20" value="4"></div>
+            <div class="ctrl">
+              <label id="trees-sp-crit-label">CRITERIO</label>
+              <div class="seg" id="trees-sp-crit" role="group" aria-labelledby="trees-sp-crit-label">
+                <button type="button" data-c="gini" aria-pressed="true">Gini</button>
+                <button type="button" data-c="ent" aria-pressed="false">Entropía</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="trees-sp-best" type="button">Ir al mejor corte</button>
+          </div>
+          <div>
+            <div class="plot-label"><span><span style="color:var(--accent)">●</span> clase A · <span style="color:var(--hot)">■</span> clase B</span><span>— impureza ponderada · ┄ padre</span></div>
+            <canvas class="plot" id="trees-sp" height="250" aria-label="Veinte observaciones con un corte y la curva de impureza ponderada para cada corte posible"></canvas>
+          </div>
+          <div class="readout">
+            <div><span>impureza izquierda</span><b id="trees-sp-l">–</b></div>
+            <div><span>impureza derecha</span><b id="trees-sp-r">–</b></div>
+            <div><span>ponderada</span><b id="trees-sp-w">–</b></div>
+            <div><span>ganancia Δ</span><b id="trees-sp-g">–</b></div>
+          </div>
+        </div>
+        <figcaption>El mejor corte no es el que separa más observaciones, sino el que deja hijos más homogéneos. Cambia a entropía: los valores cambian de escala, pero el mejor corte suele ser el mismo.</figcaption>
+      </figure>
+
+      <h2 id="trees-reg"><span class="sec">§ 4</span>Árboles de regresión</h2>
+      <p>Si la respuesta \(y\) es numérica, el árbol predice en cada hoja el <b>promedio</b> de las \(y\) de esa hoja, y la impureza se mide con la suma de cuadrados de los residuos. La división elegida es la que minimiza:</p>
+      <div class="eq">\[ \sum_{i:\,x_{ij} \le s} \big(y_i - \bar y_L\big)^2 \;+\; \sum_{i:\,x_{ij} > s} \big(y_i - \bar y_R\big)^2 \]
+        <div class="note">\(\bar y_L\) y \(\bar y_R\) son las medias de cada lado. El resultado es una función escalonada: constante dentro de cada rectángulo.</div>
+      </div>
+      <p>Esto tiene una consecuencia práctica importante: un árbol de regresión <b>no puede extrapolar</b>. Si en el entrenamiento el precio más alto fue 500, ninguna predicción pasará de 500, aunque la tendencia sea claramente creciente. Una regresión lineal sí extrapola (para bien o para mal).</p>
+
+      <h2 id="trees-poda"><span class="sec">§ 5</span>Profundidad, poda y sobreajuste</h2>
+      <p>Si dejas crecer un árbol sin límite, termina con una hoja por observación y error de entrenamiento cero: el ejemplo perfecto de <b>sobreajuste</b> que viste en la clase anterior. Un árbol profundo tiene poco sesgo y muchísima varianza. Hay dos formas de controlarlo:</p>
+      <ul>
+        <li><b>Parar antes</b> (<i>pre-poda</i>): limitar la profundidad máxima, exigir un mínimo de observaciones por hoja o una ganancia mínima. Es simple, pero miope: una división poco útil puede habilitar otra muy buena debajo.</li>
+        <li><b>Crecer y podar</b> (<i>poda por costo-complejidad</i>): crecer un árbol grande \(T_0\) y luego, para cada \(\alpha \ge 0\), buscar el subárbol \(T \subseteq T_0\) que minimiza
+          \[ R_\alpha(T) = R(T) + \alpha\,|T| \]
+          donde \(R(T)\) es el error de entrenamiento (o la impureza total de las hojas) y \(|T|\) el número de hojas. Con \(\alpha = 0\) te quedas con el árbol completo; al crecer \(\alpha\) se podan ramas. El valor de \(\alpha\) es un hiperparámetro y se elige con validación cruzada.</li>
+      </ul>
+      <div class="callout"><b>Idea clave:</b> \(\alpha\) juega el mismo papel que \(\lambda\) en ridge y lasso. Castiga la complejidad, y la validación cruzada decide cuánto castigo conviene. En R, rpart llama a este parámetro <code>cp</code>; en scikit-learn es <code>ccp_alpha</code>.</div>
+
+      <h2 id="trees-lab"><span class="sec">§ 6</span>Laboratorio: fronteras de decisión</h2>
+      <p>Tenemos 200 puntos de entrenamiento de dos clases con una forma que una recta no puede separar. El simulador entrena un árbol CART con Gini, escrito desde cero, y pinta la clase que predice en cada región. Lo evaluamos con otros 200 puntos de prueba que no se usan para entrenar.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · árbol CART y bosque aleatorio</span><span class="num" id="trees-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="trees-depth">PROFUNDIDAD MÁXIMA · <b id="trees-depth-v" class="num">3</b></label><input id="trees-depth" type="range" min="1" max="8" value="3"></div>
+            <div class="ctrl">
+              <label id="trees-mode-label">MODELO</label>
+              <div class="seg" id="trees-mode" role="group" aria-labelledby="trees-mode-label">
+                <button type="button" data-m="tree" aria-pressed="true">Un árbol</button>
+                <button type="button" data-m="rf" aria-pressed="false">Random forest (25 árboles)</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="trees-data-label">DATOS</label>
+              <div class="seg" id="trees-data" role="group" aria-labelledby="trees-data-label">
+                <button type="button" data-d="moons" aria-pressed="true">Dos lunas</button>
+                <button type="button" data-d="circles" aria-pressed="false">Círculos</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="trees-again" type="button">Nuevos datos</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Regiones de decisión</span><span><span style="color:var(--accent)">●</span> clase A · <span style="color:var(--hot)">■</span> clase B</span></div>
+              <canvas class="plot" id="trees-map" height="280" aria-label="Puntos de dos clases y las regiones que predice el modelo"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Exactitud según profundidad</span><span><span style="color:var(--accent)">—</span> entr. · <span style="color:var(--hot)">—</span> prueba · ┄ <span id="trees-other">bosque</span></span></div>
+              <canvas class="plot" id="trees-acc" height="280" aria-label="Exactitud de entrenamiento y de prueba en función de la profundidad máxima"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>exactitud entrenamiento</span><b id="trees-tr">–</b></div>
+            <div><span>exactitud prueba</span><b id="trees-te">–</b></div>
+            <div><span id="trees-leaves-l">número de hojas</span><b id="trees-leaves">–</b></div>
+            <div><span>exactitud OOB (bosque)</span><b id="trees-oob">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con profundidad 1 el árbol hace una sola pregunta. Sube a 8: la exactitud de entrenamiento se acerca al 100&nbsp;% y aparecen rectángulos diminutos alrededor de puntos sueltos. Cambia a random forest con la misma profundidad: la frontera se suaviza y la exactitud de prueba suele subir.</figcaption>
+      </figure>
+
+      <h2 id="trees-bosque"><span class="sec">§ 7</span>Bagging y random forest</h2>
+      <p>Un árbol profundo tiene poco sesgo pero mucha varianza. Si promediamos muchos modelos con poca correlación entre sí, la varianza baja. Esa es la idea del <b>bagging</b> (<i>bootstrap aggregating</i>):</p>
+      <ol>
+        <li>Toma \(B\) muestras <b>bootstrap</b> del entrenamiento: \(n\) observaciones elegidas al azar <i>con reemplazo</i>.</li>
+        <li>Entrena un árbol profundo, sin podar, en cada muestra.</li>
+        <li>Predice promediando: el voto mayoritario (o el promedio de probabilidades) en clasificación, la media en regresión.</li>
+      </ol>
+      <p>Pero los árboles de bagging se parecen mucho entre sí: si hay una variable muy fuerte, casi todos la usan en la raíz. Si cada árbol tiene varianza \(\sigma^2\) y la correlación entre dos árboles es \(\rho\), la varianza del promedio es:</p>
+      <div class="eq">\[ \operatorname{Var}\!\left(\frac{1}{B}\sum_{b=1}^{B} \hat f_b(x)\right) = \rho\,\sigma^2 + \frac{1-\rho}{B}\,\sigma^2 \]
+        <div class="note">Al aumentar \(B\) el segundo término desaparece, pero el primero no: la correlación pone un piso. Para bajar ese piso hay que hacer que los árboles sean más distintos.</div>
+      </div>
+      <p>El <b>random forest</b> agrega un segundo ingrediente aleatorio: en <b>cada división</b> de cada árbol, solo se consideran \(m\) variables elegidas al azar de las \(p\) disponibles. Los valores habituales son \(m \approx \sqrt p\) en clasificación y \(m \approx p/3\) en regresión. Eso obliga a algunos árboles a usar otras variables, baja \(\rho\) y reduce la varianza del promedio. Con \(m = p\) el random forest es simplemente bagging.</p>
+      <ul>
+        <li><b>Más árboles no producen sobreajuste:</b> el error se estabiliza al crecer \(B\). Unos cientos suelen bastar; más árboles solo cuestan tiempo.</li>
+        <li><b>Error OOB (<i>out-of-bag</i>):</b> la probabilidad de que una observación no salga en una muestra bootstrap es \((1 - 1/n)^n \approx e^{-1} \approx 0{,}368\). Cada observación queda fuera de cerca de un tercio de los árboles. Si la predices solo con esos árboles y comparas con su valor real, obtienes una estimación del error de generalización casi gratis, parecida a la de validación cruzada.</li>
+        <li><b>Hiperparámetros:</b> \(m\) (<code>mtry</code>, <code>max_features</code>) es el más importante; luego el tamaño mínimo de hoja. El random forest funciona razonablemente bien con los valores por defecto, una de las razones de su popularidad.</li>
+      </ul>
+      <div class="callout"><b>Y el boosting:</b> en lugar de promediar árboles independientes, el <i>boosting</i> los entrena <b>en secuencia</b>: cada árbol nuevo, pequeño, corrige los errores de los anteriores (en <i>gradient boosting</i>, ajusta los residuos). Bagging reduce varianza; boosting reduce sobre todo sesgo. Implementaciones como XGBoost, LightGBM o el <code>HistGradientBoostingClassifier</code> de scikit-learn suelen ganar en datos tabulares, pero son más sensibles a sus hiperparámetros (tasa de aprendizaje, número de árboles, profundidad) y sí pueden sobreajustar si agregas demasiados árboles.</div>
+
+      <h2 id="trees-imp"><span class="sec">§ 8</span>Importancia de variables y sus trampas</h2>
+      <p>Un bosque de 500 árboles ya no se puede leer como un diagrama. Para entender qué variables usa se calculan <b>importancias</b>. Hay dos tipos:</p>
+      <ul>
+        <li><b>Importancia por impureza</b> (<i>mean decrease in impurity</i>, MDI): suma, sobre todos los árboles, la disminución de Gini lograda en cada división que usa la variable. Es la que da <code>feature_importances_</code> en scikit-learn y <code>MeanDecreaseGini</code> en R.</li>
+        <li><b>Importancia por permutación:</b> mide cuánto empeora la exactitud cuando permutas al azar los valores de una variable, rompiendo su relación con \(y\). Se calcula idealmente sobre datos de prueba u OOB. Es <code>permutation_importance</code> en scikit-learn y <code>MeanDecreaseAccuracy</code> en R.</li>
+      </ul>
+      <p>Trampas frecuentes:</p>
+      <ul>
+        <li><b>Sesgo hacia variables con muchos valores:</b> la importancia por impureza favorece variables continuas o categóricas con muchas categorías, porque ofrecen más cortes posibles. Un identificador de cliente puede salir “muy importante” aunque sea puro ruido. La permutación sobre datos de prueba sufre mucho menos este problema.</li>
+        <li><b>Variables correlacionadas:</b> si dos variables cuentan la misma historia, el bosque reparte la importancia entre ellas y ambas parecen menos importantes de lo que son. Con permutación, quitar una no daña mucho porque la otra la reemplaza.</li>
+        <li><b>Importancia no es causalidad</b>, ni dice la dirección del efecto. Solo dice cuánto usa el modelo esa variable para predecir. Para ver la forma del efecto usa gráficos de dependencia parcial.</li>
+      </ul>
+
+      <h2 id="trees-comp"><span class="sec">§ 9</span>¿Árbol, bosque o regresión logística?</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Aspecto</th><th>Regresión logística</th><th>Un árbol</th><th>Random forest</th></tr></thead>
+        <tbody>
+          <tr><td>Forma de la frontera</td><td>lineal en las variables (salvo que agregues términos)</td><td>escalonada, con cortes paralelos a los ejes</td><td>escalonada pero suave en promedio</td></tr>
+          <tr><td>Interacciones</td><td>hay que especificarlas</td><td>las encuentra solo</td><td>las encuentra solo</td></tr>
+          <tr><td>Interpretación</td><td>coeficientes y razones de momios</td><td>excelente: se dibuja</td><td>indirecta: importancias</td></tr>
+          <tr><td>Varianza</td><td>baja</td><td>alta</td><td>baja</td></tr>
+          <tr><td>Escalar variables</td><td>conviene (y es necesario con regularización)</td><td>no hace falta</td><td>no hace falta</td></tr>
+          <tr><td>Extrapolación</td><td>sí</td><td>no</td><td>no</td></tr>
+          <tr><td>Inferencia (IC, valores p)</td><td>sí</td><td>no</td><td>no</td></tr>
+          <tr><td>Pocos datos</td><td>funciona bien</td><td>inestable</td><td>aceptable</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li>Usa <b>regresión logística</b> cuando necesitas explicar efectos con coeficientes e intervalos, cuando tienes pocos datos o cuando la relación es aproximadamente lineal en el logit. Es además la línea base contra la que todo modelo debería compararse.</li>
+        <li>Usa <b>un árbol</b> cuando la prioridad es una regla simple que una persona pueda aplicar a mano, como un protocolo de triage. Mantenlo poco profundo y pódalo con validación cruzada.</li>
+        <li>Usa <b>random forest</b> (o boosting) cuando la prioridad es la exactitud, hay interacciones y no linealidades, y tienes datos suficientes. Compáralo siempre con la logística usando la misma validación cruzada: a veces la diferencia es pequeña y no justifica perder interpretabilidad.</li>
+      </ul>
+
+      <h2 id="trees-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <p>Generamos 600 puntos con forma de dos lunas, entrenamos un árbol, lo podamos con validación cruzada, lo comparamos con un random forest y una regresión logística, y calculamos importancias.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> matplotlib.pyplot <span class="k">as</span> plt
+<span class="k">from</span> sklearn.datasets <span class="k">import</span> make_moons
+<span class="k">from</span> sklearn.ensemble <span class="k">import</span> RandomForestClassifier
+<span class="k">from</span> sklearn.inspection <span class="k">import</span> permutation_importance
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> LogisticRegression
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> GridSearchCV, train_test_split
+<span class="k">from</span> sklearn.tree <span class="k">import</span> DecisionTreeClassifier, plot_tree
+
+X, y = <span class="f">make_moons</span>(n_samples=<span class="n">600</span>, noise=<span class="n">0.3</span>, random_state=<span class="n">0</span>)
+X_tr, X_te, y_tr, y_te = <span class="f">train_test_split</span>(X, y, test_size=<span class="n">0.3</span>, stratify=y, random_state=<span class="n">0</span>)
+
+<span class="c"># 1. Efecto de la profundidad</span>
+<span class="k">for</span> prof <span class="k">in</span> [<span class="n">1</span>, <span class="n">2</span>, <span class="n">4</span>, <span class="n">8</span>, <span class="k">None</span>]:
+    arbol = <span class="f">DecisionTreeClassifier</span>(max_depth=prof, random_state=<span class="n">0</span>).<span class="f">fit</span>(X_tr, y_tr)
+    <span class="f">print</span>(prof, arbol.<span class="f">get_n_leaves</span>(), <span class="f">round</span>(arbol.<span class="f">score</span>(X_tr, y_tr), <span class="n">3</span>), <span class="f">round</span>(arbol.<span class="f">score</span>(X_te, y_te), <span class="n">3</span>))
+
+<span class="c"># 2. Poda por costo-complejidad, eligiendo alpha con validación cruzada</span>
+ruta = <span class="f">DecisionTreeClassifier</span>(random_state=<span class="n">0</span>).<span class="f">cost_complexity_pruning_path</span>(X_tr, y_tr)
+alphas = np.<span class="f">unique</span>(np.<span class="f">clip</span>(ruta.ccp_alphas, <span class="n">0</span>, <span class="k">None</span>))
+busq = <span class="f">GridSearchCV</span>(<span class="f">DecisionTreeClassifier</span>(random_state=<span class="n">0</span>), {<span class="s">"ccp_alpha"</span>: alphas}, cv=<span class="n">5</span>)
+busq.<span class="f">fit</span>(X_tr, y_tr)
+podado = busq.best_estimator_
+<span class="f">print</span>(busq.best_params_, podado.<span class="f">get_n_leaves</span>(), podado.<span class="f">score</span>(X_te, y_te))
+
+<span class="f">plot_tree</span>(podado, feature_names=[<span class="s">"x1"</span>, <span class="s">"x2"</span>], class_names=[<span class="s">"A"</span>, <span class="s">"B"</span>], filled=<span class="k">True</span>)
+plt.<span class="f">show</span>()
+
+<span class="c"># 3. Random forest con error OOB</span>
+bosque = <span class="f">RandomForestClassifier</span>(n_estimators=<span class="n">500</span>, max_features=<span class="s">"sqrt"</span>,
+                                oob_score=<span class="k">True</span>, random_state=<span class="n">0</span>, n_jobs=-<span class="n">1</span>)
+bosque.<span class="f">fit</span>(X_tr, y_tr)
+<span class="f">print</span>(<span class="s">"OOB:"</span>, bosque.oob_score_, <span class="s">"prueba:"</span>, bosque.<span class="f">score</span>(X_te, y_te))
+
+<span class="c"># 4. Importancias: por impureza y por permutación (en prueba)</span>
+<span class="f">print</span>(bosque.feature_importances_)
+perm = <span class="f">permutation_importance</span>(bosque, X_te, y_te, n_repeats=<span class="n">20</span>, random_state=<span class="n">0</span>)
+<span class="f">print</span>(perm.importances_mean)
+
+<span class="c"># 5. Línea base: regresión logística</span>
+logit = <span class="f">LogisticRegression</span>().<span class="f">fit</span>(X_tr, y_tr)
+<span class="f">print</span>(<span class="s">"logística:"</span>, logit.<span class="f">score</span>(X_te, y_te))   <span class="c"># menor: la frontera real no es una recta</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(rpart)
+<span class="k">library</span>(rpart.plot)
+<span class="k">library</span>(randomForest)
+
+<span class="c"># Dos lunas con ruido, igual que make_moons</span>
+<span class="f">set.seed</span>(<span class="n">0</span>)
+n &lt;- <span class="n">600</span>
+ang &lt;- <span class="f">runif</span>(n, <span class="n">0</span>, pi)
+cl &lt;- <span class="f">rbinom</span>(n, <span class="n">1</span>, <span class="n">0.5</span>)
+x1 &lt;- <span class="f">ifelse</span>(cl == <span class="n">1</span>, <span class="n">1</span> - <span class="f">cos</span>(ang), <span class="f">cos</span>(ang)) + <span class="f">rnorm</span>(n, <span class="n">0</span>, <span class="n">0.3</span>)
+x2 &lt;- <span class="f">ifelse</span>(cl == <span class="n">1</span>, <span class="n">0.5</span> - <span class="f">sin</span>(ang), <span class="f">sin</span>(ang)) + <span class="f">rnorm</span>(n, <span class="n">0</span>, <span class="n">0.3</span>)
+datos &lt;- <span class="f">data.frame</span>(x1, x2, clase = <span class="f">factor</span>(cl, labels = <span class="f">c</span>(<span class="s">"A"</span>, <span class="s">"B"</span>)))
+idx &lt;- <span class="f">sample</span>(n, <span class="n">0.7</span> * n)
+entr &lt;- datos[idx, ]
+prueba &lt;- datos[-idx, ]
+
+<span class="c"># 1. Árbol grande (cp = 0) con validación cruzada interna de 10 bloques</span>
+arbol &lt;- <span class="f">rpart</span>(clase ~ x1 + x2, data = entr, method = <span class="s">"class"</span>,
+               control = <span class="f">rpart.control</span>(cp = <span class="n">0</span>, minsplit = <span class="n">5</span>, xval = <span class="n">10</span>))
+<span class="f">printcp</span>(arbol)          <span class="c"># CP, número de divisiones y xerror (error de CV relativo)</span>
+
+<span class="c"># 2. Poda con la regla de un error estándar</span>
+tab &lt;- arbol$cptable
+umbral &lt;- <span class="f">min</span>(tab[, <span class="s">"xerror"</span>]) + tab[<span class="f">which.min</span>(tab[, <span class="s">"xerror"</span>]), <span class="s">"xstd"</span>]
+cp_1ee &lt;- tab[<span class="f">which</span>(tab[, <span class="s">"xerror"</span>] &lt;= umbral)[<span class="n">1</span>], <span class="s">"CP"</span>]
+podado &lt;- <span class="f">prune</span>(arbol, cp = cp_1ee)
+<span class="f">rpart.plot</span>(podado)
+<span class="f">mean</span>(<span class="f">predict</span>(podado, prueba, type = <span class="s">"class"</span>) == prueba$clase)
+
+<span class="c"># 3. Random forest: con p = 2 variables, mtry = 1 (≈ √p)</span>
+bosque &lt;- <span class="f">randomForest</span>(clase ~ x1 + x2, data = entr, ntree = <span class="n">500</span>,
+                       mtry = <span class="n">1</span>, importance = <span class="k">TRUE</span>)
+bosque                  <span class="c"># muestra el error OOB y la matriz de confusión</span>
+<span class="f">mean</span>(<span class="f">predict</span>(bosque, prueba) == prueba$clase)
+
+<span class="c"># 4. Importancias: MeanDecreaseAccuracy (permutación) y MeanDecreaseGini</span>
+<span class="f">importance</span>(bosque)
+<span class="f">varImpPlot</span>(bosque)
+
+<span class="c"># 5. Línea base: regresión logística</span>
+logit &lt;- <span class="f">glm</span>(clase ~ x1 + x2, data = entr, family = binomial)
+p &lt;- <span class="f">predict</span>(logit, prueba, type = <span class="s">"response"</span>)
+<span class="f">mean</span>((p &gt; <span class="n">0.5</span>) == (prueba$clase == <span class="s">"B"</span>))</code></pre>
+      </div>
+      <p>Lo típico con estos datos: el árbol podado y el bosque superan claramente a la logística, porque la frontera real es curva; el bosque suele quedar algo por encima del árbol podado y su error OOB queda muy cerca del error de prueba. No pongas mucha fe en las importancias aquí: con solo dos variables, ambas son necesarias.</p>
+
+      <h2 id="trees-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <div class="quiz" data-right="Al limitar las variables candidatas en cada división, los árboles se vuelven distintos entre sí. Baja la correlación ρ y con ella el piso ρσ² de la varianza del promedio." data-wrong="Recuerda la fórmula de la varianza del promedio: ρσ² + (1 − ρ)σ²/B. ¿Qué término no baja al agregar árboles, y qué lo reduce?">
+        <h3>¿Por qué el random forest considera solo un subconjunto aleatorio de variables en cada división?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Para que cada árbol se entrene más rápido, sin cambiar las predicciones</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Para que los árboles estén menos correlacionados y el promedio tenga menos varianza</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Para reducir el sesgo de cada árbol individual</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Para eliminar las variables que no son importantes</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="100 % en entrenamiento y 71 % en prueba es sobreajuste. Lo correcto es controlar la complejidad, por ejemplo podando con un α elegido por validación cruzada, o pasar a un bosque." data-wrong="Compara la exactitud de entrenamiento con la de prueba. ¿Ese árbol tiene demasiada o muy poca flexibilidad?">
+        <h3>Un árbol sin límite de profundidad logra 100 % de exactitud en entrenamiento y 71 % en prueba. ¿Qué conviene hacer?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Dejarlo así: 100 % en entrenamiento muestra que aprendió el patrón</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Hacerlo más profundo para que también acierte en prueba</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Cambiar Gini por entropía</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Podarlo con un α (o cp) elegido por validación cruzada</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La importancia por impureza favorece variables con muchos cortes posibles, como un identificador único. La importancia por permutación en datos de prueba la mostraría cerca de cero." data-wrong="El número de cliente no tiene relación real con la respuesta. ¿Qué característica suya le da ventaja al medir importancia por reducción de Gini?">
+        <h3>En un bosque, la variable “número de cliente” (un identificador único) aparece entre las más importantes según la importancia por impureza. ¿Qué es lo más probable?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Es un sesgo de esa medida hacia variables con muchos valores distintos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Los clientes con número alto realmente se comportan distinto</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El bosque tiene pocos árboles</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La variable causa la respuesta</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="trees-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Un nodo tiene 40 observaciones de la clase A y 60 de la clase B. Una división propuesta deja a la izquierda 30 A y 10 B, y a la derecha 10 A y 50 B. Calcula el Gini del padre, de cada hijo, el Gini ponderado y la ganancia.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Padre: \(1 - 0{,}4^2 - 0{,}6^2 = 1 - 0{,}16 - 0{,}36 = 0{,}48\).</p>
+            <p>Izquierda (40 obs.): \(1 - 0{,}75^2 - 0{,}25^2 = 0{,}375\). Derecha (60 obs.): \(1 - (1/6)^2 - (5/6)^2 = 10/36 \approx 0{,}278\).</p>
+            <p>Ponderado: \(0{,}4 \cdot 0{,}375 + 0{,}6 \cdot 0{,}278 = 0{,}150 + 0{,}167 = 0{,}317\). Ganancia: \(0{,}48 - 0{,}317 \approx 0{,}163\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con \(n = 100\) observaciones, ¿cuál es la probabilidad de que una observación concreta no aparezca en una muestra bootstrap? Si el bosque tiene 500 árboles, ¿en cuántos árboles, aproximadamente, esa observación es OOB?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>En cada una de las 100 extracciones la probabilidad de no elegirla es \(99/100\). Como las extracciones son independientes, \(P = 0{,}99^{100} \approx 0{,}366\), muy cerca del límite \(e^{-1} \approx 0{,}368\).</p>
+            <p>En promedio queda fuera de \(500 \cdot 0{,}366 \approx 183\) árboles. Su predicción OOB es el voto de esos 183 árboles, que nunca la vieron.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Árbol de regresión con una variable: \(x = 1, 2, 3, 4, 5, 6\) y \(y = 2, 3, 2, 8, 9, 10\). Encuentra la mejor primera división (la que minimiza la suma de cuadrados de los residuos), las predicciones de cada hoja y cuánto se reduce la suma de cuadrados.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Los cortes candidatos son 1,5; 2,5; 3,5; 4,5 y 5,5. Sus sumas de cuadrados totales son 53,2; 39,25; <b>2,67</b>; 25,25 y 46,8. El mejor es \(x \le 3{,}5\).</p>
+            <p>Izquierda: \(y = 2, 3, 2\), media 2,33, SCR \(= 0{,}111 + 0{,}444 + 0{,}111 = 0{,}67\). Derecha: \(y = 8, 9, 10\), media 9, SCR = 2. Las predicciones son 2,33 si \(x \le 3{,}5\) y 9 si no.</p>
+            <p>Sin dividir, la media es 5,67 y la SCR es \(262 - 6 \cdot 5{,}667^2 \approx 69{,}33\). La división la reduce a 2,67: explica el 96 % de la variación.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.tree <span class="k">import</span> DecisionTreeRegressor, export_text
+
+x = np.<span class="f">array</span>([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>]).<span class="f">reshape</span>(-<span class="n">1</span>, <span class="n">1</span>)
+y = np.<span class="f">array</span>([<span class="n">2</span>, <span class="n">3</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">9</span>, <span class="n">10</span>])
+m = <span class="f">DecisionTreeRegressor</span>(max_depth=<span class="n">1</span>).<span class="f">fit</span>(x, y)
+<span class="f">print</span>(<span class="f">export_text</span>(m, feature_names=[<span class="s">"x"</span>]))   <span class="c"># x &lt;= 3.50 → 2.33 ; x &gt; 3.50 → 9.00</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(rpart)
+d &lt;- <span class="f">data.frame</span>(x = <span class="n">1</span>:<span class="n">6</span>, y = <span class="f">c</span>(<span class="n">2</span>, <span class="n">3</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">9</span>, <span class="n">10</span>))
+m &lt;- <span class="f">rpart</span>(y ~ x, data = d, method = <span class="s">"anova"</span>,
+           control = <span class="f">rpart.control</span>(maxdepth = <span class="n">1</span>, minsplit = <span class="n">2</span>, minbucket = <span class="n">1</span>, cp = <span class="n">0</span>))
+m   <span class="c"># x &lt; 3.5 → 2.333 ; x &gt;= 3.5 → 9</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Cada árbol de un conjunto tiene varianza \(\sigma^2 = 1\) en sus predicciones. (a) Con bagging la correlación entre árboles es \(\rho = 0{,}6\): calcula la varianza del promedio con \(B = 25\) y con \(B \to \infty\). (b) Un random forest baja la correlación a \(\rho = 0{,}3\), aunque cada árbol sube un poco su varianza, a \(\sigma^2 = 1{,}2\). ¿Cuál conviene con \(B = 25\)? (c) Explica por qué agregar árboles no produce sobreajuste.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(0{,}6 \cdot 1 + 0{,}4 \cdot 1/25 = 0{,}6 + 0{,}016 = 0{,}616\). Con \(B \to \infty\) queda el piso \(\rho\sigma^2 = 0{,}6\): agregar árboles casi no ayuda después de unas decenas.</p>
+            <p>(b) \(0{,}3 \cdot 1{,}2 + 0{,}7 \cdot 1{,}2/25 = 0{,}36 + 0{,}034 = 0{,}394\). Aunque cada árbol es individualmente peor, el promedio tiene un 36 % menos de varianza. Eso es lo que compra el subconjunto aleatorio de variables.</p>
+            <p>(c) Cada árbol se entrena por separado; agregar más solo acerca el promedio a su valor límite (el término \((1-\rho)\sigma^2/B\) baja hacia 0). No aumenta la flexibilidad del modelo como lo haría aumentar la profundidad. El sobreajuste de un bosque, si lo hay, viene de árboles con hojas demasiado pequeñas, no del número de árboles.</p>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

@@ -1,0 +1,289 @@
+<!-- StatEdx · sesión: desc -->
+<div id="view-desc" data-view="desc" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Medidas de tendencia central y dispersión</h1>
+      <p>Antes de cualquier modelo hay que resumir los datos: dónde está el centro, qué tan dispersos están y qué forma tienen. Aquí aprendes a calcular e interpretar media, mediana, varianza, cuartiles y diagramas de caja, y a elegir la medida que no te engañe cuando aparecen valores atípicos.</p>
+      <div class="lmeta"><span>40 min</span><span>Nivel básico</span><span>Requiere: ninguno</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#desc-idea" data-sec="desc-idea">La idea</a></li>
+        <li><a href="#desc-centro" data-sec="desc-centro">Tendencia central</a></li>
+        <li><a href="#desc-disp" data-sec="desc-disp">Dispersión</a></li>
+        <li><a href="#desc-pos" data-sec="desc-pos">Percentiles y caja</a></li>
+        <li><a href="#desc-lab" data-sec="desc-lab">Laboratorio</a></li>
+        <li><a href="#desc-forma" data-sec="desc-forma">Robustez y asimetría</a></li>
+        <li><a href="#desc-code" data-sec="desc-code">En R y Python</a></li>
+        <li><a href="#desc-quiz" data-sec="desc-quiz">Comprueba</a></li>
+        <li><a href="#desc-ej" data-sec="desc-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="desc-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una pequeña empresa tiene 10 personas trabajando. Nueve ganan entre 18 y 30 mil pesos al mes y la dueña se asigna 150 mil. Si alguien anuncia “el salario promedio aquí es de 37 mil”, dice algo verdadero y, aun así, engañoso: ninguna de las nueve personas gana eso. Si en cambio dice “la mitad gana menos de 24 mil”, describe mucho mejor la experiencia típica.</p>
+      <p>Esa es la pregunta de esta clase: <b>¿qué número resume bien un conjunto de datos?</b> Necesitas al menos dos: uno que diga dónde está el <b>centro</b> y otro que diga qué tan <b>dispersos</b> están los valores alrededor de ese centro. Dos grupos pueden tener la misma media y ser completamente distintos: en uno todos ganan 25 mil; en otro, la mitad gana 5 mil y la otra mitad 45 mil.</p>
+      <div class="callout"><b>Para recordar:</b> un resumen numérico siempre pierde información. Por eso conviene acompañarlo de un gráfico (histograma, diagrama de puntos o de caja) y elegir medidas que sigan siendo honestas cuando los datos son asimétricos o tienen atípicos.</div>
+
+      <h2 id="desc-centro"><span class="sec">§ 2</span>Medidas de tendencia central</h2>
+      <p>Trabajaremos con una muestra de \(n\) observaciones \(x_1, x_2, \dots, x_n\). Cuando las ordenamos de menor a mayor las escribimos \(x_{(1)} \le x_{(2)} \le \dots \le x_{(n)}\) (estadísticos de orden).</p>
+      <p><b>Media aritmética.</b> Es la suma de los valores dividida entre cuántos son. Físicamente es el punto de equilibrio: si pusieras pesos iguales sobre una regla en cada valor, la regla se equilibraría en \(\bar{x}\).</p>
+      <div class="eq">\[ \bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i \qquad\qquad \sum_{i=1}^{n} (x_i - \bar{x}) = 0 \]
+        <div class="note">Las desviaciones respecto a la media siempre suman cero. Además, \(\bar{x}\) es el valor \(c\) que minimiza \(\sum (x_i - c)^2\).</div>
+      </div>
+      <p><b>Mediana.</b> Es el valor que deja la mitad de los datos por debajo y la mitad por encima. Si \(n\) es impar, es el dato central; si es par, el promedio de los dos centrales:</p>
+      <div class="eq">\[ \operatorname{Me} = \begin{cases} x_{((n+1)/2)} & n \text{ impar} \\[4pt] \tfrac{1}{2}\big(x_{(n/2)} + x_{(n/2+1)}\big) & n \text{ par} \end{cases} \]
+        <div class="note">La mediana minimiza \(\sum |x_i - c|\): es el centro cuando castigas las distancias de forma lineal, no cuadrática.</div>
+      </div>
+      <p><b>Moda.</b> Es el valor (o la categoría) más frecuente. Es la única medida de centro que sirve para variables nominales, como el color de auto más vendido. Puede no ser única (distribución bimodal) o no existir de forma útil si todos los valores son distintos.</p>
+      <p><b>Media recortada.</b> Ordenas los datos, eliminas un porcentaje \(\alpha\) de cada extremo y promedias lo que queda. Con \(\alpha = 10\,\%\) y \(n = 10\) quitas el menor y el mayor. Es un punto intermedio entre la media (recorte 0 %) y la mediana (recorte casi del 50 %). Muchas competencias deportivas la usan: descartan la nota más alta y la más baja de los jueces.</p>
+      <p>Veamos un ejemplo con el tiempo de traslado al trabajo, en minutos, de 10 personas:</p>
+      <div class="eq">\[ 12,\ 15,\ 18,\ 20,\ 22,\ 25,\ 25,\ 28,\ 35,\ 90 \]
+        <div class="note">\(\bar{x} = 290/10 = 29\) min. Mediana \(= (22+25)/2 = 23{,}5\) min. Moda \(= 25\) min. Media recortada al 10 % \(= (290 - 12 - 90)/8 = 23{,}5\) min.</div>
+      </div>
+      <p>Una sola persona que tarda 90 minutos jala la media hasta 29, por encima de 8 de los 10 datos. La mediana y la media recortada ni se enteran.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Medida</th><th>Usa</th><th>Tipo de variable</th><th>Sensible a atípicos</th></tr></thead>
+        <tbody>
+          <tr><td>Media</td><td>todos los valores</td><td>cuantitativa</td><td>mucho</td></tr>
+          <tr><td>Media recortada</td><td>el centro de los datos</td><td>cuantitativa</td><td>poco</td></tr>
+          <tr><td>Mediana</td><td>solo el orden</td><td>cuantitativa u ordinal</td><td>casi nada</td></tr>
+          <tr><td>Moda</td><td>frecuencias</td><td>cualquiera, incluso nominal</td><td>no</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="desc-disp"><span class="sec">§ 3</span>Medidas de dispersión</h2>
+      <p><b>Rango.</b> Es \(x_{(n)} - x_{(1)}\), la distancia entre el máximo y el mínimo. Es fácil de calcular, pero depende solo de los dos valores más extremos, así que un único atípico lo dispara. En el ejemplo de traslados, el rango es \(90 - 12 = 78\) min.</p>
+      <p><b>Varianza.</b> Promedia las desviaciones al cuadrado respecto a la media. Elevamos al cuadrado porque las desviaciones con signo siempre suman cero.</p>
+      <div class="eq">\[ s^2 = \frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar{x})^2 \qquad\qquad \sigma^2 = \frac{1}{N}\sum_{i=1}^{N} (x_i - \mu)^2 \]
+        <div class="note">A la izquierda, la varianza <b>muestral</b>; a la derecha, la varianza de una <b>población</b> completa de tamaño \(N\) con media \(\mu\).</div>
+      </div>
+      <p><b>¿Por qué \(n-1\)?</b> Las desviaciones se miden respecto a \(\bar{x}\), que se calculó con los mismos datos y por eso está, en promedio, más cerca de ellos que la media real \(\mu\). Dividir entre \(n\) subestimaría la varianza de la población. Dividir entre \(n-1\) corrige ese sesgo: \(E[s^2] = \sigma^2\). Otra forma de verlo: como las \(n\) desviaciones suman cero, solo \(n-1\) de ellas son libres; decimos que hay \(n-1\) <b>grados de libertad</b>. Con muestras grandes la diferencia es mínima.</p>
+      <p><b>Desviación típica (o estándar).</b> Es la raíz de la varianza: \(s = \sqrt{s^2}\). Tiene las mismas unidades que los datos (minutos, no minutos al cuadrado), así que se interpreta como la distancia “típica” de un dato a la media.</p>
+      <div class="eq">\[ \text{Traslados: } \sum (x_i - 29)^2 = 4\,526 \quad\Rightarrow\quad s^2 = \frac{4\,526}{9} \approx 502{,}9 \quad\Rightarrow\quad s \approx 22{,}4 \text{ min} \]
+        <div class="note">Si dividieras entre \(n = 10\) obtendrías 452,6 y una desviación de 21,3 min. De los 4 526, el dato de 90 min aporta 3 721: más del 80 %.</div>
+      </div>
+      <p><b>Coeficiente de variación.</b> Compara dispersiones entre variables con unidades o escalas distintas, porque expresa la desviación como fracción de la media:</p>
+      <div class="eq">\[ CV = \frac{s}{\bar{x}} \times 100\,\% \]
+        <div class="note">Solo tiene sentido para variables con un cero absoluto y valores positivos (peso, ingreso, tiempo). No lo uses con temperaturas en °C: la media puede ser cercana a 0 y el CV se vuelve absurdo.</div>
+      </div>
+      <p>Dos propiedades que conviene saber de memoria. Si a todos los datos les <b>sumas</b> una constante \(c\), la media aumenta en \(c\) y la dispersión no cambia. Si los <b>multiplicas</b> por \(a\), la media y la desviación típica se multiplican por \(|a|\) y la varianza por \(a^2\); el CV queda igual.</p>
+
+      <h2 id="desc-pos"><span class="sec">§ 4</span>Percentiles, cuartiles y diagrama de caja</h2>
+      <p>El <b>percentil</b> \(p\) es un valor que deja aproximadamente el \(p\,\%\) de los datos por debajo. La mediana es el percentil 50. Los <b>cuartiles</b> dividen los datos en cuatro partes: \(Q_1\) (percentil 25), \(Q_2\) (la mediana) y \(Q_3\) (percentil 75).</p>
+      <p>Hay varias formas de calcular percentiles en muestras pequeñas. R (por defecto, <code>type = 7</code>) y NumPy usan la misma: ubican la posición \(h = 1 + (n-1)\,p\) entre los datos ordenados e interpolan linealmente.</p>
+      <div class="eq">\[ Q(p) = x_{(\lfloor h \rfloor)} + \big(h - \lfloor h \rfloor\big)\big(x_{(\lfloor h \rfloor + 1)} - x_{(\lfloor h \rfloor)}\big), \qquad h = 1 + (n-1)\,p \]
+        <div class="note">Traslados: para \(Q_1\), \(h = 3{,}25\) y \(Q_1 = 18 + 0{,}25 \cdot 2 = 18{,}5\). Para \(Q_3\), \(h = 7{,}75\) y \(Q_3 = 25 + 0{,}75 \cdot 3 = 27{,}25\). Otros programas pueden dar valores ligeramente distintos; no es un error.</div>
+      </div>
+      <p>El <b>rango intercuartílico</b> \(RIC = Q_3 - Q_1\) mide la dispersión del 50 % central de los datos, así que los extremos no lo afectan. En los traslados, \(RIC = 27{,}25 - 18{,}5 = 8{,}75\) min, frente a una desviación típica de 22,4 min inflada por el atípico.</p>
+      <p>El <b>diagrama de caja</b> (boxplot) dibuja el resumen de cinco números: mínimo, \(Q_1\), mediana, \(Q_3\) y máximo. La caja va de \(Q_1\) a \(Q_3\), la línea interior es la mediana y los “bigotes” llegan hasta el dato más extremo que no se aleje más de \(1{,}5 \cdot RIC\) de la caja. Lo que queda fuera se marca como posible atípico:</p>
+      <div class="eq">\[ \text{atípico si } x &lt; Q_1 - 1{,}5\,RIC \quad\text{o}\quad x &gt; Q_3 + 1{,}5\,RIC \]
+        <div class="note">Traslados: las vallas son \(18{,}5 - 13{,}1 = 5{,}4\) y \(27{,}25 + 13{,}1 = 40{,}4\). El dato de 90 min queda fuera.</div>
+      </div>
+      <div class="callout"><b>Atípico no significa error.</b> La regla de 1,5 RIC solo señala valores que merecen revisión. Si el dato es real (alguien que vive lejos), no lo borres: decide qué medidas son adecuadas y repórtalo.</div>
+
+      <h2 id="desc-lab"><span class="sec">§ 5</span>Laboratorio</h2>
+      <p>Tienes los salarios mensuales, en miles de pesos, de 24 personas de una empresa, más uno o varios salarios que tú controlas. Arriba ves cada dato como un punto; abajo, el diagrama de caja. Lleva el salario atípico de 40 a 200 mil y observa qué medidas se mueven y cuáles casi no.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · media frente a mediana</span><span class="num" id="desc-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="desc-v">SALARIO ATÍPICO · <b id="desc-v-v" class="num">40</b> mil</label><input id="desc-v" type="range" min="15" max="200" value="40"></div>
+            <div class="ctrl">
+              <label id="desc-k-label">VALORES ATÍPICOS</label>
+              <div class="seg" id="desc-k" role="group" aria-labelledby="desc-k-label">
+                <button data-k="0" aria-pressed="false">Ninguno</button>
+                <button data-k="1" aria-pressed="true">Uno</button>
+                <button data-k="3" aria-pressed="false">Tres</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="desc-again" type="button">Otra empresa</button>
+          </div>
+          <div class="plot-label"><span>Salario mensual (miles)</span><span>┄ media · │ mediana</span></div>
+          <canvas class="plot" id="desc-plot" height="240" aria-label="Diagrama de puntos de los salarios con la media y la mediana marcadas, y un diagrama de caja debajo"></canvas>
+          <div class="readout">
+            <div><span>media x̄</span><b id="desc-mean">–</b></div>
+            <div><span>mediana</span><b id="desc-med">–</b></div>
+            <div><span>desviación típica s</span><b id="desc-sd">–</b></div>
+            <div><span>rango intercuartílico</span><b id="desc-iqr">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con un solo atípico de 200 mil la media sube varios miles y la desviación típica se multiplica, mientras que la mediana y el RIC apenas cambian. Prueba con tres atípicos: la mediana empieza a moverse, pero poco.</figcaption>
+      </figure>
+
+      <h2 id="desc-forma"><span class="sec">§ 6</span>Robustez y asimetría</h2>
+      <p>Una medida es <b>robusta</b> si un pequeño número de datos extremos no puede cambiarla mucho. Una forma de cuantificarlo es el <b>punto de ruptura</b>: la fracción de datos que tendrías que reemplazar por valores absurdos para llevar la medida tan lejos como quieras.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Centro</th><th>Ruptura</th><th>Dispersión</th><th>Ruptura</th></tr></thead>
+        <tbody>
+          <tr><td>Media</td><td>0 %</td><td>Rango, varianza, s</td><td>0 %</td></tr>
+          <tr><td>Media recortada \(\alpha\)</td><td>\(\alpha\)</td><td>RIC</td><td>25 %</td></tr>
+          <tr><td>Mediana</td><td>50 %</td><td>Desviación absoluta mediana (MAD)</td><td>50 %</td></tr>
+        </tbody>
+      </table></div>
+      <p>Un solo dato puede llevar la media a cualquier valor (ruptura 0 %), mientras que para mover la mediana sin límite tendrías que corromper la mitad de los datos.</p>
+      <p><b>La forma de la distribución.</b> La posición relativa de media y mediana da una pista rápida de la asimetría:</p>
+      <ul>
+        <li><b>Simétrica</b> (estaturas, errores de medición): media ≈ mediana.</li>
+        <li><b>Asimétrica a la derecha</b> o sesgo positivo (ingresos, tiempos de espera, precios de casas): una cola larga hacia valores altos y media &gt; mediana.</li>
+        <li><b>Asimétrica a la izquierda</b> o sesgo negativo (edad de jubilación, notas de un examen fácil): cola hacia valores bajos y media &lt; mediana.</li>
+      </ul>
+      <p>Para medirla con un número se usa el coeficiente de asimetría, que es positivo con cola a la derecha:</p>
+      <div class="eq">\[ g_1 = \frac{\tfrac{1}{n}\sum (x_i - \bar{x})^3}{\left(\tfrac{1}{n}\sum (x_i - \bar{x})^2\right)^{3/2}} \]
+        <div class="note">La regla “media &gt; mediana implica sesgo a la derecha” funciona casi siempre en distribuciones unimodales, pero no es un teorema: con distribuciones discretas o multimodales puede fallar. Mira siempre el gráfico.</div>
+      </div>
+      <div class="callout"><b>Qué reportar:</b> si los datos son aproximadamente simétricos y sin atípicos, media y desviación típica. Si son asimétricos o tienen atípicos, mediana y RIC (o el resumen de cinco números). Ante la duda, reporta ambos pares y un gráfico.</div>
+
+      <h2 id="desc-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>Calculamos todo el resumen del ejemplo de traslados. Fíjate en el argumento que controla \(n\) frente a \(n-1\): R usa \(n-1\) siempre; NumPy usa \(n\) a menos que pidas <code>ddof=1</code>, y pandas usa \(n-1\) por defecto.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+x = np.<span class="f">array</span>([<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">35</span>, <span class="n">90</span>])
+
+<span class="f">print</span>(x.<span class="f">mean</span>())                    <span class="c"># 29.0</span>
+<span class="f">print</span>(np.<span class="f">median</span>(x))                <span class="c"># 23.5</span>
+<span class="f">print</span>(stats.<span class="f">mode</span>(x).mode)          <span class="c"># 25</span>
+<span class="f">print</span>(stats.<span class="f">trim_mean</span>(x, <span class="n">0.1</span>))     <span class="c"># 23.5 (quita 10 % de cada lado)</span>
+
+<span class="f">print</span>(x.<span class="f">var</span>(ddof=<span class="n">1</span>), x.<span class="f">std</span>(ddof=<span class="n">1</span>))  <span class="c"># 502.89  22.43  (con n − 1)</span>
+<span class="f">print</span>(x.<span class="f">std</span>())                     <span class="c"># 21.27  (¡con n!)</span>
+q1, q3 = np.<span class="f">percentile</span>(x, [<span class="n">25</span>, <span class="n">75</span>])
+<span class="f">print</span>(q1, q3, q3 - q1)              <span class="c"># 18.5  27.25  8.75</span>
+<span class="f">print</span>(x.<span class="f">std</span>(ddof=<span class="n">1</span>) / x.<span class="f">mean</span>())    <span class="c"># CV ≈ 0.773</span>
+
+<span class="c"># atípicos con la regla de 1,5 RIC</span>
+ric = q3 - q1
+<span class="f">print</span>(x[(x &lt; q1 - <span class="n">1.5</span> * ric) | (x &gt; q3 + <span class="n">1.5</span> * ric)])  <span class="c"># [90]</span>
+
+<span class="c"># pandas resume casi todo de una vez</span>
+<span class="f">print</span>(pd.<span class="f">Series</span>(x).<span class="f">describe</span>())</code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">35</span>, <span class="n">90</span>)
+
+<span class="f">mean</span>(x)                 <span class="c"># 29</span>
+<span class="f">median</span>(x)               <span class="c"># 23.5</span>
+<span class="f">mean</span>(x, trim = <span class="n">0.1</span>)     <span class="c"># 23.5</span>
+
+<span class="c"># R no trae una función para la moda estadística</span>
+moda &lt;- <span class="k">function</span>(v) {
+  tab &lt;- <span class="f">table</span>(v)
+  <span class="f">as.numeric</span>(<span class="f">names</span>(tab)[tab == <span class="f">max</span>(tab)])
+}
+<span class="f">moda</span>(x)                 <span class="c"># 25</span>
+
+<span class="f">var</span>(x); <span class="f">sd</span>(x)           <span class="c"># 502.89  22.43  (siempre con n − 1)</span>
+<span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.75</span>))   <span class="c"># 18.5  27.25</span>
+<span class="f">IQR</span>(x)                  <span class="c"># 8.75</span>
+<span class="f">sd</span>(x) / <span class="f">mean</span>(x)          <span class="c"># CV ≈ 0.773</span>
+
+<span class="f">summary</span>(x)              <span class="c"># resumen de cinco números + media</span>
+<span class="f">boxplot.stats</span>(x)$out    <span class="c"># 90 (fuera de las vallas)</span>
+<span class="f">boxplot</span>(x, horizontal = <span class="k">TRUE</span>, xlab = <span class="s">"minutos"</span>)</code></pre>
+      </div>
+      <p>Un detalle: <code>boxplot.stats</code> de R calcula las vallas con las “bisagras” de Tukey, que pueden diferir un poco de los cuartiles de <code>quantile</code>. En muestras grandes da lo mismo.</p>
+
+      <h2 id="desc-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="La mediana solo depende del orden de los datos: el valor nuevo cae por encima y desplaza la posición central a lo sumo medio dato. La media, la desviación típica y el rango sí lo absorben completo." data-wrong="Piensa en qué medida usa la magnitud de cada dato y cuál solo usa su posición en la lista ordenada.">
+        <h3>A un grupo de 50 salarios le agregas el sueldo de un directivo, 20 veces mayor que el resto. ¿Qué medida cambia menos?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La media</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La desviación típica</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El rango</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>La mediana</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Una media mayor que la mediana indica que unos pocos valores altos jalan el promedio hacia arriba: una cola larga a la derecha, típica de los precios y los ingresos." data-wrong="La media se va hacia donde está la cola larga. Si la media supera a la mediana, ¿dónde están los valores extremos?">
+        <h3>En una ciudad, el precio medio de las casas es 2,4 millones y el precio mediano es 1,6 millones. ¿Qué describe mejor la distribución?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Asimétrica a la derecha: pocas casas muy caras</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Asimétrica a la izquierda: pocas casas muy baratas</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Simétrica, porque ambas medidas están en millones</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No se puede decir nada sin la moda</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Sumar una constante desplaza todos los datos por igual: la media sube 5 puntos, pero las distancias entre los datos y la media no cambian, así que s sigue siendo 8." data-wrong="La desviación típica mide distancias a la media. Si todos los datos y la media se mueven 5 puntos, ¿cambian esas distancias?">
+        <h3>Las notas de un examen tienen media 62 y desviación típica 8. El profesor suma 5 puntos a todos. ¿Cuál es la nueva desviación típica?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>13</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>8</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>8 × 5 = 40</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>√(64 + 25) ≈ 9,4</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="desc-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Las calificaciones de 7 estudiantes son 6, 8, 7, 9, 6, 10 y 5. Calcula la media, la mediana y la moda.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Media: \(\bar{x} = (6+8+7+9+6+10+5)/7 = 51/7 \approx 7{,}29\).</p>
+            <p>Ordenadas: 5, 6, 6, 7, 8, 9, 10. Con \(n = 7\) impar, la mediana es el cuarto dato: <b>7</b>.</p>
+            <p>Moda: el 6 aparece dos veces y el resto una, así que la moda es <b>6</b>. Las tres medidas son cercanas: los datos son bastante simétricos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Una tienda registra cuántos clientes atiende en 5 horas: 4, 8, 6, 5 y 7. Calcula el rango, la varianza muestral y la desviación típica muestral. ¿Cuánto daría la varianza si dividieras entre \(n\)?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Rango: \(8 - 4 = 4\) clientes. Media: \(30/5 = 6\).</p>
+            <p>Desviaciones: \(-2, 2, 0, -1, 1\). Cuadrados: \(4, 4, 0, 1, 1\), que suman 10.</p>
+            <p>\(s^2 = 10/(5-1) = 2{,}5\) y \(s = \sqrt{2{,}5} \approx 1{,}58\) clientes. Dividiendo entre \(n\): \(10/5 = 2\). Con solo 5 datos la diferencia es notable (25 %).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>En un hospital, el peso de los recién nacidos tiene media 3,2 kg y desviación típica 0,45 kg. El de las madres tiene media 72 kg y desviación 9 kg. ¿Qué grupo es más variable en términos relativos? Si expresaras los pesos en libras (1 kg ≈ 2,205 lb), ¿cambiaría tu conclusión?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>La desviación de las madres (9 kg) es 20 veces mayor, pero compararla directamente no es justo porque las escalas son distintas. Usamos el coeficiente de variación:</p>
+            <p>\(CV_{\text{bebés}} = 0{,}45/3{,}2 \approx 14{,}1\,\%\) y \(CV_{\text{madres}} = 9/72 = 12{,}5\,\%\). Los bebés son un poco más variables en relación con su peso típico.</p>
+            <p>Pasar a libras multiplica la media y la desviación por la misma constante, así que el CV no cambia y la conclusión tampoco.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Estas son las edades de los 12 asistentes a un taller: 31, 35, 36, 38, 40, 41, 42, 44, 45, 47, 49, 78. Calcula el resumen de cinco números con el método de R y NumPy, las vallas de 1,5 RIC, e identifica los atípicos. Luego compara la media y la mediana con y sin el atípico.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con \(n = 12\): para \(Q_1\), \(h = 1 + 11 \cdot 0{,}25 = 3{,}75\), así que \(Q_1 = 36 + 0{,}75\,(38 - 36) = 37{,}5\). La mediana es \((41+42)/2 = 41{,}5\). Para \(Q_3\), \(h = 9{,}25\) y \(Q_3 = 45 + 0{,}25\,(47-45) = 45{,}5\).</p>
+            <p>Resumen: mínimo 31, \(Q_1 = 37{,}5\), mediana 41,5, \(Q_3 = 45{,}5\), máximo 78. \(RIC = 8\), así que las vallas son \(37{,}5 - 12 = 25{,}5\) y \(45{,}5 + 12 = 57{,}5\). Solo <b>78</b> es atípico.</p>
+            <p>Con el atípico: media \(526/12 \approx 43{,}8\), mediana 41,5. Sin él: media \(448/11 \approx 40{,}7\), mediana 41. Quitar un dato movió la media 3,1 años y la mediana medio año.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+edad = np.<span class="f">array</span>([<span class="n">31</span>, <span class="n">35</span>, <span class="n">36</span>, <span class="n">38</span>, <span class="n">40</span>, <span class="n">41</span>, <span class="n">42</span>, <span class="n">44</span>, <span class="n">45</span>, <span class="n">47</span>, <span class="n">49</span>, <span class="n">78</span>])
+q1, me, q3 = np.<span class="f">percentile</span>(edad, [<span class="n">25</span>, <span class="n">50</span>, <span class="n">75</span>])
+ric = q3 - q1
+<span class="f">print</span>(edad.<span class="f">min</span>(), q1, me, q3, edad.<span class="f">max</span>())    <span class="c"># 31 37.5 41.5 45.5 78</span>
+atip = (edad &lt; q1 - <span class="n">1.5</span> * ric) | (edad &gt; q3 + <span class="n">1.5</span> * ric)
+<span class="f">print</span>(edad[atip])                                   <span class="c"># [78]</span>
+<span class="f">print</span>(edad.<span class="f">mean</span>(), edad[~atip].<span class="f">mean</span>())             <span class="c"># 43.83  40.73</span>
+<span class="f">print</span>(np.<span class="f">median</span>(edad), np.<span class="f">median</span>(edad[~atip]))   <span class="c"># 41.5  41.0</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>edad &lt;- <span class="f">c</span>(<span class="n">31</span>, <span class="n">35</span>, <span class="n">36</span>, <span class="n">38</span>, <span class="n">40</span>, <span class="n">41</span>, <span class="n">42</span>, <span class="n">44</span>, <span class="n">45</span>, <span class="n">47</span>, <span class="n">49</span>, <span class="n">78</span>)
+q &lt;- <span class="f">quantile</span>(edad, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.5</span>, <span class="n">0.75</span>))
+ric &lt;- q[<span class="n">3</span>] - q[<span class="n">1</span>]
+<span class="f">c</span>(<span class="f">min</span>(edad), q, <span class="f">max</span>(edad))                     <span class="c"># 31 37.5 41.5 45.5 78</span>
+atip &lt;- edad &lt; q[<span class="n">1</span>] - <span class="n">1.5</span> * ric | edad &gt; q[<span class="n">3</span>] + <span class="n">1.5</span> * ric
+edad[atip]                                       <span class="c"># 78</span>
+<span class="f">c</span>(<span class="f">mean</span>(edad), <span class="f">mean</span>(edad[!atip]))                <span class="c"># 43.83  40.73</span>
+<span class="f">c</span>(<span class="f">median</span>(edad), <span class="f">median</span>(edad[!atip]))            <span class="c"># 41.5  41</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

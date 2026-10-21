@@ -1,0 +1,414 @@
+<!-- StatEdx · sesión: cv -->
+<div id="view-cv" data-view="cv" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Validación cruzada y sobreajuste</h1>
+      <p>Un modelo que acierta todo en los datos con los que aprendió puede fallar con los datos nuevos. Aquí aprendes a medir el error que importa, el de generalización, y a elegir la complejidad de un modelo sin engañarte.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#cv-idea" data-sec="cv-idea">La idea</a></li>
+        <li><a href="#cv-errores" data-sec="cv-errores">Dos tipos de error</a></li>
+        <li><a href="#cv-sesgo" data-sec="cv-sesgo">Sesgo y varianza</a></li>
+        <li><a href="#cv-lab" data-sec="cv-lab">Laboratorio: el grado</a></li>
+        <li><a href="#cv-division" data-sec="cv-division">Entrenamiento, validación y prueba</a></li>
+        <li><a href="#cv-kfold" data-sec="cv-kfold">k-fold y sus variantes</a></li>
+        <li><a href="#cv-fuga" data-sec="cv-fuga">Fuga de datos</a></li>
+        <li><a href="#cv-tiempo" data-sec="cv-tiempo">Series de tiempo</a></li>
+        <li><a href="#cv-hiper" data-sec="cv-hiper">Hiperparámetros y regularización</a></li>
+        <li><a href="#cv-code" data-sec="cv-code">En R y Python</a></li>
+        <li><a href="#cv-quiz" data-sec="cv-quiz">Comprueba</a></li>
+        <li><a href="#cv-ej" data-sec="cv-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="cv-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Imagina que preparas un examen de matemáticas estudiando solo con las 20 preguntas de un examen viejo. Si te aprendes las respuestas de memoria, sacarás 20 de 20 en ese examen viejo. Pero el día de la prueba las preguntas son otras, y tu nota real depende de si entendiste el método o solo memorizaste.</p>
+      <p>Con los modelos pasa lo mismo. Un modelo muy flexible puede “memorizar” los datos de entrenamiento, ruido incluido, y aun así predecir mal los datos nuevos. A eso se le llama <b>sobreajuste</b>. La pregunta de esta clase es cómo estimar, con los datos que ya tienes, qué tan bien le irá a tu modelo con datos que todavía no has visto. La respuesta corta es: <b>nunca evalúes con los mismos datos con los que entrenaste</b>.</p>
+
+      <h2 id="cv-errores"><span class="sec">§ 2</span>Dos tipos de error</h2>
+      <p>Supón que los datos vienen de \(Y = f(X) + \varepsilon\), con \(E[\varepsilon] = 0\) y \(\operatorname{Var}(\varepsilon) = \sigma^2\). Ajustas un modelo \(\hat f\) con una muestra de entrenamiento de tamaño \(n\). El <b>error de entrenamiento</b> es el promedio de la pérdida sobre esos mismos datos:</p>
+      <div class="eq">\[ \overline{\text{err}} = \frac{1}{n}\sum_{i=1}^{n} \big(y_i - \hat f(x_i)\big)^2 \]</div>
+      <p>El <b>error de generalización</b> (o error de prueba) es el que cometerías con una observación nueva \((X_0, Y_0)\) de la misma población, que no participó en el ajuste:</p>
+      <div class="eq">\[ \text{Err} = E\Big[\big(Y_0 - \hat f(X_0)\big)^2\Big] \]
+        <div class="note">Usamos error cuadrático medio (ECM) porque es el caso de regresión. En clasificación se usa la tasa de error, la pérdida logarítmica o el AUC, pero la lógica es la misma.</div>
+      </div>
+      <p>El error de entrenamiento es casi siempre <b>optimista</b>: el modelo eligió sus parámetros precisamente para que ese número fuera pequeño. Y cuanto más flexible es el modelo, más grande es la brecha entre ambos errores.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Situación</th><th>Error de entrenamiento</th><th>Error de prueba</th><th>Qué pasa</th></tr></thead>
+        <tbody>
+          <tr><td><b>Subajuste</b></td><td>alto</td><td>alto (parecido al de entrenamiento)</td><td>El modelo es demasiado rígido: no captura la forma de \(f\).</td></tr>
+          <tr><td><b>Buen equilibrio</b></td><td>moderado</td><td>el mínimo posible, cerca de \(\sigma^2\)</td><td>Captura la señal y deja el ruido.</td></tr>
+          <tr><td><b>Sobreajuste</b></td><td>muy bajo</td><td>alto y creciendo</td><td>El modelo se aprende el ruido de esta muestra en particular.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Síntoma clásico:</b> si el error de entrenamiento baja y el de validación sube, estás sobreajustando. Si ambos son altos y parecidos, estás subajustando: necesitas un modelo más flexible o mejores variables, no más datos.</div>
+
+      <h2 id="cv-sesgo"><span class="sec">§ 3</span>Sesgo y varianza</h2>
+      <p>¿Por qué el error de prueba tiene forma de U cuando aumenta la complejidad? Fija un punto \(x_0\) y piensa en \(\hat f(x_0)\) como una variable aleatoria: cambia si cambias la muestra de entrenamiento. El error esperado en ese punto se descompone en tres partes:</p>
+      <div class="eq">\[ E\Big[\big(Y_0 - \hat f(x_0)\big)^2\Big] = \underbrace{\sigma^2}_{\text{ruido irreducible}} + \underbrace{\Big(E[\hat f(x_0)] - f(x_0)\Big)^2}_{\text{sesgo}^2} + \underbrace{\operatorname{Var}\big(\hat f(x_0)\big)}_{\text{varianza}} \]
+        <div class="note">La esperanza es sobre muestras de entrenamiento y sobre el ruido de la observación nueva. La demostración sale de sumar y restar \(E[\hat f(x_0)]\) y usar que \(\varepsilon_0\) es independiente de la muestra.</div>
+      </div>
+      <ul>
+        <li><b>Ruido irreducible \(\sigma^2\):</b> ningún modelo puede bajar de aquí. Es el piso del error de prueba.</li>
+        <li><b>Sesgo:</b> cuánto se equivoca el modelo en promedio. Una recta ajustada a una curva tiene sesgo grande aunque tengas millones de datos.</li>
+        <li><b>Varianza:</b> cuánto cambia el ajuste si cambias la muestra. Un polinomio de grado 15 con 20 puntos cambia muchísimo de una muestra a otra.</li>
+      </ul>
+      <p>Al aumentar la flexibilidad el sesgo baja y la varianza sube. El mejor modelo no es el de menor sesgo ni el de menor varianza, sino el que minimiza la <b>suma</b>. Ese es el <b>compromiso sesgo-varianza</b>. Dos consecuencias prácticas: con más datos la varianza baja, así que puedes permitirte modelos más flexibles; y aceptar un poco de sesgo a cambio de mucha menos varianza (como hace la regularización) suele mejorar las predicciones.</p>
+
+      <h2 id="cv-lab"><span class="sec">§ 4</span>Laboratorio: el grado del polinomio</h2>
+      <p>Generamos 20 puntos de entrenamiento de una curva suave, \(f(x) = \sin(1{,}6x) + 0{,}3x\), con ruido normal de \(\sigma = 0{,}35\) (así que \(\sigma^2 \approx 0{,}12\) es el piso del error). Ajustamos un polinomio por mínimos cuadrados y lo evaluamos con 200 puntos de prueba nuevos. La curva punteada de la derecha es el error estimado con validación cruzada de 5 bloques usando <i>solo</i> los 20 puntos de entrenamiento.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · complejidad y error</span><span class="num" id="cv-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="cv-deg">GRADO DEL POLINOMIO · d = <b id="cv-deg-v" class="num">3</b></label><input id="cv-deg" type="range" min="1" max="15" value="3"></div>
+            <div class="ctrl">
+              <label id="cv-lam-label">REGULARIZACIÓN RIDGE · λ</label>
+              <div class="seg" id="cv-lam" role="group" aria-labelledby="cv-lam-label">
+                <button type="button" data-l="0" aria-pressed="true">0</button>
+                <button type="button" data-l="0.0001" aria-pressed="false">0,0001</button>
+                <button type="button" data-l="0.01" aria-pressed="false">0,01</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="cv-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Ajuste de grado d</span><span><span style="color:var(--accent)">●</span> entrenamiento · <span style="color:var(--hot)">—</span> modelo · ┄ f real</span></div>
+              <canvas class="plot" id="cv-fit" height="240" aria-label="Puntos de entrenamiento, curva real y polinomio ajustado"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>ECM según el grado (escala log)</span><span><span style="color:var(--accent)">—</span> entr. · <span style="color:var(--hot)">—</span> prueba · ┄ CV</span></div>
+              <canvas class="plot" id="cv-err" height="240" aria-label="Error de entrenamiento, de prueba y de validación cruzada en función del grado"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>ECM entrenamiento</span><b id="cv-tr">–</b></div>
+            <div><span>ECM prueba</span><b id="cv-te">–</b></div>
+            <div><span>ECM validación cruzada</span><b id="cv-cvv">–</b></div>
+            <div><span>grado elegido por CV</span><b id="cv-best">–</b></div>
+          </div>
+        </div>
+        <figcaption>Sube el grado de 1 a 15: la línea de entrenamiento baja siempre, la de prueba forma una U. La validación cruzada, que nunca vio los 200 puntos de prueba, encuentra casi siempre un grado cercano al mejor. Activa λ = 0,01 con grado 15 y verás cómo la regularización doma al polinomio.</figcaption>
+      </figure>
+
+      <h2 id="cv-division"><span class="sec">§ 5</span>Entrenamiento, validación y prueba</h2>
+      <p>Si tienes muchos datos, la forma más simple de estimar el error de generalización es separarlos en tres partes, al azar y <b>antes</b> de mirar nada:</p>
+      <ul>
+        <li><b>Entrenamiento</b> (por ejemplo 60 %): para ajustar los parámetros de cada modelo candidato.</li>
+        <li><b>Validación</b> (20 %): para comparar candidatos y elegir hiperparámetros (el grado del polinomio, la profundidad de un árbol, el λ de ridge).</li>
+        <li><b>Prueba</b> (20 %): para reportar el error final del modelo elegido. Se usa <b>una sola vez</b>, al final.</li>
+      </ul>
+      <p>¿Por qué no basta con dos partes? Porque si eliges el modelo que mejor le va en validación, ese error de validación ya es optimista: elegiste el mínimo entre muchos números ruidosos. El conjunto de prueba es tu único juez imparcial. Si lo consultas una y otra vez para tomar decisiones, deja de serlo.</p>
+      <div class="callout"><b>Problema de la división simple:</b> con pocos datos, el error de validación depende mucho de qué observaciones cayeron en cada parte (alta varianza), y además entrenas con menos datos de los que tienes (sesgo pesimista). La validación cruzada resuelve las dos cosas reutilizando los datos.</div>
+
+      <h2 id="cv-kfold"><span class="sec">§ 6</span>k-fold y sus variantes</h2>
+      <p>En la <b>validación cruzada de k bloques</b> (k-fold) divides los datos de entrenamiento en \(k\) bloques de tamaño parecido. Para \(j = 1, \dots, k\), entrenas con todos los bloques menos el \(j\) y calculas el error \(\text{ECM}_j\) en el bloque \(j\). La estimación final es el promedio:</p>
+      <div class="eq">\[ \text{CV}_{(k)} = \frac{1}{k}\sum_{j=1}^{k} \text{ECM}_j, \qquad \text{EE} \approx \frac{s_{\text{ECM}}}{\sqrt{k}} \]
+        <div class="note">Cada observación se usa \(k-1\) veces para entrenar y exactamente una vez para validar. El error estándar es aproximado porque los \(\text{ECM}_j\) no son independientes: comparten datos de entrenamiento.</div>
+      </div>
+      <ul>
+        <li><b>k = 5 o k = 10</b> es lo habitual: buen equilibrio entre sesgo (cada modelo entrena con 80-90 % de los datos) y costo de cómputo (k ajustes).</li>
+        <li><b>Leave-one-out (LOOCV)</b> es el caso \(k = n\): cada bloque es una sola observación. Tiene muy poco sesgo, pero exige \(n\) ajustes y su estimación tiene más varianza, porque los \(n\) modelos son casi idénticos. Para regresión lineal por mínimos cuadrados hay un atajo exacto con un solo ajuste, usando la diagonal \(h_{ii}\) de la matriz sombrero:
+          \[ \text{CV}_{(n)} = \frac{1}{n}\sum_{i=1}^{n}\left(\frac{y_i - \hat y_i}{1 - h_{ii}}\right)^2 \]</li>
+        <li><b>Validación estratificada:</b> en clasificación, cada bloque conserva la proporción de clases del total. Es importante cuando una clase es rara: sin estratificar, algún bloque podría quedarse sin casos positivos y su error no tendría sentido.</li>
+        <li><b>Validación repetida:</b> repetir k-fold con varias particiones al azar y promediar reduce la variabilidad debida a la partición.</li>
+      </ul>
+      <p>El diagrama muestra cómo se reparten 30 observaciones. Los datos vienen <b>ordenados por clase</b> (las últimas 9 son de la clase minoritaria, marcadas con un punto), algo muy común cuando alguien exporta una tabla ordenada.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>diagrama · cómo se parten los datos</span><span class="num" id="cv-k-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="cv-k-k">NÚMERO DE BLOQUES · k = <b id="cv-k-k-v" class="num">5</b></label><input id="cv-k-k" type="range" min="2" max="10" value="5"></div>
+            <div class="ctrl">
+              <label id="cv-k-mode-label">ESQUEMA</label>
+              <div class="seg" id="cv-k-mode" role="group" aria-labelledby="cv-k-mode-label">
+                <button type="button" data-m="plain" aria-pressed="true">k-fold sin mezclar</button>
+                <button type="button" data-m="strat" aria-pressed="false">Estratificado</button>
+                <button type="button" data-m="ts" aria-pressed="false">Serie de tiempo</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="plot-label"><span>Una fila por iteración, una columna por observación</span><span><span style="color:var(--accent)">■</span> entrena · <span style="color:var(--hot)">■</span> valida · <span style="color:var(--muted)">□</span> sin usar</span></div>
+            <canvas class="plot" id="cv-k-plot" height="290" aria-label="Diagrama de particiones de validación cruzada"></canvas>
+          </div>
+          <div class="readout">
+            <div><span>modelos a ajustar</span><b id="cv-k-fits">–</b></div>
+            <div><span>tamaño de entrenamiento</span><b id="cv-k-tr">–</b></div>
+            <div><span>tamaño de validación</span><b id="cv-k-va">–</b></div>
+            <div><span>% clase minoritaria por bloque</span><b id="cv-k-pct">–</b></div>
+          </div>
+        </div>
+        <figcaption>Sin mezclar, con k = 5 tres de los bloques de validación no tienen ni un caso de la clase minoritaria (y el último tiene solo esos casos). Estratificar reparte la clase minoritaria de forma pareja. En serie de tiempo, la validación siempre va después del entrenamiento.</figcaption>
+      </figure>
+
+      <h2 id="cv-fuga"><span class="sec">§ 7</span>Fuga de datos</h2>
+      <p>Hay <b>fuga de datos</b> (<i>data leakage</i>) cuando información del conjunto de validación o de prueba se cuela en el entrenamiento. El resultado es una estimación de error demasiado buena, que se derrumba en producción. Las formas más comunes:</p>
+      <ul>
+        <li><b>Preprocesar con todos los datos.</b> Estandarizar, imputar valores faltantes con la media o seleccionar variables usando el conjunto completo, y después hacer validación cruzada. Los bloques de validación ya “influyeron” en el modelo.</li>
+        <li><b>Variables del futuro.</b> Predecir si un cliente abandonará usando una variable que solo se llena cuando ya abandonó (por ejemplo, “motivo de baja”).</li>
+        <li><b>Duplicados o grupos repartidos.</b> Varias filas del mismo paciente, una en entrenamiento y otra en validación. El modelo reconoce al paciente, no la enfermedad. La solución es validar por grupos (<code>GroupKFold</code>).</li>
+        <li><b>Mezclar el tiempo.</b> Usar datos de diciembre para predecir noviembre.</li>
+      </ul>
+      <div class="callout"><b>Regla de oro:</b> todo lo que “aprende” de los datos (medias, desviaciones, variables elegidas, categorías vistas) debe aprenderse <b>dentro</b> de cada bloque de entrenamiento. Un <i>pipeline</i> lo garantiza: encadena preprocesamiento y modelo, y la validación cruzada reajusta la cadena completa en cada iteración.</div>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.feature_selection <span class="k">import</span> SelectKBest, f_classif
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> LogisticRegression
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> cross_val_score
+<span class="k">from</span> sklearn.pipeline <span class="k">import</span> make_pipeline
+<span class="k">from</span> sklearn.preprocessing <span class="k">import</span> StandardScaler
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+X = rng.<span class="f">normal</span>(size=(<span class="n">100</span>, <span class="n">5000</span>))   <span class="c"># ruido puro</span>
+y = rng.<span class="f">integers</span>(<span class="n">0</span>, <span class="n">2</span>, <span class="n">100</span>)          <span class="c"># etiquetas al azar</span>
+
+<span class="c"># MAL: elegir las 20 mejores variables con TODOS los datos</span>
+X_sel = <span class="f">SelectKBest</span>(f_classif, k=<span class="n">20</span>).<span class="f">fit_transform</span>(X, y)
+mal = <span class="f">cross_val_score</span>(<span class="f">LogisticRegression</span>(), X_sel, y, cv=<span class="n">5</span>)
+<span class="f">print</span>(mal.<span class="f">mean</span>())    <span class="c"># muy por encima de 0.5: una ilusión</span>
+
+<span class="c"># BIEN: la selección vive dentro del pipeline</span>
+pipe = <span class="f">make_pipeline</span>(<span class="f">StandardScaler</span>(), <span class="f">SelectKBest</span>(f_classif, k=<span class="n">20</span>), <span class="f">LogisticRegression</span>())
+bien = <span class="f">cross_val_score</span>(pipe, X, y, cv=<span class="n">5</span>)
+<span class="f">print</span>(bien.<span class="f">mean</span>())   <span class="c"># ≈ 0.5, lo honesto con etiquetas al azar</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
+X &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(<span class="n">100</span> * <span class="n">5000</span>), nrow = <span class="n">100</span>)      <span class="c"># ruido puro</span>
+y &lt;- <span class="f">factor</span>(<span class="f">sample</span>(<span class="f">c</span>(<span class="s">"a"</span>, <span class="s">"b"</span>), <span class="n">100</span>, replace = <span class="k">TRUE</span>))  <span class="c"># etiquetas al azar</span>
+
+pvalores &lt;- <span class="k">function</span>(X, y) <span class="f">apply</span>(X, <span class="n">2</span>, <span class="k">function</span>(v) <span class="f">t.test</span>(v ~ y)$p.value)
+exactitud &lt;- <span class="k">function</span>(Xtr, ytr, Xva, yva) {
+  m &lt;- <span class="f">glm</span>(y ~ ., data = <span class="f">data.frame</span>(Xtr, y = ytr), family = binomial)
+  p &lt;- <span class="f">predict</span>(m, <span class="f">data.frame</span>(Xva), type = <span class="s">"response"</span>)
+  <span class="f">mean</span>((p &gt; <span class="n">0.5</span>) == (yva == <span class="s">"b"</span>))
+}
+bloque &lt;- <span class="f">sample</span>(<span class="f">rep</span>(<span class="n">1</span>:<span class="n">5</span>, length.out = <span class="n">100</span>))
+
+<span class="c"># MAL: elegir las 20 mejores variables con TODOS los datos</span>
+top &lt;- <span class="f">order</span>(<span class="f">pvalores</span>(X, y))[<span class="n">1</span>:<span class="n">20</span>]
+mal &lt;- <span class="f">sapply</span>(<span class="n">1</span>:<span class="n">5</span>, <span class="k">function</span>(j) {
+  tr &lt;- bloque != j
+  <span class="f">exactitud</span>(X[tr, top], y[tr], X[!tr, top], y[!tr])
+})
+<span class="f">mean</span>(mal)    <span class="c"># muy por encima de 0.5: una ilusión</span>
+
+<span class="c"># BIEN: la selección se repite dentro de cada bloque de entrenamiento</span>
+bien &lt;- <span class="f">sapply</span>(<span class="n">1</span>:<span class="n">5</span>, <span class="k">function</span>(j) {
+  tr &lt;- bloque != j
+  top &lt;- <span class="f">order</span>(<span class="f">pvalores</span>(X[tr, ], y[tr]))[<span class="n">1</span>:<span class="n">20</span>]
+  <span class="f">exactitud</span>(X[tr, top], y[tr], X[!tr, top], y[!tr])
+})
+<span class="f">mean</span>(bien)   <span class="c"># ≈ 0.5, lo honesto con etiquetas al azar</span>
+<span class="c"># Con caret, train(..., preProcess = c("center", "scale")) y sbf() hacen esto por ti.</span></code></pre>
+      </div>
+
+      <h2 id="cv-tiempo"><span class="sec">§ 8</span>Validación en series de tiempo</h2>
+      <p>La validación cruzada clásica supone que las observaciones son intercambiables: da igual cuál cae en qué bloque. En una serie de tiempo eso es falso. Las observaciones vecinas se parecen (autocorrelación) y, sobre todo, en la vida real siempre predices el futuro con el pasado. Si mezclas, el modelo “ve” el futuro y el error sale artificialmente bajo.</p>
+      <p>La alternativa es la <b>validación con origen móvil</b> (<i>rolling origin</i> o <i>forward chaining</i>): entrenas con los datos hasta el tiempo \(t\), validas con el periodo siguiente, avanzas el origen y repites. La ventana de entrenamiento puede crecer (ventana expansiva) o tener largo fijo (ventana deslizante). En scikit-learn es <code>TimeSeriesSplit</code>; en R, <code>forecast::tsCV()</code> o <code>rsample::rolling_origin()</code>. Selecciona el modo “Serie de tiempo” en el diagrama de arriba para verlo.</p>
+      <div class="callout"><b>Detalle práctico:</b> si tus variables incluyen rezagos o medias móviles, calcúlalas de forma que en el tiempo \(t\) solo usen información disponible hasta \(t\). Y si predices a varios pasos, deja un hueco entre entrenamiento y validación igual al horizonte de predicción.</div>
+
+      <h2 id="cv-hiper"><span class="sec">§ 9</span>Hiperparámetros y regularización</h2>
+      <p>Los <b>parámetros</b> los estima el ajuste (los coeficientes \(\beta\)). Los <b>hiperparámetros</b> los fijas tú antes del ajuste: el grado del polinomio, el número de vecinos, la profundidad de un árbol, la fuerza de la regularización. La validación cruzada es la herramienta estándar para elegirlos: defines una rejilla de valores, calculas \(\text{CV}_{(k)}\) para cada uno y eliges el mínimo. Dos refinamientos útiles:</p>
+      <ul>
+        <li><b>Regla de un error estándar:</b> entre los modelos cuyo error de CV está a menos de un EE del mínimo, elige el más simple. Las diferencias más chicas que el ruido de la estimación no son reales.</li>
+        <li><b>Validación cruzada anidada:</b> si quieres reportar el error de todo el procedimiento “elegir hiperparámetros + ajustar”, pon un bucle de CV para elegir dentro de otro bucle de CV para evaluar. Si no, el error reportado es optimista.</li>
+      </ul>
+      <p>La <b>regularización</b> es la otra forma de controlar la complejidad: en lugar de quitar términos al modelo, castigas los coeficientes grandes. Para regresión lineal:</p>
+      <div class="eq">\[ \hat\beta^{\,\text{ridge}} = \arg\min_\beta \sum_{i=1}^{n}\big(y_i - x_i^\top\beta\big)^2 + \lambda\sum_{j=1}^{p}\beta_j^2 \qquad \hat\beta^{\,\text{lasso}} = \arg\min_\beta \sum_{i=1}^{n}\big(y_i - x_i^\top\beta\big)^2 + \lambda\sum_{j=1}^{p}|\beta_j| \]
+        <div class="note">El intercepto no se penaliza. Estandariza las variables antes (dentro del pipeline), porque la penalización depende de la escala de cada coeficiente.</div>
+      </div>
+      <ul>
+        <li><b>Ridge</b> encoge todos los coeficientes hacia cero sin anularlos. Agrega sesgo, pero reduce mucho la varianza cuando hay muchas variables o variables muy correlacionadas.</li>
+        <li><b>Lasso</b> puede poner coeficientes exactamente en cero: hace selección de variables. Útil cuando sospechas que pocas variables importan.</li>
+        <li>\(\lambda = 0\) es mínimos cuadrados; \(\lambda \to \infty\) deja solo el intercepto. El valor de \(\lambda\) es un hiperparámetro y se elige por validación cruzada.</li>
+      </ul>
+
+      <h2 id="cv-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <p>Simulamos 120 observaciones de la curva del laboratorio, reservamos un 25 % como prueba y usamos validación cruzada de 5 bloques sobre el resto para elegir el grado. Al final evaluamos una sola vez en prueba.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> LinearRegression, Ridge
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> GridSearchCV, KFold, cross_val_score, train_test_split
+<span class="k">from</span> sklearn.pipeline <span class="k">import</span> Pipeline
+<span class="k">from</span> sklearn.preprocessing <span class="k">import</span> PolynomialFeatures, StandardScaler
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+x = rng.<span class="f">uniform</span>(<span class="n">0</span>, <span class="n">4</span>, <span class="n">120</span>)
+y = np.<span class="f">sin</span>(<span class="n">1.6</span> * x) + <span class="n">0.3</span> * x + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">0.35</span>, <span class="n">120</span>)
+X = x.<span class="f">reshape</span>(-<span class="n">1</span>, <span class="n">1</span>)
+X_tr, X_te, y_tr, y_te = <span class="f">train_test_split</span>(X, y, test_size=<span class="n">0.25</span>, random_state=<span class="n">0</span>)
+
+kf = <span class="f">KFold</span>(n_splits=<span class="n">5</span>, shuffle=<span class="k">True</span>, random_state=<span class="n">0</span>)
+<span class="k">for</span> grado <span class="k">in</span> [<span class="n">1</span>, <span class="n">3</span>, <span class="n">5</span>, <span class="n">9</span>, <span class="n">15</span>]:
+    modelo = <span class="f">Pipeline</span>([(<span class="s">"poli"</span>, <span class="f">PolynomialFeatures</span>(grado, include_bias=<span class="k">False</span>)),
+                       (<span class="s">"esc"</span>, <span class="f">StandardScaler</span>()),
+                       (<span class="s">"reg"</span>, <span class="f">LinearRegression</span>())])
+    ecm = -<span class="f">cross_val_score</span>(modelo, X_tr, y_tr, cv=kf, scoring=<span class="s">"neg_mean_squared_error"</span>)
+    <span class="f">print</span>(<span class="s">f"grado {grado:2d}: CV = {ecm.mean():.3f} ± {ecm.std() / np.sqrt(5):.3f}"</span>)
+
+<span class="c"># Elegir grado y λ a la vez con ridge</span>
+pipe = <span class="f">Pipeline</span>([(<span class="s">"poli"</span>, <span class="f">PolynomialFeatures</span>(include_bias=<span class="k">False</span>)),
+                 (<span class="s">"esc"</span>, <span class="f">StandardScaler</span>()),
+                 (<span class="s">"reg"</span>, <span class="f">Ridge</span>())])
+rejilla = {<span class="s">"poli__degree"</span>: <span class="f">range</span>(<span class="n">1</span>, <span class="n">16</span>), <span class="s">"reg__alpha"</span>: [<span class="n">1e-4</span>, <span class="n">1e-2</span>, <span class="n">1</span>, <span class="n">10</span>]}
+busqueda = <span class="f">GridSearchCV</span>(pipe, rejilla, cv=kf, scoring=<span class="s">"neg_mean_squared_error"</span>)
+busqueda.<span class="f">fit</span>(X_tr, y_tr)
+<span class="f">print</span>(busqueda.best_params_)
+
+<span class="c"># Una sola evaluación final en el conjunto de prueba</span>
+ecm_prueba = np.<span class="f">mean</span>((busqueda.<span class="f">predict</span>(X_te) - y_te) ** <span class="n">2</span>)
+<span class="f">print</span>(<span class="s">f"ECM de prueba = {ecm_prueba:.3f}"</span>)   <span class="c"># cerca de σ² ≈ 0.12</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">42</span>)
+n &lt;- <span class="n">120</span>
+x &lt;- <span class="f">runif</span>(n, <span class="n">0</span>, <span class="n">4</span>)
+y &lt;- <span class="f">sin</span>(<span class="n">1.6</span> * x) + <span class="n">0.3</span> * x + <span class="f">rnorm</span>(n, <span class="n">0</span>, <span class="n">0.35</span>)
+datos &lt;- <span class="f">data.frame</span>(x, y)
+
+<span class="c"># 25 % de prueba, que no se toca hasta el final</span>
+idx_te &lt;- <span class="f">sample</span>(n, <span class="n">30</span>)
+entr &lt;- datos[-idx_te, ]
+prueba &lt;- datos[idx_te, ]
+
+<span class="c"># Validación cruzada de 5 bloques escrita a mano</span>
+k &lt;- <span class="n">5</span>
+bloque &lt;- <span class="f">sample</span>(<span class="f">rep</span>(<span class="n">1</span>:k, length.out = <span class="f">nrow</span>(entr)))
+cv_grado &lt;- <span class="k">function</span>(g) {
+  ecm &lt;- <span class="f">sapply</span>(<span class="n">1</span>:k, <span class="k">function</span>(j) {
+    m &lt;- <span class="f">lm</span>(y ~ <span class="f">poly</span>(x, g), data = entr[bloque != j, ])
+    val &lt;- entr[bloque == j, ]
+    <span class="f">mean</span>((val$y - <span class="f">predict</span>(m, val))^<span class="n">2</span>)
+  })
+  <span class="f">c</span>(cv = <span class="f">mean</span>(ecm), ee = <span class="f">sd</span>(ecm) / <span class="f">sqrt</span>(k))
+}
+res &lt;- <span class="f">t</span>(<span class="f">sapply</span>(<span class="n">1</span>:<span class="n">15</span>, cv_grado))
+<span class="f">round</span>(res, <span class="n">3</span>)
+mejor &lt;- <span class="f">which.min</span>(res[, <span class="s">"cv"</span>])
+
+<span class="c"># Regla de un error estándar: el grado más simple dentro de 1 EE del mínimo</span>
+simple &lt;- <span class="f">min</span>(<span class="f">which</span>(res[, <span class="s">"cv"</span>] &lt;= res[mejor, <span class="s">"cv"</span>] + res[mejor, <span class="s">"ee"</span>]))
+
+<span class="c"># Ajuste final con todo el entrenamiento y una sola evaluación en prueba</span>
+final &lt;- <span class="f">lm</span>(y ~ <span class="f">poly</span>(x, simple), data = entr)
+<span class="f">mean</span>((prueba$y - <span class="f">predict</span>(final, prueba))^<span class="n">2</span>)   <span class="c"># cerca de σ² ≈ 0.12</span>
+
+<span class="c"># Lo mismo con caret</span>
+<span class="k">library</span>(caret)
+ctrl &lt;- <span class="f">trainControl</span>(method = <span class="s">"cv"</span>, number = <span class="n">5</span>)
+m4 &lt;- <span class="f">train</span>(y ~ <span class="f">poly</span>(x, <span class="n">4</span>), data = entr, method = <span class="s">"lm"</span>, trControl = ctrl)
+m4$results$RMSE^<span class="n">2</span>    <span class="c"># ECM de validación cruzada para grado 4</span></code></pre>
+      </div>
+      <p>Lee la salida como lo hiciste en el laboratorio: el error de CV baja rápido hasta grado 3 o 4, se queda plano un rato y luego sube. La búsqueda con ridge suele elegir un grado alto con algo de penalización, o uno moderado con penalización pequeña: ambos caminos llevan a una complejidad efectiva parecida.</p>
+
+      <h2 id="cv-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <div class="quiz" data-right="Error de entrenamiento muy bajo y de validación alto es la firma del sobreajuste: el modelo tiene poco sesgo pero mucha varianza, porque se aprendió el ruido de la muestra." data-wrong="Compara los dos errores. Si el modelo acierta casi todo lo que vio pero falla con lo que no vio, ¿le sobra o le falta flexibilidad?">
+        <h3>Con grado 12 el ECM de entrenamiento es 0,03 y el de validación es 0,85. Con grado 4 eran 0,11 y 0,14. ¿Qué describe mejor al modelo de grado 12?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Subajuste: tiene mucho sesgo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Es el mejor, porque su error de entrenamiento es el menor</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Sobreajuste: poco sesgo y mucha varianza</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El ruido irreducible aumentó con el grado</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La media y la desviación usadas para estandarizar se aprenden de los datos, así que deben calcularse solo con el bloque de entrenamiento de cada iteración. Un pipeline lo hace automáticamente." data-wrong="Piensa en qué información tendría el modelo en producción. ¿Conocería la media de los datos futuros cuando lo entrenaste?">
+        <h3>Vas a estandarizar las variables y luego usar validación cruzada de 10 bloques. ¿Dónde debe calcularse la media y la desviación?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Dentro de cada iteración, solo con los bloques de entrenamiento</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Una vez, con todos los datos, antes de partirlos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Con el bloque de validación de cada iteración</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Da igual: estandarizar no cambia el error</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="En series de tiempo el modelo solo puede usar el pasado. La validación con origen móvil entrena hasta t y valida en el periodo siguiente, igual que sucederá en la realidad." data-wrong="Mezclar las fechas permite que el modelo vea el futuro. ¿Qué esquema respeta el orden temporal?">
+        <h3>Quieres predecir las ventas diarias de una tienda con 3 años de historia. ¿Qué validación es adecuada?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>k-fold con mezcla aleatoria de los días</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Leave-one-out sobre los días</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>k-fold estratificado por día de la semana</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Entrenar con el pasado y validar en las semanas siguientes, avanzando el origen</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="cv-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Tienes \(n = 1\,000\) observaciones. ¿Cuántas observaciones hay en cada bloque de entrenamiento y de validación, y cuántos modelos ajustas, con k = 5, con k = 10 y con leave-one-out?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con k = 5: validación de 1 000/5 = 200, entrenamiento de 800, 5 ajustes. Con k = 10: validación de 100, entrenamiento de 900, 10 ajustes. Con LOOCV: validación de 1, entrenamiento de 999, 1 000 ajustes.</p>
+            <p>Al subir k cada modelo entrena con más datos (menos sesgo pesimista), pero el costo crece en proporción a k y los modelos se parecen más entre sí, lo que aumenta la varianza del promedio.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Ajustaste polinomios de varios grados. Clasifica cada uno como subajuste, buen equilibrio o sobreajuste, y elige un grado.</p>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Grado</th><th>ECM entrenamiento</th><th>ECM validación</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>0,52</td><td>0,55</td></tr>
+              <tr><td>3</td><td>0,14</td><td>0,16</td></tr>
+              <tr><td>6</td><td>0,11</td><td>0,15</td></tr>
+              <tr><td>12</td><td>0,04</td><td>0,61</td></tr>
+            </tbody>
+          </table></div>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Grado 1: subajuste (ambos errores altos y parecidos). Grados 3 y 6: buen equilibrio (errores bajos y cercanos entre sí). Grado 12: sobreajuste (entrenamiento muy bajo, validación muy alta).</p>
+            <p>El grado 6 tiene el menor error de validación, pero la diferencia con el grado 3 (0,15 frente a 0,16) es muy pequeña y probablemente menor que el error estándar de la estimación. Por la regla de un error estándar conviene el grado 3: más simple e igual de bueno.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Una colega tiene 100 pacientes y 5 000 genes. Elige los 20 genes más asociados con la enfermedad usando los 100 pacientes, y luego hace validación cruzada de 5 bloques con una regresión logística sobre esos 20 genes. Obtiene 90 % de exactitud. Explica por qué ese número no es creíble y corrige el procedimiento. ¿Qué exactitud esperarías si las etiquetas fueran al azar?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>La selección de genes usó las etiquetas de todos los pacientes, incluidos los que después sirven de validación. Con 5 000 genes, por puro azar algunos parecerán muy asociados con la etiqueta en esta muestra; la validación cruzada posterior solo confirma lo que la selección ya “vio”. Es fuga de datos.</p>
+            <p>La corrección es repetir la selección dentro de cada iteración, solo con los bloques de entrenamiento. Con etiquetas al azar, la exactitud honesta debe rondar el 50 %.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="c"># Con X, y y los imports del código de la sección 7</span>
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> StratifiedKFold
+pipe = <span class="f">make_pipeline</span>(<span class="f">StandardScaler</span>(), <span class="f">SelectKBest</span>(f_classif, k=<span class="n">20</span>), <span class="f">LogisticRegression</span>())
+cv = <span class="f">StratifiedKFold</span>(n_splits=<span class="n">5</span>, shuffle=<span class="k">True</span>, random_state=<span class="n">1</span>)
+<span class="f">print</span>(<span class="f">cross_val_score</span>(pipe, X, y, cv=cv).<span class="f">mean</span>())   <span class="c"># ≈ 0.5</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># Con X, y, pvalores() y exactitud() del código de la sección 7</span>
+<span class="c"># Bloques estratificados: se reparten por separado los "a" y los "b"</span>
+bloque &lt;- <span class="f">integer</span>(<span class="n">100</span>)
+<span class="k">for</span> (cl <span class="k">in</span> <span class="f">levels</span>(y)) {
+  i &lt;- <span class="f">which</span>(y == cl)
+  bloque[i] &lt;- <span class="f">sample</span>(<span class="f">rep</span>(<span class="n">1</span>:<span class="n">5</span>, length.out = <span class="f">length</span>(i)))
+}
+acc &lt;- <span class="f">sapply</span>(<span class="n">1</span>:<span class="n">5</span>, <span class="k">function</span>(j) {
+  tr &lt;- bloque != j
+  top &lt;- <span class="f">order</span>(<span class="f">pvalores</span>(X[tr, ], y[tr]))[<span class="n">1</span>:<span class="n">20</span>]   <span class="c"># SOLO con entrenamiento</span>
+  <span class="f">exactitud</span>(X[tr, top], y[tr], X[!tr, top], y[!tr])
+})
+<span class="f">mean</span>(acc)   <span class="c"># ≈ 0.5</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Para estimar una media \(\mu\) con \(n = 10\) datos de varianza \(\sigma^2 = 4\), considera el estimador encogido \(\hat\mu_c = c\,\bar x\) con \(0 \le c \le 1\). Si el valor real es \(\mu = 2\): (a) escribe su sesgo y su varianza; (b) encuentra el \(c\) que minimiza el ECM; (c) compara el ECM con el de \(\bar x\) y relaciónalo con ridge.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(E[c\bar x] = c\mu\), así que el sesgo es \((c-1)\mu\). La varianza es \(c^2\sigma^2/n\).</p>
+            <p>(b) \(\text{ECM}(c) = (c-1)^2\mu^2 + c^2\sigma^2/n = 4(c-1)^2 + 0{,}4\,c^2\). Derivando: \(8(c-1) + 0{,}8\,c = 0\), de donde \(c = 8/8{,}8 \approx 0{,}909\). En general \(c^* = \mu^2/(\mu^2 + \sigma^2/n)\).</p>
+            <p>(c) Con \(c = 1\) (la media muestral, insesgada) el ECM es 0,4. Con \(c \approx 0{,}909\) el ECM es \(4(0{,}091)^2 + 0{,}4(0{,}826) \approx 0{,}033 + 0{,}331 = 0{,}364\): un 9 % menor. Aceptar un poco de sesgo reduce la varianza más de lo que cuesta. Ridge hace lo mismo con los coeficientes de una regresión: los encoge hacia cero. En la práctica no conoces \(\mu\), y por eso la fuerza del encogimiento (λ) se elige con validación cruzada.</p>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

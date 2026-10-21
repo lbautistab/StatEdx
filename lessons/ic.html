@@ -1,0 +1,187 @@
+<!-- StatEdx · sesión: ic -->
+<div id="view-ic" data-view="ic" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Intervalos de confianza</h1>
+      <p>Una media muestral sola no dice cuánto puedes confiar en ella. Un intervalo sí: da un rango de valores plausibles para la media real y su ancho te dice qué tan precisa es tu estimación.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: Teorema del Límite Central</span><span>Python · SciPy</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#ic-idea" data-sec="ic-idea">La idea</a></li>
+        <li><a href="#ic-lab" data-sec="ic-lab">Laboratorio</a></li>
+        <li><a href="#ic-formula" data-sec="ic-formula">La fórmula</a></li>
+        <li><a href="#ic-tamano" data-sec="ic-tamano">¿Cuántos datos necesito?</a></li>
+        <li><a href="#ic-code" data-sec="ic-code">En R y Python</a></li>
+        <li><a href="#ic-quiz" data-sec="ic-quiz">Comprueba</a></li>
+        <li><a href="#ic-ej" data-sec="ic-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="ic-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Quieres saber cuántas horas al día pasan frente a una pantalla los estudiantes de una universidad. No puedes preguntarle a todos, así que encuestas a una muestra y obtienes una media \(\bar{x}\). Otra muestra daría otro número. El intervalo de confianza responde: <i>dado lo que vi, ¿entre qué valores está probablemente la media real?</i></p>
+      <p>En la clase del Teorema del Límite Central viste que el 95 % de los intervalos construidos así contiene a \(\mu\). Aquí nos enfocamos en lo práctico: qué hace que un intervalo sea ancho o angosto, y qué hacer cuando no conoces \(\sigma\).</p>
+
+      <h2 id="ic-lab"><span class="sec">§ 2</span>Laboratorio</h2>
+      <p>El simulador encuesta a \(n\) estudiantes de una población donde la media real es 4,2 horas. En la vida real no conocerías ese valor; aquí lo mostramos para que veas si el intervalo lo atrapa.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · una encuesta, un intervalo</span><span class="num" id="ic2-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="ic2-n">PERSONAS ENCUESTADAS · n = <b id="ic2-n-v" class="num">20</b></label><input id="ic2-n" type="range" min="5" max="200" value="20"></div>
+            <div class="ctrl">
+              <label id="ic2-conf-label">CONFIANZA</label>
+              <div class="seg" id="ic2-conf" role="group" aria-labelledby="ic2-conf-label">
+                <button data-c="0.90" aria-pressed="false">90 %</button>
+                <button data-c="0.95" aria-pressed="true">95 %</button>
+                <button data-c="0.99" aria-pressed="false">99 %</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="ic2-again" type="button">Nueva encuesta</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Respuestas (horas al día)</span><span>— μ real = 4,2</span></div>
+              <canvas class="plot" id="c-ic2" height="220" aria-label="Respuestas de la muestra con su media y el intervalo de confianza"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Margen de error según n</span><span>● tu encuesta</span></div>
+              <canvas class="plot" id="c-ic2-e" height="220" aria-label="Curva del margen de error en función del tamaño de muestra"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>media muestral x̄</span><b id="ic2-m">–</b></div>
+            <div><span>desviación muestral s</span><b id="ic2-s">–</b></div>
+            <div><span>margen de error</span><b id="ic2-e">–</b></div>
+            <div><span>intervalo</span><b id="ic2-int">–</b></div>
+          </div>
+        </div>
+        <figcaption>Pasa de n = 20 a n = 80: el margen se reduce a la mitad, no a la cuarta parte. Sube la confianza al 99 % y verás que la seguridad extra se paga con un intervalo más ancho.</figcaption>
+      </figure>
+
+      <h2 id="ic-formula"><span class="sec">§ 3</span>La fórmula</h2>
+      <p>Si conocieras \(\sigma\), usarías la normal:</p>
+      <div class="eq">\[ \bar{x} \;\pm\; z_{\alpha/2}\,\frac{\sigma}{\sqrt{n}} \]</div>
+      <p>Casi nunca conoces \(\sigma\), así que la estimas con la desviación de la muestra \(s\). Esa estimación agrega incertidumbre, y la compensamos usando la distribución <b>t de Student</b> con \(n-1\) grados de libertad, que tiene colas más pesadas:</p>
+      <div class="eq">\[ \bar{x} \;\pm\; t_{\alpha/2,\,n-1}\,\frac{s}{\sqrt{n}} \]
+        <div class="note">Con \(n = 10\) y 95 % de confianza, \(t \approx 2{,}26\) en lugar de 1,96. Con \(n \ge 100\) la diferencia casi desaparece. El simulador usa esta fórmula.</div>
+      </div>
+      <div class="callout"><b>Cuidado con la interpretación:</b> “el intervalo [3,8 ; 4,6] tiene 95 % de probabilidad de contener a μ” es incorrecto. La media real es fija; lo aleatorio es el intervalo. Lo correcto es: “este procedimiento atrapa a μ en el 95 % de las muestras”.</div>
+
+      <h2 id="ic-tamano"><span class="sec">§ 4</span>¿Cuántos datos necesito?</h2>
+      <p>Despejando \(n\) del margen de error \(E = z\,\sigma/\sqrt{n}\) obtienes cuántas personas encuestar para lograr la precisión que quieres:</p>
+      <div class="eq">\[ n = \left( \frac{z_{\alpha/2}\,\sigma}{E} \right)^{2} \]</div>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>calculadora · tamaño de muestra</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="ss-sd">σ ESTIMADA</label><input class="numin" id="ss-sd" type="number" min="0.01" step="0.1" value="1.5"></div>
+            <div class="ctrl"><label for="ss-e">MARGEN DESEADO E</label><input class="numin" id="ss-e" type="number" min="0.01" step="0.05" value="0.25"></div>
+            <div class="ctrl">
+              <label id="ss-conf-label">CONFIANZA</label>
+              <div class="seg" id="ss-conf" role="group" aria-labelledby="ss-conf-label">
+                <button data-z="1.6449" aria-pressed="false">90 %</button>
+                <button data-z="1.96" aria-pressed="true">95 %</button>
+                <button data-z="2.5758" aria-pressed="false">99 %</button>
+              </div>
+            </div>
+          </div>
+          <div class="bigresult"><span>Necesitas encuestar al menos</span><b class="num" id="ss-n">–</b><span id="ss-note"></span></div>
+        </div>
+      </figure>
+
+      <h2 id="ic-code"><span class="sec">§ 5</span>En R y Python</h2>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+horas = np.<span class="f">array</span>([<span class="n">3.1</span>, <span class="n">5.4</span>, <span class="n">4.0</span>, <span class="n">2.8</span>, <span class="n">6.2</span>, <span class="n">4.7</span>, <span class="n">3.9</span>, <span class="n">5.1</span>, <span class="n">4.4</span>, <span class="n">3.6</span>])
+
+media = horas.<span class="f">mean</span>()
+ee = stats.<span class="f">sem</span>(horas)                         <span class="c"># s / √n</span>
+bajo, alto = stats.t.<span class="f">interval</span>(<span class="n">0.95</span>, df=<span class="f">len</span>(horas) - <span class="n">1</span>, loc=media, scale=ee)
+
+<span class="f">print</span>(<span class="s">f"x̄ = {media:.2f} h, IC 95 % = [{bajo:.2f}, {alto:.2f}]"</span>)</code></pre>
+<pre class="code" data-lang="r" hidden><code>horas &lt;- <span class="f">c</span>(<span class="n">3.1</span>, <span class="n">5.4</span>, <span class="n">4.0</span>, <span class="n">2.8</span>, <span class="n">6.2</span>, <span class="n">4.7</span>, <span class="n">3.9</span>, <span class="n">5.1</span>, <span class="n">4.4</span>, <span class="n">3.6</span>)
+
+<span class="c"># la forma rápida: t.test calcula el intervalo con la t de Student</span>
+<span class="f">t.test</span>(horas, conf.level = <span class="n">0.95</span>)$conf.int      <span class="c"># 3.56  5.08</span>
+
+<span class="c"># paso a paso</span>
+media &lt;- <span class="f">mean</span>(horas)
+ee &lt;- <span class="f">sd</span>(horas) / <span class="f">sqrt</span>(<span class="f">length</span>(horas))           <span class="c"># s / √n</span>
+t_crit &lt;- <span class="f">qt</span>(<span class="n">0.975</span>, df = <span class="f">length</span>(horas) - <span class="n">1</span>)
+media + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * t_crit * ee</code></pre>
+</div>
+
+      <h2 id="ic-quiz"><span class="sec">§ 6</span>Comprueba</h2>
+      <div class="quiz" data-right="El margen es z·σ/√n. Para dividirlo entre 2 necesitas multiplicar √n por 2, o sea, n por 4: de 100 a 400 personas." data-wrong="El margen depende de 1/√n. ¿Por cuánto hay que multiplicar n para que √n se duplique?">
+        <h3>Una encuesta con 100 personas da un margen de error de ±0,6 horas. ¿Cuántas personas necesitas para un margen de ±0,3 horas?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>200 personas</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>141 personas</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>400 personas</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>1 000 personas</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Al estimar σ con s cometemos un error extra. La t, con colas más pesadas, ensancha el intervalo lo justo. Con n grande se parece a la normal." data-wrong="Piensa en qué pasa con n pequeño: s puede alejarse bastante de σ. ¿Eso hace el intervalo más ancho o más angosto?">
+        <h3>¿Por qué usamos la distribución t en lugar de la normal cuando estimamos σ con s?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque la t siempre da intervalos más angostos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Porque s agrega incertidumbre y la t tiene colas más pesadas para compensarla</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque los datos no son normales</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Porque la t no depende del tamaño de muestra</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La confianza es una propiedad del procedimiento, no de un intervalo concreto. Y el margen es la mitad del ancho: 0,4." data-wrong="El intervalo habla de la media, no de los datos individuales, y μ es un número fijo. ¿Qué es lo que varía de muestra en muestra?">
+        <h3>Un intervalo de 95 % para μ es [3,8 ; 4,6]. ¿Qué afirmación es correcta?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>μ está en ese intervalo con probabilidad 0,95</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El 95 % de los datos está entre 3,8 y 4,6</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El margen de error es 0,8</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>El método usado atrapa a μ en el 95 % de las muestras</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="ic-ej"><span class="sec">§ 7</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. La calculadora de tamaño de muestra te sirve para el último.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una muestra de 49 piezas tiene media 72 mm. Si σ = 14 mm es conocida, calcula el intervalo de 95 % para μ.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>SE = 14/√49 = 2. Margen = 1,96 × 2 = 3,92. Intervalo: <b>[68,08 ; 75,92] mm</b>.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con los mismos datos, ¿cuántas veces más ancho es el intervalo de 99 % que el de 95 %?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>El ancho es proporcional a z: 2,576/1,96 ≈ <b>1,31</b>. El intervalo de 99 % es un 31 % más ancho.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con las 10 respuestas de horas frente a pantallas del ejemplo, calcula el intervalo de 90 % usando la t de Student.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>x̄ = 4,32, s ≈ 1,057, SE ≈ 0,334 y t<sub>0,95; 9</sub> ≈ 1,833. Margen ≈ 0,613. Intervalo: <b>[3,71 ; 4,93] horas</b>.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="f">print</span>(stats.t.<span class="f">interval</span>(<span class="n">0.9</span>, df=<span class="n">9</span>, loc=horas.<span class="f">mean</span>(), scale=stats.<span class="f">sem</span>(horas)))</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">t.test</span>(horas, conf.level = <span class="n">0.9</span>)$conf.int   <span class="c"># 3.71  4.93</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>En una encuesta a 400 personas, 220 prefieren la marca A. Calcula el intervalo de 95 % para la proporción p. ¿A cuántas personas habría que encuestar para tener un margen de ±3 puntos sin saber nada de p?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>p̂ = 0,55 y SE = √(0,55 × 0,45 / 400) ≈ 0,0249. Margen ≈ 0,049. Intervalo: <b>[0,501 ; 0,599]</b>. Sin información previa se usa p = 0,5 (el peor caso): n = (1,96/0,03)² × 0,25 ≈ 1 067,1, así que se necesitan <b>1 068 personas</b>.</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

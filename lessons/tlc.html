@@ -1,0 +1,224 @@
+<!-- StatEdx · sesión: tlc -->
+<div id="view-tlc" data-view="tlc" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>El Teorema del Límite Central</h1>
+      <p>Toma muestras de una población con cualquier forma, calcula su media y repite. Las medias forman una campana cada vez más estrecha. Aquí vas a ver por qué y a medir cuánto se estrecha.</p>
+      <div class="lmeta">
+        <span>50 min</span><span>Nivel intermedio</span><span>Requiere: distribución normal</span><span>Python · NumPy</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#tlc-idea" data-sec="tlc-idea">La idea</a></li>
+        <li><a href="#tlc-lab" data-sec="tlc-lab">Laboratorio</a></li>
+        <li><a href="#tlc-formula" data-sec="tlc-formula">La fórmula</a></li>
+        <li><a href="#tlc-ic" data-sec="tlc-ic">Intervalos de confianza</a></li>
+        <li><a href="#tlc-code" data-sec="tlc-code">En R y Python</a></li>
+        <li><a href="#tlc-quiz" data-sec="tlc-quiz">Comprueba</a></li>
+        <li><a href="#tlc-ej" data-sec="tlc-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+
+    <article class="prose">
+      <h2 id="tlc-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Imagina que mides el tiempo de espera de 30 clientes en una fila y calculas el promedio. Mañana mides a otros 30 y obtienes otro promedio, un poco distinto. Si repitieras el experimento mil veces, ¿qué forma tendría la lista de promedios?</p>
+      <p>La sorpresa es que casi no importa cómo se distribuyen los tiempos individuales. Pueden ser muy asimétricos, como suelen ser los tiempos de espera, y aun así los promedios se agrupan en una campana alrededor de la media real. Esa campana se llama <b>distribución muestral de la media</b>.</p>
+      <div class="callout"><b>Lo que vas a comprobar:</b> la forma de la campana no depende de la población, su centro es la media de la población y su ancho se reduce como \(1/\sqrt{n}\).</div>
+
+      <h2 id="tlc-lab"><span class="sec">§ 2</span>Laboratorio</h2>
+      <p>Elige una población y un tamaño de muestra. El simulador toma 2 000 muestras, calcula la media de cada una y dibuja el histograma de esas medias. La curva es la normal que predice el teorema.</p>
+
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · distribución muestral de la media</span><span id="clt-k" class="num">2 000 muestras</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="pop-label">POBLACIÓN</label>
+              <div class="seg" id="pop" role="group" aria-labelledby="pop-label">
+                <button data-pop="exp" aria-pressed="true">Exponencial</button>
+                <button data-pop="unif" aria-pressed="false">Uniforme</button>
+                <button data-pop="bim" aria-pressed="false">Bimodal</button>
+                <button data-pop="dado" aria-pressed="false">Dado</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label for="n">TAMAÑO DE MUESTRA · n = <b id="n-val" class="num">5</b></label>
+              <input id="n" type="range" min="1" max="60" value="5">
+            </div>
+            <button class="btn btn-ghost btn-sm" id="resample" type="button">Volver a muestrear</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Población</span><span id="pop-desc"></span></div>
+              <canvas class="plot" id="c-pop" height="210" aria-label="Histograma de la población"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Medias de 2 000 muestras</span><span>— normal teórica</span></div>
+              <canvas class="plot" id="c-means" height="210" aria-label="Histograma de las medias muestrales con la curva normal teórica"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>μ población</span><b id="r-mu">–</b></div>
+            <div><span>media de las medias</span><b id="r-mbar">–</b></div>
+            <div><span>σ/√n teórico</span><b id="r-se">–</b></div>
+            <div><span>desv. de las medias</span><b id="r-sd">–</b></div>
+          </div>
+        </div>
+        <figcaption>Prueba con n = 1: el histograma de la derecha copia a la población. Sube n poco a poco y mira cómo aparece la campana, incluso con el dado o la bimodal.</figcaption>
+      </figure>
+
+      <h2 id="tlc-formula"><span class="sec">§ 3</span>La fórmula</h2>
+      <p>Sean \(X_1, X_2, \dots, X_n\) variables aleatorias independientes con la misma distribución, media \(\mu\) y varianza finita \(\sigma^2\). Su media muestral es</p>
+      <div class="eq">\[ \bar{X}_n = \frac{1}{n}\sum_{i=1}^{n} X_i . \]</div>
+      <p>El teorema dice que, al estandarizarla, se acerca a una normal estándar cuando \(n\) crece:</p>
+      <div class="eq">\[ Z_n = \frac{\bar{X}_n - \mu}{\sigma/\sqrt{n}} \;\xrightarrow{\;d\;}\; \mathcal{N}(0,1) \qquad \text{cuando } n \to \infty . \]
+        <div class="note">El denominador \(\sigma/\sqrt{n}\) es el <b>error estándar</b>: la desviación típica de las medias que mediste en el laboratorio.</div>
+      </div>
+      <p>Dos consecuencias prácticas:</p>
+      <ul>
+        <li>Para cuadruplicar la precisión de un promedio necesitas <b>16 veces</b> más datos, porque el error estándar baja con la raíz de \(n\).</li>
+        <li>Con \(n \ge 30\) la aproximación suele ser buena, pero poblaciones muy asimétricas (como la exponencial) piden más. Compruébalo arriba.</li>
+      </ul>
+
+      <h2 id="tlc-ic"><span class="sec">§ 4</span>Intervalos de confianza</h2>
+      <p>Si las medias siguen una normal, podemos construir un intervalo que capture la media real con una probabilidad conocida:</p>
+      <div class="eq">\[ \bar{x} \;\pm\; z_{\alpha/2}\,\frac{\sigma}{\sqrt{n}} \]</div>
+      <p>“95 % de confianza” no significa que este intervalo tenga 95 % de probabilidad de contener a \(\mu\). Significa que, si repites el procedimiento muchas veces, el 95 % de los intervalos la contienen. El simulador dibuja 50 intervalos con muestras de tamaño 25 de una población con \(\mu = 50\) y \(\sigma = 10\).</p>
+
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cobertura de intervalos</span><span class="num" id="ci-cover">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="conf-label">NIVEL DE CONFIANZA</label>
+              <div class="seg" id="conf" role="group" aria-labelledby="conf-label">
+                <button data-z="1.2816" data-c="80" aria-pressed="false">80 %</button>
+                <button data-z="1.6449" data-c="90" aria-pressed="false">90 %</button>
+                <button data-z="1.96" data-c="95" aria-pressed="true">95 %</button>
+                <button data-z="2.5758" data-c="99" aria-pressed="false">99 %</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="ci-again" type="button">Repetir 50 muestras</button>
+          </div>
+          <canvas class="plot" id="c-ci" height="340" aria-label="Cincuenta intervalos de confianza; los que no contienen la media real aparecen resaltados"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>contiene a μ</span><span><i style="background:var(--hot)"></i>no contiene a μ</span><span><i style="background:var(--ink);height:1px"></i>μ = 50</span></div>
+        </div>
+      </figure>
+
+      <h2 id="tlc-code"><span class="sec">§ 5</span>En R y Python</h2>
+      <p>Este es el mismo experimento del laboratorio en pocas líneas. Cambia <code>n</code> y compara la desviación de las medias con \(\sigma/\sqrt{n}\).</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
+n, k = <span class="n">30</span>, <span class="n">2_000</span>                 <span class="c"># tamaño de muestra, número de muestras</span>
+
+<span class="c"># población exponencial con media 2 y desviación 2</span>
+muestras = rng.<span class="f">exponential</span>(scale=<span class="n">2</span>, size=(k, n))
+medias = muestras.<span class="f">mean</span>(axis=<span class="n">1</span>)
+
+<span class="f">print</span>(<span class="s">f"media de las medias: {medias.mean():.3f}"</span>)   <span class="c"># ≈ 2</span>
+<span class="f">print</span>(<span class="s">f"desv. de las medias: {medias.std():.3f}"</span>)    <span class="c"># ≈ 2/√30 ≈ 0.365</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">7</span>)
+n &lt;- <span class="n">30</span>; k &lt;- <span class="n">2000</span>              <span class="c"># tamaño de muestra, número de muestras</span>
+
+<span class="c"># población exponencial con media 2 y desviación 2</span>
+medias &lt;- <span class="f">replicate</span>(k, <span class="f">mean</span>(<span class="f">rexp</span>(n, rate = <span class="n">1</span>/<span class="n">2</span>)))
+
+<span class="f">cat</span>(<span class="s">"media de las medias:"</span>, <span class="f">round</span>(<span class="f">mean</span>(medias), <span class="n">3</span>), <span class="s">"\n"</span>)   <span class="c"># ≈ 2</span>
+<span class="f">cat</span>(<span class="s">"desv. de las medias:"</span>, <span class="f">round</span>(<span class="f">sd</span>(medias), <span class="n">3</span>), <span class="s">"\n"</span>)     <span class="c"># ≈ 2/√30 ≈ 0.365</span>
+
+<span class="f">hist</span>(medias, breaks = <span class="n">40</span>, freq = <span class="k">FALSE</span>, main = <span class="s">"Medias de 2 000 muestras"</span>)
+<span class="f">curve</span>(<span class="f">dnorm</span>(x, <span class="n">2</span>, <span class="n">2</span> / <span class="f">sqrt</span>(n)), add = <span class="k">TRUE</span>, lwd = <span class="n">2</span>)</code></pre>
+</div>
+
+      <h2 id="tlc-quiz"><span class="sec">§ 6</span>Comprueba</h2>
+      <div class="quiz" data-right="n se multiplica por 4, así que √n se multiplica por 2 y σ/√n queda a la mitad." data-wrong="El error estándar es σ/√n. Si n pasa de 25 a 100, ¿cuánto cambia √n?">
+        <h3>Si el tamaño de muestra pasa de 25 a 100, ¿qué le pasa al error estándar de la media?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Se reduce a la cuarta parte</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Se reduce a la mitad</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>No cambia, depende solo de σ</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Se duplica</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <div class="quiz" data-right="Esa es la fuerza del teorema: la forma de la población no importa mientras tenga varianza finita. Lo que sí cambia es qué tan grande debe ser n." data-wrong="Vuelve al laboratorio y elige la población exponencial o la del dado: ¿la campana aparece igual al subir n?">
+        <h3>Según el Teorema del Límite Central, para n grande la media muestral es aproximadamente normal…</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>solo si la población también es normal</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>sin importar la forma de la población, si su varianza es finita</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>solo cuando n es mayor que 1 000</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>con la misma desviación típica que la población</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La media muestral es un estimador insesgado: en promedio acierta a μ. Lo que se reduce con n es su dispersión, σ/√n." data-wrong="En el laboratorio compara el readout μ población con media de las medias. ¿Se parecen?">
+        <h3>¿Cuál es el centro (la media) de la distribución muestral de x̄?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>μ/n</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>σ/√n</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>μ, la media de la población</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>depende de cada muestra</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="tlc-ej"><span class="sec">§ 7</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Los de simulación los puedes correr en R o en Python.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una población tiene μ = 50 y σ = 12. Si tomas muestras de tamaño n = 36, ¿cuál es el error estándar de la media?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>SE = σ/√n = 12/√36 = 12/6 = <b>2</b>.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con los datos del ejercicio 1, ¿cuál es la probabilidad de que una muestra de 36 tenga media mayor que 53?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>z = (53 − 50)/2 = 1,5. P(Z &gt; 1,5) = 1 − Φ(1,5) ≈ <b>0,067</b>, es decir, cerca del 6,7 %.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>El tiempo de atención en un banco es exponencial con media 4 minutos (y σ = 4). Si observas a 64 clientes, ¿qué probabilidad hay de que el tiempo promedio sea menor que 3,5 minutos? Compruébalo con una simulación.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>SE = 4/√64 = 0,5. z = (3,5 − 4)/0,5 = −1, así que P ≈ Φ(−1) ≈ <b>0,159</b>. La simulación debería dar un valor cercano.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+medias = rng.<span class="f">exponential</span>(<span class="n">4</span>, size=(<span class="n">100000</span>, <span class="n">64</span>)).<span class="f">mean</span>(axis=<span class="n">1</span>)
+<span class="f">print</span>((medias &lt; <span class="n">3.5</span>).<span class="f">mean</span>())   <span class="c"># ≈ 0.158</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
+medias &lt;- <span class="f">replicate</span>(<span class="n">100000</span>, <span class="f">mean</span>(<span class="f">rexp</span>(<span class="n">64</span>, rate = <span class="n">1</span>/<span class="n">4</span>)))
+<span class="f">mean</span>(medias &lt; <span class="n">3.5</span>)   <span class="c"># ≈ 0.158</span></code></pre>
+</div><p>La simulación da cerca de 0,158: la aproximación normal es muy buena con n = 64, aunque la exponencial sea asimétrica.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Simula el promedio de lanzar un dado n = 1, 2, 5 y 30 veces, repitiendo 10 000 veces cada caso. Para cada n, compara la desviación de los promedios con σ/√n, donde σ ≈ 1,708.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Deberías obtener aproximadamente 1,708; 1,208; 0,764 y 0,312. El histograma pasa de plano (n = 1) a triangular (n = 2) y a campana (n = 30).</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+<span class="k">for</span> n <span class="k">in</span> [<span class="n">1</span>, <span class="n">2</span>, <span class="n">5</span>, <span class="n">30</span>]:
+    prom = rng.<span class="f">integers</span>(<span class="n">1</span>, <span class="n">7</span>, size=(<span class="n">10000</span>, n)).<span class="f">mean</span>(axis=<span class="n">1</span>)
+    <span class="f">print</span>(n, <span class="f">round</span>(prom.<span class="f">std</span>(), <span class="n">3</span>), <span class="f">round</span>(<span class="n">1.708</span> / np.<span class="f">sqrt</span>(n), <span class="n">3</span>))</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
+<span class="k">for</span> (n <span class="k">in</span> <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">5</span>, <span class="n">30</span>)) {
+  prom &lt;- <span class="f">replicate</span>(<span class="n">10000</span>, <span class="f">mean</span>(<span class="f">sample</span>(<span class="n">1</span>:<span class="n">6</span>, n, replace = <span class="k">TRUE</span>)))
+  <span class="f">cat</span>(n, <span class="f">round</span>(<span class="f">sd</span>(prom), <span class="n">3</span>), <span class="f">round</span>(<span class="n">1.708</span> / <span class="f">sqrt</span>(n), <span class="n">3</span>), <span class="s">"\n"</span>)
+}</code></pre>
+</div></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

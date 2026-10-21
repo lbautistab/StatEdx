@@ -1,0 +1,452 @@
+<!-- StatEdx · sesión: eda -->
+<div id="view-eda" data-view="eda" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Análisis exploratorio de datos</h1>
+      <p>Antes de cualquier modelo hay que mirar los datos de frente: qué columnas tienen, qué falta, qué está mal escrito y qué valores no tienen sentido. Aquí aprendes un flujo de trabajo ordenado con pandas y dplyr, en paralelo, sobre un conjunto de viviendas en venta.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel básico</span><span>Requiere: medidas descriptivas</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#eda-idea" data-sec="eda-idea">La idea</a></li>
+        <li><a href="#eda-flujo" data-sec="eda-flujo">Flujo y tipos de variables</a></li>
+        <li><a href="#eda-inspeccion" data-sec="eda-inspeccion">Inspeccionar</a></li>
+        <li><a href="#eda-limpieza" data-sec="eda-limpieza">Limpiar</a></li>
+        <li><a href="#eda-lab" data-sec="eda-lab">Laboratorio: la distribución</a></li>
+        <li><a href="#eda-transformar" data-sec="eda-transformar">Transformar y resumir</a></li>
+        <li><a href="#eda-atipicos" data-sec="eda-atipicos">Atípicos y logaritmos</a></li>
+        <li><a href="#eda-imputar" data-sec="eda-imputar">Laboratorio: imputación</a></li>
+        <li><a href="#eda-code" data-sec="eda-code">Ejemplo resuelto</a></li>
+        <li><a href="#eda-quiz" data-sec="eda-quiz">Comprueba</a></li>
+        <li><a href="#eda-ejercicios" data-sec="eda-ejercicios">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="eda-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una inmobiliaria te pasa un archivo con las viviendas que tiene publicadas y te pregunta: <i>¿en qué barrio conviene comprar?</i> La tentación es calcular el precio promedio por barrio y listo. Pero mira las primeras filas:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>id</th><th>barrio</th><th>precio (miles USD)</th><th>m²</th><th>hab</th><th>fecha</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Centro</td><td>185</td><td>72</td><td>2</td><td>2024-03-02</td></tr>
+            <tr><td>2</td><td>Norte</td><td>142</td><td>65</td><td>2</td><td>2024-03-05</td></tr>
+            <tr><td>3</td><td>Sur</td><td>98</td><td>58</td><td>2</td><td>2024-03-07</td></tr>
+            <tr><td>4</td><td>Centro</td><td><b>NA</b></td><td>90</td><td>3</td><td>2024-03-11</td></tr>
+            <tr><td>5</td><td>Norte</td><td>230</td><td>110</td><td>3</td><td>2024-03-12</td></tr>
+            <tr><td>6</td><td>Sur</td><td>120</td><td><b>NA</b></td><td>3</td><td>2024-03-15</td></tr>
+            <tr><td>7</td><td>Centro</td><td><b>950</b></td><td>160</td><td>4</td><td>2024-03-18</td></tr>
+            <tr><td><b>2</b></td><td>Norte</td><td>142</td><td>65</td><td>2</td><td>2024-03-05</td></tr>
+            <tr><td>8</td><td>Sur</td><td>105</td><td>61</td><td>2</td><td>2024-03-20</td></tr>
+            <tr><td>9</td><td>Norte</td><td>160</td><td>70</td><td>3</td><td>2024-03-22</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>En solo diez filas ya hay un precio faltante, una superficie faltante, una fila repetida (la vivienda 2 aparece dos veces) y un penthouse de 950 mil dólares que, por sí solo, sube el promedio del Centro a más del doble. Las fechas, además, vienen como texto. Si promedias sin mirar, tu respuesta depende de estos accidentes y no de los barrios.</p>
+      <p>El <b>análisis exploratorio de datos</b> (EDA, por sus siglas en inglés) es el trabajo de conocer el conjunto antes de sacar conclusiones: entender su estructura, detectar problemas de calidad, decidir cómo tratarlos y describir las distribuciones y relaciones principales. John Tukey, que le dio nombre en los años setenta, lo describía como trabajo de detective: buscar pistas antes de juzgar.</p>
+
+      <h2 id="eda-flujo"><span class="sec">§ 2</span>Flujo de trabajo y tipos de variables</h2>
+      <p>Casi todo análisis sigue el mismo ciclo. No es lineal: al visualizar descubres problemas que te devuelven a limpiar.</p>
+      <ol>
+        <li><b>Cargar</b> los datos y confirmar que se leyeron bien (separador, codificación, encabezados).</li>
+        <li><b>Inspeccionar</b>: dimensiones, tipos de cada columna, primeras filas, resumen numérico.</li>
+        <li><b>Limpiar</b>: faltantes, duplicados, tipos incorrectos, categorías mal escritas, valores imposibles.</li>
+        <li><b>Transformar</b>: filtrar filas, seleccionar columnas, crear variables nuevas, unir tablas, reordenar a formato ordenado.</li>
+        <li><b>Resumir</b>: estadísticas por grupo.</li>
+        <li><b>Visualizar</b>: histogramas, cajas, dispersión. Lo verás a fondo en la siguiente clase.</li>
+      </ol>
+      <p>Lo primero que debes saber de cada columna es su tipo, porque decide qué resúmenes y gráficos tienen sentido:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Ejemplo</th><th>Resumen típico</th><th>pandas / R</th></tr></thead>
+          <tbody>
+            <tr><td>Cuantitativa continua</td><td>precio, m²</td><td>media, mediana, desviación, RIC</td><td><code>float64</code> / <code>double</code></td></tr>
+            <tr><td>Cuantitativa discreta</td><td>habitaciones</td><td>mediana, frecuencias</td><td><code>int64</code> / <code>integer</code></td></tr>
+            <tr><td>Categórica nominal</td><td>barrio</td><td>conteos, proporciones, moda</td><td><code>category</code> / <code>factor</code></td></tr>
+            <tr><td>Categórica ordinal</td><td>estado: malo &lt; regular &lt; bueno</td><td>mediana, frecuencias acumuladas</td><td><code>category</code> ordenada / <code>ordered</code></td></tr>
+            <tr><td>Fecha y hora</td><td>fecha de publicación</td><td>rango, conteos por periodo</td><td><code>datetime64</code> / <code>Date</code></td></tr>
+            <tr><td>Identificador</td><td>id</td><td>ninguno (solo para unir y contar)</td><td>mejor como texto</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout"><b>Error común:</b> que una columna tenga números no la vuelve cuantitativa. El código postal o el id son etiquetas; su media no significa nada. Al revés, una columna numérica puede leerse como texto si alguien escribió “n/d” o “1.200,50” en una celda.</div>
+
+      <h2 id="eda-inspeccion"><span class="sec">§ 3</span>Inspeccionar</h2>
+      <p>Tres preguntas guían la primera mirada: <i>¿cuántas filas y columnas hay?, ¿de qué tipo es cada columna?, ¿qué rango de valores tiene?</i> pandas y el tidyverse tienen funciones casi equivalentes:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Pregunta</th><th>pandas</th><th>R (tidyverse)</th></tr></thead>
+          <tbody>
+            <tr><td>Primeras filas</td><td><code>df.head()</code></td><td><code>head(df)</code></td></tr>
+            <tr><td>Tipos, no nulos, dimensiones</td><td><code>df.info()</code>, <code>df.shape</code></td><td><code>glimpse(df)</code>, <code>dim(df)</code></td></tr>
+            <tr><td>Resumen numérico</td><td><code>df.describe()</code></td><td><code>summary(df)</code></td></tr>
+            <tr><td>Frecuencias de una categoría</td><td><code>df["barrio"].value_counts()</code></td><td><code>count(df, barrio)</code></td></tr>
+            <tr><td>Faltantes por columna</td><td><code>df.isna().sum()</code></td><td><code>colSums(is.na(df))</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Lee <code>describe()</code> o <code>summary()</code> con ojo crítico. Si la media del precio (237) está muy por encima de la mediana (142), sospecha de una cola larga a la derecha o de algún valor extremo. Si el mínimo de m² es 0 o el máximo de habitaciones es 40, hay errores de captura. Si una columna que esperabas numérica no aparece en el resumen, se leyó como texto.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>casas.<span class="f">info</span>()            <span class="c"># precio: 9 non-null float64, fecha: str</span>
+casas.<span class="f">describe</span>()        <span class="c"># precio: mean ≈ 236.9, 50% = 142</span>
+casas[<span class="s">"barrio"</span>].<span class="f">value_counts</span>()
+casas.<span class="f">isna</span>().<span class="f">sum</span>()       <span class="c"># precio 1, m2 1</span>
+casas.<span class="f">duplicated</span>().<span class="f">sum</span>() <span class="c"># 1</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">glimpse</span>(casas)          <span class="c"># precio &lt;dbl&gt;, fecha &lt;chr&gt;</span>
+<span class="f">summary</span>(casas)          <span class="c"># precio: Mean ≈ 236.9, Median 142, NA's 1</span>
+<span class="f">count</span>(casas, barrio)
+<span class="f">colSums</span>(<span class="f">is.na</span>(casas))   <span class="c"># precio 1, m2 1</span>
+<span class="f">sum</span>(<span class="f">duplicated</span>(casas))  <span class="c"># 1</span></code></pre>
+      </div>
+
+      <h2 id="eda-limpieza"><span class="sec">§ 4</span>Limpiar: faltantes, duplicados, tipos y fechas</h2>
+      <p><b>Valores faltantes.</b> En pandas aparecen como <code>NaN</code> (o <code>NA</code>/<code>NaT</code>); en R como <code>NA</code>. Ojo con los faltantes disfrazados: −1, 9999, celdas vacías o “sin dato”, que hay que convertir a faltante explícito antes de calcular nada. Lo importante no es cuántos faltan sino <b>por qué</b> faltan. Se distinguen tres mecanismos:</p>
+      <ul>
+        <li><b>MCAR</b> (completamente al azar): faltar no depende de nada. Por ejemplo, se perdió una página del formulario. Eliminar esas filas solo reduce el tamaño de muestra.</li>
+        <li><b>MAR</b> (al azar condicional): faltar depende de otras columnas que sí observas. Por ejemplo, las publicaciones de un portal específico no traen m². Se puede corregir usando esas columnas.</li>
+        <li><b>MNAR</b> (no al azar): faltar depende del propio valor. Los dueños de las viviendas más caras prefieren “precio a consultar”. Ni eliminar ni imputar con la media lo arregla.</li>
+      </ul>
+      <p>Las opciones básicas son tres. <b>Eliminar</b> las filas incompletas (<code>dropna()</code> / <code>filter(!is.na(x))</code> o <code>drop_na()</code>) es simple y honesto si los faltantes son pocos y MCAR. <b>Imputar con la media o la mediana</b> conserva todas las filas, pero pone muchos valores idénticos en el centro: la varianza baja de forma artificial y las correlaciones con otras variables se debilitan. <b>Imputar por grupo</b> (la mediana de m² de su barrio, por ejemplo) aprovecha información de otras columnas y suele ser mejor. Existen métodos más finos, como la imputación múltiple, que quedan fuera de esta clase.</p>
+      <div class="callout"><b>Regla práctica:</b> documenta siempre cuántos valores imputaste y cómo, y guarda una columna indicadora (<code>m2_imputado = True</code>). Si una conclusión cambia según la estrategia de imputación, la conclusión es frágil.</div>
+      <p><b>Duplicados.</b> Una fila idéntica repetida suele venir de cargar dos veces el mismo archivo. Se detectan con <code>duplicated()</code> y se quitan con <code>drop_duplicates()</code> en pandas o <code>distinct()</code> en dplyr. Más difícil es el duplicado parcial: el mismo id con un precio actualizado. Ahí debes decidir qué versión conservar (por ejemplo, la de fecha más reciente).</p>
+      <p><b>Tipos y fechas.</b> Convierte cada columna a su tipo real: fechas con <code>pd.to_datetime()</code> o <code>as.Date()</code> (o <code>lubridate::ymd()</code>), categorías con <code>astype("category")</code> o <code>factor()</code>. Con fechas reales puedes extraer el mes, calcular antigüedades y ordenar en el tiempo. Revisa también las categorías: “Centro”, “centro” y “Centro ” (con espacio) son tres barrios para la computadora; <code>str.strip().str.title()</code> o <code>str_trim()</code> + <code>str_to_title()</code> los unifican.</p>
+
+      <h2 id="eda-lab"><span class="sec">§ 5</span>Laboratorio: la distribución del precio</h2>
+      <p>El simulador muestra el precio de 400 viviendas en venta (datos inventados pero con la forma típica de los precios reales). Cerca del 7 % no publicó su precio. Cambia el número de intervalos del histograma y pasa a escala logarítmica para ver cómo cambia la forma, la asimetría y la cantidad de valores que la regla del RIC marca como atípicos.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · histograma del precio</span><span class="num" id="eda-h-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="eda-bins">INTERVALOS · <b id="eda-bins-v" class="num">20</b></label><input id="eda-bins" type="range" min="5" max="60" value="20"></div>
+            <div class="ctrl">
+              <label id="eda-scale-label">ESCALA DEL EJE</label>
+              <div class="seg" id="eda-scale" role="group" aria-labelledby="eda-scale-label">
+                <button type="button" data-s="lin" aria-pressed="true">Lineal</button>
+                <button type="button" data-s="log" aria-pressed="false">Logarítmica</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="plot-label"><span id="eda-h-xlab">Precio (miles de USD)</span><span>— media ┄ mediana · rojo: fuera del RIC</span></div>
+            <canvas class="plot" id="eda-hist" height="260" aria-label="Histograma del precio de 400 viviendas, con la media, la mediana y los atípicos según el RIC"></canvas>
+          </div>
+          <div class="readout">
+            <div><span id="eda-r-mean-l">media</span><b id="eda-r-mean">–</b></div>
+            <div><span>mediana</span><b id="eda-r-med">–</b></div>
+            <div><span>asimetría g₁</span><b id="eda-r-skew">–</b></div>
+            <div><span>% faltantes</span><b id="eda-r-na">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con 5 intervalos todo parece una sola barra; con 60 aparece ruido. En escala logarítmica la campana casi se vuelve simétrica, la media geométrica queda pegada a la mediana y solo unas pocas viviendas de los extremos siguen fuera de los límites.</figcaption>
+      </figure>
+      <p>Fíjate en dos lecciones. Primero, el número de intervalos es una decisión tuya y cambia lo que ves; prueba varios antes de concluir. Segundo, en escala lineal la regla del RIC marca como “atípicas” a muchas viviendas que simplemente están en la cola natural de una distribución asimétrica. No son errores: son casas caras.</p>
+
+      <h2 id="eda-transformar"><span class="sec">§ 6</span>Transformar y resumir</h2>
+      <p>dplyr organiza la manipulación en <b>verbos</b>, uno por tarea, encadenados con el operador <code>|&gt;</code> (o <code>%&gt;%</code>). pandas logra lo mismo con métodos encadenados entre paréntesis. La tabla resume las equivalencias:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tarea</th><th>dplyr</th><th>pandas</th></tr></thead>
+          <tbody>
+            <tr><td>Filtrar filas</td><td><code>filter(precio &lt; 500)</code></td><td><code>.query("precio &lt; 500")</code> o <code>df[df.precio &lt; 500]</code></td></tr>
+            <tr><td>Seleccionar columnas</td><td><code>select(barrio, precio)</code></td><td><code>df[["barrio", "precio"]]</code></td></tr>
+            <tr><td>Crear columnas</td><td><code>mutate(usd_m2 = precio / m2)</code></td><td><code>.assign(usd_m2=...)</code></td></tr>
+            <tr><td>Ordenar</td><td><code>arrange(desc(precio))</code></td><td><code>.sort_values("precio", ascending=False)</code></td></tr>
+            <tr><td>Agrupar y resumir</td><td><code>group_by(barrio) |&gt; summarise(...)</code></td><td><code>.groupby("barrio").agg(...)</code></td></tr>
+            <tr><td>Unir tablas</td><td><code>left_join(otra, by = "barrio")</code></td><td><code>.merge(otra, on="barrio", how="left")</code></td></tr>
+            <tr><td>Ancho a largo</td><td><code>pivot_longer()</code> (tidyr)</td><td><code>.melt()</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Agrupar y resumir</b> es el corazón del EDA: “divide, aplica, combina”. Se parte la tabla por barrio, se calcula un resumen en cada parte y se juntan los resultados en una tabla nueva con una fila por grupo.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>(casas
+ .<span class="f">query</span>(<span class="s">"hab &gt;= 2"</span>)
+ .<span class="f">assign</span>(usd_m2=<span class="k">lambda</span> d: d[<span class="s">"precio"</span>] * <span class="n">1000</span> / d[<span class="s">"m2"</span>])
+ .<span class="f">groupby</span>(<span class="s">"barrio"</span>)
+ .<span class="f">agg</span>(n=(<span class="s">"precio"</span>, <span class="s">"size"</span>),
+      mediana=(<span class="s">"precio"</span>, <span class="s">"median"</span>),
+      usd_m2=(<span class="s">"usd_m2"</span>, <span class="s">"median"</span>)))</code></pre>
+<pre class="code" data-lang="r" hidden><code>casas |&gt;
+  <span class="f">filter</span>(hab &gt;= <span class="n">2</span>) |&gt;
+  <span class="f">mutate</span>(usd_m2 = precio * <span class="n">1000</span> / m2) |&gt;
+  <span class="f">group_by</span>(barrio) |&gt;
+  <span class="f">summarise</span>(n = <span class="f">n</span>(),
+            mediana = <span class="f">median</span>(precio, na.rm = <span class="k">TRUE</span>),
+            usd_m2 = <span class="f">median</span>(usd_m2, na.rm = <span class="k">TRUE</span>))</code></pre>
+      </div>
+      <p><b>Uniones (joins).</b> Muchas veces la información está repartida en varias tablas. Si tienes otra tabla con la distancia de cada barrio al centro, la unes por la columna común (la <b>clave</b>):</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Conserva</th><th>dplyr</th><th>pandas <code>how=</code></th></tr></thead>
+          <tbody>
+            <tr><td>Interna</td><td>solo filas con clave en ambas tablas</td><td><code>inner_join</code></td><td><code>"inner"</code></td></tr>
+            <tr><td>Izquierda</td><td>todas las de la izquierda; NA si no hay pareja</td><td><code>left_join</code></td><td><code>"left"</code></td></tr>
+            <tr><td>Completa</td><td>todas las filas de las dos tablas</td><td><code>full_join</code></td><td><code>"outer"</code></td></tr>
+            <tr><td>Anti</td><td>filas de la izquierda <b>sin</b> pareja</td><td><code>anti_join</code></td><td>usa <code>indicator=True</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Después de unir, compara el número de filas con el de antes. Si creció en una unión izquierda, la clave estaba repetida en la otra tabla y duplicaste viviendas sin darte cuenta.</p>
+      <p><b>Datos ordenados (tidy).</b> Hadley Wickham propuso tres reglas: cada variable es una columna, cada observación es una fila y cada valor está en su propia celda. Una tabla con columnas <code>T1, T2, T3, T4</code> de ventas por trimestre está en formato <i>ancho</i>: el trimestre es una variable escondida en los nombres de las columnas. Pasarla a formato <i>largo</i>, con columnas <code>barrio, trimestre, ventas</code>, permite agrupar y graficar por trimestre sin trucos. Es lo que hacen <code>pivot_longer()</code> y <code>melt()</code>.</p>
+
+      <h2 id="eda-atipicos"><span class="sec">§ 7</span>Atípicos y transformaciones logarítmicas</h2>
+      <p>Un <b>valor atípico</b> está lejos del resto de los datos. Puede ser un error (un precio con tres ceros de más), un caso legítimo pero raro (una mansión) o una señal de que la variable tiene una distribución muy asimétrica. La regla de Tukey usa el <b>rango intercuartílico</b>, que no se deja arrastrar por los propios extremos:</p>
+      <div class="eq">\[ \mathrm{RIC} = Q_3 - Q_1, \qquad \text{atípico si } x &lt; Q_1 - 1{,}5\,\mathrm{RIC} \;\text{ o }\; x &gt; Q_3 + 1{,}5\,\mathrm{RIC} \]
+        <div class="note">Son los “bigotes” del diagrama de caja. Con las ocho viviendas que quedan al quitar el duplicado y la fila sin precio, \(Q_1 = 116{,}25\), \(Q_3 = 196{,}25\), \(\mathrm{RIC} = 80\) y el límite superior es 316,25: solo el penthouse de 950 queda fuera.</div>
+      </div>
+      <p>La regla <b>detecta</b>, no decide. Antes de borrar un atípico, investígalo: ¿es posible?, ¿está bien la unidad? Si es real, puedes conservarlo y usar resúmenes robustos (mediana, RIC), analizarlo aparte o transformar la variable.</p>
+      <p>Para medir la asimetría se usa el coeficiente</p>
+      <div class="eq">\[ g_1 = \frac{\tfrac{1}{n}\sum_{i=1}^{n}(x_i-\bar{x})^3}{\left(\tfrac{1}{n}\sum_{i=1}^{n}(x_i-\bar{x})^2\right)^{3/2}} \]
+        <div class="note">\(g_1 \approx 0\): simétrica. \(g_1 &gt; 0\): cola larga a la derecha, típica de precios, ingresos y tiempos de espera; la media queda por encima de la mediana. \(g_1 &lt; 0\): cola a la izquierda. pandas (<code>skew()</code>) aplica una pequeña corrección por tamaño de muestra.</div>
+      </div>
+      <p>La <b>transformación logarítmica</b> \(y = \log x\) comprime los valores grandes y estira los pequeños, así que una distribución con cola a la derecha suele volverse aproximadamente simétrica. Además convierte multiplicaciones en sumas:</p>
+      <div class="eq">\[ \log(a \cdot b) = \log a + \log b \qquad\Longrightarrow\qquad \log(1{,}1\,x) - \log x = \log 1{,}1 \approx 0{,}095 \]
+        <div class="note">Una subida del 10 % es la misma distancia en escala log para una casa de 100 mil que para una de 1 millón. Por eso las diferencias en log se leen como cambios porcentuales. La media de los logaritmos, devuelta a la escala original con \(e^{\bar{y}}\), es la <b>media geométrica</b>.</div>
+      </div>
+      <div class="callout"><b>Cuidados con el logaritmo:</b> solo vale para valores positivos; si hay ceros, usa \(\log(1+x)\) (<code>np.log1p</code>, <code>log1p</code>). Y recuerda volver a la escala original al reportar: nadie entiende “5,2 log-dólares”.</div>
+
+      <h2 id="eda-imputar"><span class="sec">§ 8</span>Laboratorio: ¿eliminar o imputar?</h2>
+      <p>Aquí conoces la verdad: tienes el precio de las 400 viviendas y ocultas una parte. La línea oscura es el histograma completo, el que no podrías ver en la vida real. Elige cómo faltan los datos y qué haces con ellos. Las barras rojas son valores imputados.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · estrategias de imputación</span><span class="num" id="eda-i-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="eda-pm">PRECIOS OCULTOS · <b id="eda-pm-v" class="num">25</b> %</label><input id="eda-pm" type="range" min="0" max="50" value="25"></div>
+            <div class="ctrl">
+              <label id="eda-mech-label">CÓMO FALTAN</label>
+              <div class="seg" id="eda-mech" role="group" aria-labelledby="eda-mech-label">
+                <button type="button" data-m="mcar" aria-pressed="true">Al azar</button>
+                <button type="button" data-m="mnar" aria-pressed="false">Más en las caras</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="eda-strat-label">ESTRATEGIA</label>
+              <div class="seg" id="eda-strat" role="group" aria-labelledby="eda-strat-label">
+                <button type="button" data-s="drop" aria-pressed="true">Eliminar</button>
+                <button type="button" data-s="mean" aria-pressed="false">Media</button>
+                <button type="button" data-s="median" aria-pressed="false">Mediana</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="plot-label"><span>Precio (miles de USD)</span><span>— media estimada ┄ media real</span></div>
+            <canvas class="plot" id="eda-imp" height="240" aria-label="Histograma del precio tras aplicar la estrategia de imputación, comparado con la distribución completa"></canvas>
+          </div>
+          <div class="readout">
+            <div><span>filas usadas</span><b id="eda-i-n">–</b></div>
+            <div><span>media estimada</span><b id="eda-i-mean">–</b></div>
+            <div><span>desviación típica</span><b id="eda-i-sd">–</b></div>
+            <div><span>error en la media</span><b id="eda-i-err">–</b></div>
+          </div>
+        </div>
+        <figcaption>Imputar con la media deja la media intacta pero crea una torre artificial y encoge la desviación típica. Con faltantes “más en las caras”, ninguna de las tres estrategias recupera la media real: el problema está en el mecanismo, no en el método.</figcaption>
+      </figure>
+
+      <h2 id="eda-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
+      <p>Recorremos el flujo completo con las diez filas del inicio: inspeccionar, quitar el duplicado, convertir fechas, descartar la vivienda sin precio (sin precio no sirve para comparar barrios), imputar m² con la mediana de su barrio, crear el precio por metro cuadrado, marcar atípicos con el RIC, resumir por barrio y unir con una tabla de distancias.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+
+casas = pd.<span class="f">DataFrame</span>({
+    <span class="s">"id"</span>:     [<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">9</span>],
+    <span class="s">"barrio"</span>: [<span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>, <span class="s">"Centro"</span>, <span class="s">"Norte"</span>,
+               <span class="s">"Sur"</span>, <span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>, <span class="s">"Norte"</span>],
+    <span class="s">"precio"</span>: [<span class="n">185</span>, <span class="n">142</span>, <span class="n">98</span>, np.nan, <span class="n">230</span>, <span class="n">120</span>, <span class="n">950</span>, <span class="n">142</span>, <span class="n">105</span>, <span class="n">160</span>],  <span class="c"># miles USD</span>
+    <span class="s">"m2"</span>:     [<span class="n">72</span>, <span class="n">65</span>, <span class="n">58</span>, <span class="n">90</span>, <span class="n">110</span>, np.nan, <span class="n">160</span>, <span class="n">65</span>, <span class="n">61</span>, <span class="n">70</span>],
+    <span class="s">"hab"</span>:    [<span class="n">2</span>, <span class="n">2</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">3</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">2</span>, <span class="n">2</span>, <span class="n">3</span>],
+    <span class="s">"fecha"</span>:  [<span class="s">"2024-03-02"</span>, <span class="s">"2024-03-05"</span>, <span class="s">"2024-03-07"</span>, <span class="s">"2024-03-11"</span>, <span class="s">"2024-03-12"</span>,
+               <span class="s">"2024-03-15"</span>, <span class="s">"2024-03-18"</span>, <span class="s">"2024-03-05"</span>, <span class="s">"2024-03-20"</span>, <span class="s">"2024-03-22"</span>],
+})
+
+<span class="c"># 1. inspeccionar</span>
+casas.<span class="f">info</span>()
+<span class="f">print</span>(casas.<span class="f">isna</span>().<span class="f">sum</span>(), casas.<span class="f">duplicated</span>().<span class="f">sum</span>())
+
+<span class="c"># 2. limpiar</span>
+casas = casas.<span class="f">drop_duplicates</span>()
+casas[<span class="s">"fecha"</span>] = pd.<span class="f">to_datetime</span>(casas[<span class="s">"fecha"</span>])
+casas = casas.<span class="f">dropna</span>(subset=[<span class="s">"precio"</span>])
+casas[<span class="s">"m2"</span>] = casas[<span class="s">"m2"</span>].<span class="f">fillna</span>(casas.<span class="f">groupby</span>(<span class="s">"barrio"</span>)[<span class="s">"m2"</span>].<span class="f">transform</span>(<span class="s">"median"</span>))
+
+<span class="c"># 3. transformar</span>
+casas = casas.<span class="f">assign</span>(
+    usd_m2=casas[<span class="s">"precio"</span>] * <span class="n">1000</span> / casas[<span class="s">"m2"</span>],
+    log_precio=np.<span class="f">log</span>(casas[<span class="s">"precio"</span>]),
+)
+
+<span class="c"># 4. atípicos con el RIC</span>
+q1, q3 = casas[<span class="s">"precio"</span>].<span class="f">quantile</span>([<span class="n">0.25</span>, <span class="n">0.75</span>])
+ric = q3 - q1                                    <span class="c"># 196.25 - 116.25 = 80</span>
+casas[<span class="s">"atipico"</span>] = (casas[<span class="s">"precio"</span>] &lt; q1 - <span class="n">1.5</span> * ric) | (casas[<span class="s">"precio"</span>] &gt; q3 + <span class="n">1.5</span> * ric)
+
+<span class="c"># 5. resumir por barrio y unir</span>
+resumen = (casas.<span class="f">groupby</span>(<span class="s">"barrio"</span>, as_index=<span class="k">False</span>)
+           .<span class="f">agg</span>(n=(<span class="s">"precio"</span>, <span class="s">"size"</span>),
+                mediana=(<span class="s">"precio"</span>, <span class="s">"median"</span>),
+                usd_m2=(<span class="s">"usd_m2"</span>, <span class="s">"median"</span>))
+           .<span class="f">sort_values</span>(<span class="s">"mediana"</span>, ascending=<span class="k">False</span>))
+barrios = pd.<span class="f">DataFrame</span>({<span class="s">"barrio"</span>: [<span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>],
+                        <span class="s">"distancia_km"</span>: [<span class="n">0.5</span>, <span class="n">6.0</span>, <span class="n">9.0</span>]})
+<span class="f">print</span>(resumen.<span class="f">merge</span>(barrios, on=<span class="s">"barrio"</span>, how=<span class="s">"left"</span>))
+<span class="c">#    barrio  n  mediana   usd_m2  distancia_km</span>
+<span class="c">#    Centro  2    567.5  ≈ 4253          0.5</span>
+<span class="c">#     Norte  3    160.0  ≈ 2185          6.0</span>
+<span class="c">#       Sur  3    105.0  ≈ 1721          9.0</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(dplyr)
+
+casas &lt;- <span class="f">tibble</span>(
+  id     = <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">9</span>),
+  barrio = <span class="f">c</span>(<span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>, <span class="s">"Centro"</span>, <span class="s">"Norte"</span>,
+             <span class="s">"Sur"</span>, <span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>, <span class="s">"Norte"</span>),
+  precio = <span class="f">c</span>(<span class="n">185</span>, <span class="n">142</span>, <span class="n">98</span>, <span class="k">NA</span>, <span class="n">230</span>, <span class="n">120</span>, <span class="n">950</span>, <span class="n">142</span>, <span class="n">105</span>, <span class="n">160</span>),  <span class="c"># miles USD</span>
+  m2     = <span class="f">c</span>(<span class="n">72</span>, <span class="n">65</span>, <span class="n">58</span>, <span class="n">90</span>, <span class="n">110</span>, <span class="k">NA</span>, <span class="n">160</span>, <span class="n">65</span>, <span class="n">61</span>, <span class="n">70</span>),
+  hab    = <span class="f">c</span>(<span class="n">2</span>, <span class="n">2</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">3</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">2</span>, <span class="n">2</span>, <span class="n">3</span>),
+  fecha  = <span class="f">c</span>(<span class="s">"2024-03-02"</span>, <span class="s">"2024-03-05"</span>, <span class="s">"2024-03-07"</span>, <span class="s">"2024-03-11"</span>, <span class="s">"2024-03-12"</span>,
+             <span class="s">"2024-03-15"</span>, <span class="s">"2024-03-18"</span>, <span class="s">"2024-03-05"</span>, <span class="s">"2024-03-20"</span>, <span class="s">"2024-03-22"</span>)
+)
+
+<span class="c"># 1. inspeccionar</span>
+<span class="f">glimpse</span>(casas)
+<span class="f">colSums</span>(<span class="f">is.na</span>(casas)); <span class="f">sum</span>(<span class="f">duplicated</span>(casas))
+
+<span class="c"># 2. limpiar</span>
+casas &lt;- casas |&gt;
+  <span class="f">distinct</span>() |&gt;
+  <span class="f">mutate</span>(fecha = <span class="f">as.Date</span>(fecha)) |&gt;
+  <span class="f">filter</span>(!<span class="f">is.na</span>(precio)) |&gt;
+  <span class="f">group_by</span>(barrio) |&gt;
+  <span class="f">mutate</span>(m2 = <span class="f">if_else</span>(<span class="f">is.na</span>(m2), <span class="f">median</span>(m2, na.rm = <span class="k">TRUE</span>), m2)) |&gt;
+  <span class="f">ungroup</span>()
+
+<span class="c"># 3. transformar</span>
+casas &lt;- casas |&gt; <span class="f">mutate</span>(usd_m2 = precio * <span class="n">1000</span> / m2, log_precio = <span class="f">log</span>(precio))
+
+<span class="c"># 4. atípicos con el RIC</span>
+q &lt;- <span class="f">quantile</span>(casas$precio, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.75</span>))
+ric &lt;- <span class="f">unname</span>(q[<span class="n">2</span>] - q[<span class="n">1</span>])                        <span class="c"># 80</span>
+casas &lt;- casas |&gt;
+  <span class="f">mutate</span>(atipico = precio &lt; q[<span class="n">1</span>] - <span class="n">1.5</span> * ric | precio &gt; q[<span class="n">2</span>] + <span class="n">1.5</span> * ric)
+
+<span class="c"># 5. resumir por barrio y unir</span>
+barrios &lt;- <span class="f">tibble</span>(barrio = <span class="f">c</span>(<span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>), distancia_km = <span class="f">c</span>(<span class="n">0.5</span>, <span class="n">6</span>, <span class="n">9</span>))
+casas |&gt;
+  <span class="f">group_by</span>(barrio) |&gt;
+  <span class="f">summarise</span>(n = <span class="f">n</span>(), mediana = <span class="f">median</span>(precio), usd_m2 = <span class="f">median</span>(usd_m2)) |&gt;
+  <span class="f">arrange</span>(<span class="f">desc</span>(mediana)) |&gt;
+  <span class="f">left_join</span>(barrios, by = <span class="s">"barrio"</span>)
+<span class="c">#   barrio  n mediana usd_m2 distancia_km</span>
+<span class="c">#   Centro  2   568.  ≈ 4253          0.5</span>
+<span class="c">#   Norte   3   160   ≈ 2185          6</span>
+<span class="c">#   Sur     3   105   ≈ 1721          9</span></code></pre>
+      </div>
+      <p>Mira la mediana del Centro: 567,5 mil, porque solo quedan dos viviendas y una es el penthouse. Con grupos tan pequeños, cualquier resumen es inestable. La conclusión honesta no es “el Centro es carísimo” sino “necesitamos más datos del Centro”. Comparar el <b>precio por m²</b> en lugar del precio total, además, corrige en parte que las viviendas del Centro sean más grandes.</p>
+
+      <h2 id="eda-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="Cuando la media supera claramente a la mediana, hay valores grandes que la arrastran hacia arriba: una cola larga a la derecha, típica de los precios." data-wrong="La mediana no se mueve con los extremos y la media sí. ¿Hacia qué lado tienen que estar los valores extremos para que la media quede por encima?">
+        <h3>En un conjunto de precios, la media es 249 mil y la mediana 151 mil. ¿Qué es lo más probable?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La distribución es simétrica y hay un error de cálculo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Tiene una cola larga hacia los precios bajos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Tiene una cola larga hacia los precios altos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La mitad de las viviendas cuesta más de 249 mil</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Todos los valores imputados caen justo en la media, así que no aportan dispersión. La desviación típica baja aunque la variabilidad real no cambió, y las pruebas posteriores parecerán más precisas de lo que son." data-wrong="Piensa en qué pasa con la dispersión si un 30 % de los datos vale exactamente lo mismo. ¿Se alejan de la media o se quedan en ella?">
+        <h3>Te falta el 30 % de una variable y rellenas los faltantes con la media de los observados. ¿Qué le pasa a la desviación típica?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Se reduce de forma artificial</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Queda igual, porque la media no cambia</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Aumenta, porque hay más datos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Se vuelve igual a la de la variable completa</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="RIC = 200 − 120 = 80. El límite superior es Q3 + 1,5 · RIC = 200 + 120 = 320." data-wrong="Calcula primero el RIC = Q3 − Q1 y luego súmale a Q3 una vez y media ese valor.">
+        <h3>Para el precio de un barrio, Q1 = 120 y Q3 = 200. ¿A partir de qué valor la regla de Tukey marca una vivienda como atípica por arriba?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>280</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>300</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>360</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>320</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="eda-ejercicios"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Ocho departamentos de un mismo edificio se publican a estos precios (miles de USD): 110, 125, 130, 140, 150, 160, 175 y 610. Calcula la media y la mediana. ¿Cuál describe mejor el precio típico y por qué?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>La suma es 1 600, así que la media es 1 600 / 8 = 200. Con ocho datos ordenados, la mediana es el promedio del 4.º y 5.º: (140 + 150) / 2 = 145.</p>
+            <p>Siete de los ocho precios están por debajo de la media: el de 610 la arrastra. La mediana (145) describe mejor el departamento típico. La diferencia entre ambas indica asimetría a la derecha.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con los mismos ocho precios, y sabiendo que \(Q_1 = 128{,}75\) y \(Q_3 = 163{,}75\) (método por defecto de R y pandas), aplica la regla del RIC. ¿Qué valores son atípicos? ¿Lo borrarías?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>RIC = 163,75 − 128,75 = 35. Límites: 128,75 − 1,5 · 35 = 76,25 y 163,75 + 1,5 · 35 = 216,25. Solo 610 queda fuera.</p>
+            <p>No lo borrarías sin revisar: puede ser el penthouse del edificio (real y legítimo) o un error de tipeo (¿161?). Si es real, conviene reportar la mediana o analizarlo aparte.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+x = pd.<span class="f">Series</span>([<span class="n">110</span>, <span class="n">125</span>, <span class="n">130</span>, <span class="n">140</span>, <span class="n">150</span>, <span class="n">160</span>, <span class="n">175</span>, <span class="n">610</span>])
+q1, q3 = x.<span class="f">quantile</span>([<span class="n">0.25</span>, <span class="n">0.75</span>])
+ric = q3 - q1
+<span class="f">print</span>(x[(x &lt; q1 - <span class="n">1.5</span> * ric) | (x &gt; q3 + <span class="n">1.5</span> * ric)])   <span class="c"># 610</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">110</span>, <span class="n">125</span>, <span class="n">130</span>, <span class="n">140</span>, <span class="n">150</span>, <span class="n">160</span>, <span class="n">175</span>, <span class="n">610</span>)
+q &lt;- <span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.75</span>)); ric &lt;- <span class="f">IQR</span>(x)
+x[x &lt; q[<span class="n">1</span>] - <span class="n">1.5</span> * ric | x &gt; q[<span class="n">2</span>] + <span class="n">1.5</span> * ric]                 <span class="c"># 610</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Recibes las ventas de viviendas por trimestre en formato ancho: Centro (12, 15, 10, 14), Norte (20, 18, 22, 25) y Sur (9, 11, 14, 12), con columnas <code>barrio, T1, T2, T3, T4</code>. Pásala a formato ordenado y calcula el total de ventas por trimestre.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>El trimestre es una variable escondida en los nombres de las columnas. En formato largo cada fila es un par (barrio, trimestre) con su número de ventas: 3 × 4 = 12 filas. Luego se agrupa por trimestre y se suma. Totales: T1 = 41, T2 = 44, T3 = 46, T4 = 51.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+ventas = pd.<span class="f">DataFrame</span>({<span class="s">"barrio"</span>: [<span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>],
+                       <span class="s">"T1"</span>: [<span class="n">12</span>, <span class="n">20</span>, <span class="n">9</span>], <span class="s">"T2"</span>: [<span class="n">15</span>, <span class="n">18</span>, <span class="n">11</span>],
+                       <span class="s">"T3"</span>: [<span class="n">10</span>, <span class="n">22</span>, <span class="n">14</span>], <span class="s">"T4"</span>: [<span class="n">14</span>, <span class="n">25</span>, <span class="n">12</span>]})
+largo = ventas.<span class="f">melt</span>(id_vars=<span class="s">"barrio"</span>, var_name=<span class="s">"trimestre"</span>, value_name=<span class="s">"ventas"</span>)
+<span class="f">print</span>(largo.<span class="f">groupby</span>(<span class="s">"trimestre"</span>, as_index=<span class="k">False</span>)[<span class="s">"ventas"</span>].<span class="f">sum</span>())
+<span class="c"># T1 41, T2 44, T3 46, T4 51</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(dplyr); <span class="k">library</span>(tidyr)
+ventas &lt;- <span class="f">tibble</span>(barrio = <span class="f">c</span>(<span class="s">"Centro"</span>, <span class="s">"Norte"</span>, <span class="s">"Sur"</span>),
+                 T1 = <span class="f">c</span>(<span class="n">12</span>, <span class="n">20</span>, <span class="n">9</span>), T2 = <span class="f">c</span>(<span class="n">15</span>, <span class="n">18</span>, <span class="n">11</span>),
+                 T3 = <span class="f">c</span>(<span class="n">10</span>, <span class="n">22</span>, <span class="n">14</span>), T4 = <span class="f">c</span>(<span class="n">14</span>, <span class="n">25</span>, <span class="n">12</span>))
+largo &lt;- ventas |&gt;
+  <span class="f">pivot_longer</span>(T1:T4, names_to = <span class="s">"trimestre"</span>, values_to = <span class="s">"ventas"</span>)
+largo |&gt; <span class="f">group_by</span>(trimestre) |&gt; <span class="f">summarise</span>(total = <span class="f">sum</span>(ventas))
+<span class="c"># T1 41, T2 44, T3 46, T4 51</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Trabajas con \(y = \ln(\text{precio})\). En el barrio A la media de \(y\) es 5,0 y en el barrio B es 4,6. (a) ¿Cuántas veces más caro es el barrio A, en términos de media geométrica? (b) Si todos los precios de B suben un 10 %, ¿cuánto cambia su media en escala log? (c) ¿Por qué la media de \(y\), devuelta con \(e^{\bar{y}}\), no coincide con la media aritmética del precio?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) La diferencia de medias en log es 0,4. Como \(\ln a - \ln b = \ln(a/b)\), el cociente de medias geométricas es \(e^{0{,}4} \approx 1{,}49\): el barrio A es cerca de un 49 % más caro.</p>
+            <p>(b) Multiplicar por 1,1 suma \(\ln 1{,}1 \approx 0{,}095\) a cada \(y\), así que la media de B pasa de 4,6 a cerca de 4,695. La diferencia con A baja a 0,305, es decir, A queda \(e^{0{,}305} \approx 1{,}36\) veces más caro.</p>
+            <p>(c) \(e^{\bar{y}}\) es la media geométrica, que siempre es menor o igual que la media aritmética (desigualdad de las medias). Con distribuciones asimétricas a la derecha la diferencia es grande, y la media geométrica queda cerca de la mediana. Si necesitas la media aritmética (por ejemplo, para un presupuesto total), no basta con exponenciar la media de los logaritmos.</p>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

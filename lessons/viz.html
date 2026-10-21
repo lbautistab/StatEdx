@@ -1,0 +1,381 @@
+<!-- StatEdx · sesión: viz -->
+<div id="view-viz" data-view="viz" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Visualización de datos</h1>
+      <p>Un buen gráfico muestra en un segundo lo que una tabla esconde, y uno malo convence de algo falso. Aquí aprendes a elegir el gráfico según la pregunta, a usar las codificaciones visuales que el ojo lee mejor y a evitar los errores que exageran o confunden, con ggplot2 y matplotlib/seaborn.</p>
+      <div class="lmeta"><span>40 min</span><span>Nivel básico</span><span>Requiere: análisis exploratorio</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#viz-idea" data-sec="viz-idea">La idea</a></li>
+        <li><a href="#viz-lab" data-sec="viz-lab">Laboratorio: Anscombe</a></li>
+        <li><a href="#viz-elegir" data-sec="viz-elegir">Elegir el gráfico</a></li>
+        <li><a href="#viz-codificar" data-sec="viz-codificar">Codificaciones visuales</a></li>
+        <li><a href="#viz-gramatica" data-sec="viz-gramatica">Gramática de gráficos</a></li>
+        <li><a href="#viz-errores" data-sec="viz-errores">Errores comunes</a></li>
+        <li><a href="#viz-color" data-sec="viz-color">Color y accesibilidad</a></li>
+        <li><a href="#viz-titulos" data-sec="viz-titulos">Títulos y anotaciones</a></li>
+        <li><a href="#viz-code" data-sec="viz-code">Ejemplo resuelto</a></li>
+        <li><a href="#viz-quiz" data-sec="viz-quiz">Comprueba</a></li>
+        <li><a href="#viz-ejercicios" data-sec="viz-ejercicios">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="viz-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>En 1973 el estadístico Francis Anscombe publicó cuatro pequeños conjuntos de datos, de 11 puntos cada uno. Si solo calculas sus resúmenes, son gemelos: la misma media de \(x\) (9) y de \(y\) (7,50), la misma varianza, la misma correlación (0,816) y la misma recta de regresión, \(\hat{y} = 3{,}00 + 0{,}500\,x\). Cualquier informe basado solo en esos números diría que los cuatro cuentan la misma historia.</p>
+      <p>Basta graficarlos para ver que no tienen nada que ver. Uno es una relación lineal con ruido, otro es una curva perfecta, otro es una recta perfecta con un punto fuera de lugar y en el último toda la relación depende de un único punto. Esa es la razón de ser de la visualización: los resúmenes comprimen y, al comprimir, pierden la forma. El gráfico la devuelve.</p>
+      <div class="callout"><b>Dos usos distintos:</b> la visualización <i>exploratoria</i> es para ti; haces decenas de gráficos rápidos para entender los datos. La visualización <i>explicativa</i> es para otros; haces uno o dos, cuidados, que comunican una conclusión concreta. Esta clase cubre ambas, pero las reglas de diseño importan sobre todo en la segunda.</div>
+
+      <h2 id="viz-lab"><span class="sec">§ 2</span>Laboratorio: el cuarteto de Anscombe</h2>
+      <p>Cambia de conjunto con los botones. Los puntos y la forma cambian por completo; mira qué pasa con los cuatro números de abajo. Son los datos originales de Anscombe.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cuatro conjuntos, un resumen</span><span class="num" id="viz-a-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="viz-set-label">CONJUNTO</label>
+              <div class="seg" id="viz-set" role="group" aria-labelledby="viz-set-label">
+                <button type="button" data-k="0" aria-pressed="true">I</button>
+                <button type="button" data-k="1" aria-pressed="false">II</button>
+                <button type="button" data-k="2" aria-pressed="false">III</button>
+                <button type="button" data-k="3" aria-pressed="false">IV</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="viz-res-label">RESIDUOS</label>
+              <div class="seg" id="viz-res" role="group" aria-labelledby="viz-res-label">
+                <button type="button" data-r="0" aria-pressed="true">Ocultar</button>
+                <button type="button" data-r="1" aria-pressed="false">Mostrar</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="plot-label"><span id="viz-a-lab">Conjunto I · 11 puntos</span><span>— recta de mínimos cuadrados</span></div>
+            <canvas class="plot" id="viz-ans" height="280" aria-label="Diagrama de dispersión del conjunto de Anscombe elegido con su recta de regresión"></canvas>
+          </div>
+          <div class="readout">
+            <div><span>media de y</span><b id="viz-a-my">–</b></div>
+            <div><span>varianza de y</span><b id="viz-a-vy">–</b></div>
+            <div><span>correlación r</span><b id="viz-a-r">–</b></div>
+            <div><span>recta ŷ =</span><b id="viz-a-fit">–</b></div>
+          </div>
+        </div>
+        <figcaption>Los cuatro números casi no se mueven, aunque los datos sí. En III y IV el punto rojo arrastra la recta: sin él, la recta de III sería otra y en IV ni siquiera se podría calcular una correlación.</figcaption>
+      </figure>
+
+      <h2 id="viz-elegir"><span class="sec">§ 3</span>Elegir el gráfico según la pregunta</h2>
+      <p>No empieces por el tipo de gráfico (“hagamos un pastel”) sino por la pregunta que quieres responder. Casi todas caen en cinco familias:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Pregunta</th><th>Ejemplo</th><th>Gráficos adecuados</th><th>ggplot2 / seaborn</th></tr></thead>
+          <tbody>
+            <tr><td><b>Distribución</b>: ¿cómo se reparten los valores?</td><td>precio de las viviendas</td><td>histograma, densidad, caja, violín</td><td><code>geom_histogram</code> / <code>histplot</code></td></tr>
+            <tr><td><b>Comparación</b>: ¿qué grupo tiene más?</td><td>ventas por categoría</td><td>barras (ordenadas), puntos, cajas por grupo</td><td><code>geom_col</code> / <code>barplot</code></td></tr>
+            <tr><td><b>Relación</b>: ¿cómo varía una con otra?</td><td>m² y precio</td><td>dispersión, dispersión con recta, mapa de calor</td><td><code>geom_point</code> / <code>scatterplot</code></td></tr>
+            <tr><td><b>Composición</b>: ¿qué parte del total?</td><td>presupuesto por partida</td><td>barras apiladas al 100 %, pastel con 2-3 partes</td><td><code>geom_col(position = "fill")</code></td></tr>
+            <tr><td><b>Evolución</b>: ¿cómo cambia en el tiempo?</td><td>ventas mensuales</td><td>líneas, áreas</td><td><code>geom_line</code> / <code>lineplot</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Algunas reglas finas: para distribuciones de varios grupos, las cajas o los violines lado a lado permiten comparar mejor que histogramas superpuestos. Para evolución, las líneas conectan puntos ordenados en el tiempo, así que no las uses para categorías sin orden. Para relación con muchos puntos, usa transparencia o un mapa de calor de densidad, porque los puntos se tapan entre sí.</p>
+
+      <h2 id="viz-codificar"><span class="sec">§ 4</span>Codificaciones visuales y su precisión</h2>
+      <p>Un gráfico traduce números en propiedades visuales: posición, longitud, ángulo, área, color. William Cleveland y Robert McGill midieron en 1984 con qué precisión las personas comparan valores codificados de cada forma. El orden, de más a menos precisa, es aproximadamente:</p>
+      <ol>
+        <li><b>Posición en una escala común</b> (puntos sobre un mismo eje).</li>
+        <li><b>Posición en escalas no alineadas</b> (el mismo eje repetido en paneles distintos).</li>
+        <li><b>Longitud</b> (barras que parten de una misma línea base).</li>
+        <li><b>Ángulo y pendiente</b> (porciones de un pastel).</li>
+        <li><b>Área</b> (burbujas, mapas de árbol).</li>
+        <li><b>Volumen, saturación y tono de color</b>.</li>
+      </ol>
+      <div class="callout"><b>Consecuencia práctica:</b> pon la comparación más importante en la posición o en la longitud, y deja el color para separar grupos, no para medir. Si alguien tiene que comparar 18 % con 21 %, dáselo como dos barras o dos puntos, no como dos porciones de pastel.</div>
+      <p>Tampoco todas las variables admiten todas las codificaciones. Las cuantitativas pueden ir en cualquier canal. Las categóricas sin orden van mejor en posición (un eje con las categorías) o en tono de color; usar tamaño para una categoría sugiere un orden que no existe.</p>
+
+      <h2 id="viz-gramatica"><span class="sec">§ 5</span>La gramática de gráficos</h2>
+      <p>Leland Wilkinson propuso describir cualquier gráfico como una combinación de piezas independientes, y Hadley Wickham convirtió esa idea en ggplot2. Las piezas son:</p>
+      <ul>
+        <li><b>Datos</b>: una tabla ordenada (tidy), una fila por observación.</li>
+        <li><b>Estéticas</b> (<code>aes</code>): qué columna va a qué canal visual: <code>x</code>, <code>y</code>, <code>colour</code>, <code>size</code>, <code>shape</code>.</li>
+        <li><b>Geometrías</b> (<code>geom_*</code>): qué marca se dibuja: puntos, barras, líneas, cajas.</li>
+        <li><b>Escalas</b> (<code>scale_*</code>): cómo se traduce cada valor a la estética, por ejemplo un eje logarítmico o una paleta.</li>
+        <li><b>Facetas</b> (<code>facet_wrap</code>, <code>facet_grid</code>): el mismo gráfico repetido para cada subgrupo, con ejes comparables.</li>
+        <li><b>Estadísticas, coordenadas y tema</b>: transformaciones (una recta ajustada, un conteo), el sistema de coordenadas y el aspecto general.</li>
+      </ul>
+      <p>seaborn sigue una lógica parecida con sus funciones de figura (<code>relplot</code>, <code>displot</code>, <code>catplot</code>), donde <code>hue</code> es el color y <code>col</code>/<code>row</code> crean facetas. matplotlib es de más bajo nivel: dibujas sobre unos ejes (<code>ax</code>) y controlas cada detalle.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="c"># casas: DataFrame con m2, precio y barrio (clase anterior)</span>
+g = sns.<span class="f">relplot</span>(data=casas, x=<span class="s">"m2"</span>, y=<span class="s">"precio"</span>,   <span class="c"># datos + estéticas</span>
+                hue=<span class="s">"barrio"</span>,                          <span class="c"># color por barrio</span>
+                col=<span class="s">"barrio"</span>, kind=<span class="s">"scatter"</span>)          <span class="c"># facetas + geometría</span>
+g.<span class="f">set</span>(yscale=<span class="s">"log"</span>)                               <span class="c"># escala</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># casas: tibble con m2, precio y barrio (clase anterior)</span>
+<span class="f">ggplot</span>(casas, <span class="f">aes</span>(x = m2, y = precio, colour = barrio)) +  <span class="c"># datos + estéticas</span>
+  <span class="f">geom_point</span>() +                                         <span class="c"># geometría</span>
+  <span class="f">scale_y_log10</span>() +                                      <span class="c"># escala</span>
+  <span class="f">facet_wrap</span>(~ barrio)                                     <span class="c"># facetas</span></code></pre>
+      </div>
+
+      <h2 id="viz-errores"><span class="sec">§ 6</span>Errores comunes</h2>
+      <p>La mayoría de los gráficos engañosos no mienten en los números sino en cómo los dibujan. Edward Tufte propuso medirlo con el <b>factor de mentira</b>:</p>
+      <div class="eq">\[ \text{factor de mentira} = \frac{\text{tamaño del efecto en el gráfico}}{\text{tamaño del efecto en los datos}} \]
+        <div class="note">Si las ventas suben un 15 % y la barra crece un 350 %, el factor es cerca de 23. Un gráfico honesto tiene un factor cercano a 1.</div>
+      </div>
+      <ul>
+        <li><b>Ejes truncados en barras.</b> La longitud de una barra se lee como el valor. Si el eje empieza en 340, una barra de 412 parece cuatro veces más larga que una de 356. En barras, el eje empieza en cero. En gráficos de puntos o de líneas sí puedes acercar el eje, porque se lee la posición y no la longitud.</li>
+        <li><b>Pasteles con muchas categorías.</b> Comparar ángulos es difícil; con más de tres o cuatro porciones parecidas, nadie puede ordenarlas a ojo. Usa barras ordenadas.</li>
+        <li><b>Efectos 3D.</b> La perspectiva agranda lo que está adelante y oculta lo que está atrás. Una porción de pastel 3D en primer plano parece mayor de lo que es. Nunca aportan información.</li>
+        <li><b>Doble eje vertical.</b> Dos series con escalas distintas en el mismo gráfico: según cómo elijas los dos rangos, puedes hacer que se crucen, que vayan paralelas o que una parezca causar la otra. Mejor dos paneles alineados o índices con la misma base (por ejemplo, 2020 = 100).</li>
+        <li><b>Barras sin ordenar, demasiados colores, leyendas lejanas.</b> No mienten, pero obligan a trabajar al lector. Ordena las barras por valor, usa un color de resalte y etiqueta directamente.</li>
+      </ul>
+      <p>El simulador muestra las ventas de cinco categorías de una tienda en línea (miles de USD). Cambia el tipo de gráfico y el inicio del eje y compara la diferencia real con la que <i>se ve</i>.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · el mismo dato, tres gráficos</span><span class="num" id="viz-b-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="viz-kind-label">GRÁFICO</label>
+              <div class="seg" id="viz-kind" role="group" aria-labelledby="viz-kind-label">
+                <button type="button" data-k="bar" aria-pressed="true">Barras</button>
+                <button type="button" data-k="pie" aria-pressed="false">Pastel</button>
+                <button type="button" data-k="dot" aria-pressed="false">Puntos</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="viz-axis-label">EJE DE VALORES</label>
+              <div class="seg" id="viz-axis" role="group" aria-labelledby="viz-axis-label">
+                <button type="button" data-z="0" aria-pressed="true">Desde cero</button>
+                <button type="button" data-z="1" aria-pressed="false">Truncado en 340</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="plot-label"><span>Ventas por categoría (miles de USD)</span><span id="viz-b-note"></span></div>
+            <canvas class="plot" id="viz-sales" height="250" aria-label="Ventas por categoría mostradas como barras, pastel o puntos"></canvas>
+          </div>
+          <div class="readout">
+            <div><span>diferencia real</span><b id="viz-b-real">–</b></div>
+            <div><span>diferencia que se ve</span><b id="viz-b-seen">–</b></div>
+            <div><span>factor de mentira</span><b id="viz-b-lie">–</b></div>
+            <div><span>el eje empieza en</span><b id="viz-b-zero">–</b></div>
+          </div>
+        </div>
+        <figcaption>Electrónica vende un 15,7 % más que Juguetes. Con barras truncadas parece más de cuatro veces más. Con puntos, el eje truncado ayuda a ver las diferencias sin engañar. En el pastel las cinco porciones parecen iguales: es la peor opción para comparar.</figcaption>
+      </figure>
+
+      <h2 id="viz-color"><span class="sec">§ 7</span>Color y accesibilidad</h2>
+      <p>El color es potente para separar grupos y pésimo para medir. Elige el tipo de paleta según el tipo de variable:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Paleta</th><th>Para</th><th>Ejemplo</th><th>ggplot2 / seaborn</th></tr></thead>
+          <tbody>
+            <tr><td><b>Cualitativa</b></td><td>categorías sin orden</td><td>barrio, marca</td><td><code>scale_colour_brewer(palette = "Set2")</code> / <code>palette="colorblind"</code></td></tr>
+            <tr><td><b>Secuencial</b></td><td>valores ordenados de bajo a alto</td><td>precio por m², densidad</td><td><code>scale_fill_viridis_c()</code> / <code>cmap="viridis"</code></td></tr>
+            <tr><td><b>Divergente</b></td><td>valores con un centro significativo</td><td>correlación (−1 a 1), variación respecto a la meta</td><td><code>scale_fill_distiller(palette = "RdBu")</code> / <code>cmap="RdBu"</code>, <code>center=0</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>Una paleta cualitativa funciona hasta unas 6 a 8 categorías. Con más, agrupa las pequeñas en “Otras” o resalta solo la que importa y deja el resto en gris.</li>
+        <li>Cerca del 8 % de los hombres y del 0,5 % de las mujeres tiene alguna forma de daltonismo, casi siempre dificultad para distinguir rojo y verde. Evita que una conclusión dependa solo de ese contraste. Las paletas <b>viridis</b> y <b>Okabe-Ito</b> están diseñadas para ser legibles con daltonismo y también en escala de grises.</li>
+        <li>Usa <b>codificación redundante</b>: además del color, cambia la forma del punto, el tipo de línea o etiqueta directamente cada serie.</li>
+        <li>Las paletas tipo arcoíris (<code>jet</code>) no son perceptualmente uniformes: crean bordes donde no los hay. Prefiere una secuencial de un solo tono o viridis.</li>
+      </ul>
+
+      <h2 id="viz-titulos"><span class="sec">§ 8</span>Títulos que cuentan la conclusión</h2>
+      <p>En un gráfico explicativo, el título es la frase más leída. Un título descriptivo (“Ventas por categoría, T3 2024”) obliga al lector a sacar la conclusión solo. Un título <b>declarativo</b> se la da: “Electrónica lidera, pero las cinco categorías están a menos de un 16 % entre sí”. El subtítulo y los ejes quedan para lo descriptivo: qué se mide, en qué unidades, de dónde vienen los datos.</p>
+      <ul>
+        <li><b>Anota</b> lo importante dentro del gráfico: una flecha y una frase corta junto al punto atípico, una línea de referencia para la meta, la fecha del cambio de política.</li>
+        <li><b>Etiqueta directamente</b> las series al final de cada línea en lugar de usar una leyenda aparte.</li>
+        <li><b>Resalta con contraste</b>: la categoría de interés en color, el resto en gris.</li>
+        <li><b>Quita lo que no aporta</b>: bordes, rejillas densas, fondos, decimales innecesarios. Tufte lo llamaba maximizar la proporción de tinta dedicada a los datos.</li>
+      </ul>
+      <div class="callout"><b>Prueba de los cinco segundos:</b> muéstrale el gráfico a alguien durante cinco segundos y pregúntale qué entendió. Si no coincide con tu título, cambia el gráfico, no al lector.</div>
+
+      <h2 id="viz-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
+      <p>Primero comprobamos con código que los cuatro conjuntos de Anscombe tienen los mismos resúmenes y los graficamos en facetas con su recta. R trae los datos incluidos (<code>anscombe</code>); en Python los escribimos a mano.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> seaborn <span class="k">as</span> sns
+<span class="k">import</span> matplotlib.pyplot <span class="k">as</span> plt
+
+x = [<span class="n">10</span>, <span class="n">8</span>, <span class="n">13</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">14</span>, <span class="n">6</span>, <span class="n">4</span>, <span class="n">12</span>, <span class="n">7</span>, <span class="n">5</span>]
+ans = pd.<span class="f">DataFrame</span>({
+    <span class="s">"conjunto"</span>: np.<span class="f">repeat</span>([<span class="s">"I"</span>, <span class="s">"II"</span>, <span class="s">"III"</span>, <span class="s">"IV"</span>], <span class="n">11</span>),
+    <span class="s">"x"</span>: x * <span class="n">3</span> + [<span class="n">8</span>, <span class="n">8</span>, <span class="n">8</span>, <span class="n">8</span>, <span class="n">8</span>, <span class="n">8</span>, <span class="n">8</span>, <span class="n">19</span>, <span class="n">8</span>, <span class="n">8</span>, <span class="n">8</span>],
+    <span class="s">"y"</span>: [<span class="n">8.04</span>, <span class="n">6.95</span>, <span class="n">7.58</span>, <span class="n">8.81</span>, <span class="n">8.33</span>, <span class="n">9.96</span>, <span class="n">7.24</span>, <span class="n">4.26</span>, <span class="n">10.84</span>, <span class="n">4.82</span>, <span class="n">5.68</span>,
+          <span class="n">9.14</span>, <span class="n">8.14</span>, <span class="n">8.74</span>, <span class="n">8.77</span>, <span class="n">9.26</span>, <span class="n">8.10</span>, <span class="n">6.13</span>, <span class="n">3.10</span>, <span class="n">9.13</span>, <span class="n">7.26</span>, <span class="n">4.74</span>,
+          <span class="n">7.46</span>, <span class="n">6.77</span>, <span class="n">12.74</span>, <span class="n">7.11</span>, <span class="n">7.81</span>, <span class="n">8.84</span>, <span class="n">6.08</span>, <span class="n">5.39</span>, <span class="n">8.15</span>, <span class="n">6.42</span>, <span class="n">5.73</span>,
+          <span class="n">6.58</span>, <span class="n">5.76</span>, <span class="n">7.71</span>, <span class="n">8.84</span>, <span class="n">8.47</span>, <span class="n">7.04</span>, <span class="n">5.25</span>, <span class="n">12.50</span>, <span class="n">5.56</span>, <span class="n">7.91</span>, <span class="n">6.89</span>],
+})
+
+<span class="c"># 1. los resúmenes son casi idénticos</span>
+resumen = ans.<span class="f">groupby</span>(<span class="s">"conjunto"</span>).<span class="f">agg</span>(media_x=(<span class="s">"x"</span>, <span class="s">"mean"</span>), media_y=(<span class="s">"y"</span>, <span class="s">"mean"</span>),
+                                      var_x=(<span class="s">"x"</span>, <span class="s">"var"</span>), var_y=(<span class="s">"y"</span>, <span class="s">"var"</span>))
+resumen[<span class="s">"r"</span>] = ans.<span class="f">groupby</span>(<span class="s">"conjunto"</span>)[[<span class="s">"x"</span>, <span class="s">"y"</span>]].<span class="f">apply</span>(<span class="k">lambda</span> d: d[<span class="s">"x"</span>].<span class="f">corr</span>(d[<span class="s">"y"</span>]))
+<span class="f">print</span>(resumen.<span class="f">round</span>(<span class="n">3</span>))
+<span class="c"># media_x 9.0, media_y ≈ 7.50, var_x 11.0, var_y ≈ 4.12, r ≈ 0.816 en los cuatro</span>
+
+<span class="c"># 2. pero los gráficos no</span>
+g = sns.<span class="f">lmplot</span>(data=ans, x=<span class="s">"x"</span>, y=<span class="s">"y"</span>, col=<span class="s">"conjunto"</span>, col_wrap=<span class="n">2</span>,
+               ci=<span class="k">None</span>, height=<span class="n">3</span>, scatter_kws={<span class="s">"s"</span>: <span class="n">40</span>})
+g.figure.<span class="f">suptitle</span>(<span class="s">"Mismos resúmenes, cuatro historias distintas"</span>, y=<span class="n">1.03</span>)
+plt.<span class="f">show</span>()</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(dplyr); <span class="k">library</span>(tidyr); <span class="k">library</span>(ggplot2)
+
+<span class="c"># anscombe viene con columnas x1..x4, y1..y4: la pasamos a formato largo</span>
+ans &lt;- anscombe |&gt;
+  <span class="f">pivot_longer</span>(<span class="f">everything</span>(), names_to = <span class="f">c</span>(<span class="s">".value"</span>, <span class="s">"conjunto"</span>),
+               names_pattern = <span class="s">"(.)(.)"</span>)
+
+<span class="c"># 1. los resúmenes son casi idénticos</span>
+ans |&gt;
+  <span class="f">group_by</span>(conjunto) |&gt;
+  <span class="f">summarise</span>(media_x = <span class="f">mean</span>(x), media_y = <span class="f">mean</span>(y),
+            var_x = <span class="f">var</span>(x), var_y = <span class="f">var</span>(y), r = <span class="f">cor</span>(x, y))
+<span class="c"># media_x 9, media_y ≈ 7.50, var_x 11, var_y ≈ 4.12, r ≈ 0.816 en los cuatro</span>
+
+<span class="c"># 2. pero los gráficos no</span>
+<span class="f">ggplot</span>(ans, <span class="f">aes</span>(x, y)) +
+  <span class="f">geom_point</span>(size = <span class="n">2.5</span>) +
+  <span class="f">geom_smooth</span>(method = <span class="s">"lm"</span>, se = <span class="k">FALSE</span>) +
+  <span class="f">facet_wrap</span>(~ conjunto, labeller = label_both) +
+  <span class="f">labs</span>(title = <span class="s">"Mismos resúmenes, cuatro historias distintas"</span>) +
+  <span class="f">theme_minimal</span>()</code></pre>
+      </div>
+      <p>Luego el gráfico explicativo de ventas: barras horizontales (los nombres se leen sin girar la cabeza), ordenadas por valor, eje desde cero, una sola categoría resaltada, etiquetas directas y un título que dice la conclusión.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>ventas = pd.<span class="f">DataFrame</span>({<span class="s">"categoria"</span>: [<span class="s">"Electrónica"</span>, <span class="s">"Hogar"</span>, <span class="s">"Ropa"</span>, <span class="s">"Deportes"</span>, <span class="s">"Juguetes"</span>],
+                       <span class="s">"ventas"</span>: [<span class="n">412</span>, <span class="n">398</span>, <span class="n">385</span>, <span class="n">371</span>, <span class="n">356</span>]})
+orden = ventas.<span class="f">sort_values</span>(<span class="s">"ventas"</span>)
+colores = [<span class="s">"#2f4bff"</span> <span class="k">if</span> c == <span class="s">"Electrónica"</span> <span class="k">else</span> <span class="s">"#b8b8b8"</span> <span class="k">for</span> c <span class="k">in</span> orden[<span class="s">"categoria"</span>]]
+
+fig, ax = plt.<span class="f">subplots</span>(figsize=(<span class="n">7</span>, <span class="n">3.5</span>))
+barras = ax.<span class="f">barh</span>(orden[<span class="s">"categoria"</span>], orden[<span class="s">"ventas"</span>], color=colores)
+ax.<span class="f">bar_label</span>(barras, padding=<span class="n">3</span>)                       <span class="c"># etiquetas directas</span>
+ax.<span class="f">set_xlim</span>(<span class="n">0</span>, <span class="n">460</span>)                                      <span class="c"># barras: eje desde cero</span>
+ax.<span class="f">set_title</span>(<span class="s">"Electrónica lidera, pero las cinco categorías están a menos de un 16 % entre sí"</span>,
+             loc=<span class="s">"left"</span>, fontsize=<span class="n">11</span>)
+ax.<span class="f">set_xlabel</span>(<span class="s">"Ventas del trimestre (miles de USD)"</span>)
+ax.spines[[<span class="s">"top"</span>, <span class="s">"right"</span>]].<span class="f">set_visible</span>(<span class="k">False</span>)
+plt.<span class="f">tight_layout</span>(); plt.<span class="f">show</span>()</code></pre>
+<pre class="code" data-lang="r" hidden><code>ventas &lt;- <span class="f">tibble</span>(categoria = <span class="f">c</span>(<span class="s">"Electrónica"</span>, <span class="s">"Hogar"</span>, <span class="s">"Ropa"</span>, <span class="s">"Deportes"</span>, <span class="s">"Juguetes"</span>),
+                 ventas = <span class="f">c</span>(<span class="n">412</span>, <span class="n">398</span>, <span class="n">385</span>, <span class="n">371</span>, <span class="n">356</span>))
+
+<span class="f">ggplot</span>(ventas, <span class="f">aes</span>(x = ventas, y = <span class="f">reorder</span>(categoria, ventas),
+                   fill = categoria == <span class="s">"Electrónica"</span>)) +
+  <span class="f">geom_col</span>(width = <span class="n">0.7</span>) +
+  <span class="f">geom_text</span>(<span class="f">aes</span>(label = ventas), hjust = -<span class="n">0.2</span>, size = <span class="n">3.5</span>) +      <span class="c"># etiquetas directas</span>
+  <span class="f">scale_fill_manual</span>(values = <span class="f">c</span>(<span class="s">"TRUE"</span> = <span class="s">"#2f4bff"</span>, <span class="s">"FALSE"</span> = <span class="s">"grey75"</span>), guide = <span class="s">"none"</span>) +
+  <span class="f">scale_x_continuous</span>(limits = <span class="f">c</span>(<span class="n">0</span>, <span class="n">460</span>), expand = <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>)) +   <span class="c"># barras: eje desde cero</span>
+  <span class="f">labs</span>(title = <span class="s">"Electrónica lidera, pero las cinco categorías están a menos de un 16 % entre sí"</span>,
+       x = <span class="s">"Ventas del trimestre (miles de USD)"</span>, y = <span class="k">NULL</span>) +
+  <span class="f">theme_minimal</span>()</code></pre>
+      </div>
+
+      <h2 id="viz-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="La posición sobre una escala común es la codificación que el ojo compara con más precisión. Un gráfico de puntos alineados sobre el mismo eje aprovecha justo eso." data-wrong="Recuerda el orden de Cleveland y McGill: posición, longitud, ángulo, área, color. ¿Cuál de las opciones usa la primera?">
+        <h3>Quieres que el lector compare con precisión el ingreso medio de 6 regiones. ¿Qué codificación le das al ingreso?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El tamaño de una burbuja sobre un mapa</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>La posición de un punto sobre un eje común</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El ángulo de cada porción de un pastel</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La intensidad del color de cada región</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con el eje en 340, las barras miden 72 y 16 unidades: una parece 4,5 veces la otra, cuando la diferencia real es de un 15,7 %. En barras la longitud es el dato, así que el eje debe empezar en cero." data-wrong="En un gráfico de barras el lector compara longitudes. Calcula cuánto mide cada barra si el eje empieza en 340 y compáralo con la diferencia real.">
+        <h3>Un informe muestra barras de 412 y 356 con el eje vertical empezando en 340. ¿Cuál es el problema?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Ninguno: los números de las etiquetas son correctos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Que debería usar un pastel para comparar dos valores</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Que reduce visualmente la diferencia entre ambos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Que una barra parece más de cuatro veces la otra, aunque la diferencia real es cercana al 16 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La correlación tiene un centro con significado, el 0, y dos direcciones opuestas. Una paleta divergente usa un color neutro en el 0 y dos tonos que se intensifican hacia −1 y +1." data-wrong="Piensa si la variable tiene un punto medio con significado propio. ¿Qué tipo de paleta está diseñada para eso?">
+        <h3>Vas a colorear un mapa de calor de correlaciones, con valores entre −1 y 1. ¿Qué paleta conviene?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Divergente, centrada en 0</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Cualitativa, un color por valor</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Arcoíris (jet), para ver más detalle</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Secuencial de claro a oscuro, de −1 a 1</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="viz-ejercicios"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Elige un tipo de gráfico para cada pregunta y justifícalo en una línea: (a) ¿cómo se distribuyen los tiempos de entrega de 2 000 pedidos?, (b) ¿cómo evolucionaron las ventas mensuales en los últimos tres años?, (c) ¿las personas que estudian más horas sacan mejor nota?, (d) ¿cómo se reparte un presupuesto entre sueldos, arriendo y otros gastos?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Distribución: histograma o gráfico de densidad; si los tiempos tienen cola larga, considera escala logarítmica. (b) Evolución: gráfico de líneas con el tiempo en el eje horizontal (36 puntos). (c) Relación: diagrama de dispersión, con una recta o curva suavizada. (d) Composición con tres partes: una barra apilada al 100 % o, como excepción razonable, un pastel con tres porciones bien distintas y sus porcentajes escritos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un gráfico de barras compara la satisfacción de dos sucursales: 50 y 55 puntos. El eje vertical empieza en 45. ¿Cuántas veces más larga se ve la barra de 55? ¿Cuál es la diferencia real en porcentaje? Calcula el factor de mentira.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Las barras miden 55 − 45 = 10 y 50 − 45 = 5 unidades: una se ve el doble que la otra, es decir, un 100 % más. La diferencia real es (55 − 50) / 50 = 10 %.</p>
+            <p>Factor de mentira = 100 % / 10 % = 10. El gráfico exagera diez veces el efecto. Con el eje desde cero, las barras medirían 55 y 50 y la diferencia visible sería del 10 %.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con la tabla de viviendas de la clase anterior (<code>casas</code>, con columnas <code>precio</code> y <code>barrio</code>), haz un histograma del precio por barrio, en facetas, con el eje x en escala logarítmica y un título que diga cuál es el barrio más caro. ¿Por qué conviene la escala log aquí?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Los precios tienen cola larga a la derecha: en escala lineal las pocas viviendas caras aplastan al resto. En escala log la forma de cada barrio se ve completa y las diferencias se leen como proporciones. Las facetas con el mismo eje permiten comparar los barrios por posición.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>g = sns.<span class="f">displot</span>(data=casas, x=<span class="s">"precio"</span>, col=<span class="s">"barrio"</span>, log_scale=<span class="k">True</span>,
+                bins=<span class="n">20</span>, height=<span class="n">3</span>, color=<span class="s">"#2f4bff"</span>)
+g.<span class="f">set_axis_labels</span>(<span class="s">"Precio (miles de USD, escala log)"</span>, <span class="s">"Viviendas"</span>)
+g.figure.<span class="f">suptitle</span>(<span class="s">"El Centro concentra las viviendas más caras"</span>, y=<span class="n">1.05</span>)
+plt.<span class="f">show</span>()</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">ggplot</span>(casas, <span class="f">aes</span>(x = precio)) +
+  <span class="f">geom_histogram</span>(bins = <span class="n">20</span>, fill = <span class="s">"#2f4bff"</span>) +
+  <span class="f">scale_x_log10</span>() +
+  <span class="f">facet_wrap</span>(~ barrio, ncol = <span class="n">1</span>) +
+  <span class="f">labs</span>(title = <span class="s">"El Centro concentra las viviendas más caras"</span>,
+       x = <span class="s">"Precio (miles de USD, escala log)"</span>, y = <span class="s">"Viviendas"</span>) +
+  <span class="f">theme_minimal</span>()</code></pre>
+            </div>
+            <p>El título es un ejemplo: escríbelo solo después de mirar el gráfico y confirmar qué barrio es el más caro.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>En el conjunto III de Anscombe, quita el punto (13; 12,74) y recalcula la recta y la correlación. Luego piensa en el conjunto IV: ¿qué pasaría con la correlación si quitas el punto (19; 12,50)? ¿Qué te dice esto sobre informar una correlación sin mostrar el gráfico?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Sin el punto atípico, los otros diez puntos del conjunto III están casi exactamente sobre una recta: \(\hat{y} \approx 4{,}01 + 0{,}345\,x\) con \(r \approx 0{,}99999\). Un solo punto cambia la pendiente de 0,345 a 0,500.</p>
+            <p>En el conjunto IV, sin el punto de \(x = 19\), todos los demás tienen \(x = 8\): la varianza de \(x\) es cero y la correlación no está definida (división por cero). La correlación de 0,816 la crea un único punto con mucho <i>apalancamiento</i>.</p>
+            <p>Moraleja: una correlación o una recta sin gráfico puede describir datos que no se parecen en nada a lo que imaginas. Grafica siempre y revisa los puntos influyentes.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>iii = ans[(ans[<span class="s">"conjunto"</span>] == <span class="s">"III"</span>) &amp; (ans[<span class="s">"y"</span>] != <span class="n">12.74</span>)]
+pendiente, intercepto = np.<span class="f">polyfit</span>(iii[<span class="s">"x"</span>], iii[<span class="s">"y"</span>], <span class="n">1</span>)
+<span class="f">print</span>(intercepto, pendiente, iii[<span class="s">"x"</span>].<span class="f">corr</span>(iii[<span class="s">"y"</span>]))   <span class="c"># ≈ 4.006  0.345  0.99999</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>iii &lt;- ans |&gt; <span class="f">filter</span>(conjunto == <span class="s">"3"</span>, y != <span class="n">12.74</span>)
+<span class="f">coef</span>(<span class="f">lm</span>(y ~ x, data = iii))    <span class="c"># ≈ 4.006  0.345</span>
+<span class="f">cor</span>(iii$x, iii$y)              <span class="c"># ≈ 0.99999</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>
