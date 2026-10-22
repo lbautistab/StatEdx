@@ -1,0 +1,314 @@
+<!-- StatEdx · sesión: kriging -->
+<div id="view-kriging" data-view="kriging" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Interpolación espacial y kriging</h1>
+      <p>Tienes 155 muestras de suelo y necesitas un mapa completo de contaminación, con su incertidumbre. La distancia inversa da una respuesta rápida; el kriging da la mejor predicción lineal según el variograma y, además, dice cuánto confiar en cada punto del mapa. Aquí comparas ambos métodos, entiendes de dónde salen los pesos y aprendes a validarlos sin engañarte.</p>
+      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: el variograma, álgebra matricial</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#kriging-idea" data-sec="kriging-idea">La idea</a></li>
+        <li><a href="#kriging-idw" data-sec="kriging-idw">Distancia inversa (IDW)</a></li>
+        <li><a href="#kriging-ok" data-sec="kriging-ok">Kriging ordinario</a></li>
+        <li><a href="#kriging-prop" data-sec="kriging-prop">Propiedades de los pesos</a></li>
+        <li><a href="#kriging-lab" data-sec="kriging-lab">Laboratorio: un transecto</a></li>
+        <li><a href="#kriging-cv" data-sec="kriging-cv">Validación cruzada espacial</a></li>
+        <li><a href="#kriging-lab2" data-sec="kriging-lab2">Laboratorio: un mapa</a></li>
+        <li><a href="#kriging-code" data-sec="kriging-code">En R y Python</a></li>
+        <li><a href="#kriging-quiz" data-sec="kriging-quiz">Comprueba</a></li>
+        <li><a href="#kriging-ej" data-sec="kriging-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="kriging-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>En la sesión anterior ajustamos un variograma esférico al logaritmo del zinc de la llanura del río Mosa: pepita 0,051, meseta parcial 0,591 y rango 897 m. Ahora queremos predecir el zinc en un punto donde nadie tomó muestra, por ejemplo en las coordenadas (179 500, 331 500), y repetirlo en miles de celdas para dibujar un mapa.</p>
+      <p>Cualquier método de interpolación razonable hace lo mismo en esencia: predice con un <b>promedio ponderado</b> de las muestras, dando más peso a las cercanas,</p>
+      <div class="eq">\[ \hat Z(\mathbf{s}_0) = \sum_{i=1}^{n} \lambda_i\, Z(\mathbf{s}_i), \qquad \sum_{i=1}^{n}\lambda_i = 1 \]
+        <div class="note">La restricción \(\sum\lambda_i = 1\) hace que, si todos los datos valen lo mismo, la predicción también lo valga. La diferencia entre métodos está en cómo se eligen los pesos \(\lambda_i\).</div>
+      </div>
+      <p>La gracia del kriging (en honor al ingeniero de minas sudafricano Danie Krige, formalizado por Georges Matheron en los años 60) es que elige los pesos de forma óptima a partir del variograma, y como subproducto entrega la varianza del error en cada punto.</p>
+
+      <h2 id="kriging-idw"><span class="sec">§ 2</span>Distancia inversa ponderada (IDW)</h2>
+      <p>El método más simple usa pesos proporcionales a una potencia inversa de la distancia:</p>
+      <div class="eq">\[ \lambda_i = \frac{d_{i0}^{-p}}{\sum_{k} d_{k0}^{-p}}, \qquad d_{i0} = \|\mathbf{s}_i - \mathbf{s}_0\| \]
+        <div class="note">Con \(p = 2\) (lo habitual), una muestra al doble de distancia pesa la cuarta parte. Con \(p\) grande, IDW se acerca al vecino más cercano (mapas en mosaico); con \(p \to 0\), a la media global.</div>
+      </div>
+      <p>IDW es rápido, no necesita modelo y es un interpolador exacto (en los sitios muestreados devuelve el dato). Pero tiene limitaciones importantes:</p>
+      <ul>
+        <li>La potencia \(p\) es arbitraria: no se estima a partir de los datos (salvo por validación cruzada).</li>
+        <li>Ignora la redundancia: cinco muestras amontonadas en un mismo lugar reciben cinco veces el peso de una muestra aislada a la misma distancia, aunque casi repiten la misma información.</li>
+        <li>Produce “ojos de buey”: picos o pozos alrededor de cada muestra, con la superficie aplanándose hacia la media entre ellas.</li>
+        <li>No da ninguna medida de incertidumbre.</li>
+      </ul>
+
+      <h2 id="kriging-ok"><span class="sec">§ 3</span>Kriging ordinario</h2>
+      <p>El <b>kriging ordinario</b> supone media constante pero desconocida y un variograma conocido \(\gamma\). Busca el predictor lineal <b>insesgado</b> (gracias a \(\sum\lambda_i = 1\)) de <b>mínima varianza del error</b>. Minimizar \(\operatorname{Var}[\hat Z(\mathbf{s}_0) - Z(\mathbf{s}_0)]\) con esa restricción, con un multiplicador de Lagrange \(\mu\), lleva al sistema:</p>
+      <div class="eq">\[ \begin{pmatrix} \gamma_{11} & \cdots & \gamma_{1n} & 1 \\ \vdots & \ddots & \vdots & \vdots \\ \gamma_{n1} & \cdots & \gamma_{nn} & 1 \\ 1 & \cdots & 1 & 0 \end{pmatrix} \begin{pmatrix} \lambda_1 \\ \vdots \\ \lambda_n \\ \mu \end{pmatrix} = \begin{pmatrix} \gamma_{10} \\ \vdots \\ \gamma_{n0} \\ 1 \end{pmatrix}, \qquad \gamma_{ij} = \gamma(\mathbf{s}_i - \mathbf{s}_j) \]
+        <div class="note">La matriz de la izquierda solo depende de dónde están las muestras (cuánto se parecen entre sí); el vector de la derecha, de cuánto se parece cada muestra al punto a predecir. No intervienen los valores observados: los pesos dependen solo de la geometría y del variograma.</div>
+      </div>
+      <p>Resuelto el sistema, la <b>varianza de kriging</b> es</p>
+      <div class="eq">\[ \sigma^2_{K}(\mathbf{s}_0) = \sum_{i=1}^{n} \lambda_i\,\gamma_{i0} + \mu \]
+        <div class="note">Vale 0 en un sitio muestreado (si la pepita se trata como variación real) y crece al alejarse de los datos, hasta superar la meseta lejos de todas las muestras (se suma la incertidumbre de estimar la media). Bajo normalidad, \(\hat Z \pm 1{,}96\,\sigma_K\) es un intervalo de predicción del 95 %.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Variante</th><th>Media</th><th>Cuándo usarla</th></tr></thead>
+        <tbody>
+          <tr><td>Kriging simple</td><td>Conocida y constante</td><td>Rara vez: casi nunca conoces la media</td></tr>
+          <tr><td>Kriging ordinario</td><td>Constante, desconocida</td><td>El caso por defecto</td></tr>
+          <tr><td>Kriging universal / con deriva externa</td><td>\(\mathbf{x}(\mathbf{s})^\top\boldsymbol\beta\): tendencia en coordenadas o covariables</td><td>Cuando hay tendencia (por ejemplo, el zinc baja con la distancia al río)</td></tr>
+          <tr><td>Kriging por bloques</td><td>Cualquiera</td><td>Para predecir el promedio de un área (una parcela) y no un punto</td></tr>
+          <tr><td>Cokriging</td><td>Varias variables</td><td>Cuando una variable secundaria barata está muy correlacionada con la principal</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="kriging-prop"><span class="sec">§ 4</span>Propiedades de los pesos</h2>
+      <ul>
+        <li><b>Desagrupamiento:</b> muestras amontonadas se reparten el peso entre ellas, porque la matriz \(\gamma_{ij}\) “sabe” que son redundantes.</li>
+        <li><b>Efecto pantalla:</b> una muestra que queda detrás de otra más cercana, en la misma dirección, recibe muy poco peso, a veces negativo. Los pesos negativos son legítimos y permiten predecir valores por encima del máximo observado cuando la superficie es suave.</li>
+        <li><b>Papel de la pepita:</b> al aumentarla, los pesos se reparten de manera más pareja y la superficie se suaviza hacia la media. Con todo pepita, el kriging predice la media estimada en todas partes.</li>
+        <li><b>Papel del rango:</b> un rango corto hace que solo los vecinos inmediatos importen; más allá del rango de todas las muestras la predicción vuelve a la media.</li>
+        <li><b>Escala del variograma:</b> multiplicar \(\gamma\) por una constante no cambia los pesos ni la predicción, pero sí la varianza de kriging. Por eso la predicción es más robusta a errores del variograma que su incertidumbre.</li>
+      </ul>
+      <div class="callout"><b>Pepita como error de medición:</b> si parte de la pepita es error de laboratorio, no quieres que la superficie pase exactamente por cada dato. Se puede declarar ese error como tal (en gstat, <code>Err</code> en <code>vgm</code>; en el laboratorio de abajo, así se trata la pepita) y el kriging filtra el ruido: la curva pasa cerca de los datos, no por encima de ellos.</div>
+
+      <h2 id="kriging-lab"><span class="sec">§ 5</span>Laboratorio: un transecto</h2>
+      <p>Un campo verdadero a lo largo de 10 km (línea fina) y unas pocas muestras. <b>Haz clic sobre el gráfico de la izquierda para agregar una muestra</b> (o sobre una existente para quitarla). La banda es el intervalo del 95 % del kriging. A la derecha, los pesos que cada método le da a cada muestra para predecir en \(x_0\): observa el efecto pantalla y los pesos negativos.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · IDW frente a kriging ordinario</span><span class="num" id="kriging-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="kriging-x0">PUNTO A PREDECIR · x₀ = <b id="kriging-x0-v" class="num">5,0</b> km</label><input id="kriging-x0" type="range" min="0" max="10" step="0.1" value="5"></div>
+            <div class="ctrl"><label for="kriging-p">POTENCIA IDW · p = <b id="kriging-p-v" class="num">2</b></label><input id="kriging-p" type="range" min="0.5" max="6" step="0.5" value="2"></div>
+            <button class="btn btn-ghost btn-sm" id="kriging-again" type="button">Nuevo campo</button>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="kriging-a">RANGO DEL MODELO · a = <b id="kriging-a-v" class="num">4,0</b> km</label><input id="kriging-a" type="range" min="0.5" max="8" step="0.5" value="4"></div>
+            <div class="ctrl"><label for="kriging-c0">PEPITA DEL MODELO · c₀ = <b id="kriging-c0-v" class="num">0,00</b></label><input id="kriging-c0" type="range" min="0" max="0.6" step="0.05" value="0"></div>
+            <div class="ctrl">
+              <label id="kriging-ver-label">CAMPO REAL</label>
+              <div class="seg" id="kriging-ver" role="group" aria-labelledby="kriging-ver-label">
+                <button type="button" data-v="1" aria-pressed="true">Mostrar</button>
+                <button type="button" data-v="0" aria-pressed="false">Ocultar</button>
+              </div>
+            </div>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Predicción a lo largo del transecto</span><span>clic: agregar / quitar</span></div>
+              <canvas class="plot" id="kriging-c-1d" height="270" aria-label="Transecto con el campo real, las muestras y las predicciones de IDW y kriging con su banda de 95 %" style="cursor:crosshair"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Pesos para predecir en x₀</span><span>por muestra</span></div>
+              <canvas class="plot" id="kriging-c-w" height="270" aria-label="Pesos de IDW y de kriging de cada muestra para el punto x0"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>kriging ordinario ± 1,96 σ</span><span><i style="background:var(--hot)"></i>IDW</span><span><i style="background:var(--muted)"></i>campo real</span><span><i style="background:var(--ink)"></i>muestras</span></div>
+          <div class="readout">
+            <div><span>kriging en x₀ (± 1,96 σ)</span><b id="kriging-r-ok">–</b></div>
+            <div><span>IDW en x₀</span><b id="kriging-r-idw">–</b></div>
+            <div><span>RMSE dejando uno fuera · kriging</span><b id="kriging-r-cvok">–</b></div>
+            <div><span>RMSE dejando uno fuera · IDW</span><b id="kriging-r-cvidw">–</b></div>
+          </div>
+        </div>
+        <figcaption>Pon dos muestras muy juntas a un lado de x₀ y una sola al otro: IDW sobrepondera el par; kriging lo trata casi como una sola muestra. Sube la pepita: la banda se ensancha y la curva deja de pasar por los datos. Coloca x₀ lejos de todas las muestras: la predicción vuelve a la media y la banda alcanza su ancho máximo.</figcaption>
+      </figure>
+
+      <h2 id="kriging-cv"><span class="sec">§ 6</span>Validación cruzada espacial</h2>
+      <p>Para elegir entre métodos o variogramas necesitas medir el error de predicción con datos que el modelo no vio. La <b>validación cruzada dejando uno fuera</b> (LOO) quita cada muestra, la predice con las demás y acumula los errores \(e_i = \hat z_{-i}(\mathbf{s}_i) - z(\mathbf{s}_i)\):</p>
+      <div class="eq">\[ \text{ME} = \frac{1}{n}\sum e_i \approx 0, \qquad \text{RMSE} = \sqrt{\frac{1}{n}\sum e_i^2}, \qquad \text{MSDR} = \frac{1}{n}\sum \frac{e_i^2}{\sigma^2_{K,-i}(\mathbf{s}_i)} \approx 1 \]
+        <div class="note">El ME detecta sesgo; el RMSE mide la precisión; el cociente medio de desviaciones al cuadrado (MSDR) dice si la varianza de kriging está bien calibrada. Un MSDR mucho mayor que 1 indica que el kriging es demasiado optimista sobre su propia precisión.</div>
+      </div>
+      <p>El problema es que, en datos espaciales, quitar una muestra no la vuelve “nueva”: sus vecinas muy cercanas siguen en el conjunto de entrenamiento y la predicen casi perfecto. Si el muestreo está agrupado o si vas a usar el mapa para predecir lejos de los datos (en zonas sin muestras), el LOO <b>subestima el error</b>. La solución es la <b>validación cruzada por bloques</b>: divide la región en bloques espaciales contiguos (una grilla, o grupos de k-means sobre las coordenadas) y deja fuera un bloque entero cada vez.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Esquema (log zinc, meuse)</th><th>RMSE kriging</th><th>RMSE IDW (p = 2)</th></tr></thead>
+        <tbody>
+          <tr><td>Dejando uno fuera</td><td>0,392</td><td>0,514</td></tr>
+          <tr><td>5 bloques espaciales (k-means)</td><td>0,606</td><td>0,652</td></tr>
+        </tbody>
+      </table></div>
+      <p>Las dos lecturas son ciertas: para rellenar huecos entre muestras, el error típico es de unos 0,39 en escala logarítmica; para extrapolar a un sector sin muestras, de unos 0,61, cercano a la desviación estándar de los datos (0,72). El kriging gana en ambos casos, pero la ventaja se reduce cuando hay que predecir lejos.</p>
+      <div class="callout"><b>Regla práctica:</b> elige el esquema de validación que imite cómo se va a usar el mapa. Y nunca elijas el variograma y evalúes con los mismos datos sin decirlo: el error que reportas será optimista.</div>
+
+      <h2 id="kriging-lab2"><span class="sec">§ 7</span>Laboratorio: un mapa y su validación</h2>
+      <p>Ahora en dos dimensiones. Se simula un campo con variograma exponencial y se toman \(n\) muestras, al azar o agrupadas en pocos sectores. El kriging usa el variograma verdadero. Compara los mapas y, sobre todo, compara el error real (que aquí conocemos) con lo que estimarían LOO y los bloques.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · mapas de kriging y validación cruzada</span><span class="num" id="kriging-m-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="kriging-m-vista-label">MAPA</label>
+              <div class="seg" id="kriging-m-vista" role="group" aria-labelledby="kriging-m-vista-label">
+                <button type="button" data-v="real" aria-pressed="false">Real</button>
+                <button type="button" data-v="idw" aria-pressed="false">IDW</button>
+                <button type="button" data-v="ok" aria-pressed="true">Kriging</button>
+                <button type="button" data-v="sd" aria-pressed="false">σ kriging</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="kriging-m-dis-label">MUESTREO</label>
+              <div class="seg" id="kriging-m-dis" role="group" aria-labelledby="kriging-m-dis-label">
+                <button type="button" data-d="rand" aria-pressed="true">Aleatorio</button>
+                <button type="button" data-d="clus" aria-pressed="false">Agrupado</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="kriging-m-n">MUESTRAS · n = <b id="kriging-m-n-v" class="num">40</b></label><input id="kriging-m-n" type="range" min="15" max="80" step="5" value="40"></div>
+            <div class="ctrl"><label for="kriging-m-a">RANGO PRÁCTICO · a = <b id="kriging-m-a-v" class="num">0,40</b></label><input id="kriging-m-a" type="range" min="0.1" max="0.8" step="0.05" value="0.4"></div>
+            <button class="btn btn-ghost btn-sm" id="kriging-m-again" type="button">Nuevo campo</button>
+          </div>
+          <canvas class="plot" id="kriging-c-map" height="300" aria-label="Mapa del campo real, de la predicción por IDW o kriging, o de la desviación estándar de kriging, con las muestras"></canvas>
+          <div class="legend"><span><i style="background:var(--hot)"></i>alto (o σ grande)</span><span><i style="background:var(--accent)"></i>bajo</span><span><i style="background:var(--ink)"></i>muestras · bloques de validación</span></div>
+          <div class="readout">
+            <div><span>error real · IDW</span><b id="kriging-m-idw">–</b></div>
+            <div><span>error real · kriging</span><b id="kriging-m-ok">–</b></div>
+            <div><span>estimado por LOO · kriging</span><b id="kriging-m-loo">–</b></div>
+            <div><span>estimado por 4 bloques · kriging</span><b id="kriging-m-blk">–</b></div>
+          </div>
+        </div>
+        <figcaption>Los errores son RMSE sobre las 1 024 celdas del mapa. Con muestreo agrupado, el LOO queda muy por debajo del error real del mapa: cada muestra tiene vecinas pegadas. Los bloques (los cuatro cuadrantes) exageran un poco, porque obligan a extrapolar más lejos de lo que pide el mapa, pero dan una idea mucho más honesta.</figcaption>
+      </figure>
+
+      <h2 id="kriging-code"><span class="sec">§ 8</span>En R y Python</h2>
+      <p>Kriging ordinario del log del zinc con el variograma de la sesión anterior: predicción en un punto, mapa y validación cruzada. En R usamos <code>gstat</code>; en Python, <code>pykrige</code> (ojo: pide la meseta <i>total</i>, pepita incluida).</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> skgstat <span class="k">as</span> skg
+<span class="k">from</span> pykrige.ok <span class="k">import</span> OrdinaryKriging
+<span class="k">from</span> scipy.spatial.distance <span class="k">import</span> cdist
+<span class="k">from</span> sklearn.cluster <span class="k">import</span> KMeans
+
+meuse = skg.data.<span class="f">meuse</span>(variable=<span class="s">"zinc"</span>, as_dataframe=<span class="k">True</span>)[<span class="s">"sample"</span>]
+xy = meuse[[<span class="s">"x"</span>, <span class="s">"y"</span>]].<span class="f">to_numpy</span>(float)
+z = np.<span class="f">log</span>(meuse[<span class="s">"v"</span>].<span class="f">to_numpy</span>(float))
+
+<span class="c"># Variograma esférico ajustado en la sesión anterior (pykrige pide la meseta TOTAL)</span>
+vario = {<span class="s">"nugget"</span>: <span class="n">0.051</span>, <span class="s">"sill"</span>: <span class="n">0.051</span> + <span class="n">0.591</span>, <span class="s">"range"</span>: <span class="n">897</span>}
+
+<span class="k">def</span> <span class="f">kriging</span>(xy_obs, z_obs, xy_new):
+    ok = <span class="f">OrdinaryKriging</span>(xy_obs[:, <span class="n">0</span>], xy_obs[:, <span class="n">1</span>], z_obs, variogram_model=<span class="s">"spherical"</span>,
+                         variogram_parameters=vario)
+    pred, var = ok.<span class="f">execute</span>(<span class="s">"points"</span>, xy_new[:, <span class="n">0</span>], xy_new[:, <span class="n">1</span>])
+    <span class="k">return</span> np.<span class="f">asarray</span>(pred), np.<span class="f">asarray</span>(var)
+
+<span class="k">def</span> <span class="f">idw</span>(xy_obs, z_obs, xy_new, p=<span class="n">2</span>):
+    w = <span class="n">1</span> / <span class="f">cdist</span>(xy_new, xy_obs)**p
+    <span class="k">return</span> (w @ z_obs) / w.<span class="f">sum</span>(axis=<span class="n">1</span>)
+
+<span class="c"># Predicción en un punto nuevo, con su incertidumbre</span>
+pred, var = <span class="f">kriging</span>(xy, z, np.<span class="f">array</span>([[<span class="n">179500.0</span>, <span class="n">331500.0</span>]]))
+<span class="f">print</span>(np.<span class="f">exp</span>(pred).<span class="f">round</span>(), np.<span class="f">sqrt</span>(var).<span class="f">round</span>(<span class="n">3</span>))   <span class="c"># zinc en ppm y σ_K en escala log</span>
+
+<span class="c"># Validación cruzada dejando uno fuera (LOO)</span>
+n = <span class="f">len</span>(z); e_ok, e_idw = np.<span class="f">empty</span>(n), np.<span class="f">empty</span>(n)
+<span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(n):
+    m = np.<span class="f">arange</span>(n) != i
+    e_ok[i] = <span class="f">kriging</span>(xy[m], z[m], xy[[i]])[<span class="n">0</span>][<span class="n">0</span>] - z[i]
+    e_idw[i] = <span class="f">idw</span>(xy[m], z[m], xy[[i]])[<span class="n">0</span>] - z[i]
+rmse = <span class="k">lambda</span> e: np.<span class="f">sqrt</span>(np.<span class="f">mean</span>(e**<span class="n">2</span>))
+<span class="f">print</span>(f<span class="s">"LOO  RMSE kriging={rmse(e_ok):.3f}  IDW={rmse(e_idw):.3f}"</span>)
+
+<span class="c"># Validación cruzada espacial: 5 bloques contiguos</span>
+bloque = <span class="f">KMeans</span>(n_clusters=<span class="n">5</span>, n_init=<span class="n">10</span>, random_state=<span class="n">1</span>).<span class="f">fit_predict</span>(xy)
+e_b = np.<span class="f">concatenate</span>([<span class="f">kriging</span>(xy[bloque != b], z[bloque != b], xy[bloque == b])[<span class="n">0</span>]
+                      - z[bloque == b] <span class="k">for</span> b <span class="k">in</span> <span class="f">range</span>(<span class="n">5</span>)])
+<span class="f">print</span>(f<span class="s">"Bloques RMSE kriging={rmse(e_b):.3f}"</span>)</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(sp)
+<span class="f">library</span>(gstat)
+
+<span class="f">data</span>(meuse); <span class="f">coordinates</span>(meuse) &lt;- ~ x + y
+<span class="f">data</span>(meuse.grid); <span class="f">coordinates</span>(meuse.grid) &lt;- ~ x + y; <span class="f">gridded</span>(meuse.grid) &lt;- <span class="k">TRUE</span>
+
+m &lt;- <span class="f">vgm</span>(psill = <span class="n">0.591</span>, model = <span class="s">"Sph"</span>, range = <span class="n">897</span>, nugget = <span class="n">0.051</span>)
+
+<span class="c"># Kriging ordinario sobre la grilla: predicción y varianza</span>
+ko &lt;- <span class="f">krige</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, meuse.grid, model = m)
+<span class="f">spplot</span>(ko[<span class="s">"var1.pred"</span>], main = <span class="s">"log(zinc) predicho"</span>)
+<span class="f">spplot</span>(ko[<span class="s">"var1.var"</span>], main = <span class="s">"varianza de kriging"</span>)
+
+<span class="c"># Un punto nuevo</span>
+p &lt;- <span class="f">SpatialPoints</span>(<span class="f">cbind</span>(<span class="n">179500</span>, <span class="n">331500</span>))
+k1 &lt;- <span class="f">krige</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, p, model = m)
+<span class="f">exp</span>(k1$var1.pred); <span class="f">sqrt</span>(k1$var1.var)          <span class="c"># ≈ 310 ppm y σ_K ≈ 0.361</span>
+
+<span class="c"># Validación cruzada dejando uno fuera: kriging frente a IDW</span>
+cv_ok  &lt;- <span class="f">krige.cv</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, model = m)
+cv_idw &lt;- <span class="f">krige.cv</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, set = <span class="f">list</span>(idp = <span class="n">2</span>))
+<span class="f">sqrt</span>(<span class="f">mean</span>(cv_ok$residual^<span class="n">2</span>)); <span class="f">sqrt</span>(<span class="f">mean</span>(cv_idw$residual^<span class="n">2</span>))   <span class="c"># ≈ 0.392 y ≈ 0.514</span>
+<span class="f">mean</span>(cv_ok$zscore^<span class="n">2</span>)                          <span class="c"># cerca de 1 si la varianza está bien calibrada</span>
+
+<span class="c"># Validación cruzada espacial: 5 bloques contiguos</span>
+<span class="f">set.seed</span>(<span class="n">1</span>)
+bloque &lt;- <span class="f">kmeans</span>(<span class="f">coordinates</span>(meuse), centers = <span class="n">5</span>, nstart = <span class="n">10</span>)$cluster
+cv_b &lt;- <span class="f">krige.cv</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, model = m, nfold = bloque)
+<span class="f">sqrt</span>(<span class="f">mean</span>(cv_b$residual^<span class="n">2</span>))                   <span class="c"># mucho mayor que el LOO</span></code></pre>
+</div>
+      <p>En el punto (179 500, 331 500) el kriging predice \(\hat z = 5{,}736\), es decir unos 310 ppm, con \(\sigma_K = 0{,}361\). El intervalo del 95 % en escala log es \(5{,}736 \pm 0{,}708\), que al volver a ppm da aproximadamente de 153 a 629 ppm: asimétrico, como corresponde a una variable log-normal. El MSDR de la validación dejando uno fuera es ≈ 0,82, así que la varianza de kriging está razonablemente calibrada (algo conservadora).</p>
+
+      <h2 id="kriging-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="Los pesos de kriging salen de resolver un sistema que solo usa el variograma y las posiciones. La varianza de kriging tampoco usa los valores observados: depende de la geometría del muestreo." data-wrong="Mira el sistema de kriging: ¿en qué parte aparecen los valores z de las muestras? Solo en la predicción final, no en los pesos.">
+        <h3>¿De qué dependen los pesos del kriging ordinario?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>De los valores observados: las muestras altas pesan más</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Solo de la distancia al punto a predecir, como en IDW</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Del variograma y de la posición de las muestras entre sí y respecto del punto</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Del número de muestras, siempre 1/n cada una</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Exacto. Las vecinas casi pegadas siguen en el entrenamiento y predicen muy bien a la muestra que se quitó. Para un mapa que debe predecir lejos de los datos, el LOO es optimista; los bloques espaciales imitan mejor ese uso." data-wrong="Piensa en qué pasa al quitar una muestra que tiene otras tres a 10 metros. ¿Se parece eso a predecir en una zona sin muestras?">
+        <h3>Tus muestras están muy agrupadas en tres sectores. El RMSE por LOO es bajo. ¿Qué te preocupa?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Que el LOO subestime el error de predicción en zonas sin muestras</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Nada: el LOO es insesgado para cualquier diseño</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Que el kriging deje de ser insesgado</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Que la pepita se vuelva negativa</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Muy lejos de los datos, más allá del rango, todas las muestras están igual de poco correlacionadas con el punto: la predicción vuelve a la media estimada y la varianza alcanza la meseta más la incertidumbre de esa media." data-wrong="Piensa qué información aporta una muestra que está a una distancia mayor que el rango. ¿A qué valor tiende la predicción y qué le pasa a la varianza?">
+        <h3>Predices con kriging ordinario en un punto que está a más del doble del rango de todas las muestras. ¿Qué obtienes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El valor de la muestra más cercana, con varianza cero</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Un valor extrapolado según la tendencia de los datos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Un error, porque el sistema no tiene solución</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Aproximadamente la media estimada, con varianza un poco mayor que la meseta</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="kriging-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Tres pozos están a 1, 2 y 4 km de un punto y miden 10, 20 y 40 mg/L de nitrato. Calcula la predicción IDW con \(p = 2\) y con \(p = 1\). ¿Por qué cambia tanto?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(p = 2\): pesos sin normalizar 1, 1/4 y 1/16 (suma 1,3125). Predicción \(= (10 + 5 + 2{,}5)/1{,}3125 \approx\) <b>13,3 mg/L</b>.</p><p>\(p = 1\): pesos 1, 1/2 y 1/4 (suma 1,75). Predicción \(= (10 + 10 + 10)/1{,}75 \approx\) <b>17,1 mg/L</b>.</p><p>Con \(p\) más alto, el pozo más cercano domina. Nada en los datos dice cuál \(p\) es correcto: esa es la arbitrariedad que el kriging reemplaza por el variograma.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Dos muestras en \(x = 0\) y \(x = 2\) y un variograma lineal \(\gamma(h) = h\), sin pepita. Plantea el sistema de kriging ordinario para predecir en \(x = 1\) y calcula los pesos, \(\mu\) y la varianza de kriging.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(\gamma_{11} = \gamma_{22} = 0\), \(\gamma_{12} = 2\), \(\gamma_{10} = \gamma_{20} = 1\). El sistema es \(2\lambda_2 + \mu = 1\), \(2\lambda_1 + \mu = 1\), \(\lambda_1 + \lambda_2 = 1\). Por simetría \(\lambda_1 = \lambda_2 = 0{,}5\), y de la primera ecuación \(\mu = 0\).</p><p>\(\sigma^2_K = 0{,}5 \times 1 + 0{,}5 \times 1 + 0 =\) <b>1</b>. Tiene sentido: es la mitad de \(\gamma(2) = 2\), la semivarianza entre las dos muestras.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>En el ejemplo de <code>meuse</code>, el kriging del log del zinc da \(\hat z = 5{,}736\) y \(\sigma_K = 0{,}361\) en un punto. Calcula el intervalo de predicción del 95 % en ppm. ¿Es \(e^{\hat z}\) un buen estimador de la media del zinc en ese punto?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>En escala log: \(5{,}736 \pm 1{,}96 \times 0{,}361 = [5{,}028;\ 6{,}443]\). Exponenciando: <b>[153; 629] ppm</b>.</p><p>\(e^{\hat z} \approx 310\) ppm estima la <b>mediana</b>, no la media: si \(\log Z\) es normal, \(\mathbb{E}[Z] = e^{\mu + \sigma^2/2}\). Una corrección aproximada (kriging log-normal) es \(e^{5{,}736 + 0{,}361^2/2} \approx 331\) ppm. La corrección exacta de kriging log-normal ordinario también involucra el multiplicador de Lagrange, pero la idea es la misma: retrotransformar sin corregir sesga hacia abajo.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Deduce el sistema de kriging ordinario. Escribe el error \(\hat Z(\mathbf{s}_0) - Z(\mathbf{s}_0)\) con pesos que suman 1, expresa su varianza en términos del variograma y minimízala con un multiplicador de Lagrange.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Como \(\sum\lambda_i = 1\), el error es \(\sum_i \lambda_i\,[Z(\mathbf{s}_i) - Z(\mathbf{s}_0)]\): una combinación de incrementos, cuya media es 0 bajo estacionariedad intrínseca (insesgado). Usando \(\mathbb{E}[(Z_i - Z_0)(Z_j - Z_0)] = \gamma_{i0} + \gamma_{j0} - \gamma_{ij}\), que sale de desarrollar \(\gamma_{ij} = \tfrac12\mathbb{E}[((Z_i - Z_0) - (Z_j - Z_0))^2]\):</p><div class="eq">\[ \operatorname{Var}(\text{error}) = \sum_i\sum_j \lambda_i\lambda_j(\gamma_{i0} + \gamma_{j0} - \gamma_{ij}) = 2\sum_i\lambda_i\gamma_{i0} - \sum_i\sum_j\lambda_i\lambda_j\gamma_{ij} \]</div><p>Minimiza \(\mathcal{L} = 2\sum_i\lambda_i\gamma_{i0} - \sum_i\sum_j\lambda_i\lambda_j\gamma_{ij} - 2\mu\,(\sum_i\lambda_i - 1)\). Derivando respecto de \(\lambda_i\) e igualando a cero: \(\sum_j \lambda_j\gamma_{ij} + \mu = \gamma_{i0}\) para cada \(i\), junto con \(\sum\lambda_i = 1\): es el sistema de la sección 3. Multiplicando cada ecuación por \(\lambda_i\) y sumando, \(\sum\sum\lambda_i\lambda_j\gamma_{ij} = \sum\lambda_i\gamma_{i0} - \mu\); al reemplazar en la varianza sale \(\sigma^2_K = \sum_i\lambda_i\gamma_{i0} + \mu\).</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

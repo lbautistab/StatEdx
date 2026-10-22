@@ -80,7 +80,7 @@
       ctx.textAlign = 'center';
       const step = T > 60 ? 20 : 10;
       for (let t = 0; t <= T; t += step) ctx.fillText(t, X(t), h - 8);
-      if (S.h.some(v => Math.abs(v) > lim)) { ctx.textAlign = 'left'; ctx.fillStyle = accent; ctx.fillText('h fuera de escala', pad.l + 6, pad.t + 10); }
+      if (S.h.some(v => Math.abs(v) > lim)) { ctx.textAlign = 'right'; ctx.fillStyle = accent; ctx.fillText('h fuera de escala', w - pad.r - 4, h - pad.b - 8); }
     }
 
     // ---------- gradientes (log) ----------

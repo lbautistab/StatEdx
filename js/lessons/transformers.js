@@ -48,7 +48,7 @@
     $('transformers-r-ent').textContent = fmt(ent, 2);
     $('transformers-r-eff').textContent = fmt(eff, 2);
     $('transformers-head').textContent = 'softmax(QKᵀ / (√4 · τ))';
-    $('transformers-bar-lbl').textContent = '“' + T[AT.qi].w + '” mira a…';
+    $('transformers-bar-lbl').textContent = 'consulta: ' + T[AT.qi].w;
     const ink = tok('--ink'), muted = tok('--muted'), accent = tok('--accent'), hot = tok('--hot'), line = tok('--line');
 
     // ---------- matriz ----------

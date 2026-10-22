@@ -47,9 +47,9 @@
       const pad = { l: 22, r: 10, t: 10, b: 26 }, lo = -25, hi = 50;
       const X = v => pad.l + (v - lo) / (hi - lo) * (w - pad.l - pad.r);
       const rowH = (h - pad.t - pad.b) / 8, Yr = j => pad.t + rowH * (j + 0.5);
-      const step = w < 340 ? 25 : 10;
+      const step = w < 420 ? 25 : 10, v0 = step === 25 ? -25 : -20;
       ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
-      for (let v = -20; v <= 50; v += step) { const x = Math.round(X(v)) + .5; ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h - pad.b); ctx.stroke(); }
+      for (let v = v0; v <= 50; v += step) { const x = Math.round(X(v)) + .5; ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h - pad.b); ctx.stroke(); }
       ctx.globalAlpha = 1;
       const xm = Math.round(X(mu)) + .5;
       ctx.strokeStyle = ink; ctx.lineWidth = 1.3; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(xm, pad.t); ctx.lineTo(xm, h - pad.b); ctx.stroke(); ctx.setLineDash([]);
@@ -69,7 +69,7 @@
       }
       ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, h - pad.b + .5); ctx.lineTo(w - pad.r, h - pad.b + .5); ctx.stroke();
       ctx.fillStyle = muted; ctx.font = mono(); ctx.textAlign = 'center';
-      for (let v = -20; v <= 50; v += step) ctx.fillText(v, X(v), h - 8);
+      for (let v = v0; v <= 50; v += step) ctx.fillText(v, Math.max(X(v), pad.l + 8), h - 8);
     }
     f = fit($('jerarq-c-tau'));
     if (f) {

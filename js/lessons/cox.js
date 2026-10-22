@@ -217,11 +217,13 @@
     f = fit($('cox-c-sch'));
     if (f && PH.sch) {
       const { ctx, w, h } = f; ctx.clearRect(0, 0, w, h);
-      const pad = { l: 34, r: 12, t: 14, b: 30 }, D = PH.sch.length, lo = -4, hi = 3;
+      const pad = { l: 34, r: 12, t: 14, b: 30 }, D = PH.sch.length;
+      let lo = Math.min(-1, ...PH.sch.map(q => q.s)), hi = Math.max(1, ...PH.sch.map(q => q.s)); const mg = (hi - lo) * .06; lo = Math.floor(lo - mg); hi = Math.ceil(hi + mg);
       const X = v => pad.l + v / D * (w - pad.l - pad.r), Y = v => pad.t + (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo) * (h - pad.t - pad.b);
-      gridLines(ctx, X, Y, [], [-3, -2, -1, 0, 1, 2], pad.l, w - pad.r, pad.t, h - pad.b);
+      const yt = []; for (let v = lo; v <= hi; v++) yt.push(v);
+      gridLines(ctx, X, Y, [], yt, pad.l, w - pad.r, pad.t, h - pad.b);
       ctx.fillStyle = muted; ctx.font = font(); ctx.textAlign = 'right';
-      for (const v of [-3, -1, 0, 1, 2]) ctx.fillText(minus(v), pad.l - 5, Y(v) + 4);
+      const ys = hi - lo > 6 ? 2 : 1; for (let v = lo; v <= hi; v++) if (v % ys === 0) ctx.fillText(minus(v), pad.l - 5, Y(v) + 4);
       ctx.globalAlpha = .45;
       PH.sch.forEach((q, k) => { ctx.fillStyle = q.s > PH.fitb ? hot : accent; ctx.beginPath(); ctx.arc(X(k + .5), Y(q.s), 2.2, 0, Math.PI * 2); ctx.fill(); });
       ctx.globalAlpha = 1;

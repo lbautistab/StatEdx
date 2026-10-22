@@ -36,9 +36,9 @@
     const pts = data(), L = limits(pts.map(p => p.v));
     let det = 0, fa = 0;
     for (const p of pts) { p.flag = p.v < L.lo || p.v > L.hi; if (p.flag) p.seed ? det++ : fa++; }
-    $('atipicos-r-det').textContent = A.k ? det + ' / ' + A.k : '—';
+    $('atipicos-r-det').textContent = A.k ? det + ' / ' + A.k : 'sin sembrar';
     $('atipicos-r-fa').textContent = fa;
-    $('atipicos-r-lim').textContent = '[' + Math.round(L.lo) + '; ' + Math.round(L.hi) + ']';
+    $('atipicos-r-lim').textContent = '[' + sg(L.lo, 0) + '; ' + sg(L.hi, 0) + ']';
     $('atipicos-r-cen').textContent = Math.round(L.mean) + ' · ' + Math.round(L.me);
     const names = { z: 'media ± 3s', iqr: 'Q₁ − 1,5·RIC · Q₃ + 1,5·RIC', mad: 'Me ± 3,5·MAD/0,6745' };
     $('atipicos-head').textContent = 'límites: ' + names[A.rule];

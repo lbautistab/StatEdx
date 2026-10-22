@@ -1,0 +1,254 @@
+<!-- StatEdx · sesión: variograma -->
+<div id="view-variograma" data-view="variograma" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Geoestadística: el variograma</h1>
+      <p>Dos muestras de suelo tomadas a 50 metros se parecen más que dos tomadas a 2 kilómetros. El variograma convierte esa intuición en una curva: dice cuánto difieren los valores según la distancia que los separa. Aquí aprendes a calcularlo, a leer su pepita, su meseta y su rango, y a ajustarle un modelo válido, el paso previo indispensable para el kriging.</p>
+      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: datos espaciales, mínimos cuadrados</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#variograma-idea" data-sec="variograma-idea">La idea</a></li>
+        <li><a href="#variograma-def" data-sec="variograma-def">Semivarianza</a></li>
+        <li><a href="#variograma-emp" data-sec="variograma-emp">Variograma empírico</a></li>
+        <li><a href="#variograma-modelos" data-sec="variograma-modelos">Pepita, meseta y rango</a></li>
+        <li><a href="#variograma-ajuste" data-sec="variograma-ajuste">Ajustar un modelo</a></li>
+        <li><a href="#variograma-lab" data-sec="variograma-lab">Laboratorio</a></li>
+        <li><a href="#variograma-code" data-sec="variograma-code">En R y Python</a></li>
+        <li><a href="#variograma-quiz" data-sec="variograma-quiz">Comprueba</a></li>
+        <li><a href="#variograma-ej" data-sec="variograma-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="variograma-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>En la llanura de inundación del río Mosa (Países Bajos) se tomaron 155 muestras de la capa superficial del suelo y se midió su concentración de zinc, un metal pesado que llega con las crecidas. Es el conjunto de datos <code>meuse</code>, el ejemplo clásico de la geoestadística. Las concentraciones van de 113 a 1 839 ppm y son muy asimétricas, así que se trabaja con su logaritmo.</p>
+      <p>Toma todos los pares de muestras posibles (hay casi 12 000) y, para cada par, anota la distancia entre ellas y la mitad del cuadrado de la diferencia de sus valores. Si agrupas los pares por distancia y promedias, aparece un patrón muy claro: los pares cercanos difieren poco, la diferencia crece con la distancia y, a partir de unos 900 metros, deja de crecer. Esa curva es el <b>variograma</b>.</p>
+      <div class="callout"><b>Por qué importa:</b> el variograma es el modelo de dependencia espacial de la geoestadística. Dice hasta qué distancia sirve una muestra para predecir otra y cuánto ruido hay a escala muy pequeña. El kriging, la próxima sesión, usa directamente sus parámetros para calcular los pesos de interpolación y la incertidumbre de cada predicción.</div>
+
+      <h2 id="variograma-def"><span class="sec">§ 2</span>Semivarianza y estacionariedad</h2>
+      <p>Para un proceso \(Z(\mathbf{s})\), la <b>semivarianza</b> a una separación \(\mathbf{h}\) es la mitad de la varianza de la diferencia entre dos puntos separados por \(\mathbf{h}\):</p>
+      <div class="eq">\[ \gamma(\mathbf{h}) = \tfrac{1}{2}\operatorname{Var}\big[Z(\mathbf{s} + \mathbf{h}) - Z(\mathbf{s})\big] = \tfrac{1}{2}\,\mathbb{E}\big[(Z(\mathbf{s} + \mathbf{h}) - Z(\mathbf{s}))^2\big] \]
+        <div class="note">La segunda igualdad vale cuando la media es constante. El factor ½ explica el nombre: “semi” varianza. A \(\gamma\) como función de \(\mathbf{h}\) se le llama semivariograma o, simplemente, variograma.</div>
+      </div>
+      <p>Para que \(\gamma\) dependa solo de \(\mathbf{h}\) y no de la ubicación se pide <b>estacionariedad intrínseca</b>: media constante y varianza de los incrementos que solo depende de la separación. Es un supuesto más débil que la estacionariedad de segundo orden de la sesión 1. Cuando además existe la covarianza \(C(\mathbf{h})\), ambas funciones están ligadas:</p>
+      <div class="eq">\[ \gamma(\mathbf{h}) = C(\mathbf{0}) - C(\mathbf{h}) \qquad\Longleftrightarrow\qquad C(\mathbf{h}) = \sigma^2 - \gamma(\mathbf{h}) \]
+        <div class="note">El variograma es la covarianza “vista al revés”: empieza cerca de 0 (vecinos muy parecidos) y sube hasta la varianza total \(\sigma^2 = C(\mathbf{0})\) cuando la covarianza se anula.</div>
+      </div>
+      <p>¿Por qué preferir \(\gamma\) a \(C\)? Porque se estima sin conocer la media (las diferencias la cancelan) y existe para procesos que no tienen varianza finita, como un movimiento browniano, cuyo variograma \(\gamma(h) \propto h\) crece sin límite.</p>
+
+      <h2 id="variograma-emp"><span class="sec">§ 3</span>El variograma empírico</h2>
+      <p>El estimador clásico de Matheron agrupa los pares en clases de distancia \(h_j\) y promedia:</p>
+      <div class="eq">\[ \hat\gamma(h_j) = \frac{1}{2\,N(h_j)}\sum_{(i,k)\,\in\, N(h_j)} \big(z(\mathbf{s}_i) - z(\mathbf{s}_k)\big)^2 \]
+        <div class="note">\(N(h_j)\) es el conjunto (y el número) de pares cuya distancia cae en la clase \(j\). En <code>meuse</code>, la primera clase tiene 57 pares a una distancia media de 79 m, con \(\hat\gamma = 0{,}123\).</div>
+      </div>
+      <p>Decisiones prácticas, con sus reglas habituales:</p>
+      <ul>
+        <li><b>Distancia máxima (cutoff):</b> no más de la mitad (o un tercio) de la distancia máxima entre puntos. A distancias grandes hay pocos pares y solo los puntos de los bordes participan.</li>
+        <li><b>Ancho de clase:</b> suficientes pares por clase (al menos 30, idealmente más de 100) pero clases lo bastante finas para ver la forma cerca del origen, que es lo que más importa para el kriging.</li>
+        <li><b>Nube variográfica:</b> el gráfico de todos los pares sin agrupar. Sirve para encontrar pares atípicos que inflan una clase, porque el estimador de Matheron es sensible a ellos (hay versiones robustas, como la de Cressie y Hawkins).</li>
+        <li><b>Tendencia:</b> si la media no es constante (por ejemplo, el zinc baja al alejarse del río), el variograma empírico sube sin estabilizarse. Hay que quitar la tendencia antes, o modelarla con kriging universal.</li>
+        <li><b>Anisotropía:</b> calcula variogramas por dirección (0°, 45°, 90°, 135°). Si el rango cambia con la dirección, la dependencia es anisótropa.</li>
+      </ul>
+
+      <h2 id="variograma-modelos"><span class="sec">§ 4</span>Pepita, meseta y rango</h2>
+      <p>Los variogramas acotados se describen con tres parámetros:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Parámetro</th><th>Símbolo</th><th>Qué es</th><th>Cómo se interpreta</th></tr></thead>
+        <tbody>
+          <tr><td><b>Pepita</b> (nugget)</td><td>\(c_0\)</td><td>El salto de \(\gamma\) junto al origen</td><td>Error de medición más variación a escalas menores que la distancia mínima entre muestras</td></tr>
+          <tr><td><b>Meseta</b> (sill)</td><td>\(c_0 + c\)</td><td>El valor donde \(\gamma\) se estabiliza</td><td>La varianza total del proceso. \(c\) es la meseta parcial, la parte con estructura espacial</td></tr>
+          <tr><td><b>Rango</b> (range)</td><td>\(a\)</td><td>La distancia a la que se alcanza la meseta</td><td>Más allá, dos puntos son prácticamente independientes</td></tr>
+        </tbody>
+      </table></div>
+      <p>No sirve cualquier curva: el modelo tiene que garantizar que toda combinación lineal de valores tenga varianza no negativa (en términos técnicos, \(-\gamma\) debe ser condicionalmente definida positiva). Por eso se elige entre una familia de modelos válidos. Escribimos los tres más usados con su <b>rango práctico</b> \(a\), la distancia a la que alcanzan el 95 % de la meseta parcial:</p>
+      <div class="eq">\[ \begin{aligned}
+        \text{Esférico:}\quad & \gamma(h) = c_0 + c\left[\tfrac{3}{2}\tfrac{h}{a} - \tfrac{1}{2}\left(\tfrac{h}{a}\right)^3\right] \text{ si } h \le a, \qquad c_0 + c \text{ si } h > a \\
+        \text{Exponencial:}\quad & \gamma(h) = c_0 + c\left[1 - e^{-3h/a}\right] \\
+        \text{Gaussiano:}\quad & \gamma(h) = c_0 + c\left[1 - e^{-3h^2/a^2}\right]
+      \end{aligned} \qquad (h > 0), \quad \gamma(0) = 0 \]
+        <div class="note">Atención con los programas: <code>gstat</code> y <code>scikit-gstat</code> parametrizan el exponencial con \(e^{-h/a}\) (en gstat el rango práctico es \(3a\)); otras librerías usan la versión con 3. Siempre revisa la documentación antes de comparar rangos.</div>
+      </div>
+      <p>La forma cerca del origen dice cuán suave es el fenómeno. El <b>esférico</b> y el <b>exponencial</b> son lineales cerca de 0: superficies continuas pero rugosas, típicas de suelos y contaminantes. El <b>gaussiano</b> es parabólico: superficies muy suaves, como la elevación de un terreno ondulado o un campo de temperatura. El esférico llega a la meseta en un rango finito; los otros dos la alcanzan solo asintóticamente.</p>
+      <div class="callout"><b>Proporción de pepita:</b> \(c_0/(c_0 + c)\) resume cuánta variación no tiene estructura espacial a la escala del muestreo. Una regla muy citada en ciencias del suelo (Cambardella y colaboradores, 1994) llama dependencia espacial <b>fuerte</b> si es menor que 25 %, <b>moderada</b> entre 25 % y 75 % y <b>débil</b> si supera 75 %. Si el variograma es plano (todo pepita), el kriging se reduce a predecir la media en todas partes.</div>
+
+      <h2 id="variograma-ajuste"><span class="sec">§ 5</span>Ajustar un modelo</h2>
+      <p>El ajuste habitual es por <b>mínimos cuadrados ponderados</b> sobre los puntos del variograma empírico:</p>
+      <div class="eq">\[ \min_{c_0,\,c,\,a}\; \sum_{j} w_j\,\big[\hat\gamma(h_j) - \gamma(h_j;\, c_0, c, a)\big]^2, \qquad w_j = \frac{N(h_j)}{\gamma(h_j)^2}\ \text{(Cressie)} \quad\text{o}\quad w_j = \frac{N(h_j)}{h_j^2}\ \text{(gstat)} \]
+        <div class="note">Los pesos dan más importancia a las clases con muchos pares y a las distancias cortas, que son las que más influyen en el kriging.</div>
+      </div>
+      <p>Un detalle útil: si fijas el rango \(a\), el modelo es <b>lineal</b> en \(c_0\) y \(c\), y esos dos parámetros salen de una regresión ponderada. Basta con recorrer una grilla de rangos y quedarse con el de menor error; así lo hace el laboratorio de abajo. Otras alternativas son la máxima verosimilitud (REML), que usa todos los datos y no depende de las clases, y el ajuste bayesiano, que propaga la incertidumbre de los parámetros a la predicción.</p>
+      <div class="callout"><b>Errores comunes:</b> (1) ajustar a ojo un variograma calculado con muy pocos pares por clase; (2) dejar que el ajuste persiga los puntos ruidosos de distancias grandes; (3) ignorar la tendencia, lo que produce un variograma que nunca se estabiliza; (4) comparar rangos entre programas que parametrizan el modelo de forma distinta.</div>
+
+      <h2 id="variograma-lab"><span class="sec">§ 6</span>Laboratorio</h2>
+      <p>Se simula un campo gaussiano en una región de 10 × 10 km con el modelo, la pepita y el rango que elijas (meseta total 1), y se toman \(n\) muestras al azar. A la derecha ves el variograma empírico (el tamaño de cada punto es proporcional al número de pares), el modelo verdadero y el modelo ajustado por mínimos cuadrados ponderados. Prueba a ajustar un modelo distinto del verdadero, o a reducir \(n\).</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · variograma empírico y ajuste</span><span class="num" id="variograma-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="variograma-true-label">MODELO VERDADERO</label>
+              <div class="seg" id="variograma-true" role="group" aria-labelledby="variograma-true-label">
+                <button type="button" data-m="sph" aria-pressed="true">Esférico</button>
+                <button type="button" data-m="exp" aria-pressed="false">Exponencial</button>
+                <button type="button" data-m="gau" aria-pressed="false">Gaussiano</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="variograma-c0">PEPITA · c₀ = <b id="variograma-c0-v" class="num">0,10</b></label><input id="variograma-c0" type="range" min="0" max="0.6" step="0.05" value="0.1"></div>
+            <div class="ctrl"><label for="variograma-a">RANGO · a = <b id="variograma-a-v" class="num">3,0</b> km</label><input id="variograma-a" type="range" min="1" max="6" step="0.5" value="3"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="variograma-fit-label">MODELO AJUSTADO</label>
+              <div class="seg" id="variograma-fit" role="group" aria-labelledby="variograma-fit-label">
+                <button type="button" data-m="sph" aria-pressed="true">Esférico</button>
+                <button type="button" data-m="exp" aria-pressed="false">Exponencial</button>
+                <button type="button" data-m="gau" aria-pressed="false">Gaussiano</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="variograma-n">MUESTRAS · n = <b id="variograma-n-v" class="num">150</b></label><input id="variograma-n" type="range" min="40" max="250" step="10" value="150"></div>
+            <button class="btn btn-ghost btn-sm" id="variograma-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Muestras en 10 × 10 km</span><span>alto / bajo</span></div>
+              <canvas class="plot" id="variograma-c-map" height="280" aria-label="Mapa de las muestras coloreadas por su valor"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Semivarianza γ(h)</span><span>h en km</span></div>
+              <canvas class="plot" id="variograma-c-vg" height="280" aria-label="Variograma empírico con el modelo verdadero y el ajustado"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>variograma empírico y modelo ajustado</span><span><i style="background:var(--ink)"></i>modelo verdadero</span><span><i style="background:var(--hot)"></i>pepita y rango ajustados</span></div>
+          <div class="readout">
+            <div><span>pepita ajustada · ĉ₀</span><b id="variograma-r-c0">–</b></div>
+            <div><span>meseta ajustada · ĉ₀ + ĉ</span><b id="variograma-r-sill">–</b></div>
+            <div><span>rango práctico ajustado · â</span><b id="variograma-r-a">–</b></div>
+            <div><span>proporción de pepita</span><b id="variograma-r-prop">–</b></div>
+          </div>
+        </div>
+        <figcaption>Aun con el modelo correcto, la meseta ajustada varía bastante entre muestras: con un solo campo de 10 × 10 km y un rango de 5 km, hay pocos “trozos independientes” para estimar la varianza total. Ajustar un esférico a datos gaussianos subestima la suavidad cerca del origen.</figcaption>
+      </figure>
+
+      <h2 id="variograma-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>El variograma del logaritmo del zinc en <code>meuse</code>. En R, <code>gstat</code> calcula el variograma empírico y lo ajusta en dos líneas. En Python lo construimos paso a paso con numpy y scipy (los datos se cargan con <code>scikit-gstat</code>, que también tiene una clase <code>Variogram</code> lista para usar).</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> skgstat <span class="k">as</span> skg                      <span class="c"># solo para cargar los datos de Meuse</span>
+<span class="k">from</span> scipy.spatial.distance <span class="k">import</span> pdist
+<span class="k">from</span> scipy.optimize <span class="k">import</span> curve_fit
+
+meuse = skg.data.<span class="f">meuse</span>(variable=<span class="s">"zinc"</span>, as_dataframe=<span class="k">True</span>)[<span class="s">"sample"</span>]
+xy = meuse[[<span class="s">"x"</span>, <span class="s">"y"</span>]].<span class="f">to_numpy</span>(float)     <span class="c"># coordenadas en metros</span>
+z = np.<span class="f">log</span>(meuse[<span class="s">"v"</span>].<span class="f">to_numpy</span>(float))     <span class="c"># log del zinc (ppm)</span>
+
+<span class="c"># 1. Semivarianza de cada par: ½ (z_i − z_j)²</span>
+h = <span class="f">pdist</span>(xy)
+g = <span class="n">0.5</span> * <span class="f">pdist</span>(z[:, <span class="k">None</span>], <span class="s">"sqeuclidean"</span>)
+
+<span class="c"># 2. Variograma empírico: promedio por clases de distancia (15 clases hasta 1 600 m)</span>
+bordes = np.<span class="f">linspace</span>(<span class="n">0</span>, <span class="n">1600</span>, <span class="n">16</span>)
+k = np.<span class="f">digitize</span>(h, bordes) - <span class="n">1</span>
+clases = [k == j <span class="k">for</span> j <span class="k">in</span> <span class="f">range</span>(<span class="n">15</span>)]
+h_j = np.<span class="f">array</span>([h[c].<span class="f">mean</span>() <span class="k">for</span> c <span class="k">in</span> clases])
+g_j = np.<span class="f">array</span>([g[c].<span class="f">mean</span>() <span class="k">for</span> c <span class="k">in</span> clases])
+N_j = np.<span class="f">array</span>([c.<span class="f">sum</span>() <span class="k">for</span> c <span class="k">in</span> clases])
+<span class="f">print</span>(N_j[:<span class="n">3</span>], h_j[:<span class="n">3</span>].<span class="f">round</span>(), g_j[:<span class="n">3</span>].<span class="f">round</span>(<span class="n">3</span>))
+
+<span class="c"># 3. Modelo esférico con pepita, ajustado por mínimos cuadrados ponderados (pesos N_j / h_j²)</span>
+<span class="k">def</span> <span class="f">esferico</span>(h, c0, c, a):
+    r = np.<span class="f">minimum</span>(h / a, <span class="n">1</span>)
+    <span class="k">return</span> c0 + c * (<span class="n">1.5</span> * r - <span class="n">0.5</span> * r**<span class="n">3</span>)
+
+(c0, c, a), _ = <span class="f">curve_fit</span>(esferico, h_j, g_j, p0=[<span class="n">0.05</span>, <span class="n">0.6</span>, <span class="n">900</span>],
+                         sigma=h_j / np.<span class="f">sqrt</span>(N_j), bounds=([<span class="n">0</span>, <span class="n">0</span>, <span class="n">10</span>], [<span class="n">2</span>, <span class="n">2</span>, <span class="n">5000</span>]))
+<span class="f">print</span>(f<span class="s">"pepita={c0:.3f}  meseta parcial={c:.3f}  rango={a:.0f} m"</span>)
+<span class="f">print</span>(f<span class="s">"pepita / meseta = {c0 / (c0 + c):.1%}"</span>)</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(sp)
+<span class="f">library</span>(gstat)
+
+<span class="f">data</span>(meuse)
+<span class="f">coordinates</span>(meuse) &lt;- ~ x + y                 <span class="c"># coordenadas en metros</span>
+
+<span class="c"># 1. Nube de semivarianzas y variograma empírico (15 clases hasta 1 600 m)</span>
+nube &lt;- <span class="f">variogram</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, cloud = <span class="k">TRUE</span>)
+v &lt;- <span class="f">variogram</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, cutoff = <span class="n">1600</span>, width = <span class="n">1600</span> / <span class="n">15</span>)
+<span class="f">head</span>(v[, <span class="f">c</span>(<span class="s">"np"</span>, <span class="s">"dist"</span>, <span class="s">"gamma"</span>)], <span class="n">3</span>)        <span class="c"># 57 pares a ≈ 79 m con γ ≈ 0.123</span>
+
+<span class="c"># 2. Modelo esférico con pepita: valores iniciales leídos del gráfico</span>
+m0 &lt;- <span class="f">vgm</span>(psill = <span class="n">0.6</span>, model = <span class="s">"Sph"</span>, range = <span class="n">900</span>, nugget = <span class="n">0.05</span>)
+m &lt;- <span class="f">fit.variogram</span>(v, m0)                     <span class="c"># MCO ponderados, pesos N_j / h_j²</span>
+m                                             <span class="c"># pepita ≈ 0.051, meseta parcial ≈ 0.59, rango ≈ 897 m</span>
+
+<span class="f">plot</span>(v, m, main = <span class="s">"log(zinc): variograma esférico"</span>)
+
+<span class="c"># 3. ¿Hay anisotropía? Variogramas por dirección</span>
+<span class="f">plot</span>(<span class="f">variogram</span>(<span class="f">log</span>(zinc) ~ <span class="n">1</span>, meuse, alpha = <span class="f">c</span>(<span class="n">0</span>, <span class="n">45</span>, <span class="n">90</span>, <span class="n">135</span>)), m)</code></pre>
+</div>
+      <p>Ambos dan prácticamente el mismo modelo: pepita ≈ 0,05, meseta parcial ≈ 0,59 y rango ≈ 900 m (gstat itera los pesos y termina en 897 m; nuestro ajuste con pesos fijos, en 902 m). La proporción de pepita es de 8 %: dependencia espacial fuerte. Dos muestras de suelo a más de 900 m prácticamente no se informan entre sí; a 100 m, la semivarianza es menos de un tercio de la varianza total.</p>
+
+      <h2 id="variograma-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="La pepita es el salto en el origen: variación a escalas menores que la separación mínima entre muestras más el error de medición. Si duplicas el error de laboratorio, la pepita crece." data-wrong="Piensa qué representa el valor de γ cuando h tiende a 0. Si dos muestras casi en el mismo lugar difieren, ¿de dónde viene esa diferencia?">
+        <h3>¿Qué representa la pepita de un variograma?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La varianza total del proceso</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Error de medición y variación a escala menor que la distancia entre muestras</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>La distancia a la que los datos dejan de estar correlacionados</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La media del proceso</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Un variograma que sigue creciendo sin estabilizarse suele indicar una tendencia en la media (o un proceso sin varianza finita). Hay que modelar o quitar la tendencia antes de ajustar." data-wrong="Recuerda la definición con media constante. Si la media cambia de forma sistemática con la ubicación, ¿qué le pasa a la diferencia entre puntos lejanos?">
+        <h3>Tu variograma empírico crece de forma casi parabólica hasta la distancia máxima, sin estabilizarse. ¿Cuál es la explicación más probable?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La pepita es demasiado grande</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El modelo correcto es el esférico</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Hay una tendencia en la media que no se quitó</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Hay muy pocos pares en las primeras clases</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con γ(h) = σ² − C(h), una covarianza de 0,8 con varianza 1 corresponde a una semivarianza de 0,2." data-wrong="Usa la relación γ(h) = C(0) − C(h) y recuerda que C(0) es la varianza del proceso.">
+        <h3>Un proceso estacionario tiene varianza 1 y covarianza 0,8 a 200 m. ¿Cuánto vale γ(200 m)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,8</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>1,8</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>0,2</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="variograma-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Cuatro sondeos en línea, a 0, 1, 2 y 3 m, miden 3, 5, 4 y 8. Calcula a mano \(\hat\gamma(1)\), \(\hat\gamma(2)\) y \(\hat\gamma(3)\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(h = 1\): pares (3,5), (5,4), (4,8), con diferencias al cuadrado 4, 1 y 16. \(\hat\gamma(1) = 21/(2 \times 3) = \) <b>3,5</b>.</p><p>\(h = 2\): pares (3,4) y (5,8), con 1 y 9. \(\hat\gamma(2) = 10/(2 \times 2) =\) <b>2,5</b>.</p><p>\(h = 3\): un solo par (3,8), con 25. \(\hat\gamma(3) = 25/2 =\) <b>12,5</b>. Que \(\hat\gamma(2) &lt; \hat\gamma(1)\) y el salto en \(h = 3\) muestran por qué se necesitan muchos pares por clase: con uno o dos, el estimador es puro ruido.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con el modelo esférico de <code>meuse</code> (\(c_0 = 0{,}05\), \(c = 0{,}59\), \(a = 900\) m), calcula \(\gamma(450)\) y \(\gamma(1\,200)\), y la proporción de pepita. ¿Qué tipo de dependencia espacial indica?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Con \(h/a = 0{,}5\): \(1{,}5 \times 0{,}5 - 0{,}5 \times 0{,}125 = 0{,}6875\), así que \(\gamma(450) = 0{,}05 + 0{,}59 \times 0{,}6875 \approx\) <b>0,456</b>. Como 1 200 &gt; 900, \(\gamma(1\,200) = 0{,}05 + 0{,}59 =\) <b>0,64</b>, la meseta.</p><p>Proporción de pepita: \(0{,}05/0{,}64 \approx 7{,}8\,\%\), menor que 25 %: dependencia espacial <b>fuerte</b>.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>gstat ajustó un modelo exponencial <code>vgm(0.72, "Exp", 300)</code>, que significa \(\gamma(h) = 0{,}72\,(1 - e^{-h/300})\), sin pepita. ¿Cuál es su rango práctico? ¿Cuál es la covarianza entre dos puntos a 300 m y su correlación?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>El 95 % de la meseta se alcanza cuando \(1 - e^{-h/300} = 0{,}95\), es decir \(h = 300 \ln 20 \approx 3 \times 300 =\) <b>900 m</b> (con el 3 exacto, 1 − e⁻³ = 0,950).</p><p>\(C(300) = 0{,}72 - \gamma(300) = 0{,}72\,e^{-1} \approx\) <b>0,265</b>, y la correlación es \(e^{-1} \approx 0{,}37\). Comparar el parámetro 300 de gstat con el “rango” de un esférico de 900 m sería un error: ambos modelos tienen un rango práctico parecido.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Sobre una línea, \(Z(x) = \beta x + \varepsilon(x)\), donde los \(\varepsilon\) son independientes con varianza \(\sigma^2\) (sin dependencia espacial). (a) Deduce el variograma empírico esperado si lo calculas ignorando la tendencia. (b) ¿Qué vería un analista con \(\beta = 0{,}5\) y \(\sigma^2 = 1\)? (c) ¿Cómo corregirlo?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Para \(h &gt; 0\): \(Z(x + h) - Z(x) = \beta h + \varepsilon_1 - \varepsilon_2\). Su segundo momento es \(\beta^2 h^2 + 2\sigma^2\), así que</p><div class="eq">\[ \mathbb{E}\big[\hat\gamma(h)\big] = \sigma^2 + \frac{\beta^2 h^2}{2} \]</div><p>(b) Con \(\beta = 0{,}5\) y \(\sigma^2 = 1\): \(\gamma(h) = 1 + 0{,}125\,h^2\). El analista vería una pepita de 1 y una curva parabólica que no se estabiliza, y podría creer que hay dependencia espacial fuerte y suave (incluso ajustar un gaussiano con un rango enorme). En realidad el proceso <b>no tiene ninguna</b> dependencia: todo es tendencia más ruido blanco.</p><p>(c) Estima la tendencia (por ejemplo, regresión de \(Z\) sobre las coordenadas o covariables), calcula el variograma de los <b>residuos</b> (en gstat, <code>variogram(z ~ x, datos)</code>) y usa kriging universal o regresión-kriging. El variograma de los residuos sería plano: pura pepita.</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

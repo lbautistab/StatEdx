@@ -61,7 +61,7 @@
     $('cnn-in-lbl').textContent = C.p ? '16 × 16 + relleno → 18 × 18' : '16 × 16';
     const fin = R.pool || R.act, q = fin.length;
     $('cnn-out-lbl').textContent = R.pool ? `${m} × ${m} → pool ${q} × ${q}` : `${m} × ${m}`;
-    $('cnn-r-size').textContent = R.pool ? `${m}² → ${q} × ${q}` : `${m} × ${m}`;
+    $('cnn-r-size').textContent = R.pool ? `${m}×${m} → ${q}×${q}` : `${m} × ${m}`;
     $('cnn-r-val').textContent = sgn(R.act[i][j], 2);
     let nz = 0; fin.forEach(r => r.forEach(v => { if (Math.abs(v) > 1e-9) nz++; }));
     $('cnn-r-act').textContent = M.pct(nz / (q * q), 0);

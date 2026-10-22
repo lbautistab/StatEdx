@@ -1,0 +1,310 @@
+<!-- StatEdx · sesión: bayesreg -->
+<div id="view-bayesreg" data-view="bayesreg" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Regresión bayesiana</h1>
+      <p>La regresión que ya conoces, ahora con distribuciones en lugar de estimaciones puntuales. Aquí aprendes a poner priors sobre los coeficientes, a obtener su posterior, a predecir con bandas que distinguen la incertidumbre de la recta del ruido de cada observación y a reconocer que ridge es, en el fondo, una regresión bayesiana con prior normal.</p>
+      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: regresión múltiple y priors conjugados</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#bayesreg-idea" data-sec="bayesreg-idea">La idea</a></li>
+        <li><a href="#bayesreg-modelo" data-sec="bayesreg-modelo">Prior y posterior de los coeficientes</a></li>
+        <li><a href="#bayesreg-ridge" data-sec="bayesreg-ridge">La conexión con ridge</a></li>
+        <li><a href="#bayesreg-lab" data-sec="bayesreg-lab">Laboratorio: la recta</a></li>
+        <li><a href="#bayesreg-pred" data-sec="bayesreg-pred">Predicción con incertidumbre</a></li>
+        <li><a href="#bayesreg-poly" data-sec="bayesreg-poly">Regularizar un polinomio</a></li>
+        <li><a href="#bayesreg-practica" data-sec="bayesreg-practica">En la práctica</a></li>
+        <li><a href="#bayesreg-code" data-sec="bayesreg-code">Ejemplo en R y Python</a></li>
+        <li><a href="#bayesreg-quiz" data-sec="bayesreg-quiz">Comprueba</a></li>
+        <li><a href="#bayesreg-ej" data-sec="bayesreg-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="bayesreg-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una profesora quiere saber cuánto sube el puntaje de un examen por cada hora de estudio. Tiene solo 8 estudiantes, y la regresión por mínimos cuadrados dice 2,74 puntos por hora. Pero ella ha visto muchos cursos: un efecto de casi 3 puntos por hora le parece alto, y sabe que con 8 datos la pendiente puede bailar mucho. Además, lo que realmente le interesa es predecir: si un estudiante estudia 10 horas, ¿entre qué puntajes caerá?</p>
+      <p>La regresión bayesiana responde ambas cosas con el mismo mecanismo de siempre. Los coeficientes \(\boldsymbol\beta\) tienen un prior que resume lo que se sabía; los datos lo convierten en una posterior; y la predicción para un caso nuevo promedia sobre todas las rectas plausibles, no solo sobre la mejor.</p>
+      <div class="callout"><b>La idea central:</b> en lugar de una recta, obtienes una distribución de rectas. Su centro, con un prior normal, es exactamente la recta de ridge; su dispersión dice qué tan seguro puedes estar de la pendiente y de cada predicción.</div>
+
+      <h2 id="bayesreg-modelo"><span class="sec">§ 2</span>Prior y posterior de los coeficientes</h2>
+      <p>El modelo de datos es el de la regresión lineal, con \(\mathbf{X}\) la matriz de diseño (\(n \times p\), con una columna de unos para el intercepto):</p>
+      <div class="eq">\[ \mathbf{y} \mid \boldsymbol\beta, \sigma^2 \sim \mathcal{N}\big(\mathbf{X}\boldsymbol\beta,\ \sigma^2\mathbf{I}\big), \qquad \boldsymbol\beta \sim \mathcal{N}(\mathbf{m}_0,\ \boldsymbol\Sigma_0) \]
+        <div class="note">Empezamos con \(\sigma\) conocida para ver la estructura con claridad. El prior más común es \(\mathbf{m}_0 = \mathbf{0}\) y \(\boldsymbol\Sigma_0 = \tau^2\mathbf{I}\) para las pendientes (con predictores estandarizados) y un prior muy ancho o plano para el intercepto.</div>
+      </div>
+      <p>Como prior normal y verosimilitud normal son conjugados, la posterior es normal. En precisiones, se suman la información del prior y la de los datos:</p>
+      <div class="eq">\[ \boldsymbol\beta \mid \mathbf{y} \sim \mathcal{N}(\mathbf{m}_n, \boldsymbol\Sigma_n), \qquad \boldsymbol\Sigma_n^{-1} = \boldsymbol\Sigma_0^{-1} + \frac{1}{\sigma^2}\mathbf{X}^\top\mathbf{X}, \qquad \mathbf{m}_n = \boldsymbol\Sigma_n\left(\boldsymbol\Sigma_0^{-1}\mathbf{m}_0 + \frac{1}{\sigma^2}\mathbf{X}^\top\mathbf{y}\right) \]
+        <div class="note">Es la generalización matricial de la actualización Normal-Normal. \(\frac{1}{\sigma^2}\mathbf{X}^\top\mathbf{X}\) es la información de Fisher de los datos. Si el prior es plano (\(\boldsymbol\Sigma_0^{-1} = \mathbf{0}\)), \(\mathbf{m}_n = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}\) es el estimador de mínimos cuadrados y \(\boldsymbol\Sigma_n = \sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}\) su covarianza clásica.</div>
+      </div>
+      <p>Para una sola pendiente con \(x\) centrada, la fórmula se vuelve muy transparente. Con \(S_{xx} = \sum(x_i - \bar x)^2\), \(S_{xy} = \sum(x_i - \bar x)(y_i - \bar y)\), intercepto plano y \(\beta_1 \sim \mathcal{N}(0, \tau^2)\):</p>
+      <div class="eq">\[ E[\beta_1 \mid \mathbf{y}] = \frac{S_{xy}}{S_{xx} + \sigma^2/\tau^2} = \hat\beta_1^{\text{MCO}}\cdot\frac{S_{xx}}{S_{xx} + \sigma^2/\tau^2}, \qquad \operatorname{sd}(\beta_1 \mid \mathbf{y}) = \frac{\sigma}{\sqrt{S_{xx} + \sigma^2/\tau^2}} \]
+        <div class="note">El estimador clásico se multiplica por un factor menor que 1: se <b>encoge</b> hacia la media del prior (0). En el ejemplo de la profesora, \(S_{xx} = 92\), \(S_{xy} = 252\), \(\sigma = 4\) y \(\tau = 1\): la pendiente posterior es \(252/(92 + 16) = 2{,}33\) con desviación \(4/\sqrt{108} = 0{,}385\).</div>
+      </div>
+      <p><b>Si \(\sigma\) es desconocida</b>, el prior conjugado es la <b>Normal-Gamma inversa</b>: \(\boldsymbol\beta \mid \sigma^2 \sim \mathcal{N}(\mathbf{m}_0, \sigma^2\mathbf{V}_0)\) y \(\sigma^2 \sim \text{Gamma-Inv}(a_0, b_0)\). La posterior es de la misma familia, con \(\mathbf{V}_n = (\mathbf{V}_0^{-1} + \mathbf{X}^\top\mathbf{X})^{-1}\), \(\mathbf{m}_n = \mathbf{V}_n(\mathbf{V}_0^{-1}\mathbf{m}_0 + \mathbf{X}^\top\mathbf{y})\), \(a_n = a_0 + n/2\), y la marginal de cada coeficiente es una <b>t de Student</b>. Con priors no conjugados (por ejemplo, una media normal para \(\sigma\)) se usa MCMC, que es lo que hacen <code>rstanarm</code> y <code>brms</code>.</p>
+
+      <h2 id="bayesreg-ridge"><span class="sec">§ 3</span>La conexión con ridge</h2>
+      <p>Toma logaritmos de la posterior con prior \(\boldsymbol\beta \sim \mathcal{N}(\mathbf{0}, \tau^2\mathbf{I})\) y cambia el signo:</p>
+      <div class="eq">\[ -\log p(\boldsymbol\beta \mid \mathbf{y}) = \frac{1}{2\sigma^2}\,\lVert\mathbf{y} - \mathbf{X}\boldsymbol\beta\rVert^2 + \frac{1}{2\tau^2}\,\lVert\boldsymbol\beta\rVert^2 + \text{cte} \;\propto\; \lVert\mathbf{y} - \mathbf{X}\boldsymbol\beta\rVert^2 + \lambda\lVert\boldsymbol\beta\rVert^2, \qquad \lambda = \frac{\sigma^2}{\tau^2} \]
+        <div class="note">Maximizar la posterior (MAP) es minimizar la función objetivo de <b>ridge</b>. Como la posterior es normal, su moda coincide con su media: \(\hat{\boldsymbol\beta}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y} = \mathbf{m}_n\).</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Prior sobre cada \(\beta_j\)</th><th>Penalización equivalente (MAP)</th><th>Comportamiento</th></tr></thead>
+        <tbody>
+          <tr><td>Plano</td><td>Ninguna (MCO)</td><td>Sin encogimiento; inestable con muchos predictores o colinealidad.</td></tr>
+          <tr><td>Normal \(\mathcal{N}(0, \tau^2)\)</td><td>Ridge, \(\lambda\sum\beta_j^2\) con \(\lambda = \sigma^2/\tau^2\)</td><td>Encoge todos los coeficientes de forma suave; ninguno llega a cero.</td></tr>
+          <tr><td>Laplace (doble exponencial) de escala \(b\)</td><td>Lasso, \(\lambda\sum\lvert\beta_j\rvert\) con \(\lambda = 2\sigma^2/b\)</td><td>La moda pone coeficientes exactamente en cero; la media posterior no.</td></tr>
+          <tr><td>Horseshoe, spike-and-slab</td><td>Sin equivalente sencillo</td><td>Encoge fuerte el ruido y deja intactos los efectos grandes. Selección de variables bayesiana.</td></tr>
+        </tbody>
+      </table></div>
+      <p>La traducción tiene consecuencias prácticas en las dos direcciones. Un \(\lambda\) de ridge es un supuesto sobre el tamaño típico de los coeficientes: \(\tau = \sigma/\sqrt{\lambda}\). Y el enfoque bayesiano da algo que ridge no da: <b>incertidumbre</b> (intervalos de credibilidad para cada coeficiente y bandas de predicción), además de la posibilidad de aprender \(\tau\) de los datos poniéndole su propio prior, como en un modelo jerárquico.</p>
+      <div class="callout"><b>Error común:</b> penalizar predictores en escalas distintas. Un mismo prior \(\mathcal{N}(0, \tau^2)\) significa cosas muy diferentes para un coeficiente en pesos por gramo y en pesos por tonelada. Por eso, antes de ridge o de un prior común, se <b>estandarizan</b> los predictores. Y el intercepto no se penaliza (o recibe un prior propio, centrado en la media de \(y\)).</div>
+
+      <h2 id="bayesreg-lab"><span class="sec">§ 4</span>Laboratorio: la recta</h2>
+      <p>Los datos se generan con la recta verdadera \(y = 0{,}5 + 0{,}8\,x\) más ruido normal. El prior es \(\beta_0, \beta_1 \sim \mathcal{N}(0, \tau^2)\). A la izquierda ves 25 rectas sacadas de la posterior y la banda de predicción del 95 %; a la derecha, el plano de los parámetros: el prior (círculos), la posterior (elipses del 68 % y 95 %), la estimación de mínimos cuadrados (×) y el valor verdadero (+). Empieza con 1 punto y súbelos de a poco.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · posterior de la recta</span><span class="num" id="bayesreg-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="bayesreg-n">DATOS · n = <b id="bayesreg-n-v" class="num">5</b></label><input id="bayesreg-n" type="range" min="0" max="60" step="1" value="5"></div>
+            <div class="ctrl"><label for="bayesreg-tau">PRIOR · τ = <b id="bayesreg-tau-v" class="num">1,00</b></label><input id="bayesreg-tau" type="range" min="0.05" max="5" step="0.05" value="1"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="bayesreg-sig-label">RUIDO · σ</label>
+              <div class="seg" id="bayesreg-sig" role="group" aria-labelledby="bayesreg-sig-label">
+                <button data-s="0.5" aria-pressed="false">0,5</button>
+                <button data-s="1" aria-pressed="true">1</button>
+                <button data-s="2" aria-pressed="false">2</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="bayesreg-new" type="button">Nuevos datos</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Datos, rectas posteriores y banda del 95 %</span><span>┄ MCO</span></div>
+              <canvas class="plot" id="bayesreg-c-data" height="260" aria-label="Datos con rectas sacadas de la posterior y la banda de predicción del 95 %"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Plano (β₀, β₁)</span><span>○ prior · ● posterior · × MCO · + verdad</span></div>
+              <canvas class="plot" id="bayesreg-c-par" height="260" aria-label="Prior y posterior de los dos coeficientes en el plano de parámetros"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>media posterior β₁</span><b id="bayesreg-b1">–</b></div>
+            <div><span>IC 95 % de β₁</span><b id="bayesreg-ci">–</b></div>
+            <div><span>λ equivalente de ridge</span><b id="bayesreg-lam">–</b></div>
+            <div><span>sd predictiva en x = 3</span><b id="bayesreg-sdp">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con n = 0 solo ves el prior: rectas en todas direcciones. Cada dato nuevo estrecha la elipse; con 60 datos la posterior casi coincide con MCO. Baja τ a 0,1 y la posterior queda atrapada cerca de (0, 0) aunque los datos digan otra cosa: un prior demasiado fuerte.</figcaption>
+      </figure>
+
+      <h2 id="bayesreg-pred"><span class="sec">§ 5</span>Predicción con incertidumbre</h2>
+      <p>Para un caso nuevo con predictores \(\mathbf{x}_*\), la <b>predictiva posterior</b> promedia la distribución de \(y_*\) sobre la posterior de \(\boldsymbol\beta\). Con \(\sigma\) conocida es normal:</p>
+      <div class="eq">\[ y_* \mid \mathbf{x}_*, \mathbf{y} \sim \mathcal{N}\Big(\mathbf{x}_*^\top\mathbf{m}_n,\ \ \underbrace{\sigma^2}_{\text{ruido}} + \underbrace{\mathbf{x}_*^\top\boldsymbol\Sigma_n\mathbf{x}_*}_{\text{incertidumbre de la recta}}\Big) \]
+        <div class="note">El primer término no baja nunca: aunque conocieras la recta perfecta, cada persona tiene su propia variación. El segundo baja con más datos y <b>crece al alejarte</b> del centro de los \(x\) observados: por eso la banda tiene forma de trompeta. Si \(\sigma\) es desconocida, la predictiva es una t de Student, algo más ancha.</div>
+      </div>
+      <p>En el ejemplo de la profesora, para 10 horas de estudio: media \(49{,}04 + 2{,}333 \times 10 = 72{,}4\) puntos, desviación de la recta en ese punto 1,83 (la raíz del segundo término) y desviación predictiva \(\sqrt{16 + 1{,}83^2} = 4{,}40\). El intervalo predictivo del 95 % va de 63,8 a 81,0. Para 20 horas (fuera del rango observado) la media es 95,7 y la desviación sube a 6,6: la banda avisa que estás extrapolando.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Pregunta</th><th>Qué distribución usar</th><th>Ejemplo (10 horas)</th></tr></thead>
+        <tbody>
+          <tr><td>¿Cuál es el puntaje <b>medio</b> de quienes estudian 10 horas?</td><td>Posterior de \(\mathbf{x}_*^\top\boldsymbol\beta\)</td><td>72,4 ± 1,96 × 1,83 → [68,8 ; 76,0]</td></tr>
+          <tr><td>¿Qué puntaje sacará <b>este</b> estudiante que estudió 10 horas?</td><td>Predictiva posterior de \(y_*\)</td><td>72,4 ± 1,96 × 4,40 → [63,8 ; 81,0]</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Para recordar:</b> es la misma distinción que entre intervalo de confianza para la media e intervalo de predicción en la regresión clásica. La ventaja bayesiana es que la predictiva sale de simular: para cada muestra de la posterior, calculas \(\mathbf{x}_*^\top\boldsymbol\beta^{(s)}\) y le sumas un error \(\mathcal{N}(0, \sigma^{2(s)})\). Así funciona igual en modelos donde no hay fórmula.</div>
+
+      <h2 id="bayesreg-poly"><span class="sec">§ 6</span>Regularizar un polinomio</h2>
+      <p>El prior brilla cuando el modelo tiene más flexibilidad de la que los datos pueden sostener. Aquí ajustamos un polinomio de grado 9 (10 coeficientes) a solo 12 puntos de una curva seno con ruido. Sin prior, el polinomio pasa por casi todos los puntos y oscila de forma absurda. Con un prior \(\mathcal{N}(0, \tau^2)\) sobre cada coeficiente, la posterior se vuelve suave. Mueve \(\tau\) en escala logarítmica.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · polinomio de grado 9</span><span class="num" id="bayesreg-p-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="bayesreg-lt">PRIOR · τ = <b id="bayesreg-lt-v" class="num">1,00</b></label><input id="bayesreg-lt" type="range" min="-2" max="3" step="0.05" value="0"></div>
+            <div class="ctrl">
+              <label id="bayesreg-ppre-label">ATAJOS</label>
+              <div class="seg" id="bayesreg-ppre" role="group" aria-labelledby="bayesreg-ppre-label">
+                <button data-v="-1.5" aria-pressed="false">Muy fuerte</button>
+                <button data-v="0" aria-pressed="true">τ = 1</button>
+                <button data-v="3" aria-pressed="false">Casi plano</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="bayesreg-p-new" type="button">Nuevos datos</button>
+          </div>
+          <canvas class="plot" id="bayesreg-c-poly" height="260" aria-label="Polinomio de grado 9 ajustado con un prior normal sobre los coeficientes"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>media posterior y banda 95 %</span><span><i style="background:var(--muted)"></i>curva verdadera</span><span><i style="background:var(--hot)"></i>12 datos</span></div>
+          <div class="readout">
+            <div><span>λ = σ²/τ²</span><b id="bayesreg-p-lam">–</b></div>
+            <div><span>grados de libertad efectivos</span><b id="bayesreg-p-df">–</b></div>
+            <div><span>ECM entrenamiento</span><b id="bayesreg-p-tr">–</b></div>
+            <div><span>ECM respecto a la curva real</span><b id="bayesreg-p-te">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con el prior casi plano, el error de entrenamiento es mínimo pero la curva oscila y la banda explota entre los puntos: sobreajuste. Con un prior muy fuerte la curva se aplana: subajuste. Los grados de libertad efectivos, tr[X(XᵀX + λI)⁻¹Xᵀ], van de casi 10 a casi 0 y miden cuánta flexibilidad deja el prior.</figcaption>
+      </figure>
+      <p>Esto conecta con validación cruzada: elegir \(\lambda\) para minimizar el error de validación es una forma de elegir el prior mirando la capacidad predictiva. La alternativa bayesiana es poner un prior sobre \(\tau\) (o sobre \(\lambda\)) e integrarlo, o elegirlo maximizando la verosimilitud marginal \(p(\mathbf{y} \mid \tau)\), que es lo que hace <code>BayesianRidge</code> de scikit-learn.</p>
+
+      <h2 id="bayesreg-practica"><span class="sec">§ 7</span>En la práctica</h2>
+      <ul>
+        <li><b>Estandariza</b> los predictores y usa priors débilmente informativos: \(\beta_j \sim \mathcal{N}(0, 2{,}5^2)\) en la escala de \(y\) estandarizada es el valor por defecto de <code>rstanarm</code>, que reescala automáticamente los priors.</li>
+        <li><b>Para \(\sigma\)</b>, un prior exponencial o media normal en la escala de \(\operatorname{sd}(y)\) funciona bien. Con priors no conjugados se ajusta por MCMC: <code>stan_glm()</code> o <code>brm()</code> en R, PyMC o Bambi en Python.</li>
+        <li><b>Revisa la predictiva previa</b>: simula rectas del prior y comprueba que no predicen puntajes de −500 o de 10 000.</li>
+        <li><b>Revisa la predictiva posterior</b>: compara datos simulados del modelo ajustado con los reales (<code>pp_check()</code> en R). Si el modelo no reproduce la asimetría o los valores extremos, la verosimilitud normal puede no ser adecuada (prueba t de Student para errores robustos).</li>
+        <li><b>Con prior plano</b> y \(\sigma\) desconocida, los intervalos de credibilidad coinciden numéricamente con los intervalos de confianza clásicos. La diferencia está en la interpretación y en lo que puedes hacer después: probabilidades directas como \(P(\beta_1 &gt; 2 \mid \mathbf{y})\), predicciones simuladas y modelos jerárquicos.</li>
+      </ul>
+      <div class="callout"><b>Buenas prácticas:</b> reporta el prior junto con los resultados, y si la conclusión importa, muestra un análisis de sensibilidad con un prior más ancho. Con muchos datos y pocos predictores el prior apenas influye; con muchos predictores o datos escasos, es una parte central del modelo.</div>
+
+      <h2 id="bayesreg-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Los 8 estudiantes de la profesora. Suponemos \(\sigma = 4\) puntos (de cursos anteriores), intercepto con prior plano y pendiente con prior \(\mathcal{N}(0, 1^2)\): la profesora cree que cada hora rara vez aporta más de 2 puntos. Calculamos la posterior, la comparamos con MCO y ridge, y predecimos para 10 horas.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> LinearRegression, Ridge
+
+x = np.<span class="f">array</span>([<span class="n">2</span>, <span class="n">3</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">8</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">12.</span>])         <span class="c"># horas de estudio</span>
+y = np.<span class="f">array</span>([<span class="n">52</span>, <span class="n">55</span>, <span class="n">61</span>, <span class="n">60</span>, <span class="n">70</span>, <span class="n">68</span>, <span class="n">77</span>, <span class="n">80.</span>])    <span class="c"># puntaje</span>
+X = np.<span class="f">column_stack</span>([np.<span class="f">ones_like</span>(x), x])
+sigma, tau = <span class="n">4.0</span>, <span class="n">1.0</span>                               <span class="c"># ruido conocido; prior β1 ~ N(0, 1²)</span>
+
+<span class="c"># 1. Posterior conjugada: precisión 0 para el intercepto (plano), 1/τ² para la pendiente</span>
+P0 = np.<span class="f">diag</span>([<span class="n">0</span>, <span class="n">1</span> / tau**<span class="n">2</span>])
+Sn = np.linalg.<span class="f">inv</span>(X.T @ X / sigma**<span class="n">2</span> + P0)
+mn = Sn @ X.T @ y / sigma**<span class="n">2</span>
+sd = np.<span class="f">sqrt</span>(np.<span class="f">diag</span>(Sn))
+<span class="f">print</span>(mn, sd)                                       <span class="c"># [49.04 2.333]  [3.04 0.385]</span>
+<span class="f">print</span>(mn[<span class="n">1</span>] - <span class="n">1.96</span> * sd[<span class="n">1</span>], mn[<span class="n">1</span>] + <span class="n">1.96</span> * sd[<span class="n">1</span>])   <span class="c"># IC 95 % pendiente ≈ [1.58, 3.09]</span>
+
+<span class="c"># 2. Comparación: MCO y ridge con λ = σ²/τ² = 16</span>
+<span class="f">print</span>(<span class="f">LinearRegression</span>().<span class="f">fit</span>(x[:, <span class="k">None</span>], y).coef_)            <span class="c"># [2.739]</span>
+<span class="f">print</span>(<span class="f">Ridge</span>(alpha=sigma**<span class="n">2</span> / tau**<span class="n">2</span>).<span class="f">fit</span>(x[:, <span class="k">None</span>], y).coef_)   <span class="c"># [2.333] = media posterior</span>
+
+<span class="c"># 3. Predictiva posterior para 10 horas: dos fuentes de incertidumbre</span>
+xs = np.<span class="f">array</span>([<span class="n">1</span>, <span class="n">10.</span>])
+m = xs @ mn
+sd_par = np.<span class="f">sqrt</span>(xs @ Sn @ xs)                      <span class="c"># incertidumbre de la recta</span>
+sd_pred = np.<span class="f">sqrt</span>(sigma**<span class="n">2</span> + sd_par**<span class="n">2</span>)            <span class="c"># + ruido de un estudiante nuevo</span>
+<span class="f">print</span>(m, sd_par, sd_pred)                           <span class="c"># 72.4  1.83  4.40</span>
+<span class="f">print</span>(m - <span class="n">1.96</span> * sd_pred, m + <span class="n">1.96</span> * sd_pred)       <span class="c"># ≈ [63.8, 81.0]</span>
+
+<span class="c"># 4. Muestras de la posterior: probabilidades directas</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+betas = rng.<span class="f">multivariate_normal</span>(mn, Sn, size=<span class="n">4000</span>)
+<span class="f">print</span>((betas[:, <span class="n">1</span>] &gt; <span class="n">2</span>).<span class="f">mean</span>())                     <span class="c"># P(β1 &gt; 2 | y) ≈ 0.81</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">2</span>, <span class="n">3</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">8</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">12</span>)          <span class="c"># horas de estudio</span>
+y &lt;- <span class="f">c</span>(<span class="n">52</span>, <span class="n">55</span>, <span class="n">61</span>, <span class="n">60</span>, <span class="n">70</span>, <span class="n">68</span>, <span class="n">77</span>, <span class="n">80</span>)     <span class="c"># puntaje</span>
+X &lt;- <span class="f">cbind</span>(<span class="n">1</span>, x)
+sigma &lt;- <span class="n">4</span>; tau &lt;- <span class="n">1</span>
+
+<span class="c"># 1. Posterior conjugada (intercepto plano, pendiente N(0, 1²))</span>
+P0 &lt;- <span class="f">diag</span>(<span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span> / tau^<span class="n">2</span>))
+Sn &lt;- <span class="f">solve</span>(<span class="f">t</span>(X) %*% X / sigma^<span class="n">2</span> + P0)
+mn &lt;- Sn %*% <span class="f">t</span>(X) %*% y / sigma^<span class="n">2</span>
+<span class="f">cbind</span>(media = mn, sd = <span class="f">sqrt</span>(<span class="f">diag</span>(Sn)))         <span class="c"># 49.04 (3.04)  2.333 (0.385)</span>
+mn[<span class="n">2</span>] + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * <span class="n">1.96</span> * <span class="f">sqrt</span>(Sn[<span class="n">2</span>, <span class="n">2</span>])           <span class="c"># ≈ 1.58  3.09</span>
+
+<span class="c"># 2. MCO y ridge a mano con λ = σ²/τ² (x centrada, intercepto sin penalizar)</span>
+<span class="f">coef</span>(<span class="f">lm</span>(y ~ x))[<span class="s">"x"</span>]                          <span class="c"># 2.739</span>
+xc &lt;- x - <span class="f">mean</span>(x)
+<span class="f">sum</span>(xc * (y - <span class="f">mean</span>(y))) / (<span class="f">sum</span>(xc^<span class="n">2</span>) + sigma^<span class="n">2</span> / tau^<span class="n">2</span>)   <span class="c"># 2.333</span>
+
+<span class="c"># 3. Predictiva posterior para 10 horas</span>
+xs &lt;- <span class="f">c</span>(<span class="n">1</span>, <span class="n">10</span>)
+m &lt;- <span class="f">sum</span>(xs * mn)
+sd_pred &lt;- <span class="f">sqrt</span>(sigma^<span class="n">2</span> + <span class="f">t</span>(xs) %*% Sn %*% xs)
+<span class="f">c</span>(m, sd_pred, m - <span class="n">1.96</span> * sd_pred, m + <span class="n">1.96</span> * sd_pred)   <span class="c"># 72.4  4.40  63.8  81.0</span>
+<span class="f">pnorm</span>(<span class="n">2</span>, mn[<span class="n">2</span>], <span class="f">sqrt</span>(Sn[<span class="n">2</span>, <span class="n">2</span>]), lower.tail = <span class="k">FALSE</span>)   <span class="c"># P(β1 &gt; 2 | y) ≈ 0.81</span>
+
+<span class="c"># 4. Con σ desconocida, por MCMC (Stan)</span>
+<span class="f">library</span>(rstanarm)
+fit &lt;- <span class="f">stan_glm</span>(y ~ x, data = <span class="f">data.frame</span>(x, y),
+                prior = <span class="f">normal</span>(<span class="n">0</span>, <span class="n">1</span>), prior_intercept = <span class="f">normal</span>(<span class="n">60</span>, <span class="n">50</span>),
+                prior_aux = <span class="f">exponential</span>(<span class="n">1</span> / <span class="n">5</span>), seed = <span class="n">1</span>)
+<span class="f">posterior_interval</span>(fit, prob = <span class="n">0.95</span>)
+<span class="f">posterior_predict</span>(fit, newdata = <span class="f">data.frame</span>(x = <span class="n">10</span>)) |&gt; <span class="f">quantile</span>(<span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))</code></pre>
+      </div>
+      <p><b>Cómo leerlo.</b> El prior escéptico baja la pendiente de 2,74 (MCO) a 2,33 puntos por hora, con IC 95 % de 1,58 a 3,09; ridge con \(\lambda = 16\) da exactamente la misma estimación puntual. La probabilidad de que cada hora aporte más de 2 puntos es 0,81. Para un estudiante que estudia 10 horas, el puntaje esperado es 72,4 y el intervalo predictivo va de 63,8 a 81,0: la mayor parte de ese ancho viene del ruido individual (σ = 4), no de la incertidumbre de la recta (1,83). Con <code>stan_glm</code>, que además estima σ, los números cambian algo porque los datos sugieren un ruido menor que 4.</p>
+
+      <h2 id="bayesreg-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="λ = σ²/τ² = 2²/0,5² = 4/0,25 = 16. Un prior más estrecho (τ chico) o más ruido (σ grande) equivale a una penalización más fuerte." data-wrong="La equivalencia sale de comparar −log posterior con la función objetivo de ridge: λ es el cociente entre la varianza del ruido y la varianza del prior.">
+        <h3>Con ruido σ = 2 y prior βⱼ ~ N(0; 0,5²), ¿qué penalización de ridge da la misma estimación que la media posterior?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>λ = 0,25</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>λ = 1</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>λ = 4</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>λ = 16</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La varianza predictiva es σ² + x*ᵀΣₙx*. El segundo término, la incertidumbre de la recta, crece al alejarse del centro de los datos, mientras que σ² es constante." data-wrong="Separa la varianza predictiva en sus dos partes. ¿Cuál depende de x* y cómo cambia al alejarte de los datos observados?">
+        <h3>¿Por qué la banda de predicción bayesiana se ensancha al alejarse de los datos observados?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque el ruido σ aumenta con x</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Porque crece el término de incertidumbre de la recta, x*ᵀΣₙx*</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque el prior pesa más en los extremos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Por un error de redondeo en la matriz inversa</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La precisión de los datos, XᵀX/σ², crece con n y termina dominando a la precisión fija del prior. La posterior se concentra alrededor del estimador de mínimos cuadrados." data-wrong="Mira la fórmula Σₙ⁻¹ = Σ₀⁻¹ + XᵀX/σ². ¿Qué término crece con el número de datos y cuál permanece fijo?">
+        <h3>Con un prior N(0, τ²) fijo, ¿qué pasa con la media posterior de los coeficientes cuando n crece mucho?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Se acerca a la estimación de mínimos cuadrados</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Se acerca a 0, la media del prior</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Queda a medio camino entre el prior y MCO</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Depende solo de τ</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="bayesreg-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Usa los datos de la profesora: \(S_{xx} = 92\), \(S_{xy} = 252\), \(\sigma = 4\).</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Repite el cálculo de la pendiente posterior con un prior más escéptico, \(\beta_1 \sim \mathcal{N}(0;\ 0{,}5^2)\). Da la media, la desviación y compárala con \(\tau = 1\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(\lambda = 16/0{,}25 = 64\). Media: \(252/(92 + 64) = 252/156 \approx\) <b>1,62</b>. Desviación: \(4/\sqrt{156} \approx\) <b>0,32</b>. Con \(\tau = 1\) era 2,33 (0,385): el prior más estrecho tira más hacia 0 y también reduce la incertidumbre, porque aporta más información. Que la media cambie tanto indica que, con 8 datos, el prior importa.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Para 10 horas de estudio, la media predictiva es 72,4 y la desviación de la recta es 1,83. Calcula el intervalo predictivo del 95 % con \(\sigma = 4\) y compáralo con el que obtendrías ignorando la incertidumbre de la recta.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Desviación predictiva: \(\sqrt{4^2 + 1{,}83^2} = \sqrt{19{,}35} \approx 4{,}40\). Intervalo: \(72{,}4 \pm 1{,}96 \times 4{,}40 =\) <b>[63,8 ; 81,0]</b>. Ignorando la recta: \(72{,}4 \pm 1{,}96 \times 4 = [64{,}6 ; 80{,}2]\). La diferencia es pequeña cerca del centro de los datos, pero crece mucho al extrapolar.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Comprueba con código que ridge con \(\lambda = \sigma^2/\tau^2\) reproduce la media posterior para \(\tau \in \{0{,}25;\ 0{,}5;\ 1;\ 10\}\), y calcula en cada caso el factor de encogimiento \(S_{xx}/(S_{xx} + \lambda)\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Los factores son 0,264; 0,590; 0,852 y 0,998, y las pendientes 0,72; 1,62; 2,33 y 2,73. Con \(\tau = 10\) el prior es casi plano y se recupera MCO.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> Ridge
+x = np.<span class="f">array</span>([<span class="n">2</span>, <span class="n">3</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">8</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">12.</span>]); y = np.<span class="f">array</span>([<span class="n">52</span>, <span class="n">55</span>, <span class="n">61</span>, <span class="n">60</span>, <span class="n">70</span>, <span class="n">68</span>, <span class="n">77</span>, <span class="n">80.</span>])
+sxx = np.<span class="f">sum</span>((x - x.<span class="f">mean</span>())**<span class="n">2</span>); sxy = np.<span class="f">sum</span>((x - x.<span class="f">mean</span>()) * (y - y.<span class="f">mean</span>()))
+<span class="k">for</span> tau <span class="k">in</span> [<span class="n">0.25</span>, <span class="n">0.5</span>, <span class="n">1</span>, <span class="n">10</span>]:
+    lam = <span class="n">16</span> / tau**<span class="n">2</span>
+    post = sxy / (sxx + lam)
+    ridge = <span class="f">Ridge</span>(alpha=lam).<span class="f">fit</span>(x[:, <span class="k">None</span>], y).coef_[<span class="n">0</span>]
+    <span class="f">print</span>(tau, <span class="f">round</span>(sxx / (sxx + lam), <span class="n">3</span>), <span class="f">round</span>(post, <span class="n">3</span>), <span class="f">round</span>(ridge, <span class="n">3</span>))
+<span class="c"># 0.25 0.264 0.724 0.724 | 0.5 0.59 1.615 1.615 | 1 0.852 2.333 2.333 | 10 0.998 2.734 2.734</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">2</span>, <span class="n">3</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">8</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">12</span>); y &lt;- <span class="f">c</span>(<span class="n">52</span>, <span class="n">55</span>, <span class="n">61</span>, <span class="n">60</span>, <span class="n">70</span>, <span class="n">68</span>, <span class="n">77</span>, <span class="n">80</span>)
+sxx &lt;- <span class="f">sum</span>((x - <span class="f">mean</span>(x))^<span class="n">2</span>); sxy &lt;- <span class="f">sum</span>((x - <span class="f">mean</span>(x)) * (y - <span class="f">mean</span>(y)))
+<span class="k">for</span> (tau <span class="k">in</span> <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.5</span>, <span class="n">1</span>, <span class="n">10</span>)) {
+  lam &lt;- <span class="n">16</span> / tau^<span class="n">2</span>
+  <span class="c"># ridge a mano: minimiza la suma de cuadrados + lam * b^2 con x centrada</span>
+  ridge &lt;- <span class="f">optimize</span>(<span class="k">function</span>(b) <span class="f">sum</span>((y - <span class="f">mean</span>(y) - b * (x - <span class="f">mean</span>(x)))^<span class="n">2</span>) + lam * b^<span class="n">2</span>, <span class="f">c</span>(-<span class="n">10</span>, <span class="n">10</span>))$minimum
+  <span class="f">print</span>(<span class="f">round</span>(<span class="f">c</span>(tau, sxx / (sxx + lam), sxy / (sxx + lam), ridge), <span class="n">3</span>))
+}</code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>(a) ¿Qué valor de \(\tau\) hace que la media posterior de la pendiente quede exactamente a mitad de camino entre 0 y el estimador MCO? (b) Interpreta ese prior: ¿cuánto “vale” en datos? (c) Explica por qué, con 80 estudiantes en lugar de 8 (y el mismo patrón), ese mismo prior encogería mucho menos.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) El factor \(S_{xx}/(S_{xx} + \lambda)\) vale ½ cuando \(\lambda = S_{xx} = 92\), es decir \(\tau = \sigma/\sqrt{92} = 4/9{,}59 \approx\) <b>0,42</b>. (b) El prior aporta tanta precisión sobre la pendiente como los 8 datos: \(1/\tau^2 = S_{xx}/\sigma^2\). (c) Con 80 estudiantes repartidos igual, \(S_{xx}\) se multiplica por 10 (920), mientras \(\lambda = 92\) no cambia: el factor sube a \(920/1\,012 \approx 0{,}91\). La información del prior es fija; la de los datos crece con \(n\).</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

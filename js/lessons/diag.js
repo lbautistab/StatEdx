@@ -9,7 +9,7 @@
   const niceStep = span => { const raw = span / 5, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; };
   const decs = step => step >= 1 ? 0 : step >= 0.1 ? 1 : 2;
 
-  const N = 30;
+  const N = 40;
   const S = { esc: 'ok', tr: 'y', plot: 'res', base: null, P: null, yr: null, xform: null };
   function newData() {
     S.base = Array.from({ length: N }, () => ({ x: 1 + Math.random() * 19, z: randn(), c: (randn() ** 2 + randn() ** 2 + randn() ** 2) / 3 }));
@@ -18,7 +18,7 @@
   function rawY(b) {
     let y;
     if (S.esc === 'curva') y = 4 + 0.2 * b.x + 0.07 * b.x * b.x + 1.6 * b.z;
-    else if (S.esc === 'embudo') y = 8 * Math.exp(0.08 * b.x + 0.28 * b.z);
+    else if (S.esc === 'embudo') y = 6 * Math.exp(0.12 * b.x + 0.25 * b.z);
     else if (S.esc === 'colas') y = 12 + 1.2 * b.x + 2.2 * b.z / Math.sqrt(Math.max(b.c, 0.02)) * 0.6;
     else y = 12 + 1.2 * b.x + 3 * b.z;
     return Math.max(y, 0.5);
@@ -57,7 +57,7 @@
     $('diag-r-b').textContent = `${sgn(F.b1, 3)} (${sgn(f0.b1, 3)})`;
     $('diag-r-h').textContent = fmt(F.h[iP], 3);
     $('diag-r-d').textContent = fmt(F.D[iP], F.D[iP] >= 10 ? 1 : 2);
-    $('diag-r-bp').textContent = pfmt(F.bp);
+    $('diag-r-bp').textContent = pfmt(f0.bp);
     $('diag-head').textContent = `umbral de h = 2(p+1)/n = ${fmt(4 / pts.length, 3)}`;
     $('diag-lbl-y').textContent = S.tr === 'log' ? 'escala de log y' : 'escala de y';
     const accent = tok('--accent'), hot = tok('--hot'), ink = tok('--ink'), muted = tok('--muted'), line = tok('--line'), bg = tok('--bg');

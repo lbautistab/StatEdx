@@ -71,7 +71,7 @@
     $('logrank-p').textContent = p < 0.001 ? '< 0,001' : fmt(p, 3);
     const hr = (LR.res.O1 / LR.res.E1) / (LR.res.O0 / LR.res.E0);
     $('logrank-hrhat').textContent = isFinite(hr) ? fmt(hr, 2) : '–';
-    $('logrank-pw').textContent = LR.power == null ? 'pulsa el botón' : pct(LR.power, 0);
+    $('logrank-pw').textContent = LR.power == null ? '–' : pct(LR.power, 0);
     const nm = { ph: 'proporcional', cross: 'se cruzan en 6 m', late: 'efecto desde 8 m' }[LR.sc];
     $('logrank-head').textContent = `${nm} · O/E nuevo = ${Math.round(LR.res.O1)}/${fmt(LR.res.E1, 1)}`;
     drawLR();
