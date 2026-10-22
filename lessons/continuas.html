@@ -1,0 +1,300 @@
+<!-- StatEdx · sesión: continuas -->
+<div id="view-continuas" data-view="continuas" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Distribuciones continuas</h1>
+      <p>Tiempos de espera, duraciones, proporciones: cuando una variable puede tomar cualquier valor en un intervalo, la probabilidad se reparte como un área bajo una curva. Aquí aprendes a leer densidades, acumuladas y cuantiles, y conoces cuatro distribuciones clave (uniforme, exponencial, gamma y beta) y las relaciones que las unen.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: distribuciones discretas</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#continuas-idea" data-sec="continuas-idea">La idea</a></li>
+        <li><a href="#continuas-densidad" data-sec="continuas-densidad">Densidad, acumulada y cuantiles</a></li>
+        <li><a href="#continuas-unifexp" data-sec="continuas-unifexp">Uniforme y exponencial</a></li>
+        <li><a href="#continuas-gamma" data-sec="continuas-gamma">Gamma</a></li>
+        <li><a href="#continuas-beta" data-sec="continuas-beta">Beta</a></li>
+        <li><a href="#continuas-lab" data-sec="continuas-lab">Laboratorio: explora las curvas</a></li>
+        <li><a href="#continuas-rel" data-sec="continuas-rel">Relaciones entre distribuciones</a></li>
+        <li><a href="#continuas-code" data-sec="continuas-code">En R y Python</a></li>
+        <li><a href="#continuas-quiz" data-sec="continuas-quiz">Comprueba</a></li>
+        <li><a href="#continuas-ej" data-sec="continuas-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="continuas-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Un bus pasa cada 15 minutos y llegas a la parada sin mirar el horario. Tu espera puede ser 3 minutos, 7,2 minutos o 11,834 minutos: cualquier número entre 0 y 15. ¿Cuál es la probabilidad de esperar <i>exactamente</i> 7 minutos? Cero. Hay infinitos valores posibles y ninguno se lleva probabilidad por sí solo.</p>
+      <p>Lo que sí tiene sentido es preguntar por intervalos: la probabilidad de esperar más de 10 minutos es \(5/15 = 1/3\), porque ese tramo ocupa un tercio del intervalo. En una variable continua la probabilidad no vive en los puntos, vive en los <b>intervalos</b>, y se calcula como un área bajo una curva llamada <b>densidad</b>.</p>
+      <div class="callout"><b>La idea central:</b> en lo discreto sumas probabilidades \(P(X = k)\); en lo continuo integras una densidad \(f(x)\). Casi todo lo que aprendiste (media, varianza, acumulada) se traduce cambiando sumas por integrales.</div>
+
+      <h2 id="continuas-densidad"><span class="sec">§ 2</span>Densidad, acumulada y cuantiles</h2>
+      <p>Una variable continua \(X\) tiene una <b>función de densidad</b> \(f\) con \(f(x) \ge 0\) y área total 1. Las probabilidades son áreas:</p>
+      <div class="eq">\[ P(a \le X \le b) = \int_a^b f(x)\,dx, \qquad \int_{-\infty}^{\infty} f(x)\,dx = 1, \qquad P(X = x) = 0 \]
+        <div class="note">Como los puntos no tienen probabilidad, da igual escribir \(&lt;\) o \(\le\). La densidad sí puede ser mayor que 1 (una uniforme en \([0;\ 0{,}5]\) vale 2): no es una probabilidad, es probabilidad <i>por unidad</i> de \(x\). Para \(h\) pequeño, \(P(x \le X \le x + h) \approx f(x)\,h\).</div>
+      </div>
+      <p>La <b>función de distribución acumulada</b> \(F(x) = P(X \le x)\) acumula el área desde la izquierda. Es creciente, va de 0 a 1 y su derivada es la densidad. Con ella cualquier intervalo sale de una resta:</p>
+      <div class="eq">\[ F(x) = \int_{-\infty}^{x} f(t)\,dt, \qquad f(x) = F'(x), \qquad P(a &lt; X \le b) = F(b) - F(a) \]</div>
+      <p>La media y la varianza se definen como en el caso discreto, con integrales:</p>
+      <div class="eq">\[ E[X] = \int x\,f(x)\,dx, \qquad \operatorname{Var}(X) = \int (x - \mu)^2 f(x)\,dx = E[X^2] - \mu^2 \]</div>
+      <p>El <b>cuantil</b> \(p\) es el valor \(x_p = F^{-1}(p)\) que deja probabilidad \(p\) a su izquierda; la mediana es \(x_{0{,}5}\). La función cuantil tiene un uso muy práctico, el <b>método de la transformada inversa</b>: si \(U \sim \text{U}(0, 1)\), entonces \(F^{-1}(U)\) tiene distribución \(F\). Así se simula cualquier distribución con una acumulada invertible a partir de números aleatorios uniformes.</p>
+      <div class="callout"><b>Error común:</b> leer la altura de la densidad como probabilidad. Que \(f(2) = 0{,}4\) no significa que \(P(X = 2) = 0{,}4\); significa que cerca de 2 hay, aproximadamente, 0,4 de probabilidad por cada unidad de ancho.</div>
+
+      <h2 id="continuas-unifexp"><span class="sec">§ 3</span>Uniforme y exponencial</h2>
+      <p><b>Uniforme</b> \(X \sim \text{U}(a, b)\): todos los subintervalos de igual largo tienen la misma probabilidad. Es el modelo de la espera del bus, de los errores de redondeo y la materia prima de toda simulación.</p>
+      <div class="eq">\[ f(x) = \frac{1}{b - a},\ a \le x \le b, \qquad F(x) = \frac{x - a}{b - a}, \qquad E[X] = \frac{a + b}{2}, \qquad \operatorname{Var}(X) = \frac{(b - a)^2}{12} \]</div>
+      <p><b>Exponencial</b> \(T \sim \text{Exp}(\lambda)\): el tiempo hasta el próximo evento cuando los eventos ocurren al azar a una tasa \(\lambda\) constante, como en la Poisson. Si llegan 4,5 reclamos por hora, el tiempo entre reclamos es \(\text{Exp}(4{,}5)\), con media \(1/4{,}5\) h \(\approx 13{,}3\) minutos.</p>
+      <div class="eq">\[ f(t) = \lambda e^{-\lambda t},\ t \ge 0, \qquad F(t) = 1 - e^{-\lambda t}, \qquad E[T] = \frac{1}{\lambda}, \qquad \operatorname{Var}(T) = \frac{1}{\lambda^2} \]
+        <div class="note">La conexión con la Poisson es directa: esperar más de \(t\) equivale a que en \([0, t]\) no ocurra ningún evento, y \(P(N(t) = 0) = e^{-\lambda t}\). La mediana es \(\ln 2/\lambda \approx 0{,}69/\lambda\), menor que la media: la exponencial tiene una cola larga a la derecha.</div>
+      </div>
+      <p>Igual que la geométrica en lo discreto, la exponencial <b>no tiene memoria</b>: \(P(T &gt; s + t \mid T &gt; s) = e^{-\lambda t} = P(T &gt; t)\). Una ampolleta con vida exponencial que ya funcionó 1 000 horas es “como nueva”. Por eso la exponencial modela bien fallas al azar, pero mal el desgaste; para eso se usan la Weibull o la gamma, que verás en supervivencia.</p>
+      <p>Otra propiedad útil: si \(T_1 \sim \text{Exp}(\lambda_1)\) y \(T_2 \sim \text{Exp}(\lambda_2)\) son independientes, el primero en ocurrir, \(\min(T_1, T_2)\), es \(\text{Exp}(\lambda_1 + \lambda_2)\). Dos cajas que atienden a tasa 3 por hora cada una liberan a alguien a tasa 6 por hora.</p>
+
+      <h2 id="continuas-gamma"><span class="sec">§ 4</span>Gamma</h2>
+      <p>Si la exponencial es el tiempo hasta el primer evento, la <b>gamma</b> con forma entera \(\alpha = k\) es el tiempo hasta el \(k\)-ésimo: la suma de \(k\) exponenciales independientes. En general, para forma \(\alpha &gt; 0\) y tasa \(\beta &gt; 0\):</p>
+      <div class="eq">\[ f(x) = \frac{\beta^{\alpha}}{\Gamma(\alpha)}\,x^{\alpha - 1}e^{-\beta x},\ x &gt; 0, \qquad E[X] = \frac{\alpha}{\beta}, \qquad \operatorname{Var}(X) = \frac{\alpha}{\beta^2} \]
+        <div class="note">\(\Gamma(\alpha) = \int_0^\infty t^{\alpha-1}e^{-t}dt\) generaliza el factorial: \(\Gamma(k) = (k-1)!\). Con \(\alpha = 1\) la gamma es la exponencial. Con \(\alpha &lt; 1\) la densidad se dispara en 0; con \(\alpha &gt; 1\) tiene una moda en \((\alpha - 1)/\beta\); al crecer \(\alpha\) se vuelve cada vez más simétrica.</div>
+      </div>
+      <ul>
+        <li><b>Suma:</b> si \(X_1 \sim \text{Gamma}(\alpha_1, \beta)\) y \(X_2 \sim \text{Gamma}(\alpha_2, \beta)\) son independientes, \(X_1 + X_2 \sim \text{Gamma}(\alpha_1 + \alpha_2, \beta)\).</li>
+        <li><b>Chi-cuadrado:</b> \(\chi^2_\nu = \text{Gamma}(\nu/2,\ 1/2)\). La distribución de las pruebas chi-cuadrado y de las varianzas muestrales es un caso de la gamma.</li>
+        <li><b>Escala:</b> si \(X \sim \text{Gamma}(\alpha, \beta)\), entonces \(cX \sim \text{Gamma}(\alpha, \beta/c)\). Cambiar de horas a minutos solo cambia la tasa.</li>
+      </ul>
+      <div class="callout"><b>Cuidado con la parametrización:</b> se usa con <i>tasa</i> \(\beta\) o con <i>escala</i> \(\theta = 1/\beta\). En R, <code>dgamma(x, shape, rate)</code> acepta ambas (<code>rate</code> o <code>scale</code>); en SciPy, <code>stats.gamma(a, scale=1/β)</code> solo acepta escala. Lo mismo pasa con la exponencial: <code>stats.expon(scale=1/λ)</code>.</div>
+
+      <h2 id="continuas-beta"><span class="sec">§ 5</span>Beta</h2>
+      <p>La <b>beta</b> vive en \([0, 1]\), así que es el modelo natural para proporciones y probabilidades: la tasa de conversión de una página, la fracción de un día que una máquina está ocupada, la nota relativa de un examen.</p>
+      <div class="eq">\[ f(x) = \frac{x^{\alpha - 1}(1 - x)^{\beta - 1}}{B(\alpha, \beta)},\ 0 &lt; x &lt; 1, \qquad E[X] = \frac{\alpha}{\alpha + \beta}, \qquad \operatorname{Var}(X) = \frac{\alpha\beta}{(\alpha + \beta)^2(\alpha + \beta + 1)} \]
+        <div class="note">\(B(\alpha, \beta) = \Gamma(\alpha)\Gamma(\beta)/\Gamma(\alpha + \beta)\) es una constante de normalización. Con \(\alpha = \beta = 1\) es la uniforme; con \(\alpha = \beta &gt; 1\), una campana simétrica en 0,5; con \(\alpha, \beta &lt; 1\), forma de U; si \(\alpha &gt; \beta\), la masa se corre hacia 1.</div>
+      </div>
+      <p>Su flexibilidad la hace el prior por defecto para proporciones en estadística bayesiana. Además aparece sola en dos lugares: si \(X \sim \text{Gamma}(\alpha, 1)\) e \(Y \sim \text{Gamma}(\beta, 1)\) son independientes, \(X/(X+Y) \sim \text{Beta}(\alpha, \beta)\); y el \(k\)-ésimo menor de \(n\) uniformes independientes es \(\text{Beta}(k,\ n - k + 1)\). Por ejemplo, el máximo de 5 uniformes es \(\text{Beta}(5, 1)\).</p>
+
+      <h2 id="continuas-lab"><span class="sec">§ 6</span>Laboratorio: explora las curvas</h2>
+      <p>Elige una distribución y mueve sus parámetros. La zona sombreada es \(P(X \le x)\) para el valor \(x\) que elijas; en la vista “Acumulada” esa misma probabilidad es la altura de la curva. La línea punteada marca la media.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · densidad y acumulada</span><span class="num" id="continuas-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="continuas-dist-label">DISTRIBUCIÓN</label>
+              <div class="seg" id="continuas-dist" role="group" aria-labelledby="continuas-dist-label">
+                <button data-d="uni" aria-pressed="false">Uniforme</button>
+                <button data-d="exp" aria-pressed="false">Exponencial</button>
+                <button data-d="gam" aria-pressed="true">Gamma</button>
+                <button data-d="bet" aria-pressed="false">Beta</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="continuas-view-label">VISTA</label>
+              <div class="seg" id="continuas-view" role="group" aria-labelledby="continuas-view-label">
+                <button data-v="pdf" aria-pressed="true">Densidad</button>
+                <button data-v="cdf" aria-pressed="false">Acumulada</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl" id="continuas-p1-wrap"><label for="continuas-p1"><span id="continuas-p1-name">FORMA · α</span> = <b id="continuas-p1-v" class="num">2</b></label><input id="continuas-p1" type="range" min="0.5" max="10" step="0.5" value="2"></div>
+            <div class="ctrl" id="continuas-p2-wrap"><label for="continuas-p2"><span id="continuas-p2-name">TASA · β</span> = <b id="continuas-p2-v" class="num">0,5</b></label><input id="continuas-p2" type="range" min="0.25" max="3" step="0.25" value="0.5"></div>
+            <div class="ctrl"><label for="continuas-x">VALOR · x = <b id="continuas-x-v" class="num">–</b></label><input id="continuas-x" type="range" min="0" max="1000" value="250"></div>
+          </div>
+          <canvas class="plot" id="continuas-c-pdf" height="260" aria-label="Densidad o función acumulada de la distribución elegida con el área hasta x sombreada"></canvas>
+          <div class="readout">
+            <div><span>media</span><b id="continuas-mean">–</b></div>
+            <div><span>desviación típica</span><b id="continuas-sd">–</b></div>
+            <div><span>P(X ≤ x)</span><b id="continuas-cdf">–</b></div>
+            <div><span>mediana</span><b id="continuas-med">–</b></div>
+          </div>
+        </div>
+        <figcaption>En la gamma, deja la tasa fija y sube la forma: la media crece como α/β y la curva se vuelve casi simétrica. Con forma 1 obtienes la exponencial. En la beta, prueba α = β = 1 (uniforme), α = β = 0,5 (forma de U) y α = 8, β = 2 (masa cerca de 1).</figcaption>
+      </figure>
+
+      <h2 id="continuas-rel"><span class="sec">§ 7</span>Relaciones entre distribuciones</h2>
+      <p>Estas distribuciones no son una lista para memorizar, sino una familia conectada. El proceso de Poisson las une: los conteos son Poisson, los tiempos entre eventos son exponenciales y el tiempo hasta el evento \(k\) es gamma.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Si…</th><th>entonces…</th></tr></thead>
+        <tbody>
+          <tr><td>\(U \sim \text{U}(0,1)\)</td><td>\(-\ln(1 - U)/\lambda \sim \text{Exp}(\lambda)\) (transformada inversa)</td></tr>
+          <tr><td>\(T_1, \dots, T_k \sim \text{Exp}(\lambda)\) independientes</td><td>\(T_1 + \cdots + T_k \sim \text{Gamma}(k, \lambda)\)</td></tr>
+          <tr><td>\(T_1 \sim \text{Exp}(\lambda_1)\), \(T_2 \sim \text{Exp}(\lambda_2)\)</td><td>\(\min(T_1, T_2) \sim \text{Exp}(\lambda_1 + \lambda_2)\)</td></tr>
+          <tr><td>Eventos a tasa \(\lambda\)</td><td>Conteo en \([0, t]\): Poisson(\(\lambda t\)); \(P(T_k \le t) = P(N(t) \ge k)\)</td></tr>
+          <tr><td>\(Z_1, \dots, Z_\nu \sim \mathcal{N}(0, 1)\)</td><td>\(\sum Z_i^2 \sim \chi^2_\nu = \text{Gamma}(\nu/2,\ 1/2)\)</td></tr>
+          <tr><td>\(X \sim \text{Gamma}(\alpha, 1)\), \(Y \sim \text{Gamma}(\beta, 1)\)</td><td>\(X/(X + Y) \sim \text{Beta}(\alpha, \beta)\)</td></tr>
+          <tr><td>\(U_{(k)}\): el \(k\)-ésimo menor de \(n\) uniformes</td><td>\(U_{(k)} \sim \text{Beta}(k,\ n - k + 1)\)</td></tr>
+        </tbody>
+      </table></div>
+      <p>La identidad \(P(T_k \le t) = P(N(t) \ge k)\) es muy práctica: “el tercer reclamo llega antes de media hora” es lo mismo que “en media hora llegan al menos 3 reclamos”. Con 4,5 por hora, \(N(0{,}5) \sim \text{Poisson}(2{,}25)\) y la probabilidad es \(1 - P(N \le 2) \approx 0{,}391\). El simulador lo muestra construyendo la gamma a partir de exponenciales.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · del proceso de Poisson a la gamma</span><span class="num" id="continuas-pp-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="continuas-lam">TASA · λ = <b id="continuas-lam-v" class="num">4,5</b> por hora</label><input id="continuas-lam" type="range" min="0.5" max="8" step="0.5" value="4.5"></div>
+            <div class="ctrl"><label for="continuas-k">EVENTO · k = <b id="continuas-k-v" class="num">3</b></label><input id="continuas-k" type="range" min="1" max="10" value="3"></div>
+            <button class="btn btn-ghost btn-sm" id="continuas-pp-more" type="button">Simular 500 más</button>
+            <button class="btn btn-ghost btn-sm" id="continuas-pp-reset" type="button">Reiniciar</button>
+          </div>
+          <div>
+            <div class="plot-label"><span>Un proceso simulado (2 horas)</span><span id="continuas-pp-last">–</span></div>
+            <canvas class="plot" id="continuas-c-proc" height="70" aria-label="Línea de tiempo con los eventos de un proceso de Poisson simulado y el k-ésimo evento resaltado"></canvas>
+          </div>
+          <div>
+            <div class="plot-label"><span>Tiempo hasta el evento k</span><span id="continuas-pp-n">–</span></div>
+            <canvas class="plot" id="continuas-c-gam" height="220" aria-label="Histograma de los tiempos simulados hasta el k-ésimo evento con la densidad gamma teórica"></canvas>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>tiempos simulados</span><span><i style="background:var(--ink)"></i>densidad Gamma(k, λ)</span><span><i style="background:var(--hot)"></i>evento k</span></div>
+          <div class="readout">
+            <div><span>media simulada</span><b id="continuas-pp-ms">–</b></div>
+            <div><span>media teórica k/λ</span><b id="continuas-pp-mt">–</b></div>
+            <div><span>varianza simulada</span><b id="continuas-pp-vs">–</b></div>
+            <div><span>varianza teórica k/λ²</span><b id="continuas-pp-vt">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con k = 1 el histograma es una exponencial, con la moda en 0. Al subir k la espera se alarga y se vuelve más simétrica: una suma de exponenciales tiende a la normal, otra vez el Teorema del Límite Central.</figcaption>
+      </figure>
+
+      <h2 id="continuas-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Calculamos probabilidades y cuantiles de cada distribución, comprobamos la identidad gamma-Poisson y ajustamos una gamma a datos de tiempos por máxima verosimilitud.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="c"># uniforme: espera del bus en [0, 15]</span>
+bus = stats.<span class="f">uniform</span>(loc=<span class="n">0</span>, scale=<span class="n">15</span>)
+<span class="f">print</span>(bus.<span class="f">sf</span>(<span class="n">10</span>), bus.<span class="f">std</span>())              <span class="c"># 0.333  4.33</span>
+
+<span class="c"># exponencial: 4.5 reclamos por hora → SciPy usa escala = 1/λ (aquí en minutos)</span>
+espera = stats.<span class="f">expon</span>(scale=<span class="n">60</span> / <span class="n">4.5</span>)
+<span class="f">print</span>(espera.<span class="f">mean</span>(), espera.<span class="f">sf</span>(<span class="n">30</span>), espera.<span class="f">median</span>())   <span class="c"># 13.3  0.105  9.24</span>
+
+<span class="c"># gamma: tiempo hasta el 3er reclamo (horas); identidad con la Poisson</span>
+t3 = stats.<span class="f">gamma</span>(a=<span class="n">3</span>, scale=<span class="n">1</span> / <span class="n">4.5</span>)
+<span class="f">print</span>(t3.<span class="f">cdf</span>(<span class="n">0.5</span>), stats.<span class="f">poisson</span>(<span class="n">2.25</span>).<span class="f">sf</span>(<span class="n">2</span>))   <span class="c"># 0.3907  0.3907</span>
+
+<span class="c"># beta: tasa de aprobación con Beta(2, 5)</span>
+b = stats.<span class="f">beta</span>(<span class="n">2</span>, <span class="n">5</span>)
+<span class="f">print</span>(b.<span class="f">mean</span>(), b.<span class="f">ppf</span>([<span class="n">0.025</span>, <span class="n">0.975</span>]))     <span class="c"># 0.286  [0.043 0.641]</span>
+
+<span class="c"># transformada inversa: exponenciales a partir de uniformes</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">5</span>)
+u = rng.<span class="f">random</span>(<span class="n">100_000</span>)
+x = -np.<span class="f">log</span>(<span class="n">1</span> - u) / <span class="n">4.5</span>
+<span class="f">print</span>(x.<span class="f">mean</span>())                            <span class="c"># ≈ 0.222 = 1/4.5</span>
+
+<span class="c"># ajuste por máxima verosimilitud a 300 tiempos de atención (minutos)</span>
+tiempos = rng.<span class="f">gamma</span>(shape=<span class="n">2.5</span>, scale=<span class="n">4</span>, size=<span class="n">300</span>)
+a_hat, _, escala_hat = stats.gamma.<span class="f">fit</span>(tiempos, floc=<span class="n">0</span>)
+<span class="f">print</span>(<span class="f">round</span>(a_hat, <span class="n">2</span>), <span class="f">round</span>(<span class="n">1</span> / escala_hat, <span class="n">3</span>))   <span class="c"># ≈ 2.39 y 0.225 (verdaderos: 2.5 y 0.25)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># uniforme: espera del bus en [0, 15]</span>
+<span class="f">punif</span>(<span class="n">10</span>, <span class="n">0</span>, <span class="n">15</span>, lower.tail = <span class="k">FALSE</span>)          <span class="c"># 0.333</span>
+<span class="n">15</span> / <span class="f">sqrt</span>(<span class="n">12</span>)                                  <span class="c"># 4.33</span>
+
+<span class="c"># exponencial: R usa la tasa (aquí por minuto)</span>
+rate &lt;- <span class="n">4.5</span> / <span class="n">60</span>
+<span class="f">c</span>(<span class="n">1</span> / rate, <span class="f">pexp</span>(<span class="n">30</span>, rate, lower.tail = <span class="k">FALSE</span>), <span class="f">qexp</span>(<span class="n">0.5</span>, rate))   <span class="c"># 13.3  0.105  9.24</span>
+
+<span class="c"># gamma: tiempo hasta el 3er reclamo (horas); identidad con la Poisson</span>
+<span class="f">pgamma</span>(<span class="n">0.5</span>, shape = <span class="n">3</span>, rate = <span class="n">4.5</span>)              <span class="c"># 0.3907</span>
+<span class="f">ppois</span>(<span class="n">2</span>, <span class="n">2.25</span>, lower.tail = <span class="k">FALSE</span>)             <span class="c"># 0.3907</span>
+
+<span class="c"># beta: tasa de aprobación con Beta(2, 5)</span>
+<span class="f">c</span>(<span class="n">2</span> / <span class="n">7</span>, <span class="f">qbeta</span>(<span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>), <span class="n">2</span>, <span class="n">5</span>))         <span class="c"># 0.286  0.043  0.641</span>
+
+<span class="c"># transformada inversa: exponenciales a partir de uniformes</span>
+<span class="f">set.seed</span>(<span class="n">5</span>)
+x &lt;- -<span class="f">log</span>(<span class="n">1</span> - <span class="f">runif</span>(<span class="n">1e5</span>)) / <span class="n">4.5</span>
+<span class="f">mean</span>(x)                                        <span class="c"># ≈ 0.222</span>
+
+<span class="c"># ajuste por máxima verosimilitud a 300 tiempos de atención (minutos)</span>
+<span class="f">library</span>(MASS)
+tiempos &lt;- <span class="f">rgamma</span>(<span class="n">300</span>, shape = <span class="n">2.5</span>, rate = <span class="n">0.25</span>)
+<span class="f">fitdistr</span>(tiempos, <span class="s">"gamma"</span>)                       <span class="c"># shape ≈ 2.5, rate ≈ 0.25</span>
+<span class="f">hist</span>(tiempos, freq = <span class="k">FALSE</span>, breaks = <span class="n">30</span>)
+<span class="f">curve</span>(<span class="f">dgamma</span>(x, <span class="n">2.5</span>, <span class="n">0.25</span>), add = <span class="k">TRUE</span>, lwd = <span class="n">2</span>)</code></pre>
+</div>
+
+      <h2 id="continuas-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="La densidad puede ser mayor que 1 si la variable se concentra en un intervalo corto. La probabilidad de cualquier punto exacto es 0; solo los intervalos tienen probabilidad." data-wrong="Recuerda que la densidad es probabilidad por unidad de x, no una probabilidad. ¿Cuánto vale P(X = x) para una variable continua?">
+        <h3>Para una variable continua, f(0,3) = 2. ¿Qué puedes concluir?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Hay un error: una probabilidad no puede valer 2</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>P(X = 0,3) = 2</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Nada raro: P(X = 0,3) = 0 y cerca de 0,3 hay mucha probabilidad por unidad de x</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>P(X ≤ 0,3) = 2</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La exponencial no tiene memoria: lo que ya esperaste no cambia la distribución de lo que falta, así que la espera adicional media sigue siendo 1/λ = 10 minutos." data-wrong="Aplica la falta de memoria: P(T &gt; s + t | T &gt; s) = P(T &gt; t). ¿Qué pasa entonces con la espera adicional esperada?">
+        <h3>El tiempo hasta que un cliente entra a una tienda vacía es exponencial con media 10 minutos. Ya llevas 10 minutos sin clientes. ¿Cuánto esperas, en promedio, hasta el próximo?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>10 minutos más</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0 minutos: ya debería haber llegado</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>5 minutos más</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>20 minutos más</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con forma α y tasa β, la media es α/β = 3/2 = 1,5 y la varianza α/β² = 3/4 = 0,75." data-wrong="Usa E[X] = α/β y Var(X) = α/β², con α la forma y β la tasa. Cuidado con no confundir tasa y escala.">
+        <h3>X ~ Gamma(forma α = 3, tasa β = 2). ¿Cuánto valen su media y su varianza?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Media 6 y varianza 12</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Media 1,5 y varianza 1,5</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Media 0,67 y varianza 0,22</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Media 1,5 y varianza 0,75</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="continuas-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Los dos laboratorios te sirven para comprobar los resultados.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Un bus pasa cada 15 minutos y llegas a una hora al azar. Calcula la probabilidad de esperar más de 10 minutos, la de esperar entre 2 y 5 minutos, la espera media y su desviación típica.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(X \sim \text{U}(0, 15)\). \(P(X &gt; 10) = 5/15 = 1/3\) y \(P(2 \le X \le 5) = 3/15 = 0{,}2\).</p>
+            <p>\(E[X] = 7{,}5\) minutos y \(\sigma = 15/\sqrt{12} \approx 4{,}33\) minutos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>La vida de una ampolleta es exponencial con media 2 000 horas. Calcula la probabilidad de que dure más de 3 000 horas y su vida mediana. Si ya funcionó 1 000 horas, ¿cuál es la probabilidad de que dure otras 3 000?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(\lambda = 1/2\,000\). \(P(T &gt; 3\,000) = e^{-3\,000/2\,000} = e^{-1{,}5} \approx 0{,}223\).</p>
+            <p>Mediana: \(\ln 2 \cdot 2\,000 \approx 1\,386\) horas. La mitad de las ampolletas falla antes de 1 386 horas, aunque la media sea 2 000.</p>
+            <p>Por la falta de memoria, \(P(T &gt; 4\,000 \mid T &gt; 1\,000) = P(T &gt; 3\,000) \approx 0{,}223\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>A un centro de soporte llegan reclamos a una tasa de 4,5 por hora, según un proceso de Poisson. Sea \(T_3\) el tiempo hasta el tercer reclamo. Calcula su media y desviación típica en minutos, y la probabilidad de que llegue antes de 30 minutos de dos formas distintas.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(T_3 \sim \text{Gamma}(3;\ 4{,}5)\) en horas: \(E[T_3] = 3/4{,}5 \approx 0{,}667\) h \(= 40\) minutos y \(\sigma = \sqrt{3}/4{,}5 \approx 0{,}385\) h \(\approx 23{,}1\) minutos.</p>
+            <p>Con la gamma: \(P(T_3 \le 0{,}5) \approx 0{,}391\) (<code>pgamma(0.5, 3, 4.5)</code>). Con la Poisson: en media hora \(N \sim \text{Poisson}(2{,}25)\) y \(P(N \ge 3) = 1 - e^{-2{,}25}(1 + 2{,}25 + 2{,}25^2/2) \approx 1 - 0{,}609 = 0{,}391\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Cinco sensores reportan una lectura uniforme en \([0, 1]\), de forma independiente. Sea \(M\) la lectura máxima. (a) Encuentra \(F_M(m)\) y su densidad, y comprueba que es una \(\text{Beta}(5, 1)\). (b) Calcula \(P(M \le 0{,}8)\) y \(E[M]\). (c) Verifica con una simulación.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) El máximo es \(\le m\) si y solo si los cinco lo son: \(F_M(m) = m^5\) en \([0, 1]\). Derivando, \(f_M(m) = 5m^4\), que es la densidad \(\text{Beta}(5, 1)\), pues \(B(5, 1) = 1/5\).</p>
+            <p>(b) \(P(M \le 0{,}8) = 0{,}8^5 \approx 0{,}328\) y \(E[M] = 5/(5+1) \approx 0{,}833\).</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">11</span>)
+m = rng.<span class="f">random</span>((<span class="n">200_000</span>, <span class="n">5</span>)).<span class="f">max</span>(axis=<span class="n">1</span>)
+<span class="f">print</span>((m &lt;= <span class="n">0.8</span>).<span class="f">mean</span>(), m.<span class="f">mean</span>())   <span class="c"># ≈ 0.328  ≈ 0.833</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">11</span>)
+m &lt;- <span class="f">apply</span>(<span class="f">matrix</span>(<span class="f">runif</span>(<span class="n">5</span> * <span class="n">2e5</span>), ncol = <span class="n">5</span>), <span class="n">1</span>, max)
+<span class="f">c</span>(<span class="f">mean</span>(m &lt;= <span class="n">0.8</span>), <span class="f">mean</span>(m), <span class="f">pbeta</span>(<span class="n">0.8</span>, <span class="n">5</span>, <span class="n">1</span>))   <span class="c"># ≈ 0.328  ≈ 0.833  0.328</span></code></pre>
+</div>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

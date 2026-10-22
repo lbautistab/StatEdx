@@ -42,6 +42,7 @@
   function sync() {
     for (const k of ['n', 'p', 'K', 'l']) wrap[k].hidden = !USES[S.d].includes(k);
     $('discretas-n-v').textContent = S.n;
+    $('discretas-n-name').textContent = S.d === 'hip' ? 'EXTRACCIONES' : 'ENSAYOS';
     $('discretas-p-v').textContent = fmt(S.p, 2);
     $('discretas-k-v').textContent = S.K;
     $('discretas-l-v').textContent = fmt(S.l, 1);
@@ -89,7 +90,8 @@
     $('discretas-apx-leg').hidden = !apx;
     if (apx) $('discretas-apx-name').textContent = apx.name;
     const lastTxt = { bin: 'éxitos', geo: 'ensayos hasta el primer éxito', hip: 'defectuosas en la muestra', poi: 'eventos en la hora' };
-    $('discretas-last').textContent = S.last ? `X = ${S.last.x} ${lastTxt[d]}` : 'sin simular';
+    const one = { bin: 'éxito', geo: 'ensayo (éxito al primer intento)', hip: 'defectuosa en la muestra', poi: 'evento en la hora' };
+    $('discretas-last').textContent = S.last ? `X = ${S.last.x} ${S.last.x === 1 ? one[d] : lastTxt[d]}` : 'sin simular';
     const accent = tok('--accent'), hot = tok('--hot'), ink = tok('--ink'), muted = tok('--muted'), line = tok('--line');
 
     // ---- franja del último experimento ----

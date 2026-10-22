@@ -1,0 +1,357 @@
+<!-- StatEdx · sesión: perceptron -->
+<div id="view-perceptron" data-view="perceptron" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>El perceptrón y las redes neuronales</h1>
+      <p>Una neurona artificial es una suma ponderada seguida de una decisión. Sola, solo sabe trazar rectas; conectada en capas con funciones de activación no lineales, puede aproximar casi cualquier función. Aquí construyes esa idea paso a paso: el perceptrón y su regla de aprendizaje, las activaciones, las capas y el teorema de aproximación universal.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: regresión logística</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#perceptron-idea" data-sec="perceptron-idea">La idea</a></li>
+        <li><a href="#perceptron-modelo" data-sec="perceptron-modelo">El perceptrón</a></li>
+        <li><a href="#perceptron-lab" data-sec="perceptron-lab">Laboratorio: aprender una recta</a></li>
+        <li><a href="#perceptron-act" data-sec="perceptron-act">Funciones de activación</a></li>
+        <li><a href="#perceptron-capas" data-sec="perceptron-capas">Capas: la red neuronal</a></li>
+        <li><a href="#perceptron-ua" data-sec="perceptron-ua">Aproximación universal</a></li>
+        <li><a href="#perceptron-code" data-sec="perceptron-code">En R y Python</a></li>
+        <li><a href="#perceptron-quiz" data-sec="perceptron-quiz">Comprueba</a></li>
+        <li><a href="#perceptron-ej" data-sec="perceptron-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="perceptron-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>¿Vas al concierto del sábado? Lo decides pesando varias cosas: si van tus amigos (eso pesa mucho a favor), si va a llover (en contra), si la entrada es cara (en contra, pero menos). Sumas los argumentos con su importancia y, si el total supera cierto umbral, vas. Esa regla es exactamente una <b>neurona artificial</b>: recibe entradas \(x_1, \dots, x_p\), las multiplica por <b>pesos</b> \(w_1, \dots, w_p\), suma un <b>sesgo</b> \(b\) (el umbral cambiado de signo) y pasa el resultado por una <b>función de activación</b> que decide la salida.</p>
+      <div class="eq">\[ z = w_1 x_1 + \cdots + w_p x_p + b = w^\top x + b, \qquad \hat y = \varphi(z) \]
+        <div class="note">Con amigos = 1, lluvia = 1, cara = 0 y pesos \(w = (3, -2, -1)\), \(b = -0{,}5\): \(z = 3 - 2 - 0{,}5 = 0{,}5 > 0\), así que vas. Si además la entrada es cara, \(z = -0{,}5\) y te quedas en casa.</div>
+      </div>
+      <p>La inspiración viene de la biología (una neurona “dispara” si la estimulación que recibe supera un umbral), pero conviene no tomarla demasiado en serio: una red neuronal artificial es, ante todo, una <b>función matemática con muchos parámetros</b> que se ajustan a los datos, pariente cercana de la regresión que ya conoces.</p>
+
+      <h2 id="perceptron-modelo"><span class="sec">§ 2</span>El perceptrón</h2>
+      <p>El <b>perceptrón</b> de Frank Rosenblatt (1958) es una neurona con activación escalón, que clasifica en dos clases codificadas como \(y \in \{-1, +1\}\):</p>
+      <div class="eq">\[ \hat y = \operatorname{signo}(w^\top x + b) = \begin{cases} +1 & \text{si } w^\top x + b > 0 \\ -1 & \text{si no} \end{cases} \]
+        <div class="note">Geométricamente, la <b>frontera de decisión</b> \(w^\top x + b = 0\) es un hiperplano (una recta si \(p = 2\)). El vector \(w\) es perpendicular a la frontera y apunta hacia la clase \(+1\); la distancia con signo de un punto a la frontera es \((w^\top x + b)/\lVert w \rVert\).</div>
+      </div>
+      <p>Su <b>regla de aprendizaje</b> es de una sencillez asombrosa. Recorre los datos uno a uno; cuando encuentras un punto mal clasificado, es decir, con \(y_i(w^\top x_i + b) \le 0\), corrige:</p>
+      <div class="eq">\[ w \leftarrow w + \eta\, y_i\, x_i, \qquad b \leftarrow b + \eta\, y_i \]
+        <div class="note">\(\eta > 0\) es la <b>tasa de aprendizaje</b>. Tras la corrección, \(y_i(w^\top x_i + b)\) aumenta en \(\eta(\lVert x_i \rVert^2 + 1) > 0\): la frontera se mueve hacia el punto equivocado, para dejarlo del lado correcto. Si el punto está bien clasificado, no se toca nada. Con \(w\) y \(b\) iniciales en cero, \(\eta\) solo cambia la escala de \(w\), no la frontera.</div>
+      </div>
+      <p>El <b>teorema de convergencia</b> (Novikoff, 1962) garantiza que, si los datos son <b>linealmente separables</b>, el algoritmo encuentra una frontera que los separa en un número finito de correcciones. Si todos los puntos cumplen \(\lVert x_i \rVert \le R\) y existe un hiperplano con margen \(\gamma\) (distancia mínima de los puntos a él), el número de errores es como mucho:</p>
+      <div class="eq">\[ \text{número de correcciones} \;\le\; \left(\frac{R}{\gamma}\right)^2 \]
+        <div class="note">Cuanto más separadas están las clases (mayor \(\gamma\)), más rápido converge. Si los datos <b>no</b> son separables, el perceptrón nunca se detiene: la frontera oscila sin fin. Y aunque converja, la frontera que encuentra es una cualquiera de las que separan, no la “mejor” (para eso están la regresión logística o las máquinas de soporte vectorial, que maximizan el margen).</div>
+      </div>
+      <div class="callout"><b>El invierno del perceptrón:</b> en 1969 Minsky y Papert mostraron que un perceptrón no puede aprender funciones tan simples como el <b>O exclusivo</b> (XOR: la salida es 1 si exactamente una de dos entradas es 1), porque sus clases no se separan con una recta. Ese libro enfrió el interés por las redes neuronales durante más de una década. La solución, conocida desde entonces pero difícil de entrenar hasta que se popularizó la retropropagación en 1986, es apilar neuronas en <b>capas</b>.</div>
+
+      <h2 id="perceptron-lab"><span class="sec">§ 3</span>Laboratorio: aprender una recta</h2>
+      <p>Sesenta puntos de dos clases. El perceptrón empieza con \(w = 0\) y \(b = 0\). <b>Paso</b> busca el siguiente punto mal clasificado (en orden) y aplica la regla de corrección; el punto usado queda marcado. La flecha es \(w\), perpendicular a la frontera.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · regla del perceptrón</span><span class="num" id="perceptron-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="perceptron-data-label">DATOS</label>
+              <div class="seg" id="perceptron-data" role="group" aria-labelledby="perceptron-data-label">
+                <button type="button" data-d="sep" aria-pressed="true">Separables</button>
+                <button type="button" data-d="close" aria-pressed="false">Margen pequeño</button>
+                <button type="button" data-d="over" aria-pressed="false">Solapados</button>
+                <button type="button" data-d="xor" aria-pressed="false">XOR</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="perceptron-eta">TASA · η = <b id="perceptron-eta-v" class="num">1</b></label><input id="perceptron-eta" type="range" min="0.1" max="2" step="0.1" value="1"></div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-ghost btn-sm" id="perceptron-step" type="button">Paso</button>
+            <button class="btn btn-ghost btn-sm" id="perceptron-epoch" type="button">Una época</button>
+            <button class="btn btn-ghost btn-sm" id="perceptron-run" type="button">Ejecutar</button>
+            <button class="btn btn-ghost btn-sm" id="perceptron-reset" type="button">Reiniciar</button>
+            <button class="btn btn-ghost btn-sm" id="perceptron-again" type="button">Nuevos datos</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Puntos y frontera</span><span><span style="color:var(--accent)">●</span> −1 · <span style="color:var(--hot)">■</span> +1</span></div>
+              <canvas class="plot" id="perceptron-c" height="280" aria-label="Puntos de dos clases, la frontera del perceptrón y el vector de pesos"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Puntos mal clasificados</span><span>según la corrección</span></div>
+              <canvas class="plot" id="perceptron-c-err" height="280" aria-label="Número de puntos mal clasificados después de cada corrección"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>correcciones</span><b id="perceptron-r-n">–</b></div>
+            <div><span>mal clasificados</span><b id="perceptron-r-e">–</b></div>
+            <div><span>w = (w₁, w₂)</span><b id="perceptron-r-w">–</b></div>
+            <div><span>sesgo b</span><b id="perceptron-r-b">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con datos separables, Ejecutar termina en pocas correcciones. Con margen pequeño necesita muchas más, como predice la cota (R/γ)². Con datos solapados o XOR el error sube y baja sin detenerse nunca: ninguna recta los separa. Cambia η y reinicia: con w = 0 al inicio, la frontera final es la misma.</figcaption>
+      </figure>
+
+      <h2 id="perceptron-act"><span class="sec">§ 4</span>Funciones de activación</h2>
+      <p>El escalón tiene un problema: su derivada es cero en casi todas partes, así que no sirve para entrenar con métodos de gradiente. Las redes modernas usan activaciones suaves o casi suaves:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Activación</th><th>\(\varphi(z)\)</th><th>\(\varphi'(z)\)</th><th>Rango</th><th>Uso típico</th></tr></thead>
+        <tbody>
+          <tr><td>Escalón</td><td>\(\mathbb 1(z > 0)\)</td><td>0 (salvo en 0)</td><td>\(\{0, 1\}\)</td><td>perceptrón clásico</td></tr>
+          <tr><td>Sigmoide (logística)</td><td>\(\sigma(z) = \frac{1}{1 + e^{-z}}\)</td><td>\(\sigma(z)(1 - \sigma(z))\)</td><td>\((0, 1)\)</td><td>salida para probabilidades binarias</td></tr>
+          <tr><td>Tangente hiperbólica</td><td>\(\tanh z = 2\sigma(2z) - 1\)</td><td>\(1 - \tanh^2 z\)</td><td>\((-1, 1)\)</td><td>capas ocultas, redes recurrentes</td></tr>
+          <tr><td>ReLU</td><td>\(\max(0, z)\)</td><td>\(\mathbb 1(z > 0)\)</td><td>\([0, \infty)\)</td><td>capas ocultas: la opción por defecto</td></tr>
+          <tr><td>Softmax (\(K\) salidas)</td><td>\(\frac{e^{z_k}}{\sum_j e^{z_j}}\)</td><td>\(s_k(\delta_{kj} - s_j)\)</td><td>probabilidades que suman 1</td><td>salida para \(K\) clases</td></tr>
+        </tbody>
+      </table></div>
+      <p>Una neurona con activación sigmoide y pérdida de entropía cruzada es exactamente una <a href="#logit">regresión logística</a>: \(P(y = 1 \mid x) = \sigma(w^\top x + b)\). Una neurona con activación identidad y pérdida cuadrática es una regresión lineal. Las redes neuronales generalizan esos modelos.</p>
+      <p>La sigmoide y la tanh se <b>saturan</b>: para \(|z|\) grande su derivada es casi cero y el aprendizaje de las capas profundas se frena (el problema del gradiente que se desvanece). La ReLU no se satura para \(z > 0\), es muy barata de calcular y por eso domina en capas ocultas, aunque una neurona ReLU puede “morir” si su \(z\) queda siempre negativo.</p>
+      <div class="callout"><b>Por qué la activación tiene que ser no lineal:</b> si \(\varphi\) fuera la identidad, dos capas darían \(W_2(W_1 x + b_1) + b_2 = (W_2W_1)x + (W_2 b_1 + b_2)\), otra función lineal. Apilar capas lineales no agrega nada: toda la capacidad de una red viene de las no linealidades.</div>
+
+      <h2 id="perceptron-capas"><span class="sec">§ 5</span>Capas: la red neuronal</h2>
+      <p>Un <b>perceptrón multicapa</b> (MLP, o red densa) conecta neuronas en capas: cada neurona de una capa recibe todas las salidas de la capa anterior. Con una capa oculta de \(m\) neuronas y una salida:</p>
+      <div class="eq">\[ h = \varphi\big(W^{(1)} x + b^{(1)}\big) \in \mathbb R^{m}, \qquad \hat y = g\big(w^{(2)\top} h + b^{(2)}\big) \]
+        <div class="note">\(W^{(1)}\) es una matriz de \(m \times p\). Cada neurona oculta \(h_j\) es una “variable nueva” que la red construye a partir de las entradas; la salida es un modelo lineal (o logístico, con \(g = \sigma\)) sobre esas variables. Por eso se dice que la red <b>aprende sus propias características</b>.</div>
+      </div>
+      <p>El número de parámetros crece rápido: una capa densa de \(n_{\text{ent}}\) a \(n_{\text{sal}}\) neuronas tiene \(n_{\text{ent}} \cdot n_{\text{sal}} + n_{\text{sal}}\) parámetros (pesos más sesgos). Una red con 2 entradas, 8 neuronas ocultas y 1 salida tiene \(2 \cdot 8 + 8 + 8 + 1 = 33\).</p>
+      <p><b>Ejemplo: XOR con dos neuronas ReLU.</b> Toma \(h_1 = \max(0, x_1 + x_2)\), \(h_2 = \max(0, x_1 + x_2 - 1)\) y \(\hat y = h_1 - 2h_2\):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>\(x_1\)</th><th>\(x_2\)</th><th>\(h_1\)</th><th>\(h_2\)</th><th>\(\hat y = h_1 - 2h_2\)</th><th>XOR</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+          <tr><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+          <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+          <tr><td>1</td><td>1</td><td>2</td><td>1</td><td>0</td><td>0</td></tr>
+        </tbody>
+      </table></div>
+      <p>La capa oculta transforma el espacio de entrada en uno donde las clases sí se separan con una recta. Eso es lo que hace una red en general, a gran escala.</p>
+      <p><b>¿Cómo se encuentran los pesos?</b> Se define una función de pérdida (error cuadrático medio en regresión, entropía cruzada en clasificación) y se minimiza con <b>descenso de gradiente</b>: \(\theta \leftarrow \theta - \eta \nabla_\theta L\). El gradiente respecto de miles o millones de pesos se calcula eficientemente con la regla de la cadena aplicada capa por capa, de la salida hacia la entrada: la <b>retropropagación</b>, tema de la <a href="#backprop">siguiente sesión</a>. A diferencia de la regresión, la pérdida de una red no es convexa: hay muchos mínimos locales y el resultado depende de la inicialización.</p>
+
+      <h2 id="perceptron-ua"><span class="sec">§ 6</span>Por qué una red puede aproximar casi cualquier función</h2>
+      <p>El <b>teorema de aproximación universal</b> (Cybenko, 1989, para sigmoides; Hornik, 1991; Leshno y coautores, 1993, para cualquier activación continua que no sea un polinomio, incluida la ReLU) dice:</p>
+      <div class="eq">\[ \forall f \text{ continua en } [0,1]^p,\ \forall \varepsilon > 0,\ \exists\, m,\ W, b, v:\quad \sup_{x \in [0,1]^p}\ \Big| f(x) - \sum_{j=1}^{m} v_j\, \varphi(w_j^\top x + b_j) \Big| < \varepsilon \]
+        <div class="note">Una sola capa oculta con suficientes neuronas aproxima cualquier función continua en una región acotada tan bien como quieras. La intuición en una dimensión: cada ReLU \(\max(0, x - c)\) agrega un “quiebre” en \(x = c\), y con suficientes quiebres armas una poligonal que sigue cualquier curva. Con sigmoides empinadas armas escalones, y con escalones, cualquier función.</div>
+      </div>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · aproximación con una capa oculta</span><span class="num" id="perceptron-ua-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="perceptron-m">NEURONAS OCULTAS · m = <b id="perceptron-m-v" class="num">4</b></label><input id="perceptron-m" type="range" min="1" max="40" value="4"></div>
+            <div class="ctrl">
+              <label id="perceptron-act-label">ACTIVACIÓN</label>
+              <div class="seg" id="perceptron-act-seg" role="group" aria-labelledby="perceptron-act-label">
+                <button type="button" data-a="relu" aria-pressed="true">ReLU</button>
+                <button type="button" data-a="sig" aria-pressed="false">Sigmoide</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="perceptron-f-label">FUNCIÓN OBJETIVO</label>
+              <div class="seg" id="perceptron-f" role="group" aria-labelledby="perceptron-f-label">
+                <button type="button" data-f="sin" aria-pressed="true">Onda</button>
+                <button type="button" data-f="step" aria-pressed="false">Escalón</button>
+                <button type="button" data-f="bump" aria-pressed="false">Dos jorobas</button>
+              </div>
+            </div>
+          </div>
+          <div class="plot-label"><span>f(x) y la salida de la red</span><span><span style="color:var(--ink)">┄</span> objetivo · <span style="color:var(--accent)">—</span> red · <span style="color:var(--hot)">—</span> aporte de cada neurona</span></div>
+          <canvas class="plot" id="perceptron-c-ua" height="260" aria-label="Función objetivo, aproximación de la red y aportes de cada neurona oculta"></canvas>
+          <div class="readout">
+            <div><span>neuronas ocultas</span><b id="perceptron-u-m">–</b></div>
+            <div><span>parámetros</span><b id="perceptron-u-p">–</b></div>
+            <div><span>error cuadrático medio</span><b id="perceptron-u-mse">–</b></div>
+            <div><span>error máximo</span><b id="perceptron-u-max">–</b></div>
+          </div>
+        </div>
+        <figcaption>Para que el efecto se vea claro, aquí las neuronas ocultas tienen sus quiebres repartidos de forma pareja en [0, 1] y solo se ajustan los pesos de salida por mínimos cuadrados; una red real aprende también dónde poner cada quiebre. Sube m y mira cómo baja el error. Con el escalón, el error cuadrático medio baja pero el error máximo se queda cerca de 0,6, la mitad del salto: una suma de funciones continuas no puede saltar, y el teorema solo promete aproximar funciones continuas.</figcaption>
+      </figure>
+      <p>Lo que el teorema <b>no</b> dice es igual de importante:</p>
+      <ul>
+        <li>No dice cuántas neuronas hacen falta: para algunas funciones el número crece de forma exponencial con la dimensión.</li>
+        <li>No dice que el descenso de gradiente vaya a encontrar esos pesos.</li>
+        <li>No dice nada sobre <b>generalizar</b>: una red capaz de aproximar cualquier función también puede memorizar el ruido. Con muchos parámetros hay que controlar el sobreajuste con datos de validación, regularización (penalización \(L_2\), <i>dropout</i>) y detención temprana.</li>
+      </ul>
+      <p>En la práctica, las redes <b>profundas</b> (muchas capas no tan anchas) suelen ser mucho más eficientes que una sola capa enorme: cada capa compone las características de la anterior, y hay funciones que una red profunda representa con pocas neuronas y una red de una sola capa necesitaría exponencialmente más.</p>
+
+      <h2 id="perceptron-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
+      <p>Programamos el perceptrón desde cero, comprobamos que no puede con XOR y que una red pequeña sí, y comparamos en dos lunas un modelo lineal con redes de una capa oculta de distinto tamaño.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.datasets <span class="k">import</span> make_moons
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> Perceptron
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> train_test_split
+<span class="k">from</span> sklearn.neural_network <span class="k">import</span> MLPClassifier
+
+<span class="c"># 1. Perceptrón desde cero (etiquetas -1 y +1)</span>
+<span class="k">def</span> <span class="f">perceptron</span>(X, y, eta=<span class="n">1.0</span>, epocas=<span class="n">100</span>):
+    w, b = np.<span class="f">zeros</span>(X.shape[<span class="n">1</span>]), <span class="n">0.0</span>
+    <span class="k">for</span> epoca <span class="k">in</span> <span class="f">range</span>(epocas):
+        errores = <span class="n">0</span>
+        <span class="k">for</span> xi, yi <span class="k">in</span> <span class="f">zip</span>(X, y):
+            <span class="k">if</span> yi * (xi @ w + b) &lt;= <span class="n">0</span>:      <span class="c"># mal clasificado (o sobre la frontera)</span>
+                w += eta * yi * xi
+                b += eta * yi
+                errores += <span class="n">1</span>
+        <span class="k">if</span> errores == <span class="n">0</span>:
+            <span class="k">return</span> w, b, epoca + <span class="n">1</span>
+    <span class="k">return</span> w, b, epocas
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+X = rng.<span class="f">normal</span>(size=(<span class="n">100</span>, <span class="n">2</span>))
+y = np.<span class="f">where</span>(X[:, <span class="n">0</span>] + <span class="n">2</span> * X[:, <span class="n">1</span>] &gt; <span class="n">0.5</span>, <span class="n">1</span>, -<span class="n">1</span>)    <span class="c"># separable por una recta</span>
+w, b, ep = <span class="f">perceptron</span>(X, y)
+<span class="f">print</span>(<span class="s">"w ="</span>, w.<span class="f">round</span>(<span class="n">2</span>), <span class="s">"b ="</span>, b, <span class="s">"épocas:"</span>, ep)       <span class="c"># converge en pocas épocas</span>
+<span class="f">print</span>(<span class="s">"exactitud:"</span>, np.<span class="f">mean</span>(np.<span class="f">sign</span>(X @ w + b) == y))   <span class="c"># 1.0</span>
+
+<span class="c"># 2. XOR: ninguna recta lo separa</span>
+X_xor = np.<span class="f">array</span>([[<span class="n">0</span>, <span class="n">0</span>], [<span class="n">0</span>, <span class="n">1</span>], [<span class="n">1</span>, <span class="n">0</span>], [<span class="n">1</span>, <span class="n">1</span>]])
+y_xor = np.<span class="f">array</span>([<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>])
+<span class="f">print</span>(<span class="f">Perceptron</span>(max_iter=<span class="n">1000</span>).<span class="f">fit</span>(X_xor, y_xor).<span class="f">score</span>(X_xor, y_xor))   <span class="c"># 0.5</span>
+red = <span class="f">MLPClassifier</span>(hidden_layer_sizes=(<span class="n">4</span>,), activation=<span class="s">"tanh"</span>, solver=<span class="s">"lbfgs"</span>,
+                    random_state=<span class="n">1</span>).<span class="f">fit</span>(X_xor, y_xor)
+<span class="f">print</span>(red.<span class="f">score</span>(X_xor, y_xor))                                            <span class="c"># 1.0</span>
+
+<span class="c"># 3. Dos lunas: modelo lineal contra redes con una capa oculta</span>
+Xm, ym = <span class="f">make_moons</span>(n_samples=<span class="n">1000</span>, noise=<span class="n">0.2</span>, random_state=<span class="n">0</span>)
+X_tr, X_te, y_tr, y_te = <span class="f">train_test_split</span>(Xm, ym, test_size=<span class="n">0.3</span>, random_state=<span class="n">0</span>)
+<span class="f">print</span>(<span class="s">"perceptrón:"</span>, <span class="f">Perceptron</span>(random_state=<span class="n">0</span>).<span class="f">fit</span>(X_tr, y_tr).<span class="f">score</span>(X_te, y_te))   <span class="c"># ≈ 0.83</span>
+<span class="k">for</span> h <span class="k">in</span> [<span class="n">2</span>, <span class="n">8</span>, <span class="n">32</span>]:
+    mlp = <span class="f">MLPClassifier</span>(hidden_layer_sizes=(h,), activation=<span class="s">"relu"</span>, max_iter=<span class="n">2000</span>,
+                        random_state=<span class="n">0</span>).<span class="f">fit</span>(X_tr, y_tr)
+    n_par = <span class="f">sum</span>(c.size <span class="k">for</span> c <span class="k">in</span> mlp.coefs_) + <span class="f">sum</span>(c.size <span class="k">for</span> c <span class="k">in</span> mlp.intercepts_)
+    <span class="f">print</span>(h, <span class="s">"neuronas,"</span>, n_par, <span class="s">"parámetros, prueba:"</span>, <span class="f">round</span>(mlp.<span class="f">score</span>(X_te, y_te), <span class="n">3</span>))
+<span class="c"># 2 neuronas, 9 parámetros ≈ 0.84 · 8 neuronas, 33 ≈ 0.86 · 32 neuronas, 129 ≈ 0.95</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># 1. Perceptrón desde cero (etiquetas -1 y +1)</span>
+perceptron &lt;- <span class="k">function</span>(X, y, eta = <span class="n">1</span>, epocas = <span class="n">100</span>) {
+  w &lt;- <span class="f">rep</span>(<span class="n">0</span>, <span class="f">ncol</span>(X)); b &lt;- <span class="n">0</span>
+  <span class="k">for</span> (e <span class="k">in</span> <span class="n">1</span>:epocas) {
+    errores &lt;- <span class="n">0</span>
+    <span class="k">for</span> (i <span class="k">in</span> <span class="f">seq_len</span>(<span class="f">nrow</span>(X))) {
+      <span class="k">if</span> (y[i] * (<span class="f">sum</span>(X[i, ] * w) + b) &lt;= <span class="n">0</span>) {
+        w &lt;- w + eta * y[i] * X[i, ]
+        b &lt;- b + eta * y[i]
+        errores &lt;- errores + <span class="n">1</span>
+      }
+    }
+    <span class="k">if</span> (errores == <span class="n">0</span>) <span class="k">return</span>(<span class="f">list</span>(w = w, b = b, epocas = e))
+  }
+  <span class="f">list</span>(w = w, b = b, epocas = epocas)
+}
+
+<span class="f">set.seed</span>(<span class="n">0</span>)
+X &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(<span class="n">200</span>), ncol = <span class="n">2</span>)
+y &lt;- <span class="f">ifelse</span>(X[, <span class="n">1</span>] + <span class="n">2</span> * X[, <span class="n">2</span>] &gt; <span class="n">0.5</span>, <span class="n">1</span>, -<span class="n">1</span>)
+ajuste &lt;- <span class="f">perceptron</span>(X, y)
+ajuste
+<span class="f">mean</span>(<span class="f">sign</span>(X %*% ajuste$w + ajuste$b) == y)     <span class="c"># 1</span>
+
+<span class="c"># 2. XOR con una red de 4 neuronas ocultas (paquete nnet)</span>
+<span class="k">library</span>(nnet)
+xor &lt;- <span class="f">data.frame</span>(x1 = <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>), x2 = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>), y = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>))
+<span class="f">set.seed</span>(<span class="n">1</span>)
+red &lt;- <span class="f">nnet</span>(y ~ x1 + x2, data = xor, size = <span class="n">4</span>, maxit = <span class="n">1000</span>, trace = <span class="k">FALSE</span>)
+<span class="f">round</span>(<span class="f">predict</span>(red, xor), <span class="n">2</span>)      <span class="c"># cerca de 0, 1, 1, 0 (si no, prueba otra semilla)</span>
+
+<span class="c"># 3. Dos lunas: redes con una capa oculta de distinto tamaño</span>
+n &lt;- <span class="n">1000</span>
+ang &lt;- <span class="f">runif</span>(n, <span class="n">0</span>, pi)
+cl &lt;- <span class="f">rbinom</span>(n, <span class="n">1</span>, <span class="n">0.5</span>)
+x1 &lt;- <span class="f">ifelse</span>(cl == <span class="n">1</span>, <span class="n">1</span> - <span class="f">cos</span>(ang), <span class="f">cos</span>(ang)) + <span class="f">rnorm</span>(n, <span class="n">0</span>, <span class="n">0.2</span>)
+x2 &lt;- <span class="f">ifelse</span>(cl == <span class="n">1</span>, <span class="n">0.5</span> - <span class="f">sin</span>(ang), <span class="f">sin</span>(ang)) + <span class="f">rnorm</span>(n, <span class="n">0</span>, <span class="n">0.2</span>)
+lunas &lt;- <span class="f">data.frame</span>(x1, x2, clase = <span class="f">factor</span>(cl))
+idx &lt;- <span class="f">sample</span>(n, <span class="n">700</span>)
+logit &lt;- <span class="f">glm</span>(clase ~ x1 + x2, data = lunas[idx, ], family = binomial)
+<span class="f">mean</span>((<span class="f">predict</span>(logit, lunas[-idx, ], type = <span class="s">"response"</span>) &gt; <span class="n">0.5</span>) == (lunas$clase[-idx] == <span class="s">"1"</span>))
+<span class="k">for</span> (h <span class="k">in</span> <span class="f">c</span>(<span class="n">2</span>, <span class="n">8</span>, <span class="n">32</span>)) {
+  red &lt;- <span class="f">nnet</span>(clase ~ x1 + x2, data = lunas[idx, ], size = h, decay = <span class="n">1e-3</span>,
+              maxit = <span class="n">2000</span>, trace = <span class="k">FALSE</span>)
+  pred &lt;- <span class="f">predict</span>(red, lunas[-idx, ], type = <span class="s">"class"</span>)
+  <span class="f">cat</span>(h, <span class="s">"neuronas,"</span>, <span class="f">length</span>(red$wts), <span class="s">"parámetros, exactitud:"</span>,
+      <span class="f">mean</span>(pred == lunas$clase[-idx]), <span class="s">"\n"</span>)
+}</code></pre>
+      </div>
+      <p>El modelo lineal se queda en torno al 83 % porque la frontera real es curva. Con 2 neuronas ocultas la red apenas mejora; con 32 (129 parámetros) llega a cerca del 95 %. Más neuronas dan más flexibilidad, con los mismos riesgos de sobreajuste que viste con k-NN y los árboles: por eso la cantidad de neuronas y la regularización se eligen con datos de validación.</p>
+
+      <h2 id="perceptron-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="La composición de funciones lineales es lineal: W₂(W₁x + b₁) + b₂ = (W₂W₁)x + constante. Sin activaciones no lineales, una red de 10 capas equivale a un modelo lineal." data-wrong="Escribe la salida de dos capas sin activación, W₂(W₁x + b₁) + b₂, y simplifica. ¿Qué tipo de función obtienes?">
+        <h3>Una red de 10 capas usa la activación identidad en todas sus neuronas. ¿Qué puede representar?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cualquier función continua, por el teorema de aproximación universal</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Polinomios de grado 10</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Solo funciones lineales (afines) de la entrada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Funciones escalonadas</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Las clases del XOR no se separan con una recta, así que siempre queda algún punto mal clasificado y la regla sigue corrigiendo sin fin. El teorema de convergencia solo vale para datos linealmente separables." data-wrong="Recuerda la condición del teorema de convergencia de Novikoff. ¿Se cumple para los cuatro puntos del XOR?">
+        <h3>Entrenas un perceptrón con los cuatro puntos del XOR. ¿Qué pasa?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Nunca converge: la frontera sigue cambiando porque ninguna recta separa las clases</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Converge en (R/γ)² pasos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Converge si usas una tasa de aprendizaje pequeña</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Converge a la frontera de máximo margen</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Capa oculta: 10 × 20 pesos + 20 sesgos = 220. Capa de salida: 20 × 3 pesos + 3 sesgos = 63. Total: 283." data-wrong="Cada capa densa tiene entradas × salidas pesos más un sesgo por neurona de salida. Calcula las dos capas por separado y suma.">
+        <h3>Una red tiene 10 entradas, una capa oculta de 20 neuronas y 3 salidas. ¿Cuántos parámetros tiene?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>33</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>260</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>600</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>283</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="perceptron-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. El ejercicio 2 lo puedes reproducir con el botón Paso del laboratorio.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una neurona tiene pesos w = (0,5; −1; 2) y sesgo b = −0,5. Para la entrada x = (2; 1; 0,5), calcula z y la salida con activación escalón, sigmoide, tanh y ReLU.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>z = 0,5·2 − 1·1 + 2·0,5 − 0,5 = 1 − 1 + 1 − 0,5 = <b>0,5</b>.</p>
+            <ul><li>Escalón: z &gt; 0, salida <b>1</b>.</li><li>Sigmoide: 1/(1 + e<sup>−0,5</sup>) = 1/1,607 ≈ <b>0,622</b>.</li><li>tanh(0,5) ≈ <b>0,462</b>.</li><li>ReLU: máx(0; 0,5) = <b>0,5</b>.</li></ul>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un perceptrón empieza con w = (0, 0), b = 0 y η = 1. Procesa el punto x = (2, 1) con y = +1 y luego el punto x = (1, 3) con y = −1. Escribe w y b después de cada punto. ¿Queda bien clasificado el primer punto al final?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Punto 1: y(w·x + b) = 1·0 = 0 ≤ 0, error. w = (0, 0) + 1·(2, 1) = <b>(2, 1)</b>, b = 0 + 1 = <b>1</b>.</p>
+            <p>Punto 2: w·x + b = 2 + 3 + 1 = 6, y·6 = −6 ≤ 0, error. w = (2, 1) − (1, 3) = <b>(1, −2)</b>, b = 1 − 1 = <b>0</b>.</p>
+            <p>Revisión del punto 1: w·x + b = 2 − 2 + 0 = 0, así que y(w·x + b) = 0 ≤ 0: <b>vuelve a estar mal</b> (sobre la frontera). La siguiente época lo corregirá: corregir un punto puede descomponer otro, y por eso el algoritmo da varias vueltas.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Una red para reconocer dígitos escritos a mano recibe imágenes de 28 × 28 píxeles, tiene dos capas ocultas de 128 y 64 neuronas y una salida softmax de 10 clases. (a) ¿Cuántos parámetros tiene? (b) ¿Qué fracción está en la primera capa? (c) Con 60 000 imágenes de entrenamiento, ¿por qué no basta el número de parámetros para decir si va a sobreajustar?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Entrada: 28 × 28 = 784. Capa 1: 784·128 + 128 = 100 480. Capa 2: 128·64 + 64 = 8 256. Salida: 64·10 + 10 = 650. Total: <b>109 386</b> parámetros.</p>
+            <p>(b) 100 480/109 386 ≈ <b>91,9 %</b>: casi todo está en la capa que conecta los píxeles.</p>
+            <p>(c) Hay más parámetros que imágenes, pero el sobreajuste depende también de cómo se entrena (regularización, detención temprana, tamaño de paso) y de la estructura de los datos. En la práctica una red así alcanza cerca del 98 % en datos de prueba. La única forma confiable de saberlo es medir el error en datos que la red no vio.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>capas = [<span class="n">784</span>, <span class="n">128</span>, <span class="n">64</span>, <span class="n">10</span>]
+par = [a * b + b <span class="k">for</span> a, b <span class="k">in</span> <span class="f">zip</span>(capas[:-<span class="n">1</span>], capas[<span class="n">1</span>:])]
+<span class="f">print</span>(par, <span class="f">sum</span>(par))            <span class="c"># [100480, 8256, 650] 109386</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>capas &lt;- <span class="f">c</span>(<span class="n">784</span>, <span class="n">128</span>, <span class="n">64</span>, <span class="n">10</span>)
+par &lt;- <span class="f">head</span>(capas, -<span class="n">1</span>) * capas[-<span class="n">1</span>] + capas[-<span class="n">1</span>]
+par; <span class="f">sum</span>(par)                  <span class="c"># 100480 8256 650 · 109386</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>(a) Demuestra que ningún perceptrón \(\hat y = \mathbb 1(w_1x_1 + w_2x_2 + b &gt; 0)\) calcula el XOR. (b) Encuentra pesos para un perceptrón que calcule el Y lógico (AND) y otro para el O lógico (OR). (c) Usa (b) para construir una red de dos capas con activación escalón que calcule el XOR.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Necesitaríamos: (0,0) → 0, es decir b ≤ 0; (1,0) → 1: w₁ + b &gt; 0; (0,1) → 1: w₂ + b &gt; 0; (1,1) → 0: w₁ + w₂ + b ≤ 0. Sumando las dos desigualdades del medio, w₁ + w₂ + 2b &gt; 0, o sea w₁ + w₂ + b &gt; −b ≥ 0, lo que contradice la última. Ningún conjunto de pesos cumple las cuatro.</p>
+            <p>(b) AND: w = (1, 1), b = −1,5 (solo (1,1) da z = 0,5 &gt; 0). OR: w = (1, 1), b = −0,5 (todo salvo (0,0) da z &gt; 0).</p>
+            <p>(c) XOR = OR y no AND. Capa oculta: h₁ = OR(x) = 𝟙(x₁ + x₂ − 0,5 &gt; 0) y h₂ = AND(x) = 𝟙(x₁ + x₂ − 1,5 &gt; 0). Salida: ŷ = 𝟙(h₁ − h₂ − 0,5 &gt; 0). Comprobación: (0,0): h = (0,0), z = −0,5, ŷ = 0. (1,0) y (0,1): h = (1,0), z = 0,5, ŷ = 1. (1,1): h = (1,1), z = −0,5, ŷ = 0. La capa oculta convirtió un problema no separable en uno separable.</p>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

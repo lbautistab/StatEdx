@@ -1,0 +1,333 @@
+<!-- StatEdx · sesión: atipicos -->
+<div id="view-atipicos" data-view="atipicos" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Detección y tratamiento de valores atípicos</h1>
+      <p>Un consumo eléctrico de 1 980 kWh en un edificio donde todos gastan unos 200 puede ser un error de digitación o el departamento donde funciona un taller. Las reglas estadísticas sirven para encontrar esos valores; decidir qué hacer con ellos requiere entender de dónde vienen. Aquí aprendes las reglas de z, del RIC y de la MAD, la distancia de Mahalanobis para varias variables y una forma ordenada de tratarlos.</p>
+      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: análisis exploratorio</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#atipicos-idea" data-sec="atipicos-idea">La idea</a></li>
+        <li><a href="#atipicos-reglas" data-sec="atipicos-reglas">Reglas univariadas</a></li>
+        <li><a href="#atipicos-lab" data-sec="atipicos-lab">Laboratorio: tres reglas</a></li>
+        <li><a href="#atipicos-multi" data-sec="atipicos-multi">Atípicos multivariados</a></li>
+        <li><a href="#atipicos-lab2" data-sec="atipicos-lab2">Laboratorio: Mahalanobis</a></li>
+        <li><a href="#atipicos-tratar" data-sec="atipicos-tratar">Qué hacer con un atípico</a></li>
+        <li><a href="#atipicos-code" data-sec="atipicos-code">En R y Python</a></li>
+        <li><a href="#atipicos-quiz" data-sec="atipicos-quiz">Comprueba</a></li>
+        <li><a href="#atipicos-ej" data-sec="atipicos-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="atipicos-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>La administración de un edificio revisa el consumo eléctrico de un mes en 15 departamentos (kWh):</p>
+      <div class="eq" style="font-size:15px">182 · 195 · 201 · 176 · 210 · 188 · 240 · 199 · 205 · 193 · 186 · <b>1 980</b> · 215 · 228 · <b>520</b></div>
+      <p>Hay dos valores raros. El 1 980 resulta ser un error: alguien escribió un cero de más al copiar el 198 del medidor. El 520 es real: en ese departamento vive alguien que trabaja desde casa con un horno de cerámica. Los dos están lejos del resto, pero significan cosas opuestas: uno es <b>basura</b> que hay que corregir, el otro es <b>información</b>, quizás la más interesante de la tabla.</p>
+      <p>Un <b>valor atípico</b> (<i>outlier</i>) es una observación que se aleja tanto del patrón del resto que hace sospechar que fue generada por otro mecanismo. La definición es deliberadamente vaga: “alejarse” depende de qué consideras el patrón, y por eso hay varias reglas. Lo importante es separar dos pasos:</p>
+      <ul>
+        <li><b>Detectar</b>: una regla estadística señala candidatos.</li>
+        <li><b>Diagnosticar y tratar</b>: tú investigas cada candidato y decides, con conocimiento del contexto, qué hacer.</li>
+      </ul>
+      <div class="callout"><b>Por qué importa:</b> con el 1 980 incluido, el consumo medio es 341 kWh; corregido a 198, es 222 kWh. Un solo error de digitación infla el promedio en más del 50 % y la desviación típica de 84 a 461 kWh.</div>
+
+      <h2 id="atipicos-reglas"><span class="sec">§ 2</span>Reglas univariadas</h2>
+      <p><b>Regla de z.</b> Estandariza cada valor y marca los que están a más de 3 desviaciones de la media:</p>
+      <div class="eq">\[ z_i = \frac{x_i - \bar x}{s}, \qquad \text{atípico si } |z_i| &gt; 3 \]
+        <div class="note">Con los 15 consumos, \(\bar x = 341{,}2\) y \(s = 461{,}0\): el 1 980 tiene \(z = 3{,}55\) y queda marcado, pero el 520 tiene \(z = 0{,}39\) y parece normalísimo. El problema es que el propio 1 980 infló la media y la desviación con las que se calcula \(z\).</div>
+      </div>
+      <p>Ese fenómeno se llama <b>enmascaramiento</b>: los atípicos esconden a otros atípicos (y a sí mismos) porque contaminan las medidas que deberían delatarlos. Hay incluso un límite matemático: en una muestra de tamaño \(n\), ningún valor puede tener \(|z| &gt; (n-1)/\sqrt n\). Con \(n = 10\) ese máximo es 2,85, así que la regla \(|z| &gt; 3\) <b>nunca</b> marca nada en muestras de 10 o menos datos. Además, la regla supone datos aproximadamente normales: en una distribución con cola larga marca demasiados valores legítimos.</p>
+      <p><b>Regla de Tukey (RIC).</b> Usa los cuartiles, que no se dejan arrastrar por los extremos:</p>
+      <div class="eq">\[ RIC = Q_3 - Q_1, \qquad \text{atípico si } x_i &lt; Q_1 - k\cdot RIC \ \text{ o } \ x_i &gt; Q_3 + k\cdot RIC \]
+        <div class="note">Con \(k = 1{,}5\) son los límites de los bigotes del diagrama de caja; con \(k = 3\) se habla de atípicos “extremos”. En el ejemplo, \(Q_1 = 190{,}5\), \(Q_3 = 221{,}5\), \(RIC = 31\): los límites son 144 y 268, y ambos valores raros quedan fuera. En una normal, la regla con \(k = 1{,}5\) marca un 0,7 % de los datos aunque no haya ningún atípico.</div>
+      </div>
+      <p><b>Regla de la MAD (z robusto).</b> Reemplaza la media por la mediana y la desviación típica por la <b>desviación absoluta mediana</b>:</p>
+      <div class="eq">\[ \mathrm{MAD} = \mathrm{mediana}\,\big|x_i - \mathrm{Me}\big|, \qquad M_i = \frac{0{,}6745\,(x_i - \mathrm{Me})}{\mathrm{MAD}}, \qquad \text{atípico si } |M_i| &gt; 3{,}5 \]
+        <div class="note">El factor 0,6745 (o, equivalentemente, usar \(1{,}4826 \cdot \mathrm{MAD}\) como desviación) hace que en datos normales \(M_i\) se comporte como un \(z\). El umbral 3,5 es el de Iglewicz y Hoaglin. En el ejemplo, Me = 201 y MAD = 14: el 1 980 tiene \(M = 85{,}7\) y el 520 tiene \(M = 15{,}4\). Ambos saltan a la vista.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Regla</th><th>Centro y escala</th><th>Punto de ruptura</th><th>Ventajas</th><th>Cuidado con</th></tr></thead>
+        <tbody>
+          <tr><td>\(|z| &gt; 3\)</td><td>Media, \(s\)</td><td>0 %</td><td>Simple, conocida</td><td>Enmascaramiento, \(n\) chico, asimetría</td></tr>
+          <tr><td>Tukey 1,5·RIC</td><td>Cuartiles</td><td>25 %</td><td>Robusta, ligada al boxplot</td><td>Marca muchos valores en distribuciones asimétricas</td></tr>
+          <tr><td>\(|M| &gt; 3{,}5\)</td><td>Mediana, MAD</td><td>50 %</td><td>La más robusta</td><td>MAD = 0 si más de la mitad de los datos son iguales</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con datos muy asimétricos (ingresos, tiempos, montos) ninguna de estas reglas es adecuada en la escala original: todas suponen simetría. Lo habitual es aplicarlas sobre \(\log x\), o usar el boxplot ajustado de Hubert y Vandervieren, que corrige los bigotes según una medida robusta de asimetría (el <i>medcouple</i>).</p>
+
+      <h2 id="atipicos-lab"><span class="sec">§ 3</span>Laboratorio: tres reglas frente a frente</h2>
+      <p>Cada punto es el consumo de un departamento. Puedes “sembrar” atípicos (los puntos con anillo) a la distancia que quieras y ver cuáles detecta cada regla. Los puntos marcados por la regla elegida se pintan de rojo y las líneas verticales son sus límites.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · detectar atípicos</span><span class="num" id="atipicos-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="atipicos-rule-label">REGLA</label>
+              <div class="seg" id="atipicos-rule" role="group" aria-labelledby="atipicos-rule-label">
+                <button data-r="z" aria-pressed="true">|z| &gt; 3</button>
+                <button data-r="iqr" aria-pressed="false">Tukey 1,5·RIC</button>
+                <button data-r="mad" aria-pressed="false">|M| &gt; 3,5</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="atipicos-dist-label">DATOS LIMPIOS</label>
+              <div class="seg" id="atipicos-dist" role="group" aria-labelledby="atipicos-dist-label">
+                <button data-d="norm" aria-pressed="true">Simétricos</button>
+                <button data-d="lnorm" aria-pressed="false">Con cola a la derecha</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="atipicos-n">DEPARTAMENTOS · n = <b id="atipicos-n-v" class="num">40</b></label><input id="atipicos-n" type="range" min="8" max="300" value="40"></div>
+            <div class="ctrl"><label for="atipicos-k">ATÍPICOS SEMBRADOS = <b id="atipicos-k-v" class="num">1</b></label><input id="atipicos-k" type="range" min="0" max="15" value="1"></div>
+            <div class="ctrl"><label for="atipicos-pos">DISTANCIA = <b id="atipicos-pos-v" class="num">8</b> σ</label><input id="atipicos-pos" type="range" min="2" max="30" step="0.5" value="8"></div>
+            <button class="btn btn-ghost btn-sm" id="atipicos-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="plot-label"><span>Consumo mensual (kWh)</span><span>○ sembrado · ● marcado</span></div>
+          <canvas class="plot" id="atipicos-plot" height="230" aria-label="Diagrama de puntos de los consumos con los límites de la regla elegida y los puntos marcados"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>dato</span><span><i style="background:var(--hot)"></i>marcado por la regla</span><span><i style="background:var(--ink)"></i>atípico sembrado</span></div>
+          <div class="readout">
+            <div><span>sembrados detectados</span><b id="atipicos-r-det">–</b></div>
+            <div><span>falsas alarmas</span><b id="atipicos-r-fa">–</b></div>
+            <div><span>límites de la regla</span><b id="atipicos-r-lim">–</b></div>
+            <div><span>media · mediana</span><b id="atipicos-r-cen">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con la regla de z, siembra 1 atípico: se detecta. Ahora sube a 6 o 7 atípicos con n = 40: la media y la desviación se inflan tanto que la regla deja de ver a todos (enmascaramiento), mientras la MAD los sigue detectando. Después cambia a “Con cola a la derecha” sin sembrar nada y con n = 300: las tres reglas, pensadas para datos simétricos, empiezan a dar falsas alarmas en la cola, que es parte legítima de los datos.</figcaption>
+      </figure>
+
+      <h2 id="atipicos-multi"><span class="sec">§ 4</span>Atípicos multivariados: la distancia de Mahalanobis</h2>
+      <p>Una persona de 185 cm no es rara. Una de 55 kg tampoco. Pero una persona de 185 cm y 55 kg sí lo es, porque estatura y peso están correlacionados: lo esperable a esa estatura es pesar bastante más. Revisar cada variable por separado no detecta este tipo de atípico. Hace falta una distancia que tenga en cuenta la correlación:</p>
+      <div class="eq">\[ D^2(\mathbf x) = (\mathbf x - \boldsymbol{\mu})^{\top}\, \boldsymbol\Sigma^{-1}\, (\mathbf x - \boldsymbol{\mu}) \;\overset{\text{normal}}{\sim}\; \chi^2_p \]
+        <div class="note">\(\boldsymbol\mu\) es el vector de medias, \(\boldsymbol\Sigma\) la matriz de covarianzas y \(p\) el número de variables. Las curvas con \(D^2\) constante son <b>elipses</b> alineadas con la nube. Con dos variables estandarizadas con correlación \(r\), la fórmula se reduce a \(D^2 = (z_x^2 - 2r\,z_x z_y + z_y^2)/(1 - r^2)\).</div>
+      </div>
+      <p>Con estatura \(\mathcal N(170, 9^2)\), peso \(\mathcal N(70, 11^2)\) y \(r = 0{,}75\): para 185 cm y 55 kg, \(z_x = 1{,}67\) y \(z_y = -1{,}36\). Ninguno supera 2 en valor absoluto, pero</p>
+      <div class="eq">\[ D^2 = \frac{1{,}67^2 + 2 \cdot 0{,}75 \cdot 1{,}67 \cdot 1{,}36 + 1{,}36^2}{1 - 0{,}75^2} = \frac{8{,}05}{0{,}4375} \approx 18{,}4 \]
+        <div class="note">Con \(p = 2\), \(P(\chi^2_2 &gt; 18{,}4) = e^{-18{,}4/2} \approx 0{,}0001\): una combinación muy improbable. Los umbrales habituales son el percentil 97,5 % o 99,9 % de \(\chi^2_p\) (7,38 y 13,82 para \(p = 2\)).</div>
+      </div>
+      <p>En la práctica \(\boldsymbol\mu\) y \(\boldsymbol\Sigma\) se estiman con los datos, y entonces vuelve el enmascaramiento: los atípicos deforman la elipse. La solución robusta es estimarlas con el <b>determinante de covarianza mínima</b> (MCD), que usa solo el subconjunto más compacto de los datos (<code>MinCovDet</code> en scikit-learn, <code>covMcd</code> en el paquete robustbase de R).</p>
+
+      <h2 id="atipicos-lab2"><span class="sec">§ 5</span>Laboratorio: un atípico que solo se ve en dos dimensiones</h2>
+      <p>La nube son 200 personas con estatura y peso correlacionados. Mueve a la persona destacada. El rectángulo punteado es la región \(|z| \le 3\) en cada variable por separado; las elipses son \(D^2 = 7{,}38\) (97,5 %) y \(D^2 = 13{,}82\) (99,9 %).</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · distancia de Mahalanobis</span><span class="num" id="atipicos-m-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="atipicos-px">ESTATURA = <b id="atipicos-px-v" class="num">185</b> cm</label><input id="atipicos-px" type="range" min="135" max="205" value="185"></div>
+            <div class="ctrl"><label for="atipicos-py">PESO = <b id="atipicos-py-v" class="num">55</b> kg</label><input id="atipicos-py" type="range" min="30" max="110" value="55"></div>
+            <div class="ctrl"><label for="atipicos-r">CORRELACIÓN · r = <b id="atipicos-r-v" class="num">0,75</b></label><input id="atipicos-r" type="range" min="0" max="0.95" step="0.05" value="0.75"></div>
+          </div>
+          <canvas class="plot" id="atipicos-maha" height="300" aria-label="Nube de estatura y peso con elipses de Mahalanobis y el rectángulo de la regla univariada"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>personas</span><span><i style="background:var(--ink)"></i>elipses 97,5 % y 99,9 %</span><span><i style="background:var(--muted)"></i>|z| ≤ 3 por variable</span><span><i style="background:var(--hot)"></i>persona destacada</span></div>
+          <div class="readout">
+            <div><span>z estatura</span><b id="atipicos-r-zx">–</b></div>
+            <div><span>z peso</span><b id="atipicos-r-zy">–</b></div>
+            <div><span>Mahalanobis D²</span><b id="atipicos-r-d2">–</b></div>
+            <div><span>P(χ²₂ &gt; D²)</span><b id="atipicos-r-pd">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con r = 0,75 la persona de 185 cm y 55 kg está dentro del rectángulo pero muy fuera de las elipses. Baja la correlación a 0: las elipses se vuelven casi círculos (en unidades de z) y la misma persona deja de ser rara. Ahora pon 200 cm y 105 kg: z de estatura supera 3, pero D² queda dentro de la elipse del 99,9 % porque la combinación (alto y pesado) es coherente con la nube.</figcaption>
+      </figure>
+
+      <h2 id="atipicos-tratar"><span class="sec">§ 6</span>Qué hacer con un atípico</h2>
+      <p>No hay una respuesta automática. La decisión depende de <b>por qué</b> el valor es atípico:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Diagnóstico</th><th>Ejemplo</th><th>Tratamiento</th></tr></thead>
+        <tbody>
+          <tr><td>Error de registro con valor verdadero recuperable</td><td>1 980 en lugar de 198</td><td><b>Corregir</b> y documentar el cambio</td></tr>
+          <tr><td>Valor imposible o código especial</td><td>Edad 250, ingreso 99 999 como “no responde”</td><td>Convertir a <b>faltante</b> (NA) y tratarlo como dato faltante</td></tr>
+          <tr><td>Fuera de la población de estudio</td><td>Un local comercial en una encuesta de hogares</td><td><b>Excluir</b> justificándolo con un criterio definido antes de mirar los resultados</td></tr>
+          <tr><td>Valor legítimo pero extremo</td><td>El horno de cerámica, un cliente que compra 100 veces más</td><td><b>Conservar</b> y usar métodos robustos, transformar, o analizarlo aparte</td></tr>
+        </tbody>
+      </table></div>
+      <p>Para valores legítimos que no quieres que dominen el análisis hay varias herramientas:</p>
+      <ul>
+        <li><b>Resúmenes robustos</b>: mediana, MAD, RIC, media recortada. La <b>media recortada</b> al 10 % descarta el 10 % más bajo y el 10 % más alto y promedia el resto.</li>
+        <li><b>Winsorizar</b>: reemplazar los valores por debajo del percentil \(\alpha\) y por encima del \(1-\alpha\) por esos percentiles. No elimina observaciones, pero limita su influencia:</li>
+      </ul>
+      <div class="eq">\[ x_i^{(w)} = \min\big(\max(x_i,\ q_{\alpha}),\ q_{1-\alpha}\big), \qquad \bar x_{\text{rec},\alpha} = \frac{1}{n - 2g}\sum_{i=g+1}^{n-g} x_{(i)},\quad g = \lfloor \alpha n \rfloor \]
+        <div class="note">Con los 15 consumos y \(\alpha = 0{,}1\) (\(g = 1\)): la media recortada descarta 176 y 1 980 y vale 227,8 kWh; la media winsorizada reemplaza 176 por 182 y 1 980 por 520 y vale 244,3 kWh. La media original era 341,2 y la mediana 201.</div>
+      </div>
+      <ul>
+        <li><b>Transformar</b> la variable (logaritmo, raíz) cuando la “atipicidad” viene de una cola larga natural.</li>
+        <li><b>Modelos robustos</b>: regresión con pérdida de Huber o regresión por cuantiles, que dan menos peso a residuos grandes.</li>
+      </ul>
+      <div class="callout"><b>Reglas de oro:</b> nunca borres un dato solo porque una regla lo marcó; define los criterios antes de ver los resultados (si no, es fácil “limpiar” hasta obtener lo que querías); reporta cuántos valores trataste y cómo; y si la decisión importa, muestra el análisis con y sin ellos. En detección de fraude, fallas de máquinas o epidemias, el atípico es justamente lo que buscas.</div>
+
+      <h2 id="atipicos-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>Las tres reglas aplicadas a los 15 consumos, la corrección del error, el tratamiento robusto y la distancia de Mahalanobis.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+x = pd.<span class="f">Series</span>([<span class="n">182</span>, <span class="n">195</span>, <span class="n">201</span>, <span class="n">176</span>, <span class="n">210</span>, <span class="n">188</span>, <span class="n">240</span>, <span class="n">199</span>, <span class="n">205</span>, <span class="n">193</span>, <span class="n">186</span>, <span class="n">1980</span>, <span class="n">215</span>, <span class="n">228</span>, <span class="n">520</span>])
+
+<span class="c"># 1) regla de z: solo ve el 1980 (enmascaramiento)</span>
+z = (x - x.<span class="f">mean</span>()) / x.<span class="f">std</span>()
+<span class="f">print</span>(x[z.<span class="f">abs</span>() &gt; <span class="n">3</span>].<span class="f">tolist</span>())                 <span class="c"># [1980]</span>
+
+<span class="c"># 2) regla de Tukey</span>
+q1, q3 = x.<span class="f">quantile</span>([<span class="n">0.25</span>, <span class="n">0.75</span>])
+ric = q3 - q1
+<span class="f">print</span>(q1 - <span class="n">1.5</span> * ric, q3 + <span class="n">1.5</span> * ric)             <span class="c"># 144.0 268.0</span>
+<span class="f">print</span>(x[(x &lt; q1 - <span class="n">1.5</span> * ric) | (x &gt; q3 + <span class="n">1.5</span> * ric)].<span class="f">tolist</span>())   <span class="c"># [1980, 520]</span>
+
+<span class="c"># 3) z robusto con la MAD</span>
+me = x.<span class="f">median</span>()
+mad = (x - me).<span class="f">abs</span>().<span class="f">median</span>()                     <span class="c"># 14.0</span>
+M = <span class="n">0.6745</span> * (x - me) / mad
+<span class="f">print</span>(x[M.<span class="f">abs</span>() &gt; <span class="n">3.5</span>].<span class="f">tolist</span>())               <span class="c"># [1980, 520]</span>
+<span class="f">print</span>(stats.<span class="f">median_abs_deviation</span>(x, scale=<span class="s">"normal"</span>))   <span class="c"># ≈ 20.76 = 1.4826 · MAD</span>
+
+<span class="c"># tratar: corregir el error; el 520 es real y se conserva</span>
+y = x.<span class="f">replace</span>(<span class="n">1980</span>, <span class="n">198</span>)
+<span class="f">print</span>(y.<span class="f">mean</span>(), ((y - y.<span class="f">mean</span>()) / y.<span class="f">std</span>()).<span class="f">max</span>())    <span class="c"># 222.4, ≈ 3.54: ahora z sí ve el 520</span>
+
+<span class="c"># resúmenes robustos sobre los datos originales</span>
+<span class="f">print</span>(stats.<span class="f">trim_mean</span>(x, <span class="n">0.1</span>))                     <span class="c"># ≈ 227.8</span>
+<span class="f">print</span>(stats.mstats.<span class="f">winsorize</span>(x.values, limits=(<span class="n">0.1</span>, <span class="n">0.1</span>)).<span class="f">mean</span>())   <span class="c"># ≈ 244.3</span>
+
+<span class="c"># Mahalanobis con parámetros conocidos (estatura, peso)</span>
+mu = np.<span class="f">array</span>([<span class="n">170</span>, <span class="n">70</span>]); sd = np.<span class="f">array</span>([<span class="n">9</span>, <span class="n">11</span>]); r = <span class="n">0.75</span>
+S = np.<span class="f">array</span>([[sd[<span class="n">0</span>]**<span class="n">2</span>, r * sd[<span class="n">0</span>] * sd[<span class="n">1</span>]], [r * sd[<span class="n">0</span>] * sd[<span class="n">1</span>], sd[<span class="n">1</span>]**<span class="n">2</span>]])
+d = np.<span class="f">array</span>([<span class="n">185</span>, <span class="n">55</span>]) - mu
+D2 = d @ np.linalg.<span class="f">inv</span>(S) @ d
+<span class="f">print</span>(D2, stats.chi2.<span class="f">sf</span>(D2, df=<span class="n">2</span>))                 <span class="c"># ≈ 18.4, ≈ 0.0001</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">182</span>, <span class="n">195</span>, <span class="n">201</span>, <span class="n">176</span>, <span class="n">210</span>, <span class="n">188</span>, <span class="n">240</span>, <span class="n">199</span>, <span class="n">205</span>, <span class="n">193</span>, <span class="n">186</span>, <span class="n">1980</span>, <span class="n">215</span>, <span class="n">228</span>, <span class="n">520</span>)
+
+<span class="c"># 1) regla de z: solo ve el 1980 (enmascaramiento)</span>
+z &lt;- (x - <span class="f">mean</span>(x)) / <span class="f">sd</span>(x)
+x[<span class="f">abs</span>(z) &gt; <span class="n">3</span>]                                     <span class="c"># 1980</span>
+
+<span class="c"># 2) regla de Tukey (boxplot.stats usa las bisagras de Tukey, casi iguales a Q1 y Q3)</span>
+q &lt;- <span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.75</span>)); ric &lt;- <span class="f">IQR</span>(x)
+<span class="f">c</span>(q[<span class="n">1</span>] - <span class="n">1.5</span> * ric, q[<span class="n">2</span>] + <span class="n">1.5</span> * ric)                 <span class="c"># 144 268</span>
+x[x &lt; q[<span class="n">1</span>] - <span class="n">1.5</span> * ric | x &gt; q[<span class="n">2</span>] + <span class="n">1.5</span> * ric]       <span class="c"># 1980 520</span>
+<span class="f">boxplot.stats</span>(x)$out                              <span class="c"># 1980 520</span>
+
+<span class="c"># 3) z robusto con la MAD (mad() ya multiplica por 1.4826)</span>
+M &lt;- (x - <span class="f">median</span>(x)) / <span class="f">mad</span>(x)
+x[<span class="f">abs</span>(M) &gt; <span class="n">3.5</span>]                                   <span class="c"># 1980 520</span>
+
+<span class="c"># tratar: corregir el error y recalcular</span>
+y &lt;- <span class="f">replace</span>(x, x == <span class="n">1980</span>, <span class="n">198</span>)
+<span class="f">c</span>(<span class="f">mean</span>(y), <span class="f">max</span>((y - <span class="f">mean</span>(y)) / <span class="f">sd</span>(y)))            <span class="c"># 222.4 ≈ 3.54</span>
+
+<span class="c"># resúmenes robustos sobre los datos originales</span>
+<span class="f">mean</span>(x, trim = <span class="n">0.1</span>)                               <span class="c"># ≈ 227.8</span>
+lim &lt;- <span class="f">sort</span>(x)[<span class="f">c</span>(<span class="n">2</span>, <span class="n">14</span>)]                          <span class="c"># winsorizar 1 valor por cola</span>
+<span class="f">mean</span>(<span class="f">pmin</span>(<span class="f">pmax</span>(x, lim[<span class="n">1</span>]), lim[<span class="n">2</span>]))                <span class="c"># ≈ 244.3</span>
+
+<span class="c"># Mahalanobis con parámetros conocidos (estatura, peso)</span>
+S &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">81</span>, <span class="n">0.75</span> * <span class="n">9</span> * <span class="n">11</span>, <span class="n">0.75</span> * <span class="n">9</span> * <span class="n">11</span>, <span class="n">121</span>), <span class="n">2</span>)
+D2 &lt;- <span class="f">mahalanobis</span>(<span class="f">c</span>(<span class="n">185</span>, <span class="n">55</span>), center = <span class="f">c</span>(<span class="n">170</span>, <span class="n">70</span>), cov = S)
+<span class="f">c</span>(D2, <span class="f">pchisq</span>(D2, df = <span class="n">2</span>, lower.tail = <span class="k">FALSE</span>))     <span class="c"># ≈ 18.4 ≈ 0.0001</span></code></pre>
+      </div>
+      <p>Fíjate en un detalle: <code>mad()</code> de R ya devuelve \(1{,}4826 \cdot \mathrm{MAD}\), por eso no lleva el 0,6745; en Python, <code>median_abs_deviation</code> lo hace solo con <code>scale="normal"</code>.</p>
+
+      <h2 id="atipicos-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="Los atípicos grandes inflan la media y sobre todo la desviación típica, así que sus propios z se achican: es el enmascaramiento. Las reglas basadas en mediana y MAD o en cuartiles no sufren ese problema." data-wrong="Piensa en con qué se calcula z. Si hay varios valores enormes, ¿qué les pasa a la media y a la desviación típica que están en la fórmula?">
+        <h3>Una base de 30 sueldos tiene 4 valores digitados con tres ceros de más. La regla |z| &gt; 3 no marca ninguno. ¿Por qué?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque 4 valores son muy pocos para que la regla funcione</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Porque los sueldos no pueden tener atípicos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Porque esos valores inflan la media y la desviación y se esconden a sí mismos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Porque la regla de z solo detecta valores bajos</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="RIC = 60 − 40 = 20. El límite superior es Q₃ + 1,5 · 20 = 60 + 30 = 90 y el inferior 40 − 30 = 10. Solo 95 queda fuera." data-wrong="Calcula primero RIC = Q₃ − Q₁ y luego los límites Q₁ − 1,5 · RIC y Q₃ + 1,5 · RIC. Compara cada valor con esos límites.">
+        <h3>Unos datos tienen Q₁ = 40 y Q₃ = 60. ¿Cuál de estos valores es atípico según la regla de Tukey?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>12</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>85</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>95</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Ninguno</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Una transacción legítima y extrema es justo lo que un análisis de fraude o de clientes grandes necesita ver. Lo correcto es conservarla, quizá analizarla aparte, y usar resúmenes robustos si no quieres que domine el promedio." data-wrong="Distingue error de hallazgo: el monto fue verificado y es real. ¿Tiene sentido borrar o modificar un dato verdadero?">
+        <h3>En una tienda en línea, una compra de 40 veces el monto habitual fue verificada: es real, de un cliente corporativo. ¿Qué haces?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>La conservo, la analizo aparte si hace falta y uso resúmenes robustos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La borro porque la regla de Tukey la marca</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>La reemplazo por la media de las demás compras</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La convierto en dato faltante</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="atipicos-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Tiempos de respuesta de un servidor (ms): 120, 135, 128, 142, 131, 125, 980, 138, 133, 129. Aplica la regla de Tukey con \(k = 1{,}5\) usando \(Q_1 = 128{,}25\) y \(Q_3 = 137{,}25\). ¿Detectaría el 980 la regla \(|z| &gt; 3\)?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>RIC = 9. Límites: \(128{,}25 - 13{,}5 = 114{,}75\) y \(137{,}25 + 13{,}5 = 150{,}75\). Solo el <b>980</b> queda fuera.</p>
+            <p>Con \(n = 10\), ningún valor puede tener \(|z| &gt; (n-1)/\sqrt n = 9/3{,}16 = 2{,}85\). La regla \(|z| &gt; 3\) es matemáticamente incapaz de detectar el 980 (su z es 2,84). Es un ejemplo extremo de por qué no conviene usarla con muestras pequeñas.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con los mismos 10 tiempos, la mediana es 132 y la MAD es 5. Calcula el z robusto \(M\) del 980 y del 142. ¿Cuáles superan 3,5?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(M_{980} = 0{,}6745 \cdot (980 - 132)/5 = 0{,}6745 \cdot 169{,}6 = 114{,}4\). \(M_{142} = 0{,}6745 \cdot 10/5 = 1{,}35\). Solo el 980 supera 3,5, y por muchísimo: con una escala robusta, el atípico se ve sin enmascaramiento.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>En una población de adultos, el colesterol tiene media 200 y desviación 35, la presión sistólica media 125 y desviación 15, y la correlación entre ambas es 0,6. Un paciente tiene colesterol 150 y presión 150. Calcula sus z, su distancia de Mahalanobis y la probabilidad \(P(\chi^2_2 &gt; D^2)\). ¿Es atípico?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(z_c = (150 - 200)/35 = -1{,}43\) y \(z_p = (150 - 125)/15 = 1{,}67\). Ninguno es raro por sí solo.</p>
+            <p>\(D^2 = \dfrac{1{,}43^2 + 2 \cdot 0{,}6 \cdot 1{,}43 \cdot 1{,}67 + 1{,}67^2}{1 - 0{,}36} = \dfrac{2{,}04 + 2{,}86 + 2{,}78}{0{,}64} = 12{,}0\). \(P(\chi^2_2 &gt; 12) = e^{-6} \approx 0{,}0025\). Supera el umbral del 97,5 % (7,38), aunque no el del 99,9 % (13,82): es una combinación inusual (colesterol bajo con presión alta, cuando las dos suelen subir juntas) que merece revisión, por ejemplo por un medicamento para el colesterol.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Simula 200 puntos bivariados normales con correlación 0,8 y agrega 30 atípicos agrupados cerca de (2, −2) (en unidades de z). Calcula la distancia de Mahalanobis con la media y covarianza clásicas y con el estimador robusto MCD. ¿Cuántos de los 30 atípicos superan el umbral \(\chi^2_{2;\,0{,}975}\) en cada caso?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">from</span> sklearn.covariance <span class="k">import</span> EmpiricalCovariance, MinCovDet
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+limpio = rng.<span class="f">multivariate_normal</span>([<span class="n">0</span>, <span class="n">0</span>], [[<span class="n">1</span>, <span class="n">0.8</span>], [<span class="n">0.8</span>, <span class="n">1</span>]], size=<span class="n">200</span>)
+raros = rng.<span class="f">normal</span>([<span class="n">2</span>, -<span class="n">2</span>], <span class="n">0.2</span>, size=(<span class="n">30</span>, <span class="n">2</span>))
+X = np.<span class="f">vstack</span>([limpio, raros])
+umbral = stats.chi2.<span class="f">ppf</span>(<span class="n">0.975</span>, df=<span class="n">2</span>)                    <span class="c"># 7.38</span>
+
+d2_clas = EmpiricalCovariance().<span class="f">fit</span>(X).<span class="f">mahalanobis</span>(X)
+d2_rob = MinCovDet(random_state=<span class="n">0</span>).<span class="f">fit</span>(X).<span class="f">mahalanobis</span>(X)
+<span class="f">print</span>((d2_clas[-<span class="n">30</span>:] &gt; umbral).<span class="f">sum</span>(), (d2_rob[-<span class="n">30</span>:] &gt; umbral).<span class="f">sum</span>())
+<span class="c"># 0 30: la clásica no ve ninguno, la robusta los 30</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(MASS)        <span class="c"># mvrnorm y cov.rob (MCD)</span>
+<span class="f">set.seed</span>(<span class="n">3</span>)
+limpio &lt;- <span class="f">mvrnorm</span>(<span class="n">200</span>, mu = <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>), Sigma = <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="n">0.8</span>, <span class="n">0.8</span>, <span class="n">1</span>), <span class="n">2</span>))
+raros &lt;- <span class="f">cbind</span>(<span class="f">rnorm</span>(<span class="n">30</span>, <span class="n">2</span>, <span class="n">0.2</span>), <span class="f">rnorm</span>(<span class="n">30</span>, -<span class="n">2</span>, <span class="n">0.2</span>))
+X &lt;- <span class="f">rbind</span>(limpio, raros)
+umbral &lt;- <span class="f">qchisq</span>(<span class="n">0.975</span>, df = <span class="n">2</span>)                       <span class="c"># 7.38</span>
+
+d2_clas &lt;- <span class="f">mahalanobis</span>(X, <span class="f">colMeans</span>(X), <span class="f">cov</span>(X))
+rob &lt;- <span class="f">cov.rob</span>(X, method = <span class="s">"mcd"</span>)
+d2_rob &lt;- <span class="f">mahalanobis</span>(X, rob$center, rob$cov)
+<span class="f">c</span>(<span class="f">sum</span>(d2_clas[<span class="n">201</span>:<span class="n">230</span>] &gt; umbral), <span class="f">sum</span>(d2_rob[<span class="n">201</span>:<span class="n">230</span>] &gt; umbral))
+<span class="c"># clásica: pocos o ninguno; robusta: los 30</span></code></pre>
+            </div>
+            <p>El grupo de 30 atípicos (13 % de los datos) está en una dirección “prohibida” por la correlación (x alto con y bajo). Con la estimación clásica, esos puntos bajan la correlación estimada y ensanchan la elipse justo hacia ellos, así que su \(D^2\) se achica: con esta semilla, ninguno supera el umbral. (Con solo 10 atípicos la clásica todavía los detecta; el enmascaramiento crece con la proporción de contaminación.) El MCD estima centro y covarianza con el núcleo compacto de los datos, conserva una elipse angosta y los 30 quedan muy por encima del umbral, a cambio de unas pocas falsas alarmas entre los 200 puntos limpios (5 con esta semilla, cerca del 2,5 % esperado). Es el enmascaramiento, ahora en dos dimensiones.</p>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

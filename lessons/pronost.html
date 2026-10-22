@@ -1,0 +1,348 @@
+<!-- StatEdx · sesión: pronost -->
+<div id="view-pronost" data-view="pronost" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Evaluación de pronósticos</h1>
+      <p>Un modelo que ajusta muy bien el pasado puede pronosticar mal el futuro. Aquí aprendes a medir el error con MAE, RMSE, MAPE y MASE, a validar con origen móvil sin hacer trampa con el tiempo y a exigirle a cada modelo que le gane a un pronóstico ingenuo.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: introducción a las series de tiempo</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#pronost-idea" data-sec="pronost-idea">La idea</a></li>
+        <li><a href="#pronost-met" data-sec="pronost-met">Errores y métricas</a></li>
+        <li><a href="#pronost-lab" data-sec="pronost-lab">Laboratorio: una métrica, dos veredictos</a></li>
+        <li><a href="#pronost-ref" data-sec="pronost-ref">Pronósticos de referencia</a></li>
+        <li><a href="#pronost-cv" data-sec="pronost-cv">Validación con origen móvil</a></li>
+        <li><a href="#pronost-lab2" data-sec="pronost-lab2">Laboratorio: origen móvil</a></li>
+        <li><a href="#pronost-comp" data-sec="pronost-comp">Comparar modelos e intervalos</a></li>
+        <li><a href="#pronost-code" data-sec="pronost-code">En R y Python</a></li>
+        <li><a href="#pronost-quiz" data-sec="pronost-quiz">Comprueba</a></li>
+        <li><a href="#pronost-ej" data-sec="pronost-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="pronost-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Dos analistas presentan su pronóstico de demanda para el año próximo. La primera ajustó un modelo con 15 parámetros que reproduce los últimos cinco años casi a la perfección. El segundo usó un Holt-Winters con tres parámetros que deja errores visibles en el pasado. ¿Cuál elegir? Ninguno de los dos gráficos lo responde: <b>el error dentro de la muestra no mide la capacidad de pronosticar</b>, porque un modelo flexible puede memorizar el ruido.</p>
+      <p>La única forma honesta de evaluar un pronóstico es simular lo que pasará en la realidad: ajustar con el pasado, pronosticar períodos que el modelo no vio y medir el error. En la sesión introductoria viste la idea básica; aquí la conviertes en un procedimiento completo, con métricas bien elegidas, referencias obligatorias y pruebas para decidir si una diferencia es real.</p>
+      <div class="callout"><b>Tres preguntas antes de evaluar:</b> ¿a qué horizonte se va a usar el pronóstico (mañana, el próximo trimestre)? ¿qué cuesta más, un error grande ocasional o muchos errores chicos? ¿hay que comparar series de distinta escala? Las respuestas eligen la métrica.</div>
+
+      <h2 id="pronost-met"><span class="sec">§ 2</span>Errores y métricas</h2>
+      <p>El <b>error de pronóstico</b> a \(h\) pasos desde el origen \(T\) es \(e_{T+h} = y_{T+h} - \hat y_{T+h\mid T}\). No es lo mismo que un residuo: el residuo compara con un ajuste que ya conocía el dato, el error de pronóstico no. Sobre \(n\) errores del conjunto de prueba se definen las métricas:</p>
+      <div class="eq">\[ \text{ME} = \frac{1}{n}\sum e_t, \qquad \text{MAE} = \frac{1}{n}\sum |e_t|, \qquad \text{RMSE} = \sqrt{\frac{1}{n}\sum e_t^2} \]
+        <div class="note">El ME mide el <b>sesgo</b>: un ME positivo indica que el modelo pronostica de menos de forma sistemática. MAE y RMSE miden la magnitud y están en las unidades de la serie. Siempre se cumple \(\text{RMSE} \ge \text{MAE}\), y la brecha crece cuando hay errores grandes ocasionales.</div>
+      </div>
+      <div class="eq">\[ \text{MAPE} = \frac{100}{n}\sum \left|\frac{e_t}{y_t}\right|, \qquad \text{MASE} = \frac{1}{n}\sum \frac{|e_t|}{\dfrac{1}{T-m}\sum_{t=m+1}^{T} |y_t - y_{t-m}|} \]
+        <div class="note">El MAPE no tiene unidades, pero se indefine si algún \(y_t = 0\), explota si \(y_t\) es cercano a cero y castiga más los errores por exceso que por defecto cuando el pronóstico está acotado en cero. El <b>MASE</b> (Hyndman y Koehler, 2006) divide cada error por el MAE del pronóstico ingenuo estacional <b>dentro de la muestra de entrenamiento</b> (con \(m = 1\) si no hay estacionalidad). MASE &lt; 1 significa que el modelo erra menos fuera de muestra de lo que erraba el ingenuo a un paso dentro de ella.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Métrica</th><th>Escala</th><th>Punto que la minimiza</th><th>Cuidado con</th></tr></thead>
+        <tbody>
+          <tr><td>MAE</td><td>Unidades de la serie</td><td>Mediana de la distribución</td><td>No compara series distintas</td></tr>
+          <tr><td>RMSE</td><td>Unidades de la serie</td><td>Media de la distribución</td><td>Dominado por pocos errores grandes</td></tr>
+          <tr><td>MAPE</td><td>Porcentaje</td><td>Un valor por debajo de la mediana</td><td>Ceros y valores cercanos a cero</td></tr>
+          <tr><td>MASE</td><td>Sin unidades</td><td>Mediana de la distribución</td><td>Interpretar el 1 como “empate” fuera de muestra</td></tr>
+        </tbody>
+      </table></div>
+      <p>La tercera columna importa: cada métrica premia un pronóstico distinto. Si tu distribución de demanda es asimétrica, el pronóstico que gana en RMSE (la media) no es el que gana en MAE (la mediana). Elige la métrica según el costo real del error y luego optimiza para esa métrica, no para otra.</p>
+      <div class="callout"><b>sMAPE no arregla el MAPE:</b> la versión “simétrica”, con \((|y_t| + |\hat y_t|)/2\) en el denominador, sigue siendo inestable cerca de cero y no es simétrica de verdad. Para comparar muchas series de escalas distintas, la recomendación actual es el MASE.</div>
+
+      <h2 id="pronost-lab"><span class="sec">§ 3</span>Laboratorio: una métrica, dos veredictos</h2>
+      <p>Doce meses de prueba y dos pronosticadores. <b>A</b> se equivoca un poco todos los meses, y puedes agregarle un sesgo. <b>B</b> acierta casi siempre, pero un mes comete un error grande cuyo tamaño eliges. Mira cuándo MAE y RMSE dan veredictos distintos, y qué le pasa al MAPE cuando la serie vale casi cero.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · métricas de error</span><span class="num" id="pronost-m-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="pronost-m-big">ERROR GRANDE DE B = <b id="pronost-m-big-v" class="num">40</b></label><input id="pronost-m-big" type="range" min="0" max="120" step="2" value="40"></div>
+            <div class="ctrl"><label for="pronost-m-bias">SESGO DE A = <b id="pronost-m-bias-v" class="num">0</b></label><input id="pronost-m-bias" type="range" min="-12" max="12" step="1" value="0"></div>
+            <div class="ctrl">
+              <label id="pronost-m-lvl-label">NIVEL DE LA SERIE</label>
+              <div class="seg" id="pronost-m-lvl" role="group" aria-labelledby="pronost-m-lvl-label">
+                <button data-l="hi" aria-pressed="true">Alto (≈ 200)</button>
+                <button data-l="lo" aria-pressed="false">Cerca de cero</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="plot-label"><span>Error de cada mes de prueba</span><span>e = y − ŷ</span></div>
+            <canvas class="plot" id="pronost-c-m" height="220" aria-label="Errores mensuales de los pronosticadores A y B"></canvas>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>A: errores chicos y frecuentes</span><span><i style="background:var(--hot)"></i>B: casi perfecto salvo un mes</span></div>
+          <div class="readout">
+            <div><span>MAE · A vs B</span><b id="pronost-m-mae">–</b></div>
+            <div><span>RMSE · A vs B</span><b id="pronost-m-rmse">–</b></div>
+            <div><span>MAPE · A vs B</span><b id="pronost-m-mape">–</b></div>
+            <div><span>ME (sesgo) · A vs B</span><b id="pronost-m-me">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con el error grande en 40, B gana en MAE pero pierde en RMSE: el cuadrado infla ese único mes. Sube el sesgo de A: el MAE apenas cambia, pero el ME lo delata. Con la serie cerca de cero, el mismo error absoluto produce un MAPE gigantesco.</figcaption>
+      </figure>
+
+      <h2 id="pronost-ref"><span class="sec">§ 4</span>Pronósticos de referencia</h2>
+      <p>Una métrica aislada no dice nada: un MAE de 15 puede ser excelente o pésimo. Por eso todo modelo se compara contra <b>referencias</b> sencillas que no requieren estimar casi nada:</p>
+      <div class="eq">\[ \begin{aligned} \text{Media:}&amp;\quad \hat y_{T+h} = \bar y &amp;\qquad \text{Ingenuo:}&amp;\quad \hat y_{T+h} = y_T \\ \text{Ingenuo estacional:}&amp;\quad \hat y_{T+h} = y_{T+h-m(k+1)} &amp;\qquad \text{Deriva:}&amp;\quad \hat y_{T+h} = y_T + h\,\frac{y_T - y_1}{T-1} \end{aligned} \]
+        <div class="note">Con \(k = \lfloor (h-1)/m \rfloor\), el ingenuo estacional repite el último ciclo observado. La deriva traza la recta que une el primer y el último dato y la prolonga. El ingenuo es el pronóstico óptimo si la serie es un paseo aleatorio, algo frecuente en precios financieros.</div>
+      </div>
+      <p>Para resumir cuánto mejora un modelo sobre su referencia se usa el <b>puntaje de habilidad</b> (skill score):</p>
+      <div class="eq">\[ \text{Skill} = 1 - \frac{\text{métrica del modelo}}{\text{métrica de la referencia}} \]
+        <div class="note">Un skill de 0,30 en MAE significa que el modelo reduce el error absoluto medio un 30 % respecto de la referencia. Un skill negativo significa que el modelo es peor que no modelar nada.</div>
+      </div>
+      <div class="callout"><b>Para recordar:</b> en series con estacionalidad marcada, el ingenuo estacional es una vara alta. En las competencias M, una fracción importante de métodos sofisticados no logró superarlo en todas las series. Si tu modelo no le gana con claridad, no lo pongas en producción.</div>
+
+      <h2 id="pronost-cv"><span class="sec">§ 5</span>Validación con origen móvil</h2>
+      <p>Una sola partición (entrenar hasta diciembre, evaluar el año siguiente) da una estimación ruidosa: depende de que ese año en particular haya sido fácil o difícil. La <b>validación con origen móvil</b>, también llamada validación cruzada para series de tiempo, repite el ejercicio con muchos puntos de corte \(T_1 &lt; T_2 &lt; \dots &lt; T_K\):</p>
+      <div class="eq">\[ \text{MAE}(h) = \frac{1}{K}\sum_{k=1}^{K} \left| y_{T_k + h} - \hat y_{T_k + h \mid T_k} \right| \]
+        <div class="note">En cada origen \(T_k\) el modelo se reajusta solo con datos hasta \(T_k\) y pronostica \(h = 1, \dots, H\). El resultado natural es una <b>curva de error por horizonte</b>, que casi siempre crece con \(h\). Promediar todos los horizontes juntos esconde esa información.</div>
+      </div>
+      <ul>
+        <li><b>Ventana expansiva:</b> cada origen usa todos los datos desde el inicio. Aprovecha toda la información y es lo habitual.</li>
+        <li><b>Ventana deslizante:</b> cada origen usa solo los últimos \(w\) datos. Conviene cuando el proceso cambia con el tiempo y los datos muy viejos estorban, o cuando quieres que todos los ajustes tengan el mismo tamaño.</li>
+        <li><b>Paso entre orígenes:</b> mover el origen de a 1 da más evaluaciones, pero muy correlacionadas entre sí y con un costo de cómputo alto. Moverlo de a 3, 6 o 12 períodos suele bastar.</li>
+        <li><b>Reajustar o no:</b> en producción, ¿reestimarás el modelo cada mes o solo actualizarás los estados? Evalúa de la misma forma en que vas a operar.</li>
+      </ul>
+      <div class="callout"><b>La trampa del conjunto de prueba reciclado:</b> si pruebas 50 modelos en el mismo período de prueba y te quedas con el mejor, su error ya no es una estimación honesta: elegiste en función de él. Reserva un último tramo que no toques hasta el final, igual que harías con un conjunto de prueba en aprendizaje automático.</div>
+
+      <h2 id="pronost-lab2"><span class="sec">§ 6</span>Laboratorio: origen móvil</h2>
+      <p>Ocho años de datos mensuales con tendencia y estacionalidad. Cada fila del esquema inferior es un origen: en color, el tramo de entrenamiento; en contraste, los meses que se pronostican. Elige el método, la ventana y el horizonte, y anima el recorrido para ver cada pronóstico. Las métricas promedian todos los orígenes y horizontes hasta el elegido.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · validación con origen móvil</span><span class="num" id="pronost-r-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="pronost-r-m-label">MÉTODO</label>
+              <div class="seg" id="pronost-r-m" role="group" aria-labelledby="pronost-r-m-label">
+                <button data-m="mean" aria-pressed="false">Media</button>
+                <button data-m="naive" aria-pressed="false">Ingenuo</button>
+                <button data-m="snaive" aria-pressed="true">Ingenuo est.</button>
+                <button data-m="drift" aria-pressed="false">Deriva</button>
+                <button data-m="hw" aria-pressed="false">Holt-Winters</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="pronost-r-w-label">VENTANA</label>
+              <div class="seg" id="pronost-r-w" role="group" aria-labelledby="pronost-r-w-label">
+                <button data-w="exp" aria-pressed="true">Expansiva</button>
+                <button data-w="sl" aria-pressed="false">Deslizante (36)</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="pronost-r-h">HORIZONTE · h = <b id="pronost-r-h-v" class="num">6</b> meses</label><input id="pronost-r-h" type="range" min="1" max="12" step="1" value="6"></div>
+            <button class="btn btn-ghost btn-sm" id="pronost-r-play" type="button">Animar</button>
+          </div>
+          <div>
+            <div class="plot-label"><span>Serie y pronóstico desde el origen actual</span><span id="pronost-r-lbl">–</span></div>
+            <canvas class="plot" id="pronost-c-r" height="230" aria-label="Serie mensual con el tramo de entrenamiento y el pronóstico del origen actual"></canvas>
+          </div>
+          <div>
+            <div class="plot-label"><span>Esquema de orígenes</span><span>entrenamiento · prueba</span></div>
+            <canvas class="plot" id="pronost-c-o" height="170" aria-label="Esquema de los orígenes de la validación con sus tramos de entrenamiento y prueba"></canvas>
+          </div>
+          <div class="readout">
+            <div><span>MAE</span><b id="pronost-r-mae">–</b></div>
+            <div><span>RMSE</span><b id="pronost-r-rmse">–</b></div>
+            <div><span>MAPE</span><b id="pronost-r-mape">–</b></div>
+            <div><span>MASE</span><b id="pronost-r-mase">–</b></div>
+          </div>
+        </div>
+        <figcaption>La media y el ingenuo ignoran la estacionalidad y quedan con MASE muy por encima de 1. El ingenuo estacional se queda corto porque no ve el crecimiento; Holt-Winters suele ganarle. Sube el horizonte: todas las métricas empeoran, porque pronosticar lejos es más difícil.</figcaption>
+      </figure>
+
+      <h2 id="pronost-comp"><span class="sec">§ 7</span>Comparar modelos y evaluar intervalos</h2>
+      <p>Si el modelo A tiene un MAE de 16 y el B de 18 en la validación, ¿es una diferencia real o suerte? La prueba de <b>Diebold-Mariano</b> responde con los errores de ambos modelos en los mismos períodos. Para una pérdida \(L\) (por ejemplo, el error al cuadrado), se define la diferencia de pérdidas \(d_t = L(e_{A,t}) - L(e_{B,t})\):</p>
+      <div class="eq">\[ \text{DM} = \frac{\bar d}{\sqrt{\widehat{\operatorname{Var}}(\bar d)}} \;\approx\; \mathcal{N}(0, 1) \quad \text{bajo } H_0: E[d_t] = 0 \]
+        <div class="note">A un paso, \(\widehat{\operatorname{Var}}(\bar d) = s_d^2/n\). A \(h\) pasos, los errores de orígenes consecutivos se solapan y están correlacionados hasta el rezago \(h - 1\), así que la varianza se estima sumando esas autocovarianzas. Con muestras chicas se usa la corrección de Harvey, Leybourne y Newbold, que compara con una \(t\) de Student. Un DM negativo favorece a A.</div>
+      </div>
+      <p><b>Evaluar los intervalos.</b> Un pronóstico puntual excelente con intervalos mal calibrados sigue siendo un problema. Dos chequeos:</p>
+      <ul>
+        <li><b>Cobertura empírica:</b> la proporción de valores reales que cayó dentro del intervalo del 95 %. Si sale 80 %, los intervalos son demasiado angostos (lo típico, porque ignoran la incertidumbre de los parámetros y del modelo).</li>
+        <li><b>Puntaje de Winkler</b> para un intervalo \([\ell, u]\) de nivel \(1-\alpha\): premia los intervalos angostos y castiga cuando el dato cae fuera.</li>
+      </ul>
+      <div class="eq">\[ W = (u - \ell) + \frac{2}{\alpha}(\ell - y)\,\mathbb{1}[y &lt; \ell] + \frac{2}{\alpha}(y - u)\,\mathbb{1}[y &gt; u] \]
+        <div class="note">Menor es mejor. Con \(\alpha = 0{,}05\), cada unidad que el dato queda fuera cuesta 40 unidades de ancho. Para pronósticos por cuantiles se usa la pérdida pinball, y para distribuciones completas el CRPS.</div>
+      </div>
+
+      <h2 id="pronost-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Con los pasajeros aéreos comparamos cuatro métodos con origen móvil (siete orígenes, de 96 a 132 meses, cada 6 meses, pronosticando 12 meses), calculamos las cuatro métricas y el error por horizonte, y probamos con Diebold-Mariano si Holt-Winters le gana de verdad al ingenuo estacional a un paso.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> scipy.stats <span class="k">import</span> norm
+<span class="k">from</span> statsmodels.tsa.holtwinters <span class="k">import</span> ExponentialSmoothing
+
+<span class="c"># Pasajeros aéreos internacionales (miles), enero 1949 a diciembre 1960</span>
+ap = [<span class="n">112</span>, <span class="n">118</span>, <span class="n">132</span>, <span class="n">129</span>, <span class="n">121</span>, <span class="n">135</span>, <span class="n">148</span>, <span class="n">148</span>, <span class="n">136</span>, <span class="n">119</span>, <span class="n">104</span>, <span class="n">118</span>,
+      <span class="n">115</span>, <span class="n">126</span>, <span class="n">141</span>, <span class="n">135</span>, <span class="n">125</span>, <span class="n">149</span>, <span class="n">170</span>, <span class="n">170</span>, <span class="n">158</span>, <span class="n">133</span>, <span class="n">114</span>, <span class="n">140</span>,
+      <span class="n">145</span>, <span class="n">150</span>, <span class="n">178</span>, <span class="n">163</span>, <span class="n">172</span>, <span class="n">178</span>, <span class="n">199</span>, <span class="n">199</span>, <span class="n">184</span>, <span class="n">162</span>, <span class="n">146</span>, <span class="n">166</span>,
+      <span class="n">171</span>, <span class="n">180</span>, <span class="n">193</span>, <span class="n">181</span>, <span class="n">183</span>, <span class="n">218</span>, <span class="n">230</span>, <span class="n">242</span>, <span class="n">209</span>, <span class="n">191</span>, <span class="n">172</span>, <span class="n">194</span>,
+      <span class="n">196</span>, <span class="n">196</span>, <span class="n">236</span>, <span class="n">235</span>, <span class="n">229</span>, <span class="n">243</span>, <span class="n">264</span>, <span class="n">272</span>, <span class="n">237</span>, <span class="n">211</span>, <span class="n">180</span>, <span class="n">201</span>,
+      <span class="n">204</span>, <span class="n">188</span>, <span class="n">235</span>, <span class="n">227</span>, <span class="n">234</span>, <span class="n">264</span>, <span class="n">302</span>, <span class="n">293</span>, <span class="n">259</span>, <span class="n">229</span>, <span class="n">203</span>, <span class="n">229</span>,
+      <span class="n">242</span>, <span class="n">233</span>, <span class="n">267</span>, <span class="n">269</span>, <span class="n">270</span>, <span class="n">315</span>, <span class="n">364</span>, <span class="n">347</span>, <span class="n">312</span>, <span class="n">274</span>, <span class="n">237</span>, <span class="n">278</span>,
+      <span class="n">284</span>, <span class="n">277</span>, <span class="n">317</span>, <span class="n">313</span>, <span class="n">318</span>, <span class="n">374</span>, <span class="n">413</span>, <span class="n">405</span>, <span class="n">355</span>, <span class="n">306</span>, <span class="n">271</span>, <span class="n">306</span>,
+      <span class="n">315</span>, <span class="n">301</span>, <span class="n">356</span>, <span class="n">348</span>, <span class="n">355</span>, <span class="n">422</span>, <span class="n">465</span>, <span class="n">467</span>, <span class="n">404</span>, <span class="n">347</span>, <span class="n">305</span>, <span class="n">336</span>,
+      <span class="n">340</span>, <span class="n">318</span>, <span class="n">362</span>, <span class="n">348</span>, <span class="n">363</span>, <span class="n">435</span>, <span class="n">491</span>, <span class="n">505</span>, <span class="n">404</span>, <span class="n">359</span>, <span class="n">310</span>, <span class="n">337</span>,
+      <span class="n">360</span>, <span class="n">342</span>, <span class="n">406</span>, <span class="n">396</span>, <span class="n">420</span>, <span class="n">472</span>, <span class="n">548</span>, <span class="n">559</span>, <span class="n">463</span>, <span class="n">407</span>, <span class="n">362</span>, <span class="n">405</span>,
+      <span class="n">417</span>, <span class="n">391</span>, <span class="n">419</span>, <span class="n">461</span>, <span class="n">472</span>, <span class="n">535</span>, <span class="n">622</span>, <span class="n">606</span>, <span class="n">508</span>, <span class="n">461</span>, <span class="n">390</span>, <span class="n">432</span>]
+y = np.<span class="f">array</span>(ap, dtype=float)
+m, H = <span class="n">12</span>, <span class="n">12</span>
+
+<span class="k">def</span> <span class="f">ingenuo</span>(tr, h):      <span class="k">return</span> np.<span class="f">repeat</span>(tr[-<span class="n">1</span>], h)
+<span class="k">def</span> <span class="f">ingenuo_est</span>(tr, h):  <span class="k">return</span> np.<span class="f">array</span>([tr[<span class="f">len</span>(tr) - m + (j % m)] <span class="k">for</span> j <span class="k">in</span> <span class="f">range</span>(h)])
+<span class="k">def</span> <span class="f">deriva</span>(tr, h):       <span class="k">return</span> tr[-<span class="n">1</span>] + (tr[-<span class="n">1</span>] - tr[<span class="n">0</span>]) / (<span class="f">len</span>(tr) - <span class="n">1</span>) * np.<span class="f">arange</span>(<span class="n">1</span>, h + <span class="n">1</span>)
+<span class="k">def</span> <span class="f">holt_winters</span>(tr, h):
+    <span class="k">return</span> <span class="f">ExponentialSmoothing</span>(tr, trend=<span class="s">"add"</span>, seasonal=<span class="s">"mul"</span>, seasonal_periods=m,
+                                initialization_method=<span class="s">"estimated"</span>).<span class="f">fit</span>().<span class="f">forecast</span>(h)
+
+metodos = {<span class="s">"ingenuo"</span>: ingenuo, <span class="s">"ingenuo estacional"</span>: ingenuo_est,
+           <span class="s">"deriva"</span>: deriva, <span class="s">"Holt-Winters"</span>: holt_winters}
+
+<span class="c"># Origen móvil con ventana expansiva: cortes en los meses 96, 102, ..., 132</span>
+cortes = <span class="f">range</span>(<span class="n">96</span>, <span class="f">len</span>(y) - H + <span class="n">1</span>, <span class="n">6</span>)
+filas = []
+<span class="k">for</span> nombre, f <span class="k">in</span> metodos.<span class="f">items</span>():
+    <span class="k">for</span> T <span class="k">in</span> cortes:
+        tr, te = y[:T], y[T:T + H]
+        e = te - <span class="f">f</span>(tr, H)
+        escala = np.<span class="f">mean</span>(np.<span class="f">abs</span>(tr[m:] - tr[:-m]))   <span class="c"># MAE del ingenuo estacional en entrenamiento</span>
+        <span class="k">for</span> h <span class="k">in</span> <span class="f">range</span>(H):
+            filas.<span class="f">append</span>({<span class="s">"metodo"</span>: nombre, <span class="s">"h"</span>: h + <span class="n">1</span>, <span class="s">"e"</span>: e[h],
+                          <span class="s">"pe"</span>: <span class="n">100</span> * e[h] / te[h], <span class="s">"q"</span>: e[h] / escala})
+err = pd.<span class="f">DataFrame</span>(filas)
+
+tabla = err.<span class="f">groupby</span>(<span class="s">"metodo"</span>).<span class="f">agg</span>(
+    MAE=(<span class="s">"e"</span>, <span class="k">lambda</span> e: np.<span class="f">mean</span>(np.<span class="f">abs</span>(e))),
+    RMSE=(<span class="s">"e"</span>, <span class="k">lambda</span> e: np.<span class="f">sqrt</span>(np.<span class="f">mean</span>(e ** <span class="n">2</span>))),
+    MAPE=(<span class="s">"pe"</span>, <span class="k">lambda</span> p: np.<span class="f">mean</span>(np.<span class="f">abs</span>(p))),
+    MASE=(<span class="s">"q"</span>, <span class="k">lambda</span> q: np.<span class="f">mean</span>(np.<span class="f">abs</span>(q))))
+<span class="f">print</span>(tabla.<span class="f">round</span>(<span class="n">2</span>).<span class="f">sort_values</span>(<span class="s">"MASE"</span>))
+<span class="c"># MASE ≈ 0.55 Holt-Winters · 1.24 ingenuo estacional · 2.26 ingenuo · 2.27 deriva</span>
+<span class="c"># MAPE ≈ 4.0 % para Holt-Winters frente a 8.6 % del ingenuo estacional</span>
+
+<span class="c"># El error crece con el horizonte</span>
+<span class="f">print</span>(err[err.metodo == <span class="s">"Holt-Winters"</span>].<span class="f">groupby</span>(<span class="s">"h"</span>)[<span class="s">"e"</span>].<span class="f">apply</span>(<span class="k">lambda</span> e: np.<span class="f">mean</span>(np.<span class="f">abs</span>(e))).<span class="f">round</span>(<span class="n">1</span>).values)
+<span class="c"># ≈ 7 a 1 paso y alrededor de 20 a 8-12 pasos</span>
+
+<span class="c"># Diebold-Mariano a un paso: Holt-Winters contra ingenuo estacional, pérdida cuadrática</span>
+d = []
+<span class="k">for</span> T <span class="k">in</span> <span class="f">range</span>(<span class="n">96</span>, <span class="f">len</span>(y)):
+    tr = y[:T]
+    d.<span class="f">append</span>((y[T] - <span class="f">holt_winters</span>(tr, <span class="n">1</span>)[<span class="n">0</span>]) ** <span class="n">2</span> - (y[T] - <span class="f">ingenuo_est</span>(tr, <span class="n">1</span>)[<span class="n">0</span>]) ** <span class="n">2</span>)
+d = np.<span class="f">array</span>(d)
+dm = d.<span class="f">mean</span>() / np.<span class="f">sqrt</span>(d.<span class="f">var</span>(ddof=<span class="n">1</span>) / <span class="f">len</span>(d))
+<span class="f">print</span>(<span class="s">"DM ="</span>, <span class="f">round</span>(dm, <span class="n">2</span>), <span class="s">" p ="</span>, <span class="n">2</span> * norm.<span class="f">cdf</span>(-<span class="f">abs</span>(dm)))   <span class="c"># DM ≈ −7.6, p &lt; 0.001</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(forecast)
+y &lt;- AirPassengers
+
+<span class="c"># 1. Una sola partición: entrenamos hasta 1958 y evaluamos 1959-1960</span>
+train &lt;- <span class="f">window</span>(y, end = <span class="f">c</span>(<span class="n">1958</span>, <span class="n">12</span>))
+test  &lt;- <span class="f">window</span>(y, start = <span class="f">c</span>(<span class="n">1959</span>, <span class="n">1</span>))
+pron &lt;- <span class="f">list</span>(
+  ingenuo        = <span class="f">naive</span>(train, h = <span class="n">24</span>),
+  ingenuo_est    = <span class="f">snaive</span>(train, h = <span class="n">24</span>),
+  deriva         = <span class="f">rwf</span>(train, h = <span class="n">24</span>, drift = <span class="k">TRUE</span>),
+  holt_winters   = <span class="f">hw</span>(train, seasonal = <span class="s">"multiplicative"</span>, h = <span class="n">24</span>)
+)
+<span class="f">t</span>(<span class="f">sapply</span>(pron, <span class="k">function</span>(f) <span class="f">accuracy</span>(f, test)[<span class="s">"Test set"</span>, <span class="f">c</span>(<span class="s">"MAE"</span>, <span class="s">"RMSE"</span>, <span class="s">"MAPE"</span>, <span class="s">"MASE"</span>)]))
+
+<span class="c"># 2. Origen móvil con tsCV: errores para cada origen y cada horizonte 1..12</span>
+f_hw &lt;- <span class="k">function</span>(x, h) <span class="f">hw</span>(x, seasonal = <span class="s">"multiplicative"</span>, h = h)
+e_hw &lt;- <span class="f">tsCV</span>(y, f_hw, h = <span class="n">12</span>, initial = <span class="n">96</span>)
+e_sn &lt;- <span class="f">tsCV</span>(y, snaive, h = <span class="n">12</span>, initial = <span class="n">96</span>)
+<span class="f">colMeans</span>(<span class="f">abs</span>(e_hw), na.rm = <span class="k">TRUE</span>)     <span class="c"># MAE por horizonte: crece con h</span>
+<span class="f">mean</span>(<span class="f">abs</span>(e_hw), na.rm = <span class="k">TRUE</span>)         <span class="c"># MAE global de Holt-Winters</span>
+<span class="f">mean</span>(<span class="f">abs</span>(e_sn), na.rm = <span class="k">TRUE</span>)         <span class="c"># MAE global del ingenuo estacional</span>
+
+<span class="c"># 3. Diebold-Mariano a un paso (pérdida cuadrática)</span>
+<span class="f">dm.test</span>(e_hw[, <span class="n">1</span>], e_sn[, <span class="n">1</span>], h = <span class="n">1</span>, power = <span class="n">2</span>)
+
+<span class="c"># 4. Calidad de los intervalos: cobertura real del 95 % nominal</span>
+f &lt;- <span class="f">hw</span>(train, seasonal = <span class="s">"multiplicative"</span>, h = <span class="n">24</span>, level = <span class="n">95</span>)
+<span class="f">mean</span>(test &gt;= f$lower &amp; test &lt;= f$upper)</code></pre>
+</div>
+      <p>Qué deberías ver: Holt-Winters tiene un MASE cercano a 0,55 y un MAPE de alrededor del 4 %, la mitad que el ingenuo estacional. El ingenuo y la deriva, que ignoran la estacionalidad, quedan con MASE mayor que 2. Fíjate en que el ingenuo estacional tiene MASE mayor que 1 fuera de muestra, aunque sea el método que define la escala: la serie crece, y el error de repetir el año anterior aumenta con el nivel. El error de Holt-Winters a un paso es unas tres veces menor que a 8 o más pasos, y la prueba de Diebold-Mariano da un valor p minúsculo: la ventaja no es casualidad.</p>
+
+      <h2 id="pronost-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="El MASE divide el error fuera de muestra por el MAE del ingenuo estacional a un paso dentro de la muestra de entrenamiento. 0,8 significa un error 20 % menor que esa escala." data-wrong="Revisa el denominador del MASE: ¿qué pronóstico se usa como escala y sobre qué datos se calcula?">
+        <h3>Un modelo tiene MASE = 0,8 en el conjunto de prueba. ¿Qué significa?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Que acierta el 80 % de los meses</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Que su error porcentual medio es 0,8 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Que es 80 % mejor que la media histórica</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Que su error medio es un 20 % menor que el del ingenuo estacional dentro de la muestra</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El MAPE divide cada error por el valor real: con un cero se indefine y con valores cercanos a cero explota, aunque el error absoluto sea pequeño." data-wrong="Mira los denominadores de cada fórmula. ¿Cuál divide por el valor observado y_t?">
+        <h3>Pronosticas la demanda diaria de un repuesto que muchos días vende 0 unidades. ¿Qué métrica no deberías usar?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>MAE</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>MAPE</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>RMSE</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>MASE</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El valor que minimiza el error absoluto esperado es la mediana; el que minimiza el error cuadrático es la media. Por eso cada métrica premia un pronóstico distinto." data-wrong="Piensa en el resultado clásico: la suma de distancias absolutas se minimiza en un punto central distinto al de la suma de distancias al cuadrado.">
+        <h3>Si te van a evaluar con el MAE, ¿qué pronóstico puntual conviene reportar?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>La mediana de la distribución de pronóstico</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La media de la distribución de pronóstico</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>La moda de la distribución de pronóstico</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El percentil 95, para cubrirse</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="pronost-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Los dos primeros se hacen a mano en pocos minutos; el último usa la prueba de Diebold-Mariano.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Los valores reales de cuatro meses fueron 100, 120, 80 y 110, y el pronóstico fue 90, 125, 95 y 100. Calcula ME, MAE, RMSE y MAPE.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Errores \(e = y - \hat y\): 10, −5, −15 y 10.</p>
+            <ul>
+              <li>ME \(= (10 - 5 - 15 + 10)/4 = 0\): no hay sesgo, los errores se compensan.</li>
+              <li>MAE \(= (10 + 5 + 15 + 10)/4 = 10\).</li>
+              <li>RMSE \(= \sqrt{(100 + 25 + 225 + 100)/4} = \sqrt{112{,}5} \approx 10{,}61\).</li>
+              <li>MAPE \(= \tfrac{100}{4}\,(10/100 + 5/120 + 15/80 + 10/110) \approx 10{,}5\,\%\).</li>
+            </ul>
+            <p>Un ME de 0 no significa buen pronóstico: el MAE muestra que en promedio se equivoca en 10 unidades.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>En datos trimestrales, el ingenuo estacional tiene un MAE de 8 unidades a un paso dentro de la muestra de entrenamiento. En la prueba, tu modelo tiene MAE = 6 y el ingenuo estacional, MAE = 9. Calcula el MASE de cada uno y el skill de tu modelo respecto del ingenuo estacional.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>MASE del modelo \(= 6/8 = 0{,}75\). MASE del ingenuo estacional \(= 9/8 = 1{,}125\): fuera de muestra erra más que dentro, lo cual es normal.</p>
+            <p>Skill \(= 1 - 6/9 \approx 0{,}33\): tu modelo reduce el MAE un 33 % respecto de la referencia. Observa que el skill compara contra la referencia <b>en la prueba</b>, y el MASE contra la escala <b>del entrenamiento</b>.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Tienes 120 meses. Quieres validar con origen móvil, ventana expansiva, primer origen en el mes 60, avanzando de a un mes y pronosticando \(h = 1, \dots, 12\). (a) ¿Cuántos orígenes producen los 12 horizontes completos? (b) ¿Cuántos errores tienes para \(h = 1\) si aceptas orígenes con horizontes incompletos? (c) Si el ajuste tarda 2 segundos, ¿cuánto tarda la validación y cómo la abaratarías?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) El origen \(T\) necesita \(T + 12 \le 120\), es decir \(T = 60, \dots, 108\): <b>49 orígenes</b>.</p>
+            <p>(b) Para \(h = 1\) basta \(T + 1 \le 120\): \(T = 60, \dots, 119\), <b>60 errores</b>. Para \(h = 12\) solo hay 49. Por eso el MAE por horizonte se calcula con distinto número de errores.</p>
+            <p>(c) Con 60 ajustes, unos 2 minutos por modelo. Para abaratarla: avanza de a 3 o 6 meses (20 o 10 ajustes) o reestima los parámetros cada 12 meses y, entre medio, solo actualiza los estados con los datos nuevos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Comparas dos modelos con 8 pronósticos a un paso. Las diferencias de pérdida cuadrática \(d_t = e_{A,t}^2 - e_{B,t}^2\) son 4, −2, 6, 1, 3, −1, 5 y 2. (a) Calcula el estadístico de Diebold-Mariano y su valor p con la normal. (b) Repite con la corrección para muestras chicas (\(t\) con 7 grados de libertad). (c) ¿Qué modelo preferirías y con qué seguridad?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\bar d = 18/8 = 2{,}25\). La desviación típica muestral es \(s_d = \sqrt{55{,}5/7} \approx 2{,}816\), así que el error estándar es \(2{,}816/\sqrt 8 \approx 0{,}996\) y \(\text{DM} \approx 2{,}26\). Con la normal, el valor p bilateral es ≈ <b>0,024</b>.</p>
+            <p>(b) Con \(t_7\), el mismo estadístico da un valor p ≈ <b>0,058</b>: ya no es significativo al 5 %.</p>
+            <p>(c) \(\bar d &gt; 0\) indica que A tiene más pérdida: B parece mejor. Pero con 8 pronósticos la evidencia es débil y depende de la aproximación usada. Lo sensato es acumular más orígenes antes de decidir, o preferir el modelo más simple si la diferencia no es concluyente.</p>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

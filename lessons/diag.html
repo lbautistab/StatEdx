@@ -1,0 +1,336 @@
+<!-- StatEdx · sesión: diag -->
+<div id="view-diag" data-view="diag" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Diagnóstico de regresión</h1>
+      <p>Un R² de 0,96 no garantiza que el modelo sea bueno. Los errores estándar, los intervalos y los valores p dependen de supuestos que hay que revisar, y un solo punto puede mover toda la recta. Aquí aprendes a leer los residuos, a detectar puntos con apalancamiento e influencia, a diagnosticar heterocedasticidad y a corregirla con transformaciones o errores robustos.</p>
+      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: regresión lineal múltiple</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#diag-idea" data-sec="diag-idea">La idea</a></li>
+        <li><a href="#diag-res" data-sec="diag-res">Tipos de residuos</a></li>
+        <li><a href="#diag-graf" data-sec="diag-graf">Los cuatro gráficos</a></li>
+        <li><a href="#diag-lab" data-sec="diag-lab">Laboratorio</a></li>
+        <li><a href="#diag-infl" data-sec="diag-infl">Apalancamiento e influencia</a></li>
+        <li><a href="#diag-het" data-sec="diag-het">Heterocedasticidad</a></li>
+        <li><a href="#diag-trans" data-sec="diag-trans">Transformaciones</a></li>
+        <li><a href="#diag-code" data-sec="diag-code">En R y Python</a></li>
+        <li><a href="#diag-quiz" data-sec="diag-quiz">Comprueba</a></li>
+        <li><a href="#diag-ej" data-sec="diag-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="diag-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una encuesta registra el ingreso mensual de 16 hogares y su gasto en alimentos, ambos en cientos de dólares:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Ingreso</th><td>12</td><td>15</td><td>18</td><td>20</td><td>22</td><td>25</td><td>28</td><td>30</td><td>35</td><td>40</td><td>45</td><td>50</td><td>60</td><td>70</td><td>85</td><td>110</td></tr></thead>
+        <tbody><tr><th>Gasto</th><td>4,3</td><td>5,6</td><td>5,9</td><td>4,8</td><td>7,7</td><td>7,8</td><td>7,2</td><td>9,3</td><td>10,1</td><td>11,1</td><td>11,6</td><td>13,9</td><td>12,7</td><td>16,0</td><td>17,6</td><td>26,3</td></tr></tbody>
+      </table></div>
+      <p>La regresión da \(\widehat{\text{gasto}} = 2{,}29 + 0{,}203\cdot\text{ingreso}\) con \(R^2 = 0{,}963\) y una pendiente con \(t = 19\). Parece un modelo excelente. Pero al mirar los residuos aparecen tres problemas: la dispersión crece con el ingreso (embudo), el hogar de ingreso 110 está muy lejos de los demás y él solo tira de la recta, y los errores estándar clásicos subestiman la incertidumbre a la mitad.</p>
+      <div class="callout"><b>El diagnóstico no es opcional.</b> Mínimos cuadrados siempre produce una recta y un R². Lo que no te dice es si los supuestos (linealidad, independencia, varianza constante, normalidad) se cumplen, ni si unos pocos puntos deciden el resultado. Eso lo dicen los residuos.</div>
+
+      <h2 id="diag-res"><span class="sec">§ 2</span>Tipos de residuos y la matriz sombrero</h2>
+      <p>Los valores ajustados son una transformación lineal de las respuestas: \(\hat{\mathbf y} = H\mathbf y\), con la <b>matriz sombrero</b> (le “pone el sombrero” a \(\mathbf y\)):</p>
+      <div class="eq">\[ H = X(X^\top X)^{-1}X^\top, \qquad \mathbf e = (I - H)\,\mathbf y, \qquad \operatorname{Var}(e_i) = \sigma^2(1 - h_{ii}) \]
+        <div class="note">\(h_{ii}\), el elemento \(i\) de la diagonal de \(H\), es el <b>apalancamiento</b> de la observación \(i\). Cumple \(1/n \le h_{ii} \le 1\) y \(\sum h_{ii} = p + 1\). Los residuos crudos no tienen todos la misma varianza: los puntos con mucho apalancamiento tienen residuos más pequeños porque “atraen” la recta.</div>
+      </div>
+      <p>Para comparar residuos en la misma escala se estandarizan:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Residuo</th><th>Fórmula</th><th>Para qué sirve</th></tr></thead>
+        <tbody>
+          <tr><td>Crudo</td><td>\(e_i = y_i - \hat y_i\)</td><td>En las unidades de \(y\); bueno para ver patrones</td></tr>
+          <tr><td>Estandarizado (estudentizado interno)</td><td>\(r_i = \dfrac{e_i}{s\sqrt{1-h_{ii}}}\)</td><td>Escala común; valores fuera de ±2 merecen atención</td></tr>
+          <tr><td>Estudentizado (externo)</td><td>\(t_i = \dfrac{e_i}{s_{(i)}\sqrt{1-h_{ii}}} \sim t_{n-p-2}\)</td><td>Detectar atípicos: \(s_{(i)}\) se calcula sin la observación \(i\), que así no esconde su propio desvío</td></tr>
+        </tbody>
+      </table></div>
+      <p>En el ejemplo, el hogar de ingreso 85 tiene \(t_i = -2{,}24\) y el de 110 tiene \(t_i = 2{,}23\). Con 16 datos esperarías ver alrededor de un residuo fuera de ±2 por azar, así que dos no es alarmante por sí solo; lo preocupante es <i>dónde</i> están.</p>
+
+      <h2 id="diag-graf"><span class="sec">§ 3</span>Los cuatro gráficos de diagnóstico</h2>
+      <p>R los produce con <code>plot(modelo)</code> y conviene mirarlos siempre, en este orden:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Gráfico</th><th>Qué debería verse</th><th>Señal de problema</th></tr></thead>
+        <tbody>
+          <tr><td>Residuos vs ajustados</td><td>Nube horizontal sin forma alrededor de 0</td><td>Curva (no linealidad); embudo (heterocedasticidad)</td></tr>
+          <tr><td>Q-Q normal de residuos estandarizados</td><td>Puntos sobre la diagonal</td><td>Extremos que se despegan en S (colas pesadas) o en curva (asimetría)</td></tr>
+          <tr><td>Escala-ubicación: \(\sqrt{|r_i|}\) vs ajustados</td><td>Franja horizontal</td><td>Tendencia creciente: la varianza sube con la media</td></tr>
+          <tr><td>Residuos vs apalancamiento</td><td>Puntos lejos de las curvas de Cook</td><td>Puntos fuera de la curva \(D = 0{,}5\) o \(D = 1\): influyentes</td></tr>
+        </tbody>
+      </table></div>
+      <p>Los gráficos son más informativos que las pruebas formales. Con muestras grandes, una prueba de normalidad rechaza por desviaciones irrelevantes; con muestras pequeñas no detecta nada. El gráfico te muestra el tipo de problema y su tamaño.</p>
+
+      <h2 id="diag-lab"><span class="sec">§ 4</span>Laboratorio</h2>
+      <p>Elige un escenario y un gráfico de diagnóstico. El punto rojo grande lo controlas tú: arrástralo (o toca donde quieras ponerlo) y mira cómo cambian su apalancamiento, su distancia de Cook y la recta. La recta punteada es la que se obtiene sin ese punto.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · diagnóstico de residuos</span><span class="num" id="diag-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="diag-esc-label">ESCENARIO</label>
+              <div class="seg" id="diag-esc" role="group" aria-labelledby="diag-esc-label">
+                <button data-e="ok" aria-pressed="true">Bien</button>
+                <button data-e="curva" aria-pressed="false">Curvatura</button>
+                <button data-e="embudo" aria-pressed="false">Embudo</button>
+                <button data-e="colas" aria-pressed="false">Colas pesadas</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="diag-tr-label">RESPUESTA</label>
+              <div class="seg" id="diag-tr" role="group" aria-labelledby="diag-tr-label">
+                <button data-t="y" aria-pressed="true">y</button>
+                <button data-t="log" aria-pressed="false">log y</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="diag-plot-label">GRÁFICO DE DIAGNÓSTICO</label>
+              <div class="seg" id="diag-plot" role="group" aria-labelledby="diag-plot-label">
+                <button data-p="res" aria-pressed="true">Residuos</button>
+                <button data-p="qq" aria-pressed="false">Q-Q</button>
+                <button data-p="sl" aria-pressed="false">Escala-ubicación</button>
+                <button data-p="lev" aria-pressed="false">Apalancamiento</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="diag-again" type="button">Nuevos datos</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Arrastra el punto rojo</span><span id="diag-lbl-y">escala de y</span></div>
+              <canvas class="plot" id="diag-c-xy" height="260" aria-label="Diagrama de dispersión con la recta ajustada y un punto que se puede arrastrar"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span id="diag-lbl-p">Residuos vs ajustados</span><span id="diag-lbl-p2">— cero</span></div>
+              <canvas class="plot" id="diag-c-diag" height="260" aria-label="Gráfico de diagnóstico elegido"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>datos y recta ajustada</span><span><i style="background:var(--hot)"></i>punto controlado</span><span><i style="background:var(--muted)"></i>recta sin ese punto · curvas de Cook</span></div>
+          <div class="readout">
+            <div><span>pendiente (sin el punto)</span><b id="diag-r-b">–</b></div>
+            <div><span>apalancamiento h del punto</span><b id="diag-r-h">–</b></div>
+            <div><span>distancia de Cook del punto</span><b id="diag-r-d">–</b></div>
+            <div><span>Breusch-Pagan, valor p</span><b id="diag-r-bp">–</b></div>
+          </div>
+        </div>
+        <figcaption>Lleva el punto al extremo derecho y súbelo o bájalo: con x lejos de la media, su h supera el umbral de 0,13 y Cook pasa de 1 con facilidad. En el centro, el mismo desvío vertical casi no importa. Luego elige “Embudo” y cambia a “log y”: el valor p de Breusch-Pagan sube y la escala-ubicación se aplana.</figcaption>
+      </figure>
+
+      <h2 id="diag-infl"><span class="sec">§ 5</span>Apalancamiento e influencia</h2>
+      <p>Un punto puede ser raro de tres maneras distintas, que no conviene mezclar:</p>
+      <ul>
+        <li><b>Atípico</b>: residuo estudentizado grande. Está lejos de la recta en la dirección de \(y\).</li>
+        <li><b>Alto apalancamiento</b>: \(h_{ii}\) grande. Su combinación de predictores es inusual (lejos del centro de los \(x\)). La regla habitual marca \(h_{ii} &gt; 2(p+1)/n\).</li>
+        <li><b>Influyente</b>: si lo quitas, los coeficientes cambian mucho. Hace falta apalancamiento <i>y</i> residuo a la vez.</li>
+      </ul>
+      <p>La <b>distancia de Cook</b> resume la influencia: cuánto se mueven todos los valores ajustados al eliminar la observación \(i\), y se descompone en esas dos piezas:</p>
+      <div class="eq">\[ D_i = \frac{\sum_j(\hat y_j - \hat y_{j(i)})^2}{(p+1)\,s^2} = \frac{r_i^2}{p+1}\cdot\frac{h_{ii}}{1 - h_{ii}} \]
+        <div class="note">\(\hat y_{j(i)}\) es el ajuste sin la observación \(i\). Criterios usuales: \(D_i &gt; 1\) es influyente; \(D_i &gt; 4/n\) merece revisión. Otras medidas relacionadas: DFFITS (cambio en el propio ajuste) y DFBETAS (cambio en cada coeficiente, en errores estándar).</div>
+      </div>
+      <p>En los hogares, \(2(p+1)/n = 4/16 = 0{,}25\). El hogar de ingreso 110 tiene \(h = 0{,}47\) y \(D = 1{,}73\): es muy influyente. Sin él, la pendiente pasa de 0,203 a 0,185. El de ingreso 85 tiene \(D = 0{,}57\), alto pero bajo 1.</p>
+      <div class="callout"><b>Qué hacer con un punto influyente:</b> primero, comprobar que no sea un error de captura. Si es real, no lo borres en silencio: reporta el modelo con y sin él, y pregúntate si indica que el modelo está mal especificado. Aquí el punto de 110 no es un error: es el embudo. Con la transformación adecuada (§ 7) deja de ser influyente.</div>
+
+      <h2 id="diag-het"><span class="sec">§ 6</span>Heterocedasticidad</h2>
+      <p>Si \(\operatorname{Var}(\varepsilon_i)\) cambia con los predictores, los coeficientes de MCO siguen siendo insesgados, pero sus <b>errores estándar clásicos son incorrectos</b> (casi siempre demasiado pequeños donde hay más dispersión), y con ellos los intervalos y los valores p. Además, MCO deja de ser el estimador más eficiente.</p>
+      <p>La prueba de <b>Breusch-Pagan</b> regresa los residuos al cuadrado sobre los predictores. Si los predictores explican parte de \(e_i^2\), la varianza no es constante:</p>
+      <div class="eq">\[ e_i^2 = \gamma_0 + \gamma_1 x_{i1} + \cdots + \gamma_p x_{ip} + u_i, \qquad LM = n\,R^2_{\text{aux}} \sim \chi^2_p \text{ bajo } H_0 \text{: homocedasticidad} \]
+        <div class="note">En los hogares, \(LM = 6{,}46\) con 1 gl y \(p = 0{,}011\): se rechaza la homocedasticidad. La prueba de White agrega cuadrados e interacciones de los predictores para detectar formas más generales.</div>
+      </div>
+      <p>Tres remedios, según el objetivo:</p>
+      <ul>
+        <li><b>Errores estándar robustos</b> (de White o “sándwich”, versiones HC0 a HC3): mantienen los coeficientes de MCO y corrigen solo la incertidumbre. HC3 es la recomendada con muestras pequeñas. En los hogares, el error estándar de la pendiente pasa de 0,0107 a 0,0217: el doble.</li>
+        <li><b>Mínimos cuadrados ponderados</b> (WLS): si sabes cómo crece la varianza, por ejemplo \(\operatorname{Var}(\varepsilon_i) \propto x_i^2\), pondera cada observación por \(w_i = 1/x_i^2\). Da estimaciones más eficientes.</li>
+        <li><b>Transformar la respuesta</b>, típicamente con logaritmos, cuando la dispersión es proporcional al nivel.</li>
+      </ul>
+
+      <h2 id="diag-trans"><span class="sec">§ 7</span>Transformaciones</h2>
+      <p>Muchas variables económicas, biológicas o de tiempos son positivas, asimétricas y con variabilidad proporcional a su tamaño: un hogar rico varía su gasto en cientos de dólares, uno pobre en decenas. El logaritmo convierte esa variación multiplicativa en aditiva y suele arreglar a la vez el embudo, la asimetría y la curvatura.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Modelo</th><th>Interpretación de \(\beta_1\)</th></tr></thead>
+        <tbody>
+          <tr><td>\(y = \beta_0 + \beta_1 x\)</td><td>+1 en \(x\) → \(+\beta_1\) unidades en \(y\)</td></tr>
+          <tr><td>\(\log y = \beta_0 + \beta_1 x\)</td><td>+1 en \(x\) → \(y\) se multiplica por \(e^{\beta_1}\) (≈ \(100\beta_1\) % si \(\beta_1\) es pequeño)</td></tr>
+          <tr><td>\(y = \beta_0 + \beta_1 \log x\)</td><td>+1 % en \(x\) → \(+\beta_1/100\) unidades en \(y\)</td></tr>
+          <tr><td>\(\log y = \beta_0 + \beta_1 \log x\)</td><td>+1 % en \(x\) → ≈ \(+\beta_1\) % en \(y\) (<b>elasticidad</b>)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con los hogares, el modelo log-log da \(\widehat{\log \text{gasto}} = -0{,}45 + 0{,}765\log\text{ingreso}\), con IC 95 % para la elasticidad de \([0{,}67;\ 0{,}86]\). Un ingreso 10 % mayor se asocia con un gasto en alimentos \(1{,}1^{0{,}765} - 1 \approx 7{,}6\,\%\) mayor: los alimentos son un bien necesario, su peso en el presupuesto baja al subir el ingreso (ley de Engel). Breusch-Pagan pasa a \(p = 0{,}61\) y el punto de 110 deja de destacar.</p>
+      <p>La familia de <b>Box-Cox</b> busca la potencia que mejor normaliza y estabiliza \(y &gt; 0\):</p>
+      <div class="eq">\[ y^{(\lambda)} = \begin{cases} \dfrac{y^\lambda - 1}{\lambda} & \lambda \ne 0 \\[6pt] \log y & \lambda = 0 \end{cases} \]
+        <div class="note">\(\lambda = 1\) no transforma, \(\lambda = 0{,}5\) es la raíz, \(\lambda = 0\) el logaritmo y \(\lambda = -1\) el inverso. Se elige por máxima verosimilitud y se redondea a un valor interpretable: para el gasto, \(\hat\lambda \approx -0{,}2\), cerca de 0, lo que respalda el logaritmo.</div>
+      </div>
+      <div class="callout"><b>Ojo al volver a la escala original:</b> \(e^{\widehat{\log y}}\) estima la <i>mediana</i> de \(y\), no su media. Si necesitas la media (por ejemplo, para presupuestar), multiplica por un factor de corrección como \(e^{s^2/2}\) o el de Duan. Y si \(y\) tiene ceros, el logaritmo no sirve directamente: considera \(\log(y+1)\) con cuidado o, mejor, un modelo lineal generalizado.</div>
+
+      <h2 id="diag-code"><span class="sec">§ 8</span>En R y Python</h2>
+      <p>Diagnóstico completo de los 16 hogares: influencia, heterocedasticidad, errores robustos y modelo log-log.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> matplotlib.pyplot <span class="k">as</span> plt
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+<span class="k">from</span> statsmodels.stats.diagnostic <span class="k">import</span> het_breuschpagan
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+df = pd.<span class="f">DataFrame</span>({
+    <span class="s">"ingreso"</span>: [<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">30</span>, <span class="n">35</span>, <span class="n">40</span>, <span class="n">45</span>, <span class="n">50</span>, <span class="n">60</span>, <span class="n">70</span>, <span class="n">85</span>, <span class="n">110</span>],
+    <span class="s">"gasto"</span>:   [<span class="n">4.3</span>, <span class="n">5.6</span>, <span class="n">5.9</span>, <span class="n">4.8</span>, <span class="n">7.7</span>, <span class="n">7.8</span>, <span class="n">7.2</span>, <span class="n">9.3</span>, <span class="n">10.1</span>, <span class="n">11.1</span>, <span class="n">11.6</span>, <span class="n">13.9</span>, <span class="n">12.7</span>, <span class="n">16.0</span>, <span class="n">17.6</span>, <span class="n">26.3</span>],
+})
+m = smf.<span class="f">ols</span>(<span class="s">"gasto ~ ingreso"</span>, data=df).<span class="f">fit</span>()
+<span class="f">print</span>(m.params, m.rsquared)               <span class="c"># ≈ 2.29, 0.203; R² ≈ 0.963</span>
+
+<span class="c"># residuos, apalancamiento y Cook</span>
+infl = m.<span class="f">get_influence</span>().<span class="f">summary_frame</span>()
+<span class="f">print</span>(infl[[<span class="s">"hat_diag"</span>, <span class="s">"student_resid"</span>, <span class="s">"cooks_d"</span>]].<span class="f">tail</span>(<span class="n">2</span>))
+<span class="c"># ingreso 85: h ≈ 0.23, t ≈ -2.24, D ≈ 0.57 · ingreso 110: h ≈ 0.47, t ≈ 2.23, D ≈ 1.73</span>
+
+<span class="c"># residuos vs ajustados y Q-Q</span>
+fig, ax = plt.<span class="f">subplots</span>(<span class="n">1</span>, <span class="n">2</span>, figsize=(<span class="n">9</span>, <span class="n">4</span>))
+ax[<span class="n">0</span>].<span class="f">scatter</span>(m.fittedvalues, m.resid); ax[<span class="n">0</span>].<span class="f">axhline</span>(<span class="n">0</span>, ls=<span class="s">"--"</span>)
+sm.<span class="f">qqplot</span>(infl[<span class="s">"standard_resid"</span>], line=<span class="s">"45"</span>, ax=ax[<span class="n">1</span>])
+plt.<span class="f">show</span>()
+
+<span class="c"># heterocedasticidad y errores robustos</span>
+lm, p_lm, _, _ = <span class="f">het_breuschpagan</span>(m.resid, m.model.exog)
+<span class="f">print</span>(lm, p_lm)                           <span class="c"># ≈ 6.46, 0.011</span>
+rob = smf.<span class="f">ols</span>(<span class="s">"gasto ~ ingreso"</span>, data=df).<span class="f">fit</span>(cov_type=<span class="s">"HC3"</span>)
+<span class="f">print</span>(m.bse[<span class="s">"ingreso"</span>], rob.bse[<span class="s">"ingreso"</span>])  <span class="c"># ≈ 0.0107 frente a 0.0217</span>
+
+<span class="c"># transformación: Box-Cox sugiere λ cerca de 0 → log-log</span>
+<span class="f">print</span>(stats.<span class="f">boxcox</span>(df.gasto)[<span class="n">1</span>])           <span class="c"># ≈ -0.2</span>
+ml = smf.<span class="f">ols</span>(<span class="s">"np.log(gasto) ~ np.log(ingreso)"</span>, data=df).<span class="f">fit</span>()
+<span class="f">print</span>(ml.params, ml.<span class="f">conf_int</span>())             <span class="c"># elasticidad ≈ 0.765 [0.67, 0.86]</span>
+<span class="f">print</span>(<span class="f">het_breuschpagan</span>(ml.resid, ml.model.exog)[<span class="n">1</span>])   <span class="c"># ≈ 0.61</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>df &lt;- <span class="f">data.frame</span>(
+  ingreso = <span class="f">c</span>(<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">30</span>, <span class="n">35</span>, <span class="n">40</span>, <span class="n">45</span>, <span class="n">50</span>, <span class="n">60</span>, <span class="n">70</span>, <span class="n">85</span>, <span class="n">110</span>),
+  gasto   = <span class="f">c</span>(<span class="n">4.3</span>, <span class="n">5.6</span>, <span class="n">5.9</span>, <span class="n">4.8</span>, <span class="n">7.7</span>, <span class="n">7.8</span>, <span class="n">7.2</span>, <span class="n">9.3</span>, <span class="n">10.1</span>, <span class="n">11.1</span>, <span class="n">11.6</span>, <span class="n">13.9</span>, <span class="n">12.7</span>, <span class="n">16.0</span>, <span class="n">17.6</span>, <span class="n">26.3</span>)
+)
+m &lt;- <span class="f">lm</span>(gasto ~ ingreso, data = df)
+<span class="f">summary</span>(m)                              <span class="c"># 2.29 + 0.203 x, R² ≈ 0.963</span>
+
+<span class="c"># los cuatro gráficos de diagnóstico</span>
+<span class="f">par</span>(mfrow = <span class="f">c</span>(<span class="n">2</span>, <span class="n">2</span>)); <span class="f">plot</span>(m)
+
+<span class="c"># residuos, apalancamiento y Cook</span>
+<span class="f">cbind</span>(h = <span class="f">hatvalues</span>(m), t = <span class="f">rstudent</span>(m), D = <span class="f">cooks.distance</span>(m))[<span class="n">15</span>:<span class="n">16</span>, ]
+<span class="c"># fila 16 (ingreso 110): h ≈ 0.47, t ≈ 2.23, D ≈ 1.73</span>
+<span class="f">influence.measures</span>(m)                   <span class="c"># DFBETAS, DFFITS, Cook y h, con marcas</span>
+
+<span class="c"># heterocedasticidad y errores robustos</span>
+lmtest::<span class="f">bptest</span>(m)                       <span class="c"># BP ≈ 6.46, p ≈ 0.011</span>
+lmtest::<span class="f">coeftest</span>(m, vcov = sandwich::<span class="f">vcovHC</span>(m, type = <span class="s">"HC3"</span>))   <span class="c"># EE de la pendiente ≈ 0.0217</span>
+
+<span class="c"># transformación: Box-Cox y modelo log-log</span>
+MASS::<span class="f">boxcox</span>(m)                          <span class="c"># máximo cerca de λ = 0</span>
+ml &lt;- <span class="f">lm</span>(<span class="f">log</span>(gasto) ~ <span class="f">log</span>(ingreso), data = df)
+<span class="f">coef</span>(ml); <span class="f">confint</span>(ml)                   <span class="c"># elasticidad ≈ 0.765 [0.67, 0.86]</span>
+lmtest::<span class="f">bptest</span>(ml)                      <span class="c"># p ≈ 0.61</span></code></pre>
+      </div>
+
+      <h2 id="diag-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="La influencia necesita las dos cosas: x inusual (apalancamiento) y un residuo grande. Un punto con x extremo que cae justo sobre la recta tiene mucho apalancamiento pero casi no la mueve." data-wrong="Recuerda la fórmula de Cook: D = r²/(p+1) · h/(1 − h). ¿Qué pasa con D si el residuo r es casi cero, aunque h sea grande?">
+        <h3>Un punto tiene apalancamiento h = 0,6 pero cae casi exactamente sobre la recta ajustada. ¿Qué puedes decir?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Es muy influyente y hay que eliminarlo</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Tiene mucho apalancamiento pero poca influencia: su distancia de Cook es baja</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Es un atípico porque su x es extremo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Indica heterocedasticidad</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con heterocedasticidad los coeficientes de MCO siguen siendo insesgados, pero los errores estándar clásicos están mal. Los errores robustos (HC3) corrigen la inferencia sin cambiar las estimaciones." data-wrong="Piensa qué parte de la salida de la regresión depende del supuesto de varianza constante: ¿las estimaciones de los coeficientes o su incertidumbre?">
+        <h3>Breusch-Pagan da p = 0,002. Si mantienes el modelo de MCO, ¿qué debes cambiar como mínimo?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Los coeficientes, porque están sesgados</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Nada, Breusch-Pagan solo evalúa la normalidad</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Usar errores estándar robustos para los intervalos y los valores p</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Eliminar las observaciones con residuos grandes</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="En un modelo log-log el coeficiente es una elasticidad: un 1 % más de x se asocia con ≈ 0,4 % más de y. Con 10 %, 1,1^0,4 − 1 ≈ 3,9 %." data-wrong="Cuando ambas variables están en logaritmo, los cambios se leen en porcentajes. ¿Qué cambio porcentual en y acompaña a un 1 % de cambio en x?">
+        <h3>Ajustas log(ventas) = 2 + 0,4 · log(publicidad). ¿Cómo interpretas 0,4?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cada dólar de publicidad suma 0,4 dólares de ventas</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Cada dólar de publicidad multiplica las ventas por 0,4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El 40 % de las ventas se debe a la publicidad</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Un 1 % más de publicidad se asocia con aproximadamente 0,4 % más de ventas</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="diag-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Un modelo con \(n = 40\) observaciones y \(p = 3\) predictores tiene tres puntos con apalancamientos 0,08, 0,25 y 0,50. ¿Cuáles superan la regla \(2(p+1)/n\)? ¿Cuánto vale el apalancamiento promedio?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Umbral: \(2 \cdot 4/40 = 0{,}2\). Superan la regla el de 0,25 y el de 0,50. El promedio de los \(h_{ii}\) es siempre \((p+1)/n = 4/40 = 0{,}1\), así que el punto de 0,50 tiene cinco veces el apalancamiento típico.</p>
+            <p>Que superen el umbral no los hace influyentes: falta mirar su residuo y su distancia de Cook.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>En una regresión simple, una observación tiene residuo estandarizado \(r_i = 2{,}5\) y apalancamiento \(h_{ii} = 0{,}3\). Calcula su distancia de Cook. ¿Y si estuviera en el centro de los datos con \(h_{ii} = 0{,}05\)?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con \(p + 1 = 2\): \(D = \tfrac{2{,}5^2}{2}\cdot\tfrac{0{,}3}{0{,}7} = 3{,}125 \cdot 0{,}429 = 1{,}34\). Supera 1: influyente.</p>
+            <p>Con \(h = 0{,}05\): \(D = 3{,}125 \cdot 0{,}05/0{,}95 = 0{,}16\). El mismo residuo en el centro de los datos casi no mueve la recta.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con el modelo log-log de los hogares (\(\hat\beta_1 = 0{,}765\)), ¿cuánto cambia el gasto en alimentos esperado si el ingreso se duplica? Y en un modelo \(\log(\text{salario}) = 1{,}8 + 0{,}05\,\text{educ}\), ¿cuánto sube el salario por cada año extra de educación?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Si el ingreso se multiplica por 2, el gasto (mediano) se multiplica por \(2^{0{,}765} = 1{,}70\): sube un 70 %, menos que el ingreso, porque la elasticidad es menor que 1.</p>
+            <p>En el modelo log-nivel, cada año multiplica el salario por \(e^{0{,}05} = 1{,}051\): un 5,1 % más. La aproximación “\(100\beta\) %” (5 %) funciona bien para coeficientes pequeños; con \(\beta = 0{,}4\) ya fallaría (49 % real frente a 40 %).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Diseña una simulación para comprobar el efecto de la heterocedasticidad sobre la inferencia. Genera 2 000 muestras de \(n = 50\) con \(y = 2 + 0{,}5x + \varepsilon\), \(x \sim U(0, 10)\) y \(\operatorname{sd}(\varepsilon) = 0{,}05\,x^2\). En cada muestra calcula el IC 95 % de la pendiente con errores clásicos y con HC3, y estima la cobertura real de cada uno.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>La cobertura del intervalo clásico queda cerca del <b>89 %</b>, lejos del 95 % prometido: los puntos con \(x\) grande tienen mucho ruido y mucho apalancamiento, y la fórmula clásica no lo ve. Con HC3 la cobertura vuelve a cerca del <b>95 %</b>. Las estimaciones de la pendiente son insesgadas en ambos casos: solo cambia la incertidumbre.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+n, reps = <span class="n">50</span>, <span class="n">2000</span>
+x = rng.<span class="f">uniform</span>(<span class="n">0</span>, <span class="n">10</span>, n)
+X = sm.<span class="f">add_constant</span>(x)
+cub_ols = cub_hc3 = <span class="n">0</span>
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps):
+    y = <span class="n">2</span> + <span class="n">0.5</span> * x + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">0.05</span> * x**<span class="n">2</span>, n)
+    m = sm.<span class="f">OLS</span>(y, X).<span class="f">fit</span>()
+    lo, hi = m.<span class="f">conf_int</span>()[<span class="n">1</span>]
+    cub_ols += lo &lt;= <span class="n">0.5</span> &lt;= hi
+    lo, hi = m.<span class="f">get_robustcov_results</span>(<span class="s">"HC3"</span>).<span class="f">conf_int</span>()[<span class="n">1</span>]
+    cub_hc3 += lo &lt;= <span class="n">0.5</span> &lt;= hi
+<span class="f">print</span>(cub_ols / reps, cub_hc3 / reps)   <span class="c"># ≈ 0.89  ≈ 0.95</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
+n &lt;- <span class="n">50</span>; reps &lt;- <span class="n">2000</span>
+x &lt;- <span class="f">runif</span>(n, <span class="n">0</span>, <span class="n">10</span>)
+cubre &lt;- <span class="f">replicate</span>(reps, {
+  y &lt;- <span class="n">2</span> + <span class="n">0.5</span> * x + <span class="f">rnorm</span>(n, <span class="n">0</span>, <span class="n">0.05</span> * x^<span class="n">2</span>)
+  m &lt;- <span class="f">lm</span>(y ~ x)
+  ic  &lt;- <span class="f">confint</span>(m)[<span class="n">2</span>, ]
+  se  &lt;- <span class="f">sqrt</span>(sandwich::<span class="f">vcovHC</span>(m, type = <span class="s">"HC3"</span>)[<span class="n">2</span>, <span class="n">2</span>])
+  ic3 &lt;- <span class="f">coef</span>(m)[<span class="n">2</span>] + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * <span class="f">qt</span>(<span class="n">0.975</span>, n - <span class="n">2</span>) * se
+  <span class="f">c</span>(clasico = ic[<span class="n">1</span>] &lt;= <span class="n">0.5</span> &amp;&amp; <span class="n">0.5</span> &lt;= ic[<span class="n">2</span>], hc3 = ic3[<span class="n">1</span>] &lt;= <span class="n">0.5</span> &amp;&amp; <span class="n">0.5</span> &lt;= ic3[<span class="n">2</span>])
+})
+<span class="f">rowMeans</span>(cubre)   <span class="c"># clásico ≈ 0.89, HC3 ≈ 0.95</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

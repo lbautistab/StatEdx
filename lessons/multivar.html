@@ -1,0 +1,328 @@
+<!-- StatEdx · sesión: multivar -->
+<div id="view-multivar" data-view="multivar" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Exploración multivariada</h1>
+      <p>Con dos variables basta un diagrama de dispersión. Con seis ya hay 15 pares, y las relaciones interesantes suelen involucrar a tres o más a la vez. Aquí aprendes a leer matrices de correlación, a usar gráficos de pares y mapas de calor ordenados, a separar efectos con la correlación parcial y a ver muchas dimensiones juntas con coordenadas paralelas.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: visualización de datos</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#multivar-idea" data-sec="multivar-idea">La idea</a></li>
+        <li><a href="#multivar-matriz" data-sec="multivar-matriz">Matrices de covarianza y correlación</a></li>
+        <li><a href="#multivar-parcial" data-sec="multivar-parcial">Correlación parcial</a></li>
+        <li><a href="#multivar-lab" data-sec="multivar-lab">Laboratorio: la matriz</a></li>
+        <li><a href="#multivar-pares" data-sec="multivar-pares">Gráficos de pares</a></li>
+        <li><a href="#multivar-calor" data-sec="multivar-calor">Mapas de calor</a></li>
+        <li><a href="#multivar-paralelas" data-sec="multivar-paralelas">Coordenadas paralelas</a></li>
+        <li><a href="#multivar-code" data-sec="multivar-code">En R y Python</a></li>
+        <li><a href="#multivar-quiz" data-sec="multivar-quiz">Comprueba</a></li>
+        <li><a href="#multivar-ej" data-sec="multivar-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="multivar-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una inmobiliaria tiene datos de 300 viviendas: superficie, habitaciones, baños, distancia al centro, antigüedad y precio. Alguien calcula la correlación entre distancia y precio y obtiene −0,19: “la ubicación casi no importa”. Pero las casas lejanas también son más grandes. Si comparas viviendas de <i>igual superficie</i>, la relación entre distancia y precio resulta fuertemente negativa, cerca de −0,7.</p>
+      <p>Mirar las variables de dos en dos no basta: una tercera variable puede esconder, inflar o invertir una relación. La exploración multivariada busca tres cosas: <b>qué variables se mueven juntas</b> (y forman grupos), <b>qué relaciones sobreviven</b> cuando controlas otras, y <b>qué observaciones se parecen</b> entre sí en todas las dimensiones a la vez.</p>
+      <div class="callout"><b>La idea central:</b> con \(p\) variables hay \(p(p-1)/2\) pares. Las herramientas de esta clase te permiten verlos todos de un vistazo, ordenarlos para que aparezca la estructura y luego bajar al detalle del par o del grupo que importa.</div>
+
+      <h2 id="multivar-matriz"><span class="sec">§ 2</span>Matrices de covarianza y correlación</h2>
+      <p>Organiza los datos en una matriz \(\mathbf{X}\) de \(n\) filas (observaciones) por \(p\) columnas (variables), y sea \(\mathbf{X}_c\) la matriz con cada columna centrada en su media. La <b>matriz de covarianzas</b> reúne todas las covarianzas en una sola expresión:</p>
+      <div class="eq">\[ \mathbf{S} = \frac{1}{n-1}\,\mathbf{X}_c^{\top}\mathbf{X}_c, \qquad S_{jk} = \frac{1}{n-1}\sum_{i=1}^{n}(x_{ij} - \bar x_j)(x_{ik} - \bar x_k) \]
+        <div class="note">En la diagonal quedan las varianzas \(S_{jj} = s_j^2\). La covarianza depende de las unidades: la de superficie (m²) con precio (miles) no se puede comparar con la de habitaciones con baños.</div>
+      </div>
+      <p>Para comparar, se estandariza cada covarianza por las desviaciones de sus dos variables. Eso da la <b>matriz de correlaciones</b>, que es la covarianza de los datos en puntuaciones z:</p>
+      <div class="eq">\[ \mathbf{R} = \mathbf{D}^{-1/2}\,\mathbf{S}\,\mathbf{D}^{-1/2}, \qquad r_{jk} = \frac{S_{jk}}{s_j\,s_k}, \qquad \mathbf{D} = \operatorname{diag}(s_1^2, \dots, s_p^2) \]
+        <div class="note">Propiedades: \(\mathbf{R}\) es simétrica, tiene unos en la diagonal, sus elementos están en \([-1, 1]\) y es <b>semidefinida positiva</b>. Por eso no puedes elegir las correlaciones al azar: si \(r_{12} = 0{,}9\) y \(r_{13} = 0{,}9\), necesariamente \(r_{23} \ge 0{,}62\).</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Medida</th><th>Qué mide</th><th>Cuándo preferirla</th></tr></thead>
+        <tbody>
+          <tr><td>Pearson \(r\)</td><td>Asociación <b>lineal</b></td><td>Relaciones aproximadamente lineales, sin atípicos fuertes</td></tr>
+          <tr><td>Spearman \(\rho\)</td><td>Pearson sobre los <b>rangos</b>: asociación monótona</td><td>Relaciones curvas pero crecientes, variables ordinales, colas largas</td></tr>
+          <tr><td>Kendall \(\tau\)</td><td>Proporción de pares concordantes menos discordantes</td><td>Muestras chicas, muchos empates; más fácil de interpretar como probabilidad</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Error común:</b> leer una correlación cercana a 0 como “no hay relación”. Pearson solo detecta tendencias lineales: \(y = x^2\) con \(x\) simétrico alrededor de 0 da \(r \approx 0\) con una dependencia perfecta. Y una correlación alta tampoco implica causalidad ni que la relación valga para todos los subgrupos.</div>
+
+      <h2 id="multivar-parcial"><span class="sec">§ 3</span>Correlación parcial: controlar una tercera variable</h2>
+      <p>La <b>correlación parcial</b> \(r_{xy \cdot z}\) mide la asociación lineal entre \(x\) e \(y\) una vez descontado lo que ambas comparten con \(z\). Se obtiene correlacionando los <b>residuos</b> de regresar \(x\) sobre \(z\) y de regresar \(y\) sobre \(z\), o con la fórmula directa:</p>
+      <div class="eq">\[ r_{xy\cdot z} = \frac{r_{xy} - r_{xz}\,r_{yz}}{\sqrt{(1 - r_{xz}^2)(1 - r_{yz}^2)}} \]
+        <div class="note">Con las viviendas: \(r_{\text{hab, precio}} = 0{,}49\), pero controlando la superficie queda en \(0{,}02\). Las habitaciones no agregan nada al precio una vez que sabes el tamaño; su correlación era “prestada” de la superficie. Con la distancia pasa lo contrario: −0,19 sin controlar, −0,72 controlando.</div>
+      </div>
+      <p>Con varias variables de control se usa la matriz de precisión \(\mathbf{P} = \mathbf{R}^{-1}\): la correlación parcial de \(j\) y \(k\) dadas <i>todas</i> las demás es \(-P_{jk}/\sqrt{P_{jj}P_{kk}}\). Es la base de los modelos gráficos, que dibujan una arista entre dos variables solo si su correlación parcial es distinta de cero.</p>
+      <div class="callout"><b>Para recordar:</b> controlar no es automático ni inocente. Controlar por una causa común (la superficie) aclara la relación; controlar por una consecuencia común de \(x\) e \(y\) puede <i>crear</i> una asociación que no existía. La decisión de qué controlar es de diseño, no de cálculo.</div>
+
+      <h2 id="multivar-lab"><span class="sec">§ 4</span>Laboratorio: la matriz de correlaciones</h2>
+      <p>Seis variables de viviendas simuladas. Toca una celda del mapa para ver el diagrama de dispersión de ese par. Cambia entre Pearson y Spearman, reordena las variables agrupándolas por similitud y mira cómo la correlación parcial con la superficie cambia la historia de algunos pares.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · matriz de correlaciones</span><span class="num" id="multivar-hm-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="multivar-met-label">MÉTODO</label>
+              <div class="seg" id="multivar-met" role="group" aria-labelledby="multivar-met-label">
+                <button data-m="p" aria-pressed="true">Pearson</button>
+                <button data-m="s" aria-pressed="false">Spearman</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="multivar-ord-label">ORDEN</label>
+              <div class="seg" id="multivar-ord" role="group" aria-labelledby="multivar-ord-label">
+                <button data-o="orig" aria-pressed="true">Original</button>
+                <button data-o="clus" aria-pressed="false">Agrupado</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="multivar-n">VIVIENDAS · n = <b id="multivar-n-v" class="num">300</b></label><input id="multivar-n" type="range" min="20" max="500" step="10" value="300"></div>
+            <button class="btn btn-ghost btn-sm" id="multivar-new" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Mapa de calor (toca una celda)</span><span>■ + ■ −</span></div>
+              <canvas class="plot" id="multivar-c-hm" height="300" aria-label="Mapa de calor de la matriz de correlaciones de seis variables"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Par seleccionado</span><span id="multivar-pair-lbl">–</span></div>
+              <canvas class="plot" id="multivar-c-sc" height="300" aria-label="Diagrama de dispersión del par de variables seleccionado"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>correlación positiva</span><span><i style="background:var(--hot)"></i>correlación negativa</span><span><i style="background:var(--ink)"></i>recta de mínimos cuadrados</span></div>
+          <div class="readout">
+            <div><span>Pearson r</span><b id="multivar-r">–</b></div>
+            <div><span>Spearman ρ</span><b id="multivar-rho">–</b></div>
+            <div><span>r parcial | superficie</span><b id="multivar-rp">–</b></div>
+            <div><span>umbral 2/√n</span><b id="multivar-thr">–</b></div>
+          </div>
+        </div>
+        <figcaption>Selecciona distancia y precio: la correlación es débil, pero la parcial dada la superficie es fuerte y negativa. Con habitaciones y precio pasa lo opuesto. Baja n a 20 y pulsa “Nueva muestra” varias veces: las correlaciones pequeñas cambian de signo por puro azar.</figcaption>
+      </figure>
+
+      <h2 id="multivar-pares"><span class="sec">§ 5</span>Gráficos de pares</h2>
+      <p>Una <b>matriz de diagramas de dispersión</b> (<i>scatterplot matrix</i> o <i>pairs plot</i>) pone en la celda \((j, k)\) el diagrama de la variable \(j\) contra la \(k\). En la diagonal suele ir un histograma o una densidad de cada variable, y en el triángulo superior el coeficiente de correlación. Es la versión gráfica de la matriz \(\mathbf{R}\), y muestra lo que el número esconde: curvaturas, grupos, atípicos y variables discretas que forman franjas.</p>
+      <ul>
+        <li><b>Escala:</b> con \(p\) variables hay \(p^2\) paneles. Hasta unas 8 variables funciona bien; con más, selecciona primero con la matriz de correlaciones o con conocimiento del tema.</li>
+        <li><b>Sobreposición:</b> con miles de puntos usa transparencia, puntos pequeños o paneles de densidad hexagonal (<i>hexbin</i>).</li>
+        <li><b>Color por grupo:</b> colorear por una variable categórica (zona, segmento) revela si una correlación global viene de diferencias entre grupos, como en la paradoja de Simpson.</li>
+        <li><b>Transformaciones:</b> variables con cola larga (precio, superficie) se leen mejor en escala logarítmica; la correlación de Pearson también suele ser más representativa ahí.</li>
+      </ul>
+
+      <h2 id="multivar-calor"><span class="sec">§ 6</span>Mapas de calor y reordenamiento</h2>
+      <p>Un <b>mapa de calor</b> codifica una matriz con color. Para correlaciones usa una paleta <b>divergente</b> centrada en 0: un color para positivas, otro para negativas e intensidad proporcional a \(|r|\). Con una paleta secuencial, −0,8 y 0,8 parecerían distintos en intensidad cuando son igual de fuertes.</p>
+      <p>El orden de las filas importa mucho. Por defecto aparece el orden de las columnas en el archivo, que no tiene significado. Al <b>reordenar</b> con un agrupamiento jerárquico usando la distancia \(d_{jk} = 1 - |r_{jk}|\), las variables parecidas quedan juntas y aparecen bloques: aquí, un bloque de “tamaño” (superficie, habitaciones, baños, precio) y otro de “ubicación” (distancia, antigüedad). El mismo principio se aplica a un mapa de calor de los datos (observaciones × variables estandarizadas) con dendrogramas en ambos ejes, muy usado en genómica y en segmentación de clientes.</p>
+      <div class="callout"><b>Comparaciones múltiples:</b> si las variables fueran independientes, cada \(r\) tendría un error estándar cercano a \(1/\sqrt{n}\), y \(|r| &gt; 2/\sqrt{n}\) aparecería por azar en un 5 % de los pares. Con 45 pares (10 variables) esperas unos 2 pares “significativos” sin ninguna relación real. Trata los patrones de un mapa de calor como hipótesis para confirmar, no como hallazgos.</div>
+
+      <h2 id="multivar-paralelas"><span class="sec">§ 7</span>Coordenadas paralelas</h2>
+      <p>En las <b>coordenadas paralelas</b> cada variable es un eje vertical, todos lado a lado, y cada observación es una línea quebrada que une sus valores en cada eje (normalmente reescalados a [0, 1] por eje). Permiten ver muchas dimensiones a la vez y detectar perfiles: grupos de líneas que viajan juntas.</p>
+      <ul>
+        <li>Entre dos ejes vecinos, líneas casi paralelas indican correlación <b>positiva</b>; líneas que se cruzan en un punto (forma de X) indican correlación <b>negativa</b>.</li>
+        <li>Solo ves bien las relaciones entre ejes <b>adyacentes</b>: el orden de los ejes cambia lo que se aprecia. Prueba varios órdenes.</li>
+        <li>Con muchas líneas el gráfico se satura: usa transparencia y <b>resalta</b> (<i>brushing</i>) un grupo para compararlo con el resto.</li>
+      </ul>
+      <p>El simulador muestra 150 clientes de una tienda con 5 variables, simulados en tres segmentos. Resalta un segmento para ver su perfil. El indicador \(\eta^2\) dice, para cada eje, qué parte de la varianza explica la pertenencia al segmento (la razón entre la suma de cuadrados entre grupos y la total); el eje con mayor \(\eta^2\) es el que mejor lo separa.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · coordenadas paralelas</span><span class="num" id="multivar-pc-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="multivar-hl-label">RESALTAR SEGMENTO</label>
+              <div class="seg" id="multivar-hl" role="group" aria-labelledby="multivar-hl-label">
+                <button data-g="-1" aria-pressed="true">Ninguno</button>
+                <button data-g="0" aria-pressed="false">A</button>
+                <button data-g="1" aria-pressed="false">B</button>
+                <button data-g="2" aria-pressed="false">C</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="multivar-ax-label">ORDEN DE LOS EJES</label>
+              <div class="seg" id="multivar-ax" role="group" aria-labelledby="multivar-ax-label">
+                <button data-a="0" aria-pressed="true">Orden 1</button>
+                <button data-a="1" aria-pressed="false">Orden 2</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="multivar-alpha">OPACIDAD · <b id="multivar-alpha-v" class="num">35 %</b></label><input id="multivar-alpha" type="range" min="5" max="100" value="35"></div>
+          </div>
+          <canvas class="plot" id="multivar-c-pc" height="280" aria-label="Coordenadas paralelas de 150 clientes en cinco variables"></canvas>
+          <div class="readout">
+            <div><span>líneas resaltadas</span><b id="multivar-pc-n">–</b></div>
+            <div><span>eje que más separa</span><b id="multivar-pc-ax">–</b></div>
+            <div><span>η² de ese eje</span><b id="multivar-pc-eta">–</b></div>
+            <div><span>correlación ejes 1 y 2</span><b id="multivar-pc-r">–</b></div>
+          </div>
+        </div>
+        <figcaption>En el orden 1, visitas y ticket están juntos y sus líneas se cruzan en X: correlación negativa (quien visita mucho compra poco cada vez). En el orden 2 quedan separados y esa relación ya no se ve. El segmento C se distingue sobre todo por la edad y la antigüedad como cliente.</figcaption>
+      </figure>
+
+      <h2 id="multivar-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Simulamos las viviendas, calculamos las dos matrices de correlación, la correlación parcial por residuos y los pares que superan el umbral \(2/\sqrt{n}\), y dibujamos los tres gráficos de la clase.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> seaborn <span class="k">as</span> sns
+<span class="k">import</span> matplotlib.pyplot <span class="k">as</span> plt
+<span class="k">from</span> pandas.plotting <span class="k">import</span> parallel_coordinates
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+n = <span class="n">300</span>
+S = rng.<span class="f">normal</span>(size=n)                                   <span class="c"># tamaño latente</span>
+e = <span class="k">lambda</span>: rng.<span class="f">normal</span>(size=n)
+dist = np.<span class="f">exp</span>(np.<span class="f">log</span>(<span class="n">8</span>) + <span class="n">0.25</span> * S + <span class="n">0.45</span> * <span class="f">e</span>())
+df = pd.<span class="f">DataFrame</span>({
+    <span class="s">"superficie"</span>: np.<span class="f">exp</span>(np.<span class="f">log</span>(<span class="n">90</span>) + <span class="n">0.35</span> * S),
+    <span class="s">"habitaciones"</span>: np.<span class="f">clip</span>(np.<span class="f">round</span>(<span class="n">3</span> + <span class="n">0.9</span> * S + <span class="n">0.6</span> * <span class="f">e</span>()), <span class="n">1</span>, <span class="n">6</span>),
+    <span class="s">"banos"</span>: np.<span class="f">clip</span>(np.<span class="f">round</span>(<span class="n">1.6</span> + <span class="n">0.6</span> * S + <span class="n">0.5</span> * <span class="f">e</span>()), <span class="n">1</span>, <span class="n">4</span>),
+    <span class="s">"distancia"</span>: dist,
+})
+df[<span class="s">"antiguedad"</span>] = np.<span class="f">clip</span>(<span class="n">30</span> - <span class="n">1.2</span> * (dist - <span class="n">8</span>) + <span class="n">10</span> * <span class="f">e</span>(), <span class="n">0</span>, <span class="n">70</span>)
+df[<span class="s">"precio"</span>] = np.<span class="f">exp</span>(np.<span class="f">log</span>(<span class="n">150</span>) + <span class="n">0.32</span> * S - <span class="n">0.05</span> * (dist - <span class="n">8</span>)
+                     - <span class="n">0.004</span> * (df.antiguedad - <span class="n">25</span>) + <span class="n">0.15</span> * <span class="f">e</span>())
+
+R = df.<span class="f">corr</span>()                         <span class="c"># Pearson; method="spearman" para rangos</span>
+<span class="f">print</span>(R.<span class="f">round</span>(<span class="n">2</span>))
+
+<span class="c"># correlación parcial por residuos</span>
+<span class="k">def</span> <span class="f">parcial</span>(df, x, y, z):
+    Z = np.<span class="f">column_stack</span>([np.<span class="f">ones</span>(<span class="f">len</span>(df)), df[z]])
+    rx = df[x] - Z @ np.linalg.<span class="f">lstsq</span>(Z, df[x], rcond=<span class="k">None</span>)[<span class="n">0</span>]
+    ry = df[y] - Z @ np.linalg.<span class="f">lstsq</span>(Z, df[y], rcond=<span class="k">None</span>)[<span class="n">0</span>]
+    <span class="k">return</span> np.<span class="f">corrcoef</span>(rx, ry)[<span class="n">0</span>, <span class="n">1</span>]
+
+<span class="f">print</span>(<span class="f">round</span>(R.loc[<span class="s">"habitaciones"</span>, <span class="s">"precio"</span>], <span class="n">2</span>), <span class="f">round</span>(<span class="f">parcial</span>(df, <span class="s">"habitaciones"</span>, <span class="s">"precio"</span>, <span class="s">"superficie"</span>), <span class="n">2</span>))  <span class="c"># 0.49  0.02</span>
+<span class="f">print</span>(<span class="f">round</span>(R.loc[<span class="s">"distancia"</span>, <span class="s">"precio"</span>], <span class="n">2</span>), <span class="f">round</span>(<span class="f">parcial</span>(df, <span class="s">"distancia"</span>, <span class="s">"precio"</span>, <span class="s">"superficie"</span>), <span class="n">2</span>))     <span class="c"># -0.19  -0.72</span>
+
+<span class="c"># pares por encima del umbral 2/√n, ordenados</span>
+sup = R.<span class="f">abs</span>().<span class="f">where</span>(np.<span class="f">triu</span>(np.<span class="f">ones</span>(R.shape, bool), k=<span class="n">1</span>)).<span class="f">stack</span>()
+<span class="f">print</span>(sup[sup &gt; <span class="n">2</span> / np.<span class="f">sqrt</span>(n)].<span class="f">sort_values</span>(ascending=<span class="k">False</span>).<span class="f">head</span>())
+
+<span class="c"># gráficos: pares, mapa de calor agrupado y coordenadas paralelas</span>
+sns.<span class="f">pairplot</span>(df, corner=<span class="k">True</span>, plot_kws={<span class="s">"alpha"</span>: <span class="n">0.4</span>, <span class="s">"s"</span>: <span class="n">12</span>})
+sns.<span class="f">clustermap</span>(R, cmap=<span class="s">"RdBu_r"</span>, vmin=-<span class="n">1</span>, vmax=<span class="n">1</span>, annot=<span class="k">True</span>, fmt=<span class="s">".2f"</span>)
+z = (df - df.<span class="f">min</span>()) / (df.<span class="f">max</span>() - df.<span class="f">min</span>())           <span class="c"># reescalar cada eje a [0, 1]</span>
+z[<span class="s">"zona"</span>] = pd.<span class="f">cut</span>(df.distancia, [<span class="n">0</span>, <span class="n">6</span>, <span class="n">12</span>, np.inf], labels=[<span class="s">"centro"</span>, <span class="s">"media"</span>, <span class="s">"lejos"</span>])
+plt.<span class="f">figure</span>(); <span class="f">parallel_coordinates</span>(z, <span class="s">"zona"</span>, alpha=<span class="n">0.3</span>)
+plt.<span class="f">show</span>()</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">3</span>)
+n &lt;- <span class="n">300</span>
+S &lt;- <span class="f">rnorm</span>(n)                                  <span class="c"># tamaño latente</span>
+dist &lt;- <span class="f">exp</span>(<span class="f">log</span>(<span class="n">8</span>) + <span class="n">0.25</span> * S + <span class="n">0.45</span> * <span class="f">rnorm</span>(n))
+df &lt;- <span class="f">data.frame</span>(
+  superficie   = <span class="f">exp</span>(<span class="f">log</span>(<span class="n">90</span>) + <span class="n">0.35</span> * S),
+  habitaciones = <span class="f">pmin</span>(<span class="f">pmax</span>(<span class="f">round</span>(<span class="n">3</span> + <span class="n">0.9</span> * S + <span class="n">0.6</span> * <span class="f">rnorm</span>(n)), <span class="n">1</span>), <span class="n">6</span>),
+  banos        = <span class="f">pmin</span>(<span class="f">pmax</span>(<span class="f">round</span>(<span class="n">1.6</span> + <span class="n">0.6</span> * S + <span class="n">0.5</span> * <span class="f">rnorm</span>(n)), <span class="n">1</span>), <span class="n">4</span>),
+  distancia    = dist
+)
+df$antiguedad &lt;- <span class="f">pmin</span>(<span class="f">pmax</span>(<span class="n">30</span> - <span class="n">1.2</span> * (dist - <span class="n">8</span>) + <span class="n">10</span> * <span class="f">rnorm</span>(n), <span class="n">0</span>), <span class="n">70</span>)
+df$precio &lt;- <span class="f">exp</span>(<span class="f">log</span>(<span class="n">150</span>) + <span class="n">0.32</span> * S - <span class="n">0.05</span> * (dist - <span class="n">8</span>) -
+                 <span class="n">0.004</span> * (df$antiguedad - <span class="n">25</span>) + <span class="n">0.15</span> * <span class="f">rnorm</span>(n))
+
+R &lt;- <span class="f">cor</span>(df)                                   <span class="c"># method = "spearman" para rangos</span>
+<span class="f">round</span>(R, <span class="n">2</span>)
+
+<span class="c"># correlación parcial por residuos (o ppcor::pcor.test)</span>
+parcial &lt;- <span class="k">function</span>(x, y, z) <span class="f">cor</span>(<span class="f">resid</span>(<span class="f">lm</span>(x ~ z)), <span class="f">resid</span>(<span class="f">lm</span>(y ~ z)))
+<span class="f">c</span>(R[<span class="s">"habitaciones"</span>, <span class="s">"precio"</span>], <span class="f">parcial</span>(df$habitaciones, df$precio, df$superficie))  <span class="c"># ≈ 0.5 y ≈ 0</span>
+<span class="f">c</span>(R[<span class="s">"distancia"</span>, <span class="s">"precio"</span>], <span class="f">parcial</span>(df$distancia, df$precio, df$superficie))        <span class="c"># débil y ≈ −0.7</span>
+
+<span class="c"># pares por encima del umbral 2/√n</span>
+idx &lt;- <span class="f">which</span>(<span class="f">upper.tri</span>(R) &amp; <span class="f">abs</span>(R) &gt; <span class="n">2</span> / <span class="f">sqrt</span>(n), arr.ind = <span class="k">TRUE</span>)
+<span class="f">data.frame</span>(a = <span class="f">rownames</span>(R)[idx[, <span class="n">1</span>]], b = <span class="f">colnames</span>(R)[idx[, <span class="n">2</span>]], r = <span class="f">round</span>(R[idx], <span class="n">2</span>))
+
+<span class="c"># gráficos: pares, mapa de calor agrupado y coordenadas paralelas</span>
+<span class="f">pairs</span>(df, pch = <span class="n">19</span>, col = <span class="f">adjustcolor</span>(<span class="s">"steelblue"</span>, <span class="n">0.4</span>), cex = <span class="n">0.5</span>)   <span class="c"># o GGally::ggpairs(df)</span>
+<span class="f">heatmap</span>(R, symm = <span class="k">TRUE</span>, distfun = <span class="k">function</span>(m) <span class="f">as.dist</span>(<span class="n">1</span> - <span class="f">abs</span>(m)),
+        col = <span class="f">hcl.colors</span>(<span class="n">21</span>, <span class="s">"Blue-Red"</span>, rev = <span class="k">TRUE</span>), zlim = <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>))
+<span class="f">library</span>(MASS)
+zona &lt;- <span class="f">cut</span>(df$distancia, <span class="f">c</span>(<span class="n">0</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="k">Inf</span>))
+<span class="f">parcoord</span>(df, col = <span class="f">adjustcolor</span>(<span class="f">c</span>(<span class="s">"tomato"</span>, <span class="s">"gray50"</span>, <span class="s">"steelblue"</span>)[zona], <span class="n">0.4</span>))</code></pre>
+</div>
+      <p>En R, <code>heatmap</code> reordena filas y columnas con un agrupamiento jerárquico usando la distancia que le pases; aquí \(1 - |r|\). En Python, <code>sns.clustermap</code> hace lo mismo y dibuja los dendrogramas.</p>
+
+      <h2 id="multivar-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="Con p variables hay p(p − 1)/2 pares distintos: 10 · 9 / 2 = 45. La matriz tiene 100 celdas, pero la diagonal vale 1 y es simétrica." data-wrong="La matriz es simétrica y su diagonal es siempre 1. ¿Cuántas celdas quedan por encima de la diagonal?">
+        <h3>Con 10 variables, ¿cuántas correlaciones distintas (sin contar la diagonal) tiene la matriz de correlaciones?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>100</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>90</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>45</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>10</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La asociación entre x e y se explica casi por completo por su relación común con z. Una vez descontado z, no queda relación lineal entre ellas." data-wrong="La correlación parcial mide lo que queda de la relación tras quitar el efecto lineal de z. ¿Qué significa que lo que quede sea casi 0?">
+        <h3>r entre x e y es 0,6, pero la correlación parcial controlando z es 0,02. ¿Qué es lo más razonable concluir?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Hubo un error de cálculo, la parcial no puede ser menor</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>La relación entre x e y se explica por lo que ambas comparten con z</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>x causa a y a través de z</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>z no tiene relación con x ni con y</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Las líneas que se cruzan entre dos ejes vecinos indican que valores altos en uno van con valores bajos en el otro: correlación negativa." data-wrong="Piensa en dos ejes vecinos: si una línea sale de arriba en el primero y llega abajo en el segundo, y así con todas, ¿qué forma se ve y qué correlación implica?">
+        <h3>En un gráfico de coordenadas paralelas, casi todas las líneas entre dos ejes vecinos se cruzan formando una X. ¿Qué indica?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Que las dos variables son independientes</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Una correlación positiva fuerte</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Que hay valores faltantes</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Una correlación negativa fuerte</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="multivar-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. El primer laboratorio te sirve para explorar el último.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Para tres variables sabes que \(r_{xy} = 0{,}8\), \(r_{xz} = 0{,}6\) y \(r_{yz} = 0{,}7\). Escribe la matriz de correlaciones completa y calcula la correlación parcial entre \(x\) e \(y\) controlando \(z\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="eq">\[ \mathbf{R} = \begin{pmatrix} 1 &amp; 0{,}8 &amp; 0{,}6 \\ 0{,}8 &amp; 1 &amp; 0{,}7 \\ 0{,}6 &amp; 0{,}7 &amp; 1 \end{pmatrix} \]</div>
+            <p>\(r_{xy\cdot z} = \dfrac{0{,}8 - 0{,}6 \cdot 0{,}7}{\sqrt{(1 - 0{,}36)(1 - 0{,}49)}} = \dfrac{0{,}38}{\sqrt{0{,}64 \cdot 0{,}51}} \approx \dfrac{0{,}38}{0{,}571} \approx 0{,}665\). Parte de la asociación pasa por \(z\), pero queda una relación fuerte.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Calculas la matriz de correlaciones de 10 variables con \(n = 100\) observaciones. ¿Qué umbral aproximado de \(|r|\) usarías para un nivel del 5 %? Si en realidad ninguna variable estuviera relacionada con otra, ¿cuántos pares esperarías que superen ese umbral?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Umbral \(\approx 2/\sqrt{100} = 0{,}2\). Hay \(10 \cdot 9/2 = 45\) pares, y bajo independencia cada uno lo supera con probabilidad cercana a 0,05: se esperan \(45 \times 0{,}05 \approx 2{,}25\) pares “significativos” por azar. Por eso conviene corregir (Bonferroni, por ejemplo, usaría 0,05/45 para cada par) o confirmar con datos nuevos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>En datos diarios de una playa, la correlación entre venta de helados y rescates de salvavidas es 0,6. La temperatura correlaciona 0,8 con los helados y 0,75 con los rescates. Calcula la correlación parcial entre helados y rescates controlando la temperatura e interpreta.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(r_{hs\cdot t} = \dfrac{0{,}6 - 0{,}8 \cdot 0{,}75}{\sqrt{(1 - 0{,}64)(1 - 0{,}5625)}} = \dfrac{0{,}6 - 0{,}6}{\cdots} = 0\).</p>
+            <p>Toda la asociación entre helados y rescates se explica por la temperatura: los días calurosos hay más gente en la playa, que compra más helados y se mete más al mar. Es una correlación espuria por una causa común.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>(a) Sea \(x = 1, 2, \dots, 10\) e \(y = e^{x}\). Calcula la correlación de Pearson y la de Spearman y explica la diferencia. (b) Ahora toma \(y = x\) para esos 10 puntos y agrega un único punto \((30, 0)\). ¿Qué pasa con cada coeficiente? ¿Qué te dice esto sobre cuál mostrar en un mapa de calor?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) La relación es perfectamente creciente pero muy curva: Spearman vale exactamente 1 (los rangos coinciden) y Pearson \(\approx 0{,}72\), porque una recta ajusta mal una exponencial.</p>
+            <p>(b) Con el punto \((30, 0)\), Pearson cae a \(\approx -0{,}15\): un solo atípico con mucho apalancamiento invierte el signo. Spearman baja a 0,5, porque solo ve que ese punto tiene el mayor rango en \(x\) y el menor en \(y\). Para explorar, conviene mirar ambos: si difieren mucho, hay curvatura o atípicos y el gráfico de pares te dirá cuál.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+x = np.<span class="f">arange</span>(<span class="n">1</span>, <span class="n">11</span>)
+<span class="f">print</span>(stats.<span class="f">pearsonr</span>(x, np.<span class="f">exp</span>(x))[<span class="n">0</span>], stats.<span class="f">spearmanr</span>(x, np.<span class="f">exp</span>(x))[<span class="n">0</span>])   <span class="c"># 0.717  1.0</span>
+x2, y2 = np.<span class="f">append</span>(x, <span class="n">30</span>), np.<span class="f">append</span>(x, <span class="n">0</span>)
+<span class="f">print</span>(stats.<span class="f">pearsonr</span>(x2, y2)[<span class="n">0</span>], stats.<span class="f">spearmanr</span>(x2, y2)[<span class="n">0</span>])               <span class="c"># -0.152  0.5</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="n">1</span>:<span class="n">10</span>
+<span class="f">c</span>(<span class="f">cor</span>(x, <span class="f">exp</span>(x)), <span class="f">cor</span>(x, <span class="f">exp</span>(x), method = <span class="s">"spearman"</span>))   <span class="c"># 0.717  1</span>
+x2 &lt;- <span class="f">c</span>(x, <span class="n">30</span>); y2 &lt;- <span class="f">c</span>(x, <span class="n">0</span>)
+<span class="f">c</span>(<span class="f">cor</span>(x2, y2), <span class="f">cor</span>(x2, y2, method = <span class="s">"spearman"</span>))         <span class="c"># -0.152  0.5</span></code></pre>
+</div>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

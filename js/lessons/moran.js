@@ -93,8 +93,8 @@
     $('moran-p').textContent = p <= 1 / (NPERM + 1) ? '≤ ' + fmt(1 / (NPERM + 1), 3) : fmt(p, 3);
     const cnt = { AA: 0, BB: 0, AB: 0, BA: 0 }; cls.forEach(c => { if (c !== 'ns') cnt[c]++; });
     $('moran-head').textContent = `AA ${cnt.AA} · BB ${cnt.BB} · AB ${cnt.AB} · BA ${cnt.BA}`;
-    $('moran-map-lbl').textContent = S.view === 'lisa' ? 'Agrupamientos LISA (p < 0,05)' : 'Mapa de valores';
-    $('moran-map-n').textContent = S.view === 'lisa' ? (cnt.AA + cnt.BB + cnt.AB + cnt.BA) + ' de 144 significativas' : (S.w === 'rook' ? 'torre' : 'reina');
+    $('moran-map-lbl').textContent = S.view === 'lisa' ? 'LISA (p < 0,05)' : 'Mapa de valores';
+    $('moran-map-n').textContent = S.view === 'lisa' ? (cnt.AA + cnt.BB + cnt.AB + cnt.BA) + ' de 144 signif.' : (S.w === 'rook' ? 'torre' : 'reina');
     const accent = tok('--accent'), hot = tok('--hot'), ink = tok('--ink'), muted = tok('--muted'), line = tok('--line'), s2 = tok('--surface-2');
     const colOf = c => c === 'AA' || c === 'AB' ? hot : accent;
     let f = fit($('moran-c-map'));

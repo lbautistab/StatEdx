@@ -8,13 +8,13 @@
     return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   }
   const A = 40, MM = 25, N = A * MM, COLS = 8, ROWS = 5;
-  // efectos fijos estandarizados: u (escuela) y e (alumno, centrado dentro de cada escuela)
+  // efectos fijos estandarizados: u (escuela) y e (alumno)
   const r = seeded(77), gauss = () => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
   const U = (() => { const u = Array.from({ length: A }, gauss), m = u.reduce((a, b) => a + b, 0) / A, s = Math.sqrt(u.reduce((a, b) => a + (b - m) ** 2, 0) / (A - 1)); return u.map(v => (v - m) / s); })();
-  const E = Array.from({ length: A }, () => {
-    const e = Array.from({ length: MM }, gauss), m = e.reduce((a, b) => a + b, 0) / MM, s = Math.sqrt(e.reduce((a, b) => a + (b - m) ** 2, 0) / (MM - 1));
-    return e.map(v => (v - m) / s);
-  });
+  const E = (() => {
+    const e = Array.from({ length: A * MM }, gauss), m = e.reduce((a, b) => a + b, 0) / e.length, s = Math.sqrt(e.reduce((a, b) => a + (b - m) ** 2, 0) / (e.length - 1));
+    return Array.from({ length: A }, (_, i) => e.slice(i * MM, (i + 1) * MM).map(v => (v - m) / s));
+  })();
 
   const S = { rho: 0.2, a: 8, m: 25, dis: 'cl', est: [], last: null };
   const val = (i, j) => 70 + 10 * (Math.sqrt(S.rho) * U[i] + Math.sqrt(1 - S.rho) * E[i][j]);
