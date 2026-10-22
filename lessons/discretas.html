@@ -1,0 +1,293 @@
+<!-- StatEdx · sesión: discretas -->
+<div id="view-discretas" data-view="discretas" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Distribuciones discretas</h1>
+      <p>Contar éxitos en un número fijo de intentos, esperar hasta el primer éxito, sacar sin devolver de un lote o contar eventos en una hora: cada pregunta tiene su distribución. Aquí aprendes la Bernoulli, la binomial, la geométrica, la hipergeométrica y la Poisson, de dónde salen, cómo se relacionan y cómo elegir la correcta.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: probabilidad condicional</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#discretas-idea" data-sec="discretas-idea">La idea</a></li>
+        <li><a href="#discretas-binom" data-sec="discretas-binom">Bernoulli y binomial</a></li>
+        <li><a href="#discretas-geom" data-sec="discretas-geom">Geométrica y binomial negativa</a></li>
+        <li><a href="#discretas-hiper" data-sec="discretas-hiper">Hipergeométrica</a></li>
+        <li><a href="#discretas-poisson" data-sec="discretas-poisson">Poisson</a></li>
+        <li><a href="#discretas-lab" data-sec="discretas-lab">Laboratorio</a></li>
+        <li><a href="#discretas-elegir" data-sec="discretas-elegir">Cómo elegir</a></li>
+        <li><a href="#discretas-code" data-sec="discretas-code">En R y Python</a></li>
+        <li><a href="#discretas-quiz" data-sec="discretas-quiz">Comprueba</a></li>
+        <li><a href="#discretas-ej" data-sec="discretas-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="discretas-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una fábrica produce lotes de 50 piezas y sabe que alrededor del 8 % sale defectuosa. Mira estas cuatro preguntas, que suenan parecidas:</p>
+      <ul>
+        <li>Si reviso 10 piezas de la línea de producción, ¿cuántas defectuosas espero? (<b>binomial</b>)</li>
+        <li>¿Cuántas piezas tengo que revisar hasta encontrar la primera defectuosa? (<b>geométrica</b>)</li>
+        <li>Si un lote tiene exactamente 4 defectuosas y saco 10 sin devolverlas, ¿cuál es la probabilidad de no ver ninguna? (<b>hipergeométrica</b>)</li>
+        <li>Si en promedio llegan 4,5 reclamos por hora, ¿qué tan raro es recibir 8 o más? (<b>Poisson</b>)</li>
+      </ul>
+      <p>Todas cuentan algo con números enteros, pero cada una supone un mecanismo distinto. Elegir bien no es un detalle: en la tercera pregunta, usar la binomial en lugar de la hipergeométrica da 0,434 en vez de 0,397.</p>
+      <div class="callout"><b>La idea central:</b> una distribución es un modelo de <i>cómo se generan</i> los datos. Antes de buscar la fórmula, pregúntate: ¿el número de intentos está fijo?, ¿los intentos son independientes?, ¿la probabilidad se mantiene?, ¿qué estoy contando?</div>
+
+      <h2 id="discretas-binom"><span class="sec">§ 2</span>Bernoulli y binomial</h2>
+      <p>Una variable <b>Bernoulli</b> describe un solo ensayo con dos resultados: \(X = 1\) (éxito) con probabilidad \(p\) y \(X = 0\) con probabilidad \(1 - p\). Su función de probabilidad, media y varianza son</p>
+      <div class="eq">\[ P(X = x) = p^{x}(1-p)^{1-x},\ x \in \{0, 1\}, \qquad E[X] = p, \qquad \operatorname{Var}(X) = p(1-p) \]</div>
+      <p>La <b>binomial</b> \(X \sim \text{Bin}(n, p)\) cuenta los éxitos en \(n\) ensayos Bernoulli. Tiene cuatro supuestos: (1) \(n\) fijo de antemano, (2) dos resultados por ensayo, (3) ensayos independientes y (4) la misma \(p\) en todos.</p>
+      <div class="eq">\[ P(X = k) = \binom{n}{k} p^{k}(1-p)^{n-k}, \quad k = 0, \dots, n, \qquad E[X] = np, \qquad \operatorname{Var}(X) = np(1-p) \]
+        <div class="note">Cada secuencia concreta con \(k\) éxitos tiene probabilidad \(p^k(1-p)^{n-k}\) por independencia, y hay \(\binom{n}{k}\) secuencias así. Como \(X = X_1 + \cdots + X_n\) es una suma de Bernoulli independientes, la media y la varianza son \(n\) veces las de una Bernoulli.</div>
+      </div>
+      <p><b>Forma.</b> Es simétrica si \(p = 0{,}5\), sesgada a la derecha si \(p &lt; 0{,}5\) y a la izquierda si \(p &gt; 0{,}5\). La moda está en \(\lfloor (n+1)p \rfloor\). Cuando \(np(1-p) \gtrsim 10\), se parece a una normal \(\mathcal{N}(np,\ np(1-p))\), lo que verás en la clase del Teorema del Límite Central.</p>
+      <div class="callout"><b>Error común:</b> aplicar la binomial cuando los ensayos no son independientes o la probabilidad cambia. Los tiros libres de un jugador cansado, los clientes de una misma familia o los días seguidos de lluvia violan los supuestos, y la varianza real suele ser mayor que \(np(1-p)\).</div>
+
+      <h2 id="discretas-geom"><span class="sec">§ 3</span>Geométrica y binomial negativa</h2>
+      <p>Ahora el número de ensayos no está fijo: repites ensayos Bernoulli independientes con probabilidad \(p\) <b>hasta el primer éxito</b>. Si \(X\) es el número de ensayos necesarios (incluido el éxito), \(X \sim \text{Geom}(p)\):</p>
+      <div class="eq">\[ P(X = k) = (1-p)^{k-1}\,p, \quad k = 1, 2, \dots, \qquad P(X &gt; k) = (1-p)^{k}, \qquad E[X] = \frac1p, \qquad \operatorname{Var}(X) = \frac{1-p}{p^2} \]
+        <div class="note">Para tener el primer éxito en el ensayo \(k\) necesitas \(k-1\) fracasos seguidos y luego un éxito. Con \(p = 0{,}2\), esperas en promedio 5 ensayos, y la probabilidad de necesitar más de 5 es \(0{,}8^5 \approx 0{,}328\).</div>
+      </div>
+      <p><b>Falta de memoria.</b> La geométrica es la única distribución discreta que “olvida”: si ya fallaste \(m\) veces, la cantidad de ensayos adicionales tiene la misma distribución que al principio.</p>
+      <div class="eq">\[ P(X &gt; m + k \mid X &gt; m) = \frac{(1-p)^{m+k}}{(1-p)^{m}} = (1-p)^{k} = P(X &gt; k) \]
+        <div class="note">Por eso “ya me toca” es falso en ensayos independientes: tras 10 llamadas sin venta, las llamadas que faltan para la primera venta siguen teniendo media \(1/p\).</div>
+      </div>
+      <p>La <b>binomial negativa</b> generaliza la idea: número de ensayos hasta el \(r\)-ésimo éxito. Es la suma de \(r\) geométricas independientes, con \(E[X] = r/p\) y \(\operatorname{Var}(X) = r(1-p)/p^2\), y \(P(X = k) = \binom{k-1}{r-1}p^r(1-p)^{k-r}\) para \(k \ge r\).</p>
+      <div class="callout"><b>Cuidado con la parametrización:</b> algunos textos y programas cuentan los <i>fracasos</i> antes del éxito (valores 0, 1, 2, …) en lugar de los ensayos (1, 2, 3, …). R usa fracasos en <code>dgeom</code> y <code>dnbinom</code>; <code>scipy.stats.geom</code> usa ensayos, pero <code>scipy.stats.nbinom</code> usa fracasos. Revisa siempre la documentación.</div>
+
+      <h2 id="discretas-hiper"><span class="sec">§ 4</span>Hipergeométrica: muestrear sin reemplazo</h2>
+      <p>Tienes una población finita de \(N\) elementos, de los cuales \(K\) son “éxitos” (piezas defectuosas, votantes de un partido). Sacas \(n\) <b>sin devolverlos</b>. El número de éxitos en la muestra sigue una hipergeométrica:</p>
+      <div class="eq">\[ P(X = k) = \frac{\binom{K}{k}\binom{N-K}{n-k}}{\binom{N}{n}}, \qquad E[X] = n\,\frac{K}{N}, \qquad \operatorname{Var}(X) = n\,\frac{K}{N}\Big(1 - \frac{K}{N}\Big)\,\frac{N-n}{N-1} \]
+        <div class="note">El numerador cuenta las formas de elegir \(k\) éxitos y \(n-k\) fracasos; el denominador, todas las muestras posibles. El último factor de la varianza es la <b>corrección por población finita</b>: sin reemplazo, cada extracción da información sobre las que quedan y la variabilidad baja.</div>
+      </div>
+      <p>Los ensayos ya no son independientes: si la primera pieza salió defectuosa, quedan menos defectuosas para la segunda. Pero si la muestra es pequeña frente a la población (regla práctica: \(n/N &lt; 0{,}05\)), sacar una pieza casi no cambia las proporciones y la binomial \(\text{Bin}(n, K/N)\) es una buena aproximación.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Lote de 50 con 4 defectuosas, se revisan 10</th><th>Hipergeométrica</th><th>Binomial(10; 0,08)</th></tr></thead>
+        <tbody>
+          <tr><td>P(ninguna defectuosa)</td><td>0,397</td><td>0,434</td></tr>
+          <tr><td>Media</td><td>0,80</td><td>0,80</td></tr>
+          <tr><td>Varianza</td><td>0,601</td><td>0,736</td></tr>
+        </tbody>
+      </table></div>
+      <p>Aquí \(n/N = 0{,}2\), lejos de 0,05: la binomial exagera la variabilidad y sobrestima la probabilidad de que el lote “pase” la inspección.</p>
+
+      <h2 id="discretas-poisson"><span class="sec">§ 5</span>Poisson: eventos en un intervalo</h2>
+      <p>La Poisson cuenta eventos que ocurren de forma independiente, uno a la vez, a una tasa media constante \(\lambda\) por unidad de tiempo o espacio: reclamos por hora, defectos por metro de tela, mutaciones por genoma.</p>
+      <div class="eq">\[ P(X = k) = \frac{e^{-\lambda}\lambda^{k}}{k!}, \quad k = 0, 1, 2, \dots, \qquad E[X] = \operatorname{Var}(X) = \lambda \]</div>
+      <p><b>Por qué aparece.</b> Divide una hora en \(n\) intervalos diminutos; en cada uno ocurre un evento con probabilidad \(p = \lambda/n\). El total es \(\text{Bin}(n, \lambda/n)\), y cuando \(n \to \infty\):</p>
+      <div class="eq">\[ \binom{n}{k}\Big(\frac{\lambda}{n}\Big)^{k}\Big(1 - \frac{\lambda}{n}\Big)^{n-k} \;\longrightarrow\; \frac{\lambda^{k}}{k!}\,e^{-\lambda} \]
+        <div class="note">Por eso la Poisson aproxima a la binomial cuando \(n\) es grande y \(p\) pequeña, con \(\lambda = np\): con \(n = 1\,000\) y \(p = 0{,}002\), \(P(X = 3)\) vale 0,1806 en la binomial y 0,1804 en la Poisson(2).</div>
+      </div>
+      <p><b>Propiedades útiles.</b> (1) La tasa escala con el intervalo: si llegan 4,5 reclamos por hora, en 20 minutos el conteo es Poisson(1,5). (2) La suma de Poisson independientes es Poisson: \(X_1 + X_2 \sim \text{Poisson}(\lambda_1 + \lambda_2)\). (3) El tiempo entre eventos es exponencial, una distribución continua que verás en la clase siguiente.</p>
+      <div class="callout"><b>Sobredispersión:</b> en datos reales de conteo es común que la varianza sea bastante mayor que la media (por ejemplo, media 3 y varianza 9), porque la tasa cambia entre unidades o los eventos llegan en grupos. La Poisson subestima entonces la incertidumbre; la <b>binomial negativa</b>, que agrega un parámetro de dispersión, suele ajustar mejor.</div>
+
+      <h2 id="discretas-lab"><span class="sec">§ 6</span>Laboratorio: de los ensayos a la distribución</h2>
+      <p>Elige un mecanismo: cada vez que cambias un parámetro se simulan 500 experimentos nuevos, y puedes sumar más con los botones. La franja de arriba muestra el último experimento: los ensayos de la binomial, la espera de la geométrica, la urna de la hipergeométrica (40 piezas, las rojas son defectuosas) o una hora dividida en 600 instantes para la Poisson. Abajo, las barras son las frecuencias simuladas, los puntos la distribución exacta y la línea punteada la aproximación clásica.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · distribuciones discretas</span><span class="num" id="discretas-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="discretas-dist-label">MECANISMO</label>
+              <div class="seg" id="discretas-dist" role="group" aria-labelledby="discretas-dist-label">
+                <button data-d="bin" aria-pressed="true">Binomial</button>
+                <button data-d="geo" aria-pressed="false">Geométrica</button>
+                <button data-d="hip" aria-pressed="false">Hipergeom.</button>
+                <button data-d="poi" aria-pressed="false">Poisson</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl" id="discretas-n-wrap"><label for="discretas-n">ENSAYOS · n = <b id="discretas-n-v" class="num">10</b></label><input id="discretas-n" type="range" min="1" max="40" value="10"></div>
+            <div class="ctrl" id="discretas-p-wrap"><label for="discretas-p">ÉXITO · p = <b id="discretas-p-v" class="num">0,30</b></label><input id="discretas-p" type="range" min="1" max="95" value="30"></div>
+            <div class="ctrl" id="discretas-k-wrap" hidden><label for="discretas-k">DEFECTUOSAS EN LA URNA · K = <b id="discretas-k-v" class="num">12</b> de 40</label><input id="discretas-k" type="range" min="1" max="39" value="12"></div>
+            <div class="ctrl" id="discretas-l-wrap" hidden><label for="discretas-l">TASA · λ = <b id="discretas-l-v" class="num">4,5</b> por hora</label><input id="discretas-l" type="range" min="0.5" max="15" step="0.5" value="4.5"></div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-ghost btn-sm" id="discretas-one" type="button">Simular 1</button>
+            <button class="btn btn-ghost btn-sm" id="discretas-many" type="button">Simular 500</button>
+            <button class="btn btn-ghost btn-sm" id="discretas-reset" type="button">Reiniciar</button>
+          </div>
+          <div>
+            <div class="plot-label"><span>Último experimento</span><span id="discretas-last">–</span></div>
+            <canvas class="plot" id="discretas-c-strip" height="96" aria-label="Representación del último experimento simulado"></canvas>
+          </div>
+          <div>
+            <div class="plot-label"><span>Frecuencia simulada y probabilidad exacta</span><span id="discretas-nsim">0 simulaciones</span></div>
+            <canvas class="plot" id="discretas-c-pmf" height="230" aria-label="Barras de frecuencias simuladas con la función de probabilidad exacta y su aproximación"></canvas>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>frecuencia simulada</span><span><i style="background:var(--ink)"></i>probabilidad exacta</span><span id="discretas-apx-leg"><i style="background:var(--hot)"></i><span id="discretas-apx-name">aproximación Poisson(np)</span></span></div>
+          <div class="readout">
+            <div><span>media simulada</span><b id="discretas-ms">–</b></div>
+            <div><span>media teórica</span><b id="discretas-mt">–</b></div>
+            <div><span>varianza simulada</span><b id="discretas-vs">–</b></div>
+            <div><span>varianza teórica</span><b id="discretas-vt">–</b></div>
+          </div>
+        </div>
+        <figcaption>En la hipergeométrica sube n hasta 30: la binomial punteada queda mucho más ancha que la distribución exacta, porque ignora que la urna se va vaciando. En la binomial, baja p a 0,05 con n = 40: la Poisson(np) casi coincide.</figcaption>
+      </figure>
+
+      <h2 id="discretas-elegir"><span class="sec">§ 7</span>Cómo elegir la distribución</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Pregunta</th><th>Distribución</th><th>Valores</th><th>Media</th><th>Varianza</th></tr></thead>
+        <tbody>
+          <tr><td>¿Ocurre o no, en un solo intento?</td><td>Bernoulli(\(p\))</td><td>0, 1</td><td>\(p\)</td><td>\(p(1-p)\)</td></tr>
+          <tr><td>¿Cuántos éxitos en \(n\) intentos independientes?</td><td>Binomial(\(n, p\))</td><td>0, …, \(n\)</td><td>\(np\)</td><td>\(np(1-p)\)</td></tr>
+          <tr><td>¿Cuántos intentos hasta el primer éxito?</td><td>Geométrica(\(p\))</td><td>1, 2, …</td><td>\(1/p\)</td><td>\((1-p)/p^2\)</td></tr>
+          <tr><td>¿Cuántos intentos hasta el éxito \(r\)?</td><td>Binomial negativa(\(r, p\))</td><td>\(r, r+1\), …</td><td>\(r/p\)</td><td>\(r(1-p)/p^2\)</td></tr>
+          <tr><td>¿Cuántos éxitos en \(n\) extracciones sin reemplazo?</td><td>Hipergeométrica(\(N, K, n\))</td><td>\(\max(0, n-N+K)\), …, \(\min(n, K)\)</td><td>\(nK/N\)</td><td>\(n\frac{K}{N}\frac{N-K}{N}\frac{N-n}{N-1}\)</td></tr>
+          <tr><td>¿Cuántos eventos en un intervalo, a tasa constante?</td><td>Poisson(\(\lambda\))</td><td>0, 1, 2, …</td><td>\(\lambda\)</td><td>\(\lambda\)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Las conexiones entre ellas ayudan a recordarlas: la binomial es una suma de Bernoulli; la binomial negativa, una suma de geométricas; la hipergeométrica tiende a la binomial cuando \(N\) crece con \(K/N\) fijo, y la binomial tiende a la Poisson cuando \(n\) crece con \(np\) fijo.</p>
+      <div class="callout"><b>Para recordar:</b> mirar la relación entre media y varianza de tus datos es un diagnóstico rápido. Varianza menor que la media apunta a binomial o hipergeométrica; igual, a Poisson; mucho mayor, a binomial negativa o a una mezcla de poblaciones.</div>
+
+      <h2 id="discretas-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Respondemos las cuatro preguntas del inicio y verificamos la hipergeométrica con una simulación. Fíjate en cómo cambian los nombres de los parámetros entre lenguajes.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="c"># 1) binomial: defectuosas en 10 piezas de la línea, p = 0.08</span>
+b = stats.<span class="f">binom</span>(n=<span class="n">10</span>, p=<span class="n">0.08</span>)
+<span class="f">print</span>(b.<span class="f">mean</span>(), b.<span class="f">var</span>())                 <span class="c"># 0.8  0.736</span>
+
+<span class="c"># 2) geométrica (scipy cuenta ensayos): ¿más de 5 piezas hasta la primera defectuosa? con p = 0.2</span>
+g = stats.<span class="f">geom</span>(<span class="n">0.2</span>)
+<span class="f">print</span>(g.<span class="f">mean</span>(), g.<span class="f">sf</span>(<span class="n">5</span>))                  <span class="c"># 5.0  0.32768</span>
+
+<span class="c"># 3) hipergeométrica: M = tamaño del lote, n = defectuosas, N = tamaño de la muestra</span>
+h = stats.<span class="f">hypergeom</span>(M=<span class="n">50</span>, n=<span class="n">4</span>, N=<span class="n">10</span>)
+<span class="f">print</span>(<span class="f">round</span>(h.<span class="f">pmf</span>(<span class="n">0</span>), <span class="n">3</span>), <span class="f">round</span>(b.<span class="f">pmf</span>(<span class="n">0</span>), <span class="n">3</span>))   <span class="c"># 0.397 vs 0.434 (binomial)</span>
+
+<span class="c"># 4) Poisson: 4.5 reclamos por hora, ¿P(X ≥ 8)?</span>
+r = stats.<span class="f">poisson</span>(<span class="n">4.5</span>)
+<span class="f">print</span>(<span class="f">round</span>(r.<span class="f">sf</span>(<span class="n">7</span>), <span class="n">4</span>))                   <span class="c"># 0.0866  (sf(7) = P(X &gt; 7))</span>
+
+<span class="c"># verificación de 3) simulando 200 000 inspecciones</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
+x = rng.<span class="f">hypergeometric</span>(ngood=<span class="n">4</span>, nbad=<span class="n">46</span>, nsample=<span class="n">10</span>, size=<span class="n">200_000</span>)
+<span class="f">print</span>((x == <span class="n">0</span>).<span class="f">mean</span>(), x.<span class="f">var</span>())           <span class="c"># ≈ 0.397  ≈ 0.601</span>
+
+<span class="c"># diagnóstico de sobredispersión en conteos</span>
+conteos = rng.<span class="f">negative_binomial</span>(n=<span class="n">2</span>, p=<span class="n">0.4</span>, size=<span class="n">1000</span>)   <span class="c"># media 3, varianza 7.5</span>
+<span class="f">print</span>(conteos.<span class="f">mean</span>(), conteos.<span class="f">var</span>())       <span class="c"># varianza muy por encima de la media</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># 1) binomial: defectuosas en 10 piezas de la línea, p = 0.08</span>
+n &lt;- <span class="n">10</span>; p &lt;- <span class="n">0.08</span>
+<span class="f">c</span>(media = n * p, varianza = n * p * (<span class="n">1</span> - p))   <span class="c"># 0.8  0.736</span>
+
+<span class="c"># 2) geométrica: R cuenta FRACASOS antes del éxito</span>
+<span class="c">#    "más de 5 ensayos" = "al menos 5 fracasos"</span>
+<span class="f">pgeom</span>(<span class="n">4</span>, prob = <span class="n">0.2</span>, lower.tail = <span class="k">FALSE</span>)     <span class="c"># 0.32768</span>
+
+<span class="c"># 3) hipergeométrica: m = defectuosas, n = buenas, k = tamaño de la muestra</span>
+<span class="f">dhyper</span>(<span class="n">0</span>, m = <span class="n">4</span>, n = <span class="n">46</span>, k = <span class="n">10</span>)                <span class="c"># 0.397</span>
+<span class="f">dbinom</span>(<span class="n">0</span>, size = <span class="n">10</span>, prob = <span class="n">0.08</span>)              <span class="c"># 0.434</span>
+
+<span class="c"># 4) Poisson: 4.5 reclamos por hora, P(X ≥ 8)</span>
+<span class="f">ppois</span>(<span class="n">7</span>, lambda = <span class="n">4.5</span>, lower.tail = <span class="k">FALSE</span>)     <span class="c"># 0.0866</span>
+
+<span class="c"># verificación de 3) simulando 200 000 inspecciones</span>
+<span class="f">set.seed</span>(<span class="n">7</span>)
+x &lt;- <span class="f">rhyper</span>(<span class="n">2e5</span>, m = <span class="n">4</span>, n = <span class="n">46</span>, k = <span class="n">10</span>)
+<span class="f">c</span>(<span class="f">mean</span>(x == <span class="n">0</span>), <span class="f">var</span>(x))                      <span class="c"># ≈ 0.397  ≈ 0.601</span>
+
+<span class="c"># comparar exacta y aproximación en un gráfico</span>
+k &lt;- <span class="n">0</span>:<span class="n">4</span>
+<span class="f">barplot</span>(<span class="f">rbind</span>(<span class="f">dhyper</span>(k, <span class="n">4</span>, <span class="n">46</span>, <span class="n">10</span>), <span class="f">dbinom</span>(k, <span class="n">10</span>, <span class="n">0.08</span>)), beside = <span class="k">TRUE</span>,
+        names.arg = k, legend.text = <span class="f">c</span>(<span class="s">"hipergeométrica"</span>, <span class="s">"binomial"</span>))</code></pre>
+</div>
+
+      <h2 id="discretas-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="Se extrae sin reemplazo de una población finita con un número fijo de defectuosas, y la muestra es el 20 % del lote: la hipergeométrica es la exacta." data-wrong="Fíjate en dos detalles: las piezas no se devuelven y el lote es pequeño. ¿Qué distribución modela extracciones sin reemplazo?">
+        <h3>Un inspector toma 10 piezas, sin devolverlas, de un lote de 50 que tiene 6 defectuosas. ¿Qué distribución describe exactamente el número de defectuosas en su muestra?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Binomial(10; 0,12)</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Hipergeométrica con N = 50, K = 6, n = 10</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Poisson(1,2)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Geométrica(0,12)</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="En una Poisson la media y la varianza son iguales. Una varianza tres veces mayor indica sobredispersión, y la binomial negativa tiene un parámetro extra para eso." data-wrong="Recuerda qué relación entre media y varianza impone la Poisson. ¿Se cumple con media 3 y varianza 9?">
+        <h3>El número de visitas diarias a una ficha de producto tiene media 3 y varianza 9. ¿Qué modelo es más razonable?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Poisson(3), porque son conteos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Binomial, porque la varianza es mayor</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Geométrica, porque los valores empiezan en 0</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Binomial negativa, porque hay sobredispersión</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Por la falta de memoria, los 5 fracasos previos no importan: P(X &gt; 5 + 3 | X &gt; 5) = P(X &gt; 3) = 0,8³ = 0,512." data-wrong="La geométrica no tiene memoria. Calcula la probabilidad de 3 fracasos seguidos como si empezaras de cero.">
+        <h3>Cada llamada termina en venta con probabilidad 0,2, de forma independiente. Ya hiciste 5 llamadas sin vender. ¿Cuál es la probabilidad de que las próximas 3 tampoco vendan?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>0,8³ = 0,512</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,8⁸ ≈ 0,168</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>0,2³ = 0,008</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Menor que 0,512, porque ya toca una venta</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="discretas-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Puedes usar el laboratorio para comprobar medias y varianzas.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>El 30 % de quienes prueban una muestra gratis termina comprando. Hoy 8 personas prueban la muestra, de forma independiente. Calcula la probabilidad de que compren exactamente 2, la de que compren al menos 2, y la media y la varianza del número de compras.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(X \sim \text{Bin}(8;\ 0{,}3)\). \(P(X = 2) = \binom{8}{2}0{,}3^2\,0{,}7^6 = 28 \cdot 0{,}09 \cdot 0{,}1176 \approx 0{,}296\).</p>
+            <p>\(P(X \ge 2) = 1 - P(X = 0) - P(X = 1) = 1 - 0{,}0576 - 0{,}1977 \approx 0{,}745\).</p>
+            <p>\(E[X] = 8 \cdot 0{,}3 = 2{,}4\) y \(\operatorname{Var}(X) = 8 \cdot 0{,}3 \cdot 0{,}7 = 1{,}68\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>A una mesa de ayuda llegan en promedio 2 mensajes por minuto. Calcula la probabilidad de que en un minuto no llegue ninguno, la de que lleguen más de 3, y la de que en 3 minutos lleguen 3 o menos.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Por minuto, \(X \sim \text{Poisson}(2)\): \(P(X = 0) = e^{-2} \approx 0{,}135\).</p>
+            <p>\(P(X &gt; 3) = 1 - e^{-2}(1 + 2 + 2 + 4/3) \approx 1 - 0{,}857 = 0{,}143\).</p>
+            <p>En 3 minutos la tasa escala a \(\lambda = 6\): \(P(Y \le 3) = e^{-6}(1 + 6 + 18 + 36) = 61\,e^{-6} \approx 0{,}151\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>De 20 postulantes, 8 son mujeres. Se elige al azar un comité de 5 personas. Calcula la probabilidad de que tenga exactamente 2 mujeres, la media y la varianza del número de mujeres. Compara con lo que daría (erróneamente) una binomial y explica la diferencia.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Hipergeométrica con \(N = 20\), \(K = 8\), \(n = 5\): \(P(X = 2) = \binom{8}{2}\binom{12}{3}/\binom{20}{5} = 28 \cdot 220/15\,504 \approx 0{,}397\).</p>
+            <p>\(E[X] = 5 \cdot 8/20 = 2\) y \(\operatorname{Var}(X) = 5 \cdot 0{,}4 \cdot 0{,}6 \cdot \tfrac{15}{19} \approx 0{,}947\).</p>
+            <p>La binomial \(\text{Bin}(5;\ 0{,}4)\) da \(P(X = 2) \approx 0{,}346\) y varianza 1,2. Como el comité es el 25 % de la población, cada elección cambia mucho las proporciones de las que quedan; la binomial ignora esa dependencia y sobrestima la variabilidad.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Un vendedor cierra una venta en el 15 % de sus llamadas, de forma independiente. (a) ¿Cuál es la probabilidad de que la primera venta llegue en 10 llamadas o menos? (b) ¿Cuántas llamadas espera hacer hasta la primera venta? Si ya lleva 10 sin vender, ¿cuántas más espera? (c) ¿Cuál es la media y la desviación del número de llamadas hasta conseguir 3 ventas? Verifica (c) simulando.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(P(X \le 10) = 1 - 0{,}85^{10} \approx 1 - 0{,}197 = 0{,}803\).</p>
+            <p>(b) \(E[X] = 1/0{,}15 \approx 6{,}67\) llamadas. Por la falta de memoria, después de 10 fracasos espera otras 6,67 llamadas: su historia no le da ventaja.</p>
+            <p>(c) Binomial negativa con \(r = 3\): \(E = 3/0{,}15 = 20\) llamadas y \(\operatorname{Var} = 3 \cdot 0{,}85/0{,}15^2 \approx 113{,}3\), desviación \(\approx 10{,}6\).</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+<span class="c"># suma de 3 geométricas (numpy cuenta ensayos, valores 1, 2, ...)</span>
+llamadas = rng.<span class="f">geometric</span>(<span class="n">0.15</span>, size=(<span class="n">200_000</span>, <span class="n">3</span>)).<span class="f">sum</span>(axis=<span class="n">1</span>)
+<span class="f">print</span>(llamadas.<span class="f">mean</span>(), llamadas.<span class="f">std</span>())   <span class="c"># ≈ 20  ≈ 10.6</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">3</span>)
+<span class="c"># rnbinom cuenta fracasos: sumamos las 3 llamadas exitosas</span>
+llamadas &lt;- <span class="f">rnbinom</span>(<span class="n">2e5</span>, size = <span class="n">3</span>, prob = <span class="n">0.15</span>) + <span class="n">3</span>
+<span class="f">c</span>(<span class="f">mean</span>(llamadas), <span class="f">sd</span>(llamadas))   <span class="c"># ≈ 20  ≈ 10.6</span></code></pre>
+</div>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

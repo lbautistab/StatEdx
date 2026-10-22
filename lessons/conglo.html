@@ -1,0 +1,252 @@
+<!-- StatEdx · sesión: conglo -->
+<div id="view-conglo" data-view="conglo" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Muestreo por conglomerados y por etapas</h1>
+      <p>Muchas veces no existe una lista de personas, pero sí una de escuelas, manzanas o clínicas. Sortear grupos completos es barato, pero tiene un precio estadístico: quienes comparten grupo se parecen. Aquí aprendes a medir ese parecido con la correlación intraclase, a traducirlo en un efecto de diseño y a planear un muestreo en dos etapas.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: muestreo aleatorio simple</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#conglo-idea" data-sec="conglo-idea">La idea</a></li>
+        <li><a href="#conglo-una" data-sec="conglo-una">Conglomerados en una etapa</a></li>
+        <li><a href="#conglo-icc" data-sec="conglo-icc">Correlación intraclase y deff</a></li>
+        <li><a href="#conglo-bi" data-sec="conglo-bi">Muestreo bietápico</a></li>
+        <li><a href="#conglo-lab" data-sec="conglo-lab">Laboratorio</a></li>
+        <li><a href="#conglo-desig" data-sec="conglo-desig">Tamaños desiguales y PPT</a></li>
+        <li><a href="#conglo-code" data-sec="conglo-code">En R y Python</a></li>
+        <li><a href="#conglo-quiz" data-sec="conglo-quiz">Comprueba</a></li>
+        <li><a href="#conglo-ej" data-sec="conglo-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="conglo-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>El ministerio de educación quiere medir la comprensión lectora de los estudiantes de sexto grado de una región: 200 escuelas con unos 30 alumnos de sexto cada una. No hay un listado regional de alumnos, y aunque lo hubiera, un MAS de 600 estudiantes obligaría a visitar casi todas las escuelas para aplicar la prueba a 3 alumnos en cada una. Carísimo.</p>
+      <p>La alternativa natural es sortear escuelas y evaluar a sus alumnos. Las escuelas son <b>conglomerados</b> (o unidades primarias de muestreo, UPM): grupos que ya existen, con una lista disponible, que juntan a varias unidades finales. El ahorro logístico es enorme. El problema es que dos alumnos de la misma escuela comparten profesores, barrio y nivel socioeconómico, así que sus notas se parecen. Evaluar al alumno número 30 de una escuela aporta mucho menos información nueva que evaluar a un alumno de otra escuela.</p>
+      <div class="callout"><b>Estratos frente a conglomerados:</b> en el estratificado sorteas <i>dentro de todos</i> los grupos, y te conviene que sean homogéneos por dentro. En conglomerados sorteas <i>algunos</i> grupos, y te conviene lo contrario: que cada grupo sea tan variado como la población. En la práctica los conglomerados casi siempre son más homogéneos de lo que quisieras.</div>
+
+      <h2 id="conglo-una"><span class="sec">§ 2</span>Conglomerados en una etapa</h2>
+      <p>Supón \(A\) conglomerados, todos de tamaño \(M\) (luego relajamos esto). Sorteas \(a\) por MAS y mides a <b>todas</b> sus unidades, con \(n = aM\). Si \(\bar y_i\) es la media del conglomerado \(i\), el estimador de la media es el promedio de las medias de los conglomerados sorteados:</p>
+      <div class="eq">\[ \bar y_{cl} = \frac{1}{a}\sum_{i \in s} \bar y_i, \qquad V(\bar y_{cl}) = (1 - f_1)\,\frac{S_b^2}{a}, \qquad S_b^2 = \frac{1}{A-1}\sum_{i=1}^{A}\big(\bar Y_i - \bar Y\big)^2 \]
+        <div class="note">\(f_1 = a/A\). Es exactamente un MAS de \(a\) “super unidades” cuyo valor es la media del conglomerado. La varianza se estima con \(s_b^2\), la varianza entre las \(a\) medias observadas. Lo que cuenta para la precisión es <b>a</b>, el número de conglomerados, no \(n\).</div>
+      </div>
+      <p>Con 20 escuelas completas tienes 600 alumnos, pero tu error estándar se calcula con 20 medias. Si las escuelas difieren mucho entre sí, 20 datos no son muchos.</p>
+
+      <h2 id="conglo-icc"><span class="sec">§ 3</span>Correlación intraclase y efecto de diseño</h2>
+      <p>Para medir cuánto se parecen las unidades de un mismo conglomerado, piensa en cada valor como la suma de un efecto del conglomerado y un efecto individual, \(y_{ij} = \mu + u_i + e_{ij}\), con varianzas \(\sigma_b^2\) (entre) y \(\sigma_w^2\) (dentro). La <b>correlación intraclase</b> es la fracción de la varianza total que se debe al conglomerado:</p>
+      <div class="eq">\[ \rho = \frac{\sigma_b^2}{\sigma_b^2 + \sigma_w^2} = \mathrm{Corr}(y_{ij},\, y_{ik}) \quad (j \neq k) \]
+        <div class="note">\(\rho = 0\): pertenecer a una escuela no dice nada de la nota, los conglomerados son como muestras aleatorias. \(\rho = 1\): todos los alumnos de una escuela sacan lo mismo y medir a uno es igual que medir a todos.</div>
+      </div>
+      <p>Con \(\rho\) se obtiene la relación más usada del muestreo por conglomerados (Kish): la varianza de una muestra con \(m\) unidades por conglomerado comparada con un MAS del mismo tamaño \(n\):</p>
+      <div class="eq">\[ \mathrm{deff} = \frac{V_{cl}(\bar y)}{V_{MAS}(\bar y)} \approx 1 + (m - 1)\,\rho, \qquad n_{ef} = \frac{n}{\mathrm{deff}} \]
+        <div class="note">Con \(m = 30\) alumnos por escuela y \(\rho = 0{,}2\): \(\mathrm{deff} = 1 + 29 \cdot 0{,}2 = 6{,}8\). Tus 600 alumnos rinden como un MAS de \(600/6{,}8 \approx 88\). El error estándar es \(\sqrt{6{,}8} \approx 2{,}6\) veces el de un MAS.</div>
+      </div>
+      <p>Un \(\rho\) que parece pequeño produce un deff grande cuando \(m\) es grande. Valores orientativos:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Conglomerado</th><th>Variable</th><th>\(\rho\) típico</th></tr></thead>
+        <tbody>
+          <tr><td>Escuela</td><td>Puntaje en pruebas estandarizadas</td><td>0,10 a 0,30</td></tr>
+          <tr><td>Manzana o sección censal</td><td>Ingreso del hogar, tipo de vivienda</td><td>0,05 a 0,20</td></tr>
+          <tr><td>Manzana o sección censal</td><td>Edad, sexo</td><td>menos de 0,02</td></tr>
+          <tr><td>Aldea o comunidad</td><td>Cobertura de vacunación, acceso a agua</td><td>0,10 a 0,40</td></tr>
+          <tr><td>Hogar</td><td>Opinión política, religión</td><td>0,30 a 0,60</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Error grave y frecuente:</b> analizar datos de conglomerados como si fueran un MAS. Los errores estándar salen demasiado chicos (por un factor \(\sqrt{\mathrm{deff}}\)), los intervalos demasiado angostos y los valores p demasiado pequeños. Si tus datos vienen de escuelas, hospitales o barrios, el diseño tiene que entrar en el análisis.</div>
+
+      <h2 id="conglo-bi"><span class="sec">§ 4</span>Muestreo bietápico</h2>
+      <p>Si los alumnos de una escuela se parecen tanto, ¿para qué evaluar a los 30? En el <b>muestreo bietápico</b> sorteas \(a\) conglomerados (primera etapa) y dentro de cada uno sorteas \(m\) de sus \(M\) unidades (segunda etapa). Con tamaños iguales, el estimador sigue siendo el promedio de las medias muestrales de cada conglomerado, y su varianza tiene una parte por cada etapa:</p>
+      <div class="eq">\[ V(\bar y) = (1 - f_1)\,\frac{S_1^2}{a} + (1 - f_2)\,\frac{S_2^2}{a\,m}, \qquad f_1 = \frac{a}{A},\ \ f_2 = \frac{m}{M} \]
+        <div class="note">\(S_1^2\) es la varianza entre las medias reales de los conglomerados y \(S_2^2\) la varianza promedio dentro de ellos. Cuando \(f_1\) es pequeña, un estimador simple y algo conservador es \(v(\bar y) \approx s_1^2/a\), con \(s_1^2\) la varianza entre las medias muestrales de los \(a\) conglomerados: el método del <b>conglomerado último</b>, el que usa casi todo el software.</div>
+      </div>
+      <p>Para un \(n\) fijo, conviene repartir la muestra en <b>muchos conglomerados con pocas unidades</b> cada uno, porque el deff \(\approx 1 + (m-1)\rho\) crece con \(m\). Pero cada conglomerado nuevo cuesta un viaje. Si llegar a un conglomerado cuesta \(c_1\) y cada unidad adicional cuesta \(c_2\), el costo total es \(C = a\,c_1 + a\,m\,c_2\) y el tamaño por conglomerado que minimiza la varianza para ese costo es</p>
+      <div class="eq">\[ m_{opt} = \sqrt{\frac{c_1}{c_2}\cdot\frac{1 - \rho}{\rho}} \]
+        <div class="note">Con \(c_1 = 400\) (llegar a la escuela, permisos), \(c_2 = 20\) (aplicar una prueba más) y \(\rho = 0{,}2\): \(m_{opt} = \sqrt{20 \cdot 4} \approx 9\) alumnos por escuela. Cuanto más caro es llegar, más unidades conviene tomar por conglomerado; cuanto mayor es \(\rho\), menos.</div>
+      </div>
+      <p>El esquema se extiende a tres o más etapas: municipios, luego manzanas, luego viviendas, luego una persona por vivienda. Así se diseñan las grandes encuestas de hogares, casi siempre combinando estratos en la primera etapa con conglomerados en las siguientes.</p>
+
+      <h2 id="conglo-lab"><span class="sec">§ 5</span>Laboratorio</h2>
+      <p>Una región con 40 escuelas de 25 alumnos (1 000 en total). Cada cuadro es una escuela; su tono indica su nota media. Elige cuántas escuelas sortear y cuántos alumnos evaluar en cada una, y compara con un MAS del mismo número de alumnos.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · efecto de diseño</span><span class="num" id="conglo-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="conglo-rho">CORRELACIÓN INTRACLASE · ρ = <b id="conglo-rho-v" class="num">0,20</b></label><input id="conglo-rho" type="range" min="0" max="0.6" step="0.01" value="0.2"></div>
+            <div class="ctrl"><label for="conglo-a">ESCUELAS · a = <b id="conglo-a-v" class="num">8</b></label><input id="conglo-a" type="range" min="2" max="40" step="1" value="8"></div>
+            <div class="ctrl"><label for="conglo-m">ALUMNOS POR ESCUELA · m = <b id="conglo-m-v" class="num">25</b></label><input id="conglo-m" type="range" min="1" max="25" step="1" value="25"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="conglo-dis-label">DISEÑO</label>
+              <div class="seg" id="conglo-dis" role="group" aria-labelledby="conglo-dis-label">
+                <button data-d="cl" aria-pressed="true">Por conglomerados</button>
+                <button data-d="mas" aria-pressed="false">MAS de alumnos</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="conglo-again" type="button">Otras 400 muestras</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Escuelas y última muestra</span><span>tono = nota media</span></div>
+              <canvas class="plot" id="conglo-c-map" height="260" aria-label="Cuadrícula de escuelas con los alumnos seleccionados marcados"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Estimaciones de la nota media</span><span>puntos</span></div>
+              <canvas class="plot" id="conglo-c-dist" height="260" aria-label="Histograma de estimaciones comparado con la curva de un MAS"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>estimaciones del diseño</span><span><i style="background:var(--muted)"></i>MAS del mismo n</span><span><i style="background:var(--ink)"></i>curva teórica del diseño</span><span><i style="background:var(--hot)"></i>alumnos en la muestra</span></div>
+          <div class="readout">
+            <div><span>alumnos n = a·m</span><b id="conglo-r-n">–</b></div>
+            <div><span>efecto de diseño</span><b id="conglo-r-deff">–</b></div>
+            <div><span>n efectivo</span><b id="conglo-r-nef">–</b></div>
+            <div><span>EE simulado</span><b id="conglo-r-se">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con 8 escuelas completas (n = 200) y ρ = 0,2 el deff ronda 5: rinden como unos 40 alumnos sueltos. Ahora usa 20 escuelas con m = 10, el mismo n: el deff cae a menos de la mitad. Pon ρ = 0 y verás que da igual cómo sortees. El deff mostrado es el exacto del diseño, que incluye la corrección finita de ambas etapas; por eso con muchas escuelas es algo menor que 1 + (m − 1)ρ.</figcaption>
+      </figure>
+
+      <h2 id="conglo-desig"><span class="sec">§ 6</span>Tamaños desiguales y probabilidad proporcional al tamaño</h2>
+      <p>En la realidad las escuelas tienen 12, 40 o 300 alumnos. Si sorteas escuelas con igual probabilidad y promedias sus medias, una escuela rural de 12 alumnos pesa lo mismo que una urbana de 300: el estimador queda sesgado. Hay dos soluciones habituales.</p>
+      <p><b>Estimador de razón.</b> Con conglomerados de tamaños \(M_i\) sorteados por MAS, se estima la media como el total observado entre el número de unidades observadas:</p>
+      <div class="eq">\[ \bar y_{r} = \frac{\sum_{i\in s} y_i}{\sum_{i\in s} M_i}, \qquad v(\bar y_r) \approx \frac{1-f_1}{a\,\bar M^2}\cdot\frac{1}{a-1}\sum_{i\in s}\big(y_i - \bar y_r M_i\big)^2 \]
+        <div class="note">\(y_i\) es el total del conglomerado \(i\) y \(\bar M\) el tamaño medio de los conglomerados. Es ligeramente sesgado, pero el sesgo es despreciable con un número moderado de conglomerados y la varianza es mucho menor que la del estimador que ignora los tamaños.</div>
+      </div>
+      <p><b>Probabilidad proporcional al tamaño (PPT).</b> En la primera etapa se sortean conglomerados con probabilidad proporcional a \(M_i\), y en la segunda se toma el mismo número \(m\) de unidades en cada uno. La probabilidad final de cada unidad es \(\frac{a M_i}{\sum M_k}\cdot \frac{m}{M_i} = \frac{a\,m}{\sum_k M_k}\), igual para todas: la muestra es autoponderada y la carga de trabajo por conglomerado es fija. Es el diseño estándar de las encuestas de hogares.</p>
+
+      <h2 id="conglo-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>Simulamos 200 escuelas de 30 alumnos con \(\rho = 0{,}2\), hacemos un bietápico de 60 escuelas y 10 alumnos por escuela, y comparamos el error estándar correcto con el ingenuo que trata a los 600 alumnos como un MAS.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">11</span>)
+A, M, rho = <span class="n">200</span>, <span class="n">30</span>, <span class="n">0.2</span>                       <span class="c"># 200 escuelas de 30 alumnos, ICC = 0,2</span>
+u = rng.<span class="f">normal</span>(<span class="n">0</span>, np.<span class="f">sqrt</span>(rho), A)             <span class="c"># efecto de cada escuela</span>
+pob = pd.<span class="f">DataFrame</span>({<span class="s">"escuela"</span>: np.<span class="f">repeat</span>(np.<span class="f">arange</span>(A), M)})
+pob[<span class="s">"nota"</span>] = <span class="n">70</span> + <span class="n">10</span> * (u[pob[<span class="s">"escuela"</span>]] + rng.<span class="f">normal</span>(<span class="n">0</span>, np.<span class="f">sqrt</span>(<span class="n">1</span> - rho), A * M))
+
+<span class="c"># bietápico: 60 escuelas por MAS y 10 alumnos por MAS dentro de cada una</span>
+a, m = <span class="n">60</span>, <span class="n">10</span>
+esc = rng.<span class="f">choice</span>(A, a, replace=<span class="k">False</span>)
+muestra = pob[pob[<span class="s">"escuela"</span>].<span class="f">isin</span>(esc)].<span class="f">groupby</span>(<span class="s">"escuela"</span>).<span class="f">sample</span>(n=m, random_state=rng)
+
+medias = muestra.<span class="f">groupby</span>(<span class="s">"escuela"</span>)[<span class="s">"nota"</span>].<span class="f">mean</span>()
+ybar = medias.<span class="f">mean</span>()
+ee = np.<span class="f">sqrt</span>(medias.<span class="f">var</span>(ddof=<span class="n">1</span>) / a)                 <span class="c"># conglomerado último, sin CPF: conservador</span>
+ee_mas = np.<span class="f">sqrt</span>(muestra[<span class="s">"nota"</span>].<span class="f">var</span>(ddof=<span class="n">1</span>) / (a * m))  <span class="c"># lo que diría un MAS (incorrecto)</span>
+<span class="f">print</span>(ybar, ee, ee_mas, (ee / ee_mas)**<span class="n">2</span>)
+<span class="c"># ≈ 69.5  0.70  0.41  deff ≈ 2.9</span>
+
+<span class="c"># correlación intraclase por ANOVA de un factor</span>
+g = muestra.<span class="f">groupby</span>(<span class="s">"escuela"</span>)[<span class="s">"nota"</span>]
+msb = m * ((g.<span class="f">mean</span>() - ybar)**<span class="n">2</span>).<span class="f">sum</span>() / (a - <span class="n">1</span>)
+msw = ((muestra[<span class="s">"nota"</span>] - g.<span class="f">transform</span>(<span class="s">"mean"</span>))**<span class="n">2</span>).<span class="f">sum</span>() / (a * (m - <span class="n">1</span>))
+icc = (msb - msw) / (msb + (m - <span class="n">1</span>) * msw)
+<span class="f">print</span>(icc, <span class="n">1</span> + (m - <span class="n">1</span>) * icc)                  <span class="c"># ρ̂ ≈ 0.21, deff ≈ 2.85</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survey)
+<span class="f">set.seed</span>(<span class="n">11</span>)
+A &lt;- <span class="n">200</span>; M &lt;- <span class="n">30</span>; rho &lt;- <span class="n">0.2</span>
+u &lt;- <span class="f">rnorm</span>(A, <span class="n">0</span>, <span class="f">sqrt</span>(rho))                       <span class="c"># efecto de cada escuela</span>
+pob &lt;- <span class="f">data.frame</span>(escuela = <span class="f">rep</span>(<span class="n">1</span>:A, each = M), alumno = <span class="n">1</span>:(A * M))
+pob$nota &lt;- <span class="n">70</span> + <span class="n">10</span> * (u[pob$escuela] + <span class="f">rnorm</span>(A * M, <span class="n">0</span>, <span class="f">sqrt</span>(<span class="n">1</span> - rho)))
+
+<span class="c"># bietápico: 60 escuelas y 10 alumnos por escuela</span>
+a &lt;- <span class="n">60</span>; m &lt;- <span class="n">10</span>
+esc &lt;- <span class="f">sample</span>(A, a)
+muestra &lt;- <span class="f">do.call</span>(rbind, <span class="f">lapply</span>(esc, <span class="k">function</span>(e) {
+  d &lt;- pob[pob$escuela == e, ]
+  d[<span class="f">sample</span>(<span class="f">nrow</span>(d), m), ]
+}))
+muestra$A &lt;- A                                       <span class="c"># escuelas en la población</span>
+muestra$M &lt;- M                                       <span class="c"># alumnos por escuela</span>
+
+dis &lt;- <span class="f">svydesign</span>(ids = ~escuela + alumno, fpc = ~A + M, data = muestra)
+<span class="f">svymean</span>(~nota, dis, deff = <span class="k">TRUE</span>)                  <span class="c"># media, EE correcto y deff</span>
+
+<span class="c"># comparación: el EE ingenuo, como si fuera un MAS</span>
+<span class="f">sd</span>(muestra$nota) / <span class="f">sqrt</span>(a * m)
+
+<span class="c"># correlación intraclase por ANOVA de un factor</span>
+tab &lt;- <span class="f">anova</span>(<span class="f">lm</span>(nota ~ <span class="f">factor</span>(escuela), data = muestra))
+msb &lt;- tab$`Mean Sq`[<span class="n">1</span>]; msw &lt;- tab$`Mean Sq`[<span class="n">2</span>]
+(msb - msw) / (msb + (m - <span class="n">1</span>) * msw)                 <span class="c"># ρ̂ ≈ 0.2</span></code></pre>
+      </div>
+      <p>En R, con <code>fpc = ~A + M</code> el paquete aplica la corrección finita de las dos etapas. Como aquí sorteamos 30 % de las escuelas, el error estándar sale menor que el del conglomerado último sin CPF que calculamos en Python. Si omites <code>fpc</code> y escribes <code>ids = ~escuela</code>, obtienes el conglomerado último: la opción conservadora habitual.</p>
+
+      <h2 id="conglo-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="deff ≈ 1 + (m − 1)ρ = 1 + 10 · 0,1 = 2. La varianza se duplica y los 1 100 alumnos rinden como 550 de un MAS." data-wrong="Usa la fórmula de Kish: deff ≈ 1 + (m − 1)·ρ, con m las unidades por conglomerado.">
+        <h3>Sorteas 100 escuelas y evalúas a 11 alumnos en cada una. Si ρ = 0,1, ¿cuál es aproximadamente el efecto de diseño?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>1,1</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>2</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>11</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>0,1</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con n fijo, bajar m reduce el deff = 1 + (m − 1)ρ. Más conglomerados con menos unidades cada uno da más información, aunque cueste más en traslados." data-wrong="Piensa en qué aporta el alumno número 25 de una escuela donde todos se parecen, comparado con un alumno de una escuela nueva.">
+        <h3>Con 600 alumnos en total y ρ = 0,15, ¿qué diseño da el error estándar más pequeño?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>20 escuelas con 30 alumnos cada una</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>30 escuelas con 20 alumnos cada una</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Todos dan lo mismo porque n = 600</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>100 escuelas con 6 alumnos cada una</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con ρ = 0 los conglomerados no se parecen por dentro más que la población en general: cada uno es como una muestra aleatoria y el deff vale 1." data-wrong="ρ mide qué fracción de la varianza se debe al conglomerado. Si es cero, ¿qué tienen de especial los alumnos de una misma escuela?">
+        <h3>Si la correlación intraclase es 0, ¿qué pasa con un muestreo por conglomerados?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Rinde igual que un MAS del mismo tamaño (deff = 1)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>No se puede estimar la varianza</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Rinde peor que un MAS porque hay menos conglomerados</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El estimador queda sesgado</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="conglo-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una encuesta de salud sortea 40 manzanas y entrevista 20 hogares en cada una. Para la variable “tiene seguro médico”, un estudio previo estimó ρ = 0,05. Calcula el efecto de diseño, el tamaño efectivo de la muestra y cuánto se agranda el error estándar respecto de un MAS.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(n = 800\). \(\mathrm{deff} = 1 + 19 \cdot 0{,}05 = \) <b>1,95</b>. \(n_{ef} = 800/1{,}95 \approx \) <b>410 hogares</b>. El error estándar se multiplica por \(\sqrt{1{,}95} \approx \) <b>1,40</b>: 40 % más grande que el de un MAS de 800.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un barrio tiene 50 manzanas de 8 hogares. Se sortean 5 manzanas y se censan sus hogares. El número medio de personas por hogar en cada manzana fue 3,2; 4,1; 2,9; 3,8 y 3,5. Estima la media de personas por hogar del barrio, su error estándar y el total de habitantes.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(\bar y_{cl} = (3{,}2 + 4{,}1 + 2{,}9 + 3{,}8 + 3{,}5)/5 = \) <b>3,5</b>. Desvíos: −0,3; 0,6; −0,6; 0,3; 0, con suma de cuadrados 0,90, así que \(s_b^2 = 0{,}90/4 = 0{,}225\).</p><p>\(v = (1 - 5/50)\cdot 0{,}225/5 = 0{,}0405\), error estándar ≈ <b>0,20</b>. Total: \(50 \cdot 8 \cdot 3{,}5 = \) <b>1 400 habitantes</b>, con EE = 400 · 0,20 ≈ 80.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Para una evaluación de lectura, llegar a una escuela cuesta 400 dólares y evaluar a cada alumno 20 dólares. Con ρ = 0,2 y un presupuesto de 20 000 dólares, ¿cuántos alumnos conviene evaluar por escuela y cuántas escuelas? Compara el tamaño efectivo con el plan de evaluar 30 alumnos por escuela.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(m_{opt} = \sqrt{(400/20)\cdot(0{,}8/0{,}2)} = \sqrt{80} \approx \) <b>9 alumnos</b>. Cada escuela cuesta \(400 + 9 \cdot 20 = 580\), así que alcanzan \(20\,000/580 \approx\) <b>34 escuelas</b> (306 alumnos). \(\mathrm{deff} = 1 + 8 \cdot 0{,}2 = 2{,}6\), \(n_{ef} \approx 118\).</p><p>Con 30 alumnos: cada escuela cuesta 1 000, alcanzan 20 escuelas (600 alumnos), \(\mathrm{deff} = 6{,}8\) y \(n_{ef} \approx 88\). Con el mismo dinero, el plan óptimo evalúa a la mitad de los alumnos y aun así tiene un tamaño efectivo un 34 % mayor.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>En un estudio piloto se sortearon 30 hogares y se entrevistó a 6 personas por hogar sobre su intención de voto (escala de 0 a 10). El ANOVA de un factor por hogar dio un cuadrado medio entre hogares de 150 y dentro de hogares de 30. (a) Estima ρ. (b) ¿Cuál es el deff del diseño? (c) Si quieres la precisión de un MAS de 200 personas, ¿cuántos hogares necesitas con 6 personas por hogar? ¿Y con 1 persona por hogar? Comenta.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\hat\rho = \dfrac{MSB - MSW}{MSB + (m-1)MSW} = \dfrac{150 - 30}{150 + 5\cdot 30} = \dfrac{120}{300} = \) <b>0,40</b>.</p><p>(b) \(\mathrm{deff} = 1 + 5 \cdot 0{,}4 = \) <b>3</b>.</p><p>(c) Necesitas \(n = 200 \cdot 3 = 600\) entrevistas, es decir <b>100 hogares</b> de 6 personas. Con una persona por hogar el deff es 1 y bastan <b>200 hogares</b> con 200 entrevistas. La decisión depende de costos: 600 entrevistas en 100 hogares o 200 entrevistas en 200 hogares. En opinión política, donde los miembros del hogar se parecen mucho, entrevistar a una sola persona por hogar suele ser lo eficiente.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>msb, msw, m = <span class="n">150</span>, <span class="n">30</span>, <span class="n">6</span>
+rho = (msb - msw) / (msb + (m - <span class="n">1</span>) * msw)
+deff = <span class="n">1</span> + (m - <span class="n">1</span>) * rho
+<span class="f">print</span>(rho, deff, <span class="n">200</span> * deff / m)      <span class="c"># 0.4 3.0 100.0 hogares</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>msb &lt;- <span class="n">150</span>; msw &lt;- <span class="n">30</span>; m &lt;- <span class="n">6</span>
+rho &lt;- (msb - msw) / (msb + (m - <span class="n">1</span>) * msw)
+deff &lt;- <span class="n">1</span> + (m - <span class="n">1</span>) * rho
+<span class="f">c</span>(rho, deff, <span class="n">200</span> * deff / m)        <span class="c"># 0.4 3 100</span></code></pre>
+</div></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

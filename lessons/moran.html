@@ -1,0 +1,284 @@
+<!-- StatEdx · sesión: moran -->
+<div id="view-moran" data-view="moran" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Autocorrelación espacial: I de Moran</h1>
+      <p>¿Los municipios con más pobreza están rodeados de municipios pobres, o el mapa es un mosaico al azar? El I de Moran responde con un solo número, y su versión local (LISA) señala dónde están los focos. Aquí aprendes a definir quién es vecino de quién, a calcular e interpretar ambos índices y a no caer en las trampas de las pruebas múltiples.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel avanzado</span><span>Requiere: datos espaciales, pruebas de hipótesis</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#moran-idea" data-sec="moran-idea">La idea</a></li>
+        <li><a href="#moran-w" data-sec="moran-w">Matrices de vecindad</a></li>
+        <li><a href="#moran-global" data-sec="moran-global">I de Moran global</a></li>
+        <li><a href="#moran-inf" data-sec="moran-inf">Inferencia</a></li>
+        <li><a href="#moran-lisa" data-sec="moran-lisa">I local (LISA)</a></li>
+        <li><a href="#moran-lab" data-sec="moran-lab">Laboratorio</a></li>
+        <li><a href="#moran-code" data-sec="moran-code">En R y Python</a></li>
+        <li><a href="#moran-quiz" data-sec="moran-quiz">Comprueba</a></li>
+        <li><a href="#moran-ej" data-sec="moran-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="moran-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una consultora mide el porcentaje de hogares con internet en 25 comunas de una provincia, ordenadas en una grilla de 5 × 5. Al pintar el mapa se ve un gradiente: las comunas del este (cerca de la capital) tienen 25 % o más, y las del suroeste rondan el 10 %. ¿Es un patrón real o podría salir de repartir los mismos 25 valores al azar sobre el mapa?</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th></th><th>Oeste</th><th></th><th></th><th></th><th>Este</th></tr></thead>
+        <tbody>
+          <tr><th>Norte</th><td>12</td><td>15</td><td>18</td><td>24</td><td>30</td></tr>
+          <tr><th></th><td>14</td><td>13</td><td>21</td><td>27</td><td>33</td></tr>
+          <tr><th></th><td>11</td><td>16</td><td>19</td><td>22</td><td>29</td></tr>
+          <tr><th></th><td>9</td><td>10</td><td>17</td><td>25</td><td>26</td></tr>
+          <tr><th>Sur</th><td>8</td><td>12</td><td>14</td><td>15</td><td>23</td></tr>
+        </tbody>
+      </table></div>
+      <p>La <b>autocorrelación espacial</b> mide si los valores de áreas vecinas se parecen (positiva), se oponen (negativa, como un tablero de ajedrez) o no tienen relación. Es la correlación de Pearson, pero entre una variable y sus propios valores en los vecinos. Para calcularla necesitas dos ingredientes: los datos y una definición de vecindad.</p>
+      <div class="callout"><b>Para qué sirve:</b> detectar focos de enfermedad, delito o pobreza, revisar si los residuos de una regresión siguen teniendo estructura espacial (señal de que falta una variable o un modelo espacial) y decidir si es necesario usar modelos SAR, CAR o geoestadísticos.</div>
+
+      <h2 id="moran-w"><span class="sec">§ 2</span>Matrices de vecindad</h2>
+      <p>La matriz de pesos espaciales \(W\) es de \(n \times n\): \(w_{ij} > 0\) si el área \(j\) es vecina de \(i\), y \(w_{ii} = 0\). Hay muchas formas de definirla y la elección importa:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Criterio</th><th>Vecinos de \(i\)</th><th>Comentario</th></tr></thead>
+        <tbody>
+          <tr><td>Contigüidad tipo <b>torre</b> (rook)</td><td>Áreas que comparten un lado</td><td>En una grilla: 4 vecinos (2 en esquinas, 3 en bordes)</td></tr>
+          <tr><td>Contigüidad tipo <b>reina</b> (queen)</td><td>Áreas que comparten un lado o un vértice</td><td>En una grilla: 8 vecinos. Es la opción por defecto en <code>spdep::poly2nb</code></td></tr>
+          <tr><td>\(k\) vecinos más cercanos</td><td>Los \(k\) centroides más próximos</td><td>Todos tienen vecinos (útil con islas); \(W\) no es simétrica</td></tr>
+          <tr><td>Banda de distancia</td><td>Centroides a menos de \(d\)</td><td>Áreas grandes pueden quedar sin vecinos</td></tr>
+          <tr><td>Inversa de la distancia</td><td>Todos, con \(w_{ij} = d_{ij}^{-\alpha}\)</td><td>Los cercanos pesan más; suele truncarse</td></tr>
+        </tbody>
+      </table></div>
+      <p>Casi siempre se <b>estandariza por filas</b>: \(w_{ij}^{*} = w_{ij} / \sum_k w_{ik}\), de modo que cada fila suma 1. Así el <b>rezago espacial</b></p>
+      <div class="eq">\[ (W\mathbf{z})_i = \sum_{j} w_{ij}^{*}\, z_j \]
+        <div class="note">es simplemente el promedio de los vecinos de \(i\). Con la estandarización por filas, áreas con pocos vecinos (en el borde) no quedan con menos peso total que las del centro.</div>
+      </div>
+
+      <h2 id="moran-global"><span class="sec">§ 3</span>El I de Moran global</h2>
+      <p>Con \(z_i = x_i - \bar x\) y \(S_0 = \sum_i\sum_j w_{ij}\) (la suma de todos los pesos), Moran (1950) definió:</p>
+      <div class="eq">\[ I = \frac{n}{S_0}\;\frac{\sum_{i}\sum_{j} w_{ij}\, z_i z_j}{\sum_{i} z_i^2} \]
+        <div class="note">El numerador suma productos cruzados entre vecinos: positivo cuando vecinos están del mismo lado de la media. Con \(W\) estandarizada por filas, \(S_0 = n\) y la fórmula queda \(I = \mathbf{z}^\top W \mathbf{z} / \mathbf{z}^\top\mathbf{z}\).</div>
+      </div>
+      <p>Bajo la hipótesis nula de ausencia de autocorrelación su valor esperado no es cero, sino</p>
+      <div class="eq">\[ \mathbb{E}[I] = -\frac{1}{n-1} \]
+        <div class="note">Con 25 comunas, \(\mathbb{E}[I] = -0{,}042\). Con \(n\) grande es prácticamente 0.</div>
+      </div>
+      <p>Cómo leerlo:</p>
+      <ul>
+        <li>\(I > \mathbb{E}[I]\): <b>autocorrelación positiva</b>, los vecinos se parecen (agrupamiento de valores altos con altos y bajos con bajos).</li>
+        <li>\(I \approx \mathbb{E}[I]\): disposición compatible con el azar.</li>
+        <li>\(I < \mathbb{E}[I]\): <b>autocorrelación negativa</b>, vecinos distintos (patrón de tablero, competencia por un recurso).</li>
+      </ul>
+      <p>Una lectura muy útil es el <b>diagrama de dispersión de Moran</b>: pones \(z_i\) en el eje horizontal y su rezago \((W\mathbf{z})_i\) en el vertical. Con pesos estandarizados por filas, la pendiente de la recta de MCO que pasa por esa nube es exactamente \(I\). Los cuatro cuadrantes clasifican cada área: alto rodeado de altos (AA), bajo rodeado de bajos (BB), y los dos tipos de atípicos espaciales (AB y BA).</p>
+      <div class="callout"><b>Cuidado:</b> \(I\) no está acotado exactamente en \([-1, 1]\) (sus límites dependen de los valores propios de \(W\)), no es una correlación de Pearson y depende de \(W\): el mismo mapa da valores distintos con torre, reina o \(k\) vecinos. Informa siempre qué matriz usaste. Una alternativa es el <b>C de Geary</b>, que usa diferencias \((x_i - x_j)^2\) en lugar de productos y es más sensible a diferencias locales.</div>
+
+      <h2 id="moran-inf"><span class="sec">§ 4</span>Inferencia: ¿es significativo?</h2>
+      <p>Hay dos caminos para obtener un valor p.</p>
+      <p><b>1. Aproximación normal.</b> Se estandariza \(I\) con su media y varianza bajo la nula:</p>
+      <div class="eq">\[ Z_I = \frac{I - \mathbb{E}[I]}{\sqrt{\operatorname{Var}(I)}} \;\approx\; \mathcal{N}(0, 1) \]
+        <div class="note">\(\operatorname{Var}(I)\) tiene dos versiones: bajo <i>normalidad</i> de los datos o bajo <i>aleatorización</i> (todas las permutaciones de los valores sobre el mapa son igual de probables), que además usa la curtosis muestral. La segunda es la que usa por defecto <code>moran.test</code> en R.</div>
+      </div>
+      <p><b>2. Prueba de permutaciones.</b> Reparte los valores observados al azar sobre las áreas \(R\) veces (por ejemplo 999), calcula \(I\) en cada reparto y compara:</p>
+      <div class="eq">\[ p = \frac{1 + \#\{\, r : I^{(r)} \ge I_{\text{obs}} \,\}}{R + 1} \]
+        <div class="note">Con \(R = 999\), el valor p más pequeño posible es 0,001. No necesita suponer normalidad y es la opción preferida con \(n\) pequeño o datos asimétricos.</div>
+      </div>
+      <p>En el ejemplo de las comunas, \(I = 0{,}783\), \(Z_I = 5{,}39\) y ninguna de 999 permutaciones alcanza ese valor: el gradiente este-oeste no es casualidad.</p>
+      <div class="callout"><b>Error común:</b> concluir que hay “contagio” entre áreas. Un I alto también aparece cuando la variable depende de algo que varía suavemente en el espacio (distancia a la capital, altitud). Para separar ambas cosas, calcula el I de Moran de los <b>residuos</b> de un modelo que incluya esas covariables (en R, <code>lm.morantest</code>).</div>
+
+      <h2 id="moran-lisa"><span class="sec">§ 5</span>El I de Moran local (LISA)</h2>
+      <p>El índice global dice si hay agrupamiento, pero no dónde. Anselin (1995) propuso descomponerlo en un aporte por área, los <b>indicadores locales de asociación espacial</b>:</p>
+      <div class="eq">\[ I_i = \frac{z_i}{m_2}\sum_{j} w_{ij}\, z_j, \qquad m_2 = \frac{1}{n}\sum_{k} z_k^2, \qquad \sum_i I_i = S_0\, I \]
+        <div class="note">Con pesos estandarizados por filas, \(\sum_i I_i = n\,I\): el I global es el promedio de los locales. \(I_i > 0\) si el área se parece a sus vecinos (AA o BB) e \(I_i < 0\) si es un atípico espacial (AB o BA).</div>
+      </div>
+      <p>Para cada área se hace una <b>permutación condicional</b>: se fija \(x_i\) y se reparten los demás valores al azar entre sus vecinos. Así se obtiene un valor p local. Combinando el cuadrante del diagrama de Moran con la significación sale el <b>mapa de agrupamientos</b>:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Categoría</th><th>Área</th><th>Vecinos</th><th>Lectura</th></tr></thead>
+        <tbody>
+          <tr><td><b>AA</b> (alto-alto, <i>hot spot</i>)</td><td>Alta</td><td>Altos</td><td>Foco de valores altos</td></tr>
+          <tr><td><b>BB</b> (bajo-bajo, <i>cold spot</i>)</td><td>Baja</td><td>Bajos</td><td>Foco de valores bajos</td></tr>
+          <tr><td><b>AB</b> (alto-bajo)</td><td>Alta</td><td>Bajos</td><td>Atípico: isla alta en zona baja</td></tr>
+          <tr><td><b>BA</b> (bajo-alto)</td><td>Baja</td><td>Altos</td><td>Atípico: isla baja en zona alta</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Pruebas múltiples:</b> con 144 áreas y α = 0,05 esperas unas 7 áreas “significativas” aunque no haya ningún patrón. Además, los \(I_i\) de vecinos comparten datos y no son independientes. Usa los mapas LISA como herramienta exploratoria y, si vas a afirmar algo, corrige con Bonferroni o con la tasa de falsos descubrimientos (FDR).</div>
+
+      <h2 id="moran-lab"><span class="sec">§ 6</span>Laboratorio</h2>
+      <p>Un mapa de 12 × 12 áreas generado con un modelo autorregresivo simultáneo, \(\mathbf{x} = \rho W\mathbf{x} + \boldsymbol{\varepsilon}\). El parámetro \(\rho\) controla la dependencia: positivo agrupa, negativo produce un patrón alternado y \(\rho = 0\) es puro azar. Mira cómo cambia la pendiente del diagrama de Moran y cuántas áreas marca el LISA.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · I de Moran y LISA</span><span class="num" id="moran-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="moran-rho">DEPENDENCIA · ρ = <b id="moran-rho-v" class="num">0,60</b></label><input id="moran-rho" type="range" min="-0.9" max="0.95" step="0.05" value="0.6"></div>
+            <div class="ctrl">
+              <label id="moran-w-label">VECINDAD</label>
+              <div class="seg" id="moran-wtype" role="group" aria-labelledby="moran-w-label">
+                <button type="button" data-w="rook" aria-pressed="true">Torre</button>
+                <button type="button" data-w="queen" aria-pressed="false">Reina</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="moran-vista-label">MAPA</label>
+              <div class="seg" id="moran-vista" role="group" aria-labelledby="moran-vista-label">
+                <button type="button" data-v="val" aria-pressed="true">Valores</button>
+                <button type="button" data-v="lisa" aria-pressed="false">Agrupamientos LISA</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="moran-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span id="moran-map-lbl">Mapa de valores</span><span id="moran-map-n">–</span></div>
+              <canvas class="plot" id="moran-c-map" height="280" aria-label="Mapa de 12 por 12 áreas coloreadas por valor o por categoría LISA"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Diagrama de Moran</span><span>pendiente = I</span></div>
+              <canvas class="plot" id="moran-c-sc" height="280" aria-label="Diagrama de dispersión de Moran: valor estandarizado contra el promedio de los vecinos"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--hot)"></i>alto · AA</span><span><i style="background:var(--accent)"></i>bajo · BB</span><span><i style="background:var(--hot);opacity:.4"></i>AB</span><span><i style="background:var(--accent);opacity:.4"></i>BA</span><span><i style="background:var(--ink)"></i>recta de pendiente I</span></div>
+          <div class="readout">
+            <div><span>I de Moran</span><b id="moran-I">–</b></div>
+            <div><span>E[I] = −1/(n−1)</span><b id="moran-EI">–</b></div>
+            <div><span>z (aleatorización)</span><b id="moran-z">–</b></div>
+            <div><span>p (499 permutaciones)</span><b id="moran-p">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con ρ = 0 pulsa varias veces “Nueva muestra” en la vista LISA: casi siempre aparecen algunas áreas significativas sin que exista ningún patrón. Son los falsos positivos de hacer 144 pruebas a la vez.</figcaption>
+      </figure>
+
+      <h2 id="moran-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>El ejemplo de las 25 comunas con contigüidad tipo torre y pesos estandarizados por filas. En Python usamos <code>libpysal</code> para los pesos y <code>esda</code> para los índices; en R, <code>spdep</code>.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> libpysal
+<span class="k">from</span> esda.moran <span class="k">import</span> Moran, Moran_Local
+
+<span class="c"># % de hogares con internet en 25 comunas ordenadas en una grilla 5 × 5 (por filas)</span>
+y = np.<span class="f">array</span>([[<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">24</span>, <span class="n">30</span>],
+              [<span class="n">14</span>, <span class="n">13</span>, <span class="n">21</span>, <span class="n">27</span>, <span class="n">33</span>],
+              [<span class="n">11</span>, <span class="n">16</span>, <span class="n">19</span>, <span class="n">22</span>, <span class="n">29</span>],
+              [ <span class="n">9</span>, <span class="n">10</span>, <span class="n">17</span>, <span class="n">25</span>, <span class="n">26</span>],
+              [ <span class="n">8</span>, <span class="n">12</span>, <span class="n">14</span>, <span class="n">15</span>, <span class="n">23</span>]], dtype=float).<span class="f">ravel</span>()
+
+w = libpysal.weights.<span class="f">lat2W</span>(<span class="n">5</span>, <span class="n">5</span>, rook=<span class="k">True</span>)   <span class="c"># vecinos que comparten un lado</span>
+w.transform = <span class="s">"r"</span>                             <span class="c"># estandarizar por filas</span>
+
+mi = <span class="f">Moran</span>(y, w, permutations=<span class="n">999</span>)
+<span class="f">print</span>(<span class="f">round</span>(mi.I, <span class="n">3</span>), <span class="f">round</span>(mi.EI, <span class="n">4</span>))        <span class="c"># I observado y E[I] = -1/(n-1)</span>
+<span class="f">print</span>(<span class="f">round</span>(mi.z_rand, <span class="n">2</span>), mi.p_sim)          <span class="c"># z (aleatorización) y p por permutaciones</span>
+
+lisa = <span class="f">Moran_Local</span>(y, w, permutations=<span class="n">999</span>, seed=<span class="n">42</span>)
+etiqueta = np.<span class="f">array</span>([<span class="s">""</span>, <span class="s">"AA"</span>, <span class="s">"BA"</span>, <span class="s">"BB"</span>, <span class="s">"AB"</span>])[lisa.q]   <span class="c"># 1=AA 2=BA 3=BB 4=AB</span>
+<span class="f">print</span>(np.<span class="f">where</span>(lisa.p_sim &lt; <span class="n">0.05</span>, etiqueta, <span class="s">"··"</span>).<span class="f">reshape</span>(<span class="n">5</span>, <span class="n">5</span>))</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(spdep)
+
+<span class="c"># % de hogares con internet en 25 comunas ordenadas en una grilla 5 × 5 (por filas)</span>
+y &lt;- <span class="f">c</span>(<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">24</span>, <span class="n">30</span>,
+       <span class="n">14</span>, <span class="n">13</span>, <span class="n">21</span>, <span class="n">27</span>, <span class="n">33</span>,
+       <span class="n">11</span>, <span class="n">16</span>, <span class="n">19</span>, <span class="n">22</span>, <span class="n">29</span>,
+        <span class="n">9</span>, <span class="n">10</span>, <span class="n">17</span>, <span class="n">25</span>, <span class="n">26</span>,
+        <span class="n">8</span>, <span class="n">12</span>, <span class="n">14</span>, <span class="n">15</span>, <span class="n">23</span>)
+
+nb &lt;- <span class="f">cell2nb</span>(<span class="n">5</span>, <span class="n">5</span>, type = <span class="s">"rook"</span>)      <span class="c"># vecinos que comparten un lado</span>
+lw &lt;- <span class="f">nb2listw</span>(nb, style = <span class="s">"W"</span>)         <span class="c"># estandarizar por filas</span>
+
+<span class="f">moran.test</span>(y, lw)                       <span class="c"># I ≈ 0.783, E[I] = -0.0417, z ≈ 5.39</span>
+<span class="f">moran.mc</span>(y, lw, nsim = <span class="n">999</span>)             <span class="c"># p por permutaciones ≈ 0.001</span>
+
+<span class="c"># I local (LISA) y cuadrante de cada comuna</span>
+lisa &lt;- <span class="f">localmoran</span>(y, lw)
+cuad &lt;- <span class="f">attr</span>(lisa, <span class="s">"quadr"</span>)$mean        <span class="c"># High-High, Low-Low, Low-High, High-Low</span>
+signif &lt;- lisa[, <span class="n">5</span>] &lt; <span class="n">0.05</span>              <span class="c"># columna Pr(z != E(Ii))</span>
+<span class="f">matrix</span>(<span class="f">ifelse</span>(signif, <span class="f">as.character</span>(cuad), <span class="s">"ns"</span>), <span class="n">5</span>, <span class="n">5</span>, byrow = <span class="k">TRUE</span>)
+
+<span class="f">moran.plot</span>(y, lw, xlab = <span class="s">"% internet"</span>, ylab = <span class="s">"rezago espacial"</span>)</code></pre>
+</div>
+      <p>El resultado confirma lo que se veía en la tabla: \(I = 0{,}783\), muy por encima de \(\mathbb{E}[I] = -0{,}042\), con \(p = 0{,}001\) (el mínimo posible con 999 permutaciones). El LISA identifica un foco alto-alto en las dos columnas del este y uno bajo-bajo en el suroeste; las comunas del centro no son significativas. Los valores p locales por permutación pueden variar un poco según la semilla y el programa.</p>
+
+      <h2 id="moran-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="Bajo la nula E[I] = −1/(n−1) = −1/99 ≈ −0,0101. Un valor de −0,01 es justo lo esperado sin autocorrelación." data-wrong="Recuerda que el valor esperado del I de Moran bajo la nula no es 0 sino −1/(n−1). Calcúlalo con n = 100 y compáralo.">
+        <h3>Con 100 municipios obtienes I = −0,010. ¿Cómo lo interpretas?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Autocorrelación negativa débil pero clara</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Es prácticamente el valor esperado sin autocorrelación</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Autocorrelación positiva, porque está cerca de 0</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No se puede interpretar sin el C de Geary</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Un área con valor alto cuyos vecinos tienen valores bajos cae en el cuadrante AB del diagrama de Moran: es un atípico espacial y su I local es negativo." data-wrong="Ubica el área en el diagrama de Moran: valor propio en el eje x y promedio de los vecinos en el eje y. ¿En qué cuadrante queda y qué signo tiene el producto?">
+        <h3>Un distrito tiene una tasa de delitos muy alta, pero todos sus vecinos tienen tasas muy bajas, y su LISA es significativo. ¿Qué categoría recibe?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>AA (foco caliente)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>BB (foco frío)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>BA, con I local positivo</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>AB, con I local negativo</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Exacto. Si el I de los residuos es alto, el modelo dejó estructura espacial sin explicar: falta una covariable espacial o se necesita un modelo espacial. Los errores estándar de MCO no son confiables." data-wrong="Piensa en qué supuesto de la regresión lineal se viola si los residuos de áreas vecinas se parecen entre sí.">
+        <h3>Ajustas una regresión por MCO de la pobreza municipal y el I de Moran de los residuos es 0,45 (p &lt; 0,001). ¿Qué significa?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Los residuos no son independientes: los errores estándar de MCO son poco confiables</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El modelo es bueno porque explica la estructura espacial</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Los coeficientes estimados están necesariamente sesgados hacia cero</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Hay que cambiar a contigüidad tipo reina para que desaparezca</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="moran-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Cuatro áreas en fila (1-2-3-4) tienen valores 2, 4, 6 y 8. Con pesos binarios (\(w_{ij} = 1\) si son contiguas), calcula el I de Moran y compáralo con su valor esperado.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Media 5, desvíos \(z = (-3, -1, 1, 3)\), \(\sum z_i^2 = 20\). Hay 3 pares contiguos, cada uno contado dos veces, así que \(S_0 = 6\) y \(\sum\sum w_{ij}z_iz_j = 2\,[(-3)(-1) + (-1)(1) + (1)(3)] = 2 \times 5 = 10\).</p><p>\(I = \frac{4}{6}\cdot\frac{10}{20} = 0{,}333\), frente a \(\mathbb{E}[I] = -1/3\). Es autocorrelación positiva: los valores crecen de forma ordenada a lo largo de la fila. (Con solo 4 áreas, la prueba tendría muy poca potencia.)</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>En una grilla de 3 × 3 con valores por filas (1, 2, 3), (4, 5, 6), (7, 8, 9), calcula con pesos estandarizados por filas el rezago espacial de la celda central y de la esquina superior izquierda, con torre y con reina. ¿Cuántos pares de vecinos hay en cada caso?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p><b>Centro (5):</b> torre \(= (2+4+6+8)/4 = 5\); reina \(= (1+2+3+4+6+7+8+9)/8 = 5\).</p><p><b>Esquina (1):</b> torre \(= (2+4)/2 = 3\); reina \(= (2+4+5)/3 \approx 3{,}67\).</p><p>Pares de vecinos: torre tiene 12 lados compartidos (6 horizontales y 6 verticales); reina suma además 8 contactos diagonales, en total <b>20</b>. Con más vecinos el rezago se suaviza y el I suele cambiar.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con los datos de las 25 comunas del ejemplo, compara el I de Moran con contigüidad torre y reina, y con \(k = 4\) vecinos más cercanos. ¿Cambia la conclusión?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Con torre \(I = 0{,}783\), con reina \(I = 0{,}717\) y con 4 vecinos más cercanos \(I \approx 0{,}76\) (con \(k\) vecinos los empates de distancia en una grilla se rompen de forma distinta en cada programa). El valor de I cambia con la matriz, pero en los tres casos queda muy por encima de \(\mathbb{E}[I] = -0{,}042\) y el valor p por permutaciones es el mínimo posible: la conclusión es robusta. Que la conclusión no dependa de \(W\) es justamente lo que quieres comprobar en un análisis real.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> libpysal
+<span class="k">from</span> esda.moran <span class="k">import</span> Moran
+<span class="c"># y como en el ejemplo</span>
+coords = [(c, -f) <span class="k">for</span> f <span class="k">in</span> <span class="f">range</span>(<span class="n">5</span>) <span class="k">for</span> c <span class="k">in</span> <span class="f">range</span>(<span class="n">5</span>)]
+pesos = {<span class="s">"torre"</span>: libpysal.weights.<span class="f">lat2W</span>(<span class="n">5</span>, <span class="n">5</span>, rook=<span class="k">True</span>),
+         <span class="s">"reina"</span>: libpysal.weights.<span class="f">lat2W</span>(<span class="n">5</span>, <span class="n">5</span>, rook=<span class="k">False</span>),
+         <span class="s">"knn4"</span>: libpysal.weights.KNN.<span class="f">from_array</span>(coords, k=<span class="n">4</span>)}
+<span class="k">for</span> nombre, w <span class="k">in</span> pesos.<span class="f">items</span>():
+    w.transform = <span class="s">"r"</span>
+    mi = <span class="f">Moran</span>(y, w, permutations=<span class="n">999</span>)
+    <span class="f">print</span>(nombre, <span class="f">round</span>(mi.I, <span class="n">3</span>), mi.p_sim)</code></pre>
+<pre class="code" data-lang="r" hidden><code>xy &lt;- <span class="f">expand.grid</span>(col = <span class="n">1</span>:<span class="n">5</span>, fila = <span class="n">5</span>:<span class="n">1</span>)       <span class="c"># mismo orden por filas que y</span>
+pesos &lt;- <span class="f">list</span>(torre = <span class="f">cell2nb</span>(<span class="n">5</span>, <span class="n">5</span>, type = <span class="s">"rook"</span>),
+              reina = <span class="f">cell2nb</span>(<span class="n">5</span>, <span class="n">5</span>, type = <span class="s">"queen"</span>),
+              knn4  = <span class="f">knn2nb</span>(<span class="f">knearneigh</span>(<span class="f">as.matrix</span>(xy), k = <span class="n">4</span>)))
+<span class="k">for</span> (nm <span class="k">in</span> <span class="f">names</span>(pesos)) {
+  mc &lt;- <span class="f">moran.mc</span>(y, <span class="f">nb2listw</span>(pesos[[nm]], style = <span class="s">"W"</span>), nsim = <span class="n">999</span>)
+  <span class="f">cat</span>(nm, <span class="f">round</span>(mc$statistic, <span class="n">3</span>), mc$p.value, <span class="s">"\n"</span>)
+}</code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Calculas el LISA en 144 áreas con 999 permutaciones condicionales y marcas como significativas las que tienen \(p &lt; 0{,}05\). (a) Si no hay ninguna autocorrelación, ¿cuántas áreas “significativas” esperas? (b) Con corrección de Bonferroni, ¿qué umbral debes usar? (c) ¿Puedes alcanzarlo con 999 permutaciones? ¿Cuántas necesitas como mínimo?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(144 \times 0{,}05 = 7{,}2\) áreas en promedio, todas falsos positivos (y tienden a salir juntas porque los \(I_i\) de vecinos están correlacionados).</p><p>(b) \(0{,}05 / 144 \approx 0{,}000347\).</p><p>(c) No: con \(R\) permutaciones el p mínimo es \(1/(R+1) = 0{,}001\) para \(R = 999\), mayor que el umbral. Necesitas \(1/(R+1) \le 0{,}000347\), es decir \(R + 1 \ge 2\,880\): al menos <b>2 879 permutaciones</b>. En la práctica se usan 9 999 o un control de FDR, que es menos conservador que Bonferroni.</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

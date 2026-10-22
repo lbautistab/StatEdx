@@ -1,0 +1,412 @@
+<!-- StatEdx · sesión: cnn -->
+<div id="view-cnn" data-view="cnn" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Redes neuronales convolucionales</h1>
+      <p>Una foto de tu celular tiene millones de píxeles, y un gato sigue siendo un gato si se mueve unos centímetros a la izquierda. Las redes convolucionales aprovechan esas dos ideas: miran la imagen por ventanas pequeñas, reutilizan los mismos filtros en todas partes y van armando, capa tras capa, de bordes a texturas y de texturas a objetos.</p>
+      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: descenso de gradiente y retropropagación</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#cnn-idea" data-sec="cnn-idea">La idea</a></li>
+        <li><a href="#cnn-conv" data-sec="cnn-conv">La convolución</a></li>
+        <li><a href="#cnn-dim" data-sec="cnn-dim">Relleno, paso y canales</a></li>
+        <li><a href="#cnn-lab" data-sec="cnn-lab">Laboratorio: filtros</a></li>
+        <li><a href="#cnn-pool" data-sec="cnn-pool">Pooling y campo receptivo</a></li>
+        <li><a href="#cnn-arq" data-sec="cnn-arq">Arquitecturas</a></li>
+        <li><a href="#cnn-lab2" data-sec="cnn-lab2">Laboratorio: apilar capas</a></li>
+        <li><a href="#cnn-practica" data-sec="cnn-practica">Entrenar en la práctica</a></li>
+        <li><a href="#cnn-code" data-sec="cnn-code">En R y Python</a></li>
+        <li><a href="#cnn-quiz" data-sec="cnn-quiz">Comprueba</a></li>
+        <li><a href="#cnn-ej" data-sec="cnn-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="cnn-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Quieres clasificar fotos de 224 × 224 píxeles a color en “gato” o “perro”. Cada foto tiene \(224 \times 224 \times 3 = 150\,528\) números. Si la conectas a una red densa con una capa oculta de 1 000 neuronas, esa sola capa tiene unos 150 millones de pesos. Es lento, necesita muchísimos datos y, peor aún, desperdicia lo que sabemos de las imágenes:</p>
+      <ul>
+        <li><b>Localidad:</b> un píxel se relaciona sobre todo con sus vecinos. Un borde, una esquina o un ojo son patrones de una zona pequeña.</li>
+        <li><b>Repetición:</b> un borde vertical es un borde vertical en la esquina o en el centro. El detector que sirve en un lugar sirve en todos.</li>
+        <li><b>Jerarquía:</b> los objetos se componen de partes, las partes de texturas y las texturas de bordes.</li>
+      </ul>
+      <p>Una <b>red neuronal convolucional</b> (CNN) incorpora esas tres ideas en su estructura. Cada neurona mira solo una ventana pequeña (conectividad local), todas las neuronas de un mismo mapa usan los mismos pesos (pesos compartidos) y las capas se apilan para ver zonas cada vez más grandes. Una capa convolucional con 64 filtros de 3 × 3 sobre una imagen a color tiene \(3\cdot 3\cdot 3\cdot 64 + 64 = 1\,792\) parámetros, sin importar el tamaño de la imagen.</p>
+      <div class="callout"><b>Equivariancia:</b> si desplazas la imagen, el mapa que produce una convolución se desplaza igual. Esa propiedad, que una capa densa no tiene, es la razón por la que una CNN reconoce un patrón en cualquier posición sin tener que aprenderlo por separado en cada una.</div>
+
+      <h2 id="cnn-conv"><span class="sec">§ 2</span>La convolución</h2>
+      <p>Una imagen en escala de grises es una matriz \(X\). Un <b>filtro</b> (o <i>kernel</i>) es una matriz pequeña \(K\) de tamaño \(k \times k\), por ejemplo 3 × 3. La convolución desliza el filtro por la imagen y en cada posición calcula la suma de los productos elemento a elemento:</p>
+      <div class="eq">\[ (X * K)_{i,j} \;=\; \sum_{u=0}^{k-1}\sum_{v=0}^{k-1} X_{i+u,\; j+v}\; K_{u,v} \;+\; b \]
+        <div class="note">El resultado se llama <b>mapa de características</b> (<i>feature map</i>). En sentido estricto esto es una correlación cruzada: la convolución matemática voltea el filtro. En redes da igual, porque los pesos se aprenden, y todas las librerías usan esta forma.</div>
+      </div>
+      <p>Un ejemplo con números. La imagen de 5 × 5 tiene una zona oscura (0) a la izquierda y una clara (9) a la derecha. El filtro responde a cambios de izquierda a derecha:</p>
+      <div class="eq">\[ X = \begin{pmatrix} 0&amp;0&amp;0&amp;9&amp;9\\ 0&amp;0&amp;0&amp;9&amp;9\\ 0&amp;0&amp;0&amp;9&amp;9\\ 0&amp;0&amp;0&amp;9&amp;9\\ 0&amp;0&amp;0&amp;9&amp;9 \end{pmatrix}, \qquad K = \begin{pmatrix} -1&amp;0&amp;1\\ -1&amp;0&amp;1\\ -1&amp;0&amp;1 \end{pmatrix}, \qquad X * K = \begin{pmatrix} 0&amp;27&amp;27\\ 0&amp;27&amp;27\\ 0&amp;27&amp;27 \end{pmatrix} \]
+        <div class="note">En la primera columna la ventana está toda en la zona oscura: \(0\). En la segunda, la columna derecha de la ventana cae en la zona clara: \(3 \times 9 = 27\). El mapa “se enciende” donde hay un borde vertical.</div>
+      </div>
+      <p>Algunos filtros clásicos, que antes se diseñaban a mano y que las CNN redescubren solas en sus primeras capas:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Filtro</th><th>Pesos</th><th>Qué detecta</th></tr></thead>
+        <tbody>
+          <tr><td>Sobel horizontal</td><td>\(\begin{pmatrix}-1&amp;0&amp;1\\-2&amp;0&amp;2\\-1&amp;0&amp;1\end{pmatrix}\)</td><td>bordes verticales (cambios de izquierda a derecha)</td></tr>
+          <tr><td>Sobel vertical</td><td>\(\begin{pmatrix}-1&amp;-2&amp;-1\\0&amp;0&amp;0\\1&amp;2&amp;1\end{pmatrix}\)</td><td>bordes horizontales</td></tr>
+          <tr><td>Promedio</td><td>\(\tfrac19\begin{pmatrix}1&amp;1&amp;1\\1&amp;1&amp;1\\1&amp;1&amp;1\end{pmatrix}\)</td><td>desenfoca: suaviza el ruido</td></tr>
+          <tr><td>Laplaciano</td><td>\(\begin{pmatrix}0&amp;1&amp;0\\1&amp;-4&amp;1\\0&amp;1&amp;0\end{pmatrix}\)</td><td>bordes en todas las direcciones y puntos aislados</td></tr>
+        </tbody>
+      </table></div>
+      <p>Después de la convolución se aplica una activación no lineal, casi siempre ReLU: \(\max(0, \cdot)\). Sin ella, apilar convoluciones daría solo otra convolución, porque la composición de operaciones lineales es lineal.</p>
+
+      <h2 id="cnn-dim"><span class="sec">§ 3</span>Relleno, paso y canales</h2>
+      <p>Tres decisiones fijan el tamaño del mapa de salida:</p>
+      <ul>
+        <li><b>Relleno</b> (<i>padding</i>) \(p\): agregar \(p\) filas y columnas de ceros alrededor. Sin relleno (“valid”), cada capa 3 × 3 recorta un píxel por lado. Con \(p = (k-1)/2\) (“same”) la salida mide lo mismo que la entrada.</li>
+        <li><b>Paso</b> (<i>stride</i>) \(s\): cuántos píxeles salta el filtro entre posiciones. Con \(s = 2\) la salida tiene la mitad de filas y columnas.</li>
+        <li><b>Tamaño del filtro</b> \(k\): 3 × 3 es lo habitual; 1 × 1, 5 × 5 y 7 × 7 aparecen en casos específicos.</li>
+      </ul>
+      <div class="eq">\[ n_{\text{salida}} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1 \]
+        <div class="note">Ejemplo: \(n = 32\), \(k = 5\), \(p = 0\), \(s = 1\) da \(28\). Con \(k = 3\), \(p = 1\), \(s = 2\) sobre \(n = 28\): \(\lfloor 27/2 \rfloor + 1 = 14\).</div>
+      </div>
+      <p><b>Canales.</b> Una imagen a color tiene 3 canales (rojo, verde, azul), y la salida de una capa con 64 filtros tiene 64 canales. Por eso cada filtro es en realidad un bloque de \(k \times k \times C_{\text{entrada}}\): suma sobre la ventana espacial <i>y</i> sobre todos los canales de entrada. Una capa con \(C_{\text{salida}}\) filtros tiene</p>
+      <div class="eq">\[ \text{parámetros} = \underbrace{k \cdot k \cdot C_{\text{entrada}} \cdot C_{\text{salida}}}_{\text{pesos}} + \underbrace{C_{\text{salida}}}_{\text{sesgos}}, \qquad \text{salida: } n_{\text{salida}} \times n_{\text{salida}} \times C_{\text{salida}} \]
+        <div class="note">El número de parámetros no depende del tamaño de la imagen, pero el costo de cálculo sí: cada parámetro se usa en las \(n_{\text{salida}}^2\) posiciones.</div>
+      </div>
+      <div class="callout"><b>Convolución 1 × 1:</b> parece inútil (una ventana de un píxel), pero con muchos canales es una capa densa aplicada a cada píxel por separado: mezcla canales sin mirar vecinos. Se usa para reducir o aumentar el número de canales a bajo costo, como en los bloques “cuello de botella” de ResNet.</div>
+
+      <h2 id="cnn-lab"><span class="sec">§ 4</span>Laboratorio: filtros y mapas de características</h2>
+      <p>A la izquierda, una imagen de 16 × 16 píxeles (una casa con un sol) y la ventana del filtro, con sus pesos escritos encima. A la derecha, el mapa de características: los valores positivos en un color, los negativos en otro, y la intensidad indica la magnitud. Mueve la posición o pulsa “Recorrer” para ver cómo se llena el mapa.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · convolución 2D</span><span class="num" id="cnn-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="cnn-k-label">FILTRO</label>
+              <div class="seg" id="cnn-k" role="group" aria-labelledby="cnn-k-label">
+                <button type="button" data-k="vert" aria-pressed="true">Bordes verticales</button>
+                <button type="button" data-k="horiz" aria-pressed="false">Bordes horizontales</button>
+                <button type="button" data-k="blur" aria-pressed="false">Promedio</button>
+                <button type="button" data-k="lap" aria-pressed="false">Laplaciano</button>
+                <button type="button" data-k="sharp" aria-pressed="false">Realce</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="cnn-pad-label">RELLENO</label>
+              <div class="seg" id="cnn-pad" role="group" aria-labelledby="cnn-pad-label">
+                <button type="button" data-p="0" aria-pressed="true">valid (p = 0)</button>
+                <button type="button" data-p="1" aria-pressed="false">same (p = 1)</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="cnn-stride-label">PASO</label>
+              <div class="seg" id="cnn-stride" role="group" aria-labelledby="cnn-stride-label">
+                <button type="button" data-s="1" aria-pressed="true">s = 1</button>
+                <button type="button" data-s="2" aria-pressed="false">s = 2</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="cnn-act-label">DESPUÉS</label>
+              <div class="seg" id="cnn-act" role="group" aria-labelledby="cnn-act-label">
+                <button type="button" data-a="none" aria-pressed="true">Nada</button>
+                <button type="button" data-a="relu" aria-pressed="false">ReLU</button>
+                <button type="button" data-a="pool" aria-pressed="false">ReLU + max pool 2×2</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="cnn-pos">POSICIÓN DEL FILTRO · <b id="cnn-pos-v" class="num">–</b></label><input id="cnn-pos" type="range" min="0" max="195" value="127"></div>
+            <button class="btn btn-ghost btn-sm" id="cnn-play" type="button">Recorrer</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Entrada y ventana del filtro</span><span id="cnn-in-lbl">16 × 16</span></div>
+              <canvas class="plot" id="cnn-c-in" height="300" aria-label="Imagen de entrada con la ventana del filtro y sus pesos"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Mapa de características</span><span id="cnn-out-lbl">–</span></div>
+              <canvas class="plot" id="cnn-c-out" height="300" aria-label="Mapa de características producido por el filtro"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>respuesta positiva</span><span><i style="background:var(--hot)"></i>respuesta negativa</span><span><i style="background:var(--ink)"></i>píxel claro de la entrada</span></div>
+          <div class="readout">
+            <div><span>tamaño del mapa</span><b id="cnn-r-size">–</b></div>
+            <div><span>valor en la posición</span><b id="cnn-r-val">–</b></div>
+            <div><span>celdas activas (≠ 0)</span><b id="cnn-r-act">–</b></div>
+            <div><span>parámetros del filtro</span><b id="cnn-r-par">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con “Bordes verticales” se encienden las paredes de la casa y no el techo plano ni el suelo; cambia a “Bordes horizontales” y pasa lo contrario. El techo inclinado responde a ambos. Prueba “same”: el mapa vuelve a medir 16 × 16 y aparecen respuestas en el marco, porque los ceros del relleno crean un borde artificial. Con ReLU + max pool, cada celda del mapa reducido guarda la respuesta más fuerte de un bloque de 2 × 2.</figcaption>
+      </figure>
+
+      <h2 id="cnn-pool"><span class="sec">§ 5</span>Pooling y campo receptivo</h2>
+      <p>El <b>pooling</b> reduce la resolución resumiendo bloques pequeños. El más común es el <i>max pooling</i> de 2 × 2 con paso 2: divide el mapa en bloques de 2 × 2 y se queda con el máximo de cada uno. El <i>average pooling</i> usa el promedio.</p>
+      <div class="eq">\[ \text{maxpool}(A)_{i,j} = \max\big\{A_{2i,2j},\; A_{2i,2j+1},\; A_{2i+1,2j},\; A_{2i+1,2j+1}\big\} \]
+        <div class="note">El pooling no tiene parámetros. Divide entre 4 el número de posiciones, conserva los canales y en la retropropagación pasa el gradiente solo a la celda que fue el máximo.</div>
+      </div>
+      <ul>
+        <li><b>Invariancia local:</b> si el patrón se mueve un píxel dentro del bloque, el máximo casi no cambia. La red se vuelve tolerante a pequeños desplazamientos y deformaciones.</li>
+        <li><b>Menos cálculo:</b> las capas siguientes trabajan sobre mapas más chicos. Es habitual duplicar los canales cada vez que se reduce la resolución a la mitad.</li>
+        <li><b>Alternativa:</b> muchas redes modernas reducen la resolución con convoluciones de paso 2 en lugar de pooling, para que la reducción también se aprenda.</li>
+      </ul>
+      <p>El <b>campo receptivo</b> de una neurona es la zona de la imagen original de la que depende su valor. Una capa 3 × 3 ve 3 × 3 píxeles; dos capas 3 × 3 seguidas ven 5 × 5; tres ven 7 × 7. Cada reducción de resolución multiplica el crecimiento que aportan las capas siguientes. Si la capa \(l\) tiene filtro \(k_l\) y paso \(s_l\):</p>
+      <div class="eq">\[ r_l = r_{l-1} + (k_l - 1)\prod_{i=1}^{l-1} s_i, \qquad r_0 = 1 \]
+        <div class="note">Ejemplo: conv 3 × 3, conv 3 × 3, max pool 2 × 2 (paso 2), conv 3 × 3 da \(r = 1 + 2 + 2 + 1 + 2\cdot 2 = 10\) píxeles.</div>
+      </div>
+      <div class="callout"><b>Por qué filtros de 3 × 3:</b> dos capas 3 × 3 cubren el mismo campo receptivo que una 5 × 5, pero con \(2 \cdot 9 = 18\) pesos por par de canales en vez de 25, y con una ReLU extra entre medio que agrega no linealidad. Esa observación es la base de la arquitectura VGG.</div>
+
+      <h2 id="cnn-arq"><span class="sec">§ 6</span>Arquitecturas</h2>
+      <p>Casi todas las CNN de clasificación siguen el mismo esquema: varios <b>bloques</b> de convolución + ReLU (+ normalización) seguidos de una reducción de resolución, y al final una <b>cabeza</b> que convierte los mapas en probabilidades de clase con una capa densa y softmax. A medida que se avanza, los mapas se vuelven más chicos en espacio y más profundos en canales: de “qué color hay en este píxel” a “hay algo parecido a una oreja en esta zona”.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Red</th><th>Año</th><th>Idea clave</th><th>Parámetros</th></tr></thead>
+        <tbody>
+          <tr><td>LeNet-5</td><td>1998</td><td>conv + pooling + densas; leía códigos postales</td><td>≈ 60 mil</td></tr>
+          <tr><td>AlexNet</td><td>2012</td><td>ReLU, dropout y GPU; ganó ImageNet por amplio margen</td><td>≈ 60 millones</td></tr>
+          <tr><td>VGG-16</td><td>2014</td><td>solo filtros 3 × 3, muy profunda y regular</td><td>≈ 138 millones</td></tr>
+          <tr><td>ResNet-50</td><td>2015</td><td>conexiones residuales: permite entrenar más de 100 capas</td><td>≈ 25 millones</td></tr>
+          <tr><td>EfficientNet, ConvNeXt</td><td>2019-2022</td><td>escalado balanceado de profundidad, ancho y resolución</td><td>5 a 90 millones</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Conexiones residuales.</b> En lugar de que un bloque aprenda una transformación \(H(x)\), aprende la diferencia \(F(x)\) y suma la entrada: \(y = x + F(x)\). Si un bloque no ayuda, basta con que \(F \approx 0\). Además, el gradiente tiene un camino directo hacia atrás a través de la suma (\(\partial y/\partial x = I + \partial F/\partial x\)), lo que evita que se desvanezca en redes muy profundas.</p>
+      <p><b>Normalización por lotes</b> (<i>batch normalization</i>). Estandariza cada canal con la media y la varianza del minilote y luego aplica una escala y un desplazamiento aprendidos: \(\hat a = \gamma\,(a - \mu_B)/\sqrt{\sigma_B^2 + \varepsilon} + \beta\). Permite tasas de aprendizaje más altas y estabiliza el entrenamiento. En predicción usa promedios móviles de \(\mu\) y \(\sigma^2\) guardados durante el entrenamiento.</p>
+      <p><b>La cabeza.</b> La opción antigua es <i>aplanar</i> el último mapa en un vector y conectarlo a capas densas, lo que concentra la mayoría de los parámetros (en VGG-16, más de 100 de sus 138 millones). La opción moderna es el <b>promedio global</b> (<i>global average pooling</i>): promediar cada canal en todo el espacio, de modo que un mapa de \(7 \times 7 \times 512\) se convierte en un vector de 512, y de ahí directo a la softmax.</p>
+
+      <h2 id="cnn-lab2"><span class="sec">§ 7</span>Laboratorio: apilar capas</h2>
+      <p>Una CNN para imágenes de 32 × 32 a color (como CIFAR-10, con 10 clases). Cada bloque es una convolución “same” + ReLU + max pool 2 × 2, y cada bloque duplica los canales del anterior. Elige cuántos bloques, cuántos filtros iniciales, el tamaño del filtro y la cabeza, y mira cómo cambian las formas, los parámetros y el campo receptivo.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · arquitectura de una CNN</span><span class="num" id="cnn-arch-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="cnn-nb">BLOQUES CONV · <b id="cnn-nb-v" class="num">3</b></label><input id="cnn-nb" type="range" min="1" max="5" value="3"></div>
+            <div class="ctrl">
+              <label id="cnn-f0-label">FILTROS INICIALES</label>
+              <div class="seg" id="cnn-f0" role="group" aria-labelledby="cnn-f0-label">
+                <button type="button" data-f="8" aria-pressed="false">8</button>
+                <button type="button" data-f="16" aria-pressed="false">16</button>
+                <button type="button" data-f="32" aria-pressed="true">32</button>
+                <button type="button" data-f="64" aria-pressed="false">64</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="cnn-ks-label">FILTRO</label>
+              <div class="seg" id="cnn-ks" role="group" aria-labelledby="cnn-ks-label">
+                <button type="button" data-k="3" aria-pressed="true">3 × 3</button>
+                <button type="button" data-k="5" aria-pressed="false">5 × 5</button>
+              </div>
+            </div>
+            <div class="ctrl">
+              <label id="cnn-hd-label">CABEZA</label>
+              <div class="seg" id="cnn-hd" role="group" aria-labelledby="cnn-hd-label">
+                <button type="button" data-h="flat" aria-pressed="true">Aplanar + densa</button>
+                <button type="button" data-h="gap" aria-pressed="false">Promedio global</button>
+              </div>
+            </div>
+          </div>
+          <div class="plot-label"><span>Forma del tensor después de cada bloque (alto × ancho × canales)</span><span id="cnn-arch-lbl">–</span></div>
+          <canvas class="plot" id="cnn-c-arch" height="260" aria-label="Diagrama de los tensores de cada bloque de la red, con sus dimensiones y parámetros"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>mapas de características</span><span><i style="background:var(--hot)"></i>cabeza de clasificación</span><span><i style="background:var(--muted)"></i>entrada</span></div>
+          <div class="readout">
+            <div><span>parámetros convolucionales</span><b id="cnn-r-pconv">–</b></div>
+            <div><span>parámetros de la cabeza</span><b id="cnn-r-phead">–</b></div>
+            <div><span>parámetros totales</span><b id="cnn-r-ptot">–</b></div>
+            <div><span>campo receptivo final</span><b id="cnn-r-rf">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con un solo bloque y “Aplanar + densa”, casi todos los parámetros están en la cabeza. Agrega bloques: los mapas se achican, la cabeza se abarata y el campo receptivo crece hasta cubrir la imagen. Cambia a “Promedio global”: la cabeza pasa a tener unos pocos miles de parámetros. Una red densa con una capa oculta de 512 neuronas tendría 1 578 506 parámetros solo para empezar.</figcaption>
+      </figure>
+
+      <h2 id="cnn-practica"><span class="sec">§ 8</span>Entrenar en la práctica</h2>
+      <p>Una CNN se entrena igual que cualquier red: entropía cruzada, minilotes y un optimizador como SGD con momentum o Adam, con la retropropagación pasando por convoluciones y pooling. Lo que cambia son algunos trucos propios de las imágenes:</p>
+      <ul>
+        <li><b>Aumentación de datos:</b> crear variantes de cada imagen de entrenamiento en cada época (voltear horizontalmente, recortar al azar, rotar unos grados, cambiar brillo). Le enseña a la red invariancias que sabemos que son ciertas y reduce mucho el sobreajuste. Ojo: voltear sirve para fotos de animales, no para dígitos ni texto (un 6 volteado no es un 6, y una “b” volteada es una “d”).</li>
+        <li><b>Transferencia de aprendizaje:</b> con pocas imágenes propias (cientos o pocos miles), parte de una red preentrenada en ImageNet, reemplaza la cabeza por una nueva para tus clases y entrena primero solo la cabeza. Luego, si hay datos suficientes, “descongela” las últimas capas y ajústalas con una tasa baja. Los filtros de bordes y texturas de las primeras capas sirven casi para cualquier imagen.</li>
+        <li><b>Regularización:</b> <i>weight decay</i>, <i>dropout</i> en la cabeza densa y parada temprana con un conjunto de validación.</li>
+        <li><b>Normaliza las entradas</b> con la media y la desviación típica de cada canal (las de ImageNet si usas una red preentrenada).</li>
+        <li><b>Evalúa bien:</b> separa las imágenes por paciente, por cámara o por fecha si es necesario. Si fotos casi idénticas quedan en entrenamiento y en prueba, la exactitud de prueba se infla.</li>
+      </ul>
+      <div class="callout"><b>Qué aprende una CNN:</b> al visualizar los filtros de la primera capa aparecen detectores de bordes en varias orientaciones y manchas de color, muy parecidos a los filtros de Gabor y a las neuronas de la corteza visual primaria. Las capas intermedias responden a texturas y partes, y las últimas a objetos completos. Pero cuidado: una CNN también puede aprender atajos, como reconocer “vaca” por el pasto verde del fondo. Herramientas como Grad-CAM muestran qué zonas de la imagen usó para decidir.</div>
+
+      <h2 id="cnn-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
+      <p>Primero programamos la convolución y el max pooling desde cero y los aplicamos a un dígito escrito a mano de 8 × 8. Después definimos y entrenamos una CNN pequeña para MNIST (dígitos de 28 × 28) con una librería, y contamos sus parámetros capa por capa.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.datasets <span class="k">import</span> load_digits
+
+<span class="k">def</span> <span class="f">conv2d</span>(img, k, stride=<span class="n">1</span>, pad=<span class="n">0</span>):
+    img = np.<span class="f">pad</span>(img, pad)                              <span class="c"># relleno con ceros</span>
+    kh, kw = k.shape
+    H = (img.shape[<span class="n">0</span>] - kh) // stride + <span class="n">1</span>
+    W = (img.shape[<span class="n">1</span>] - kw) // stride + <span class="n">1</span>
+    out = np.<span class="f">zeros</span>((H, W))
+    <span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(H):
+        <span class="k">for</span> j <span class="k">in</span> <span class="f">range</span>(W):
+            ventana = img[i*stride:i*stride + kh, j*stride:j*stride + kw]
+            out[i, j] = np.<span class="f">sum</span>(ventana * k)
+    <span class="k">return</span> out
+
+<span class="k">def</span> <span class="f">maxpool</span>(x, s=<span class="n">2</span>):
+    H, W = x.shape[<span class="n">0</span>] // s, x.shape[<span class="n">1</span>] // s
+    <span class="k">return</span> x[:H*s, :W*s].<span class="f">reshape</span>(H, s, W, s).<span class="f">max</span>(axis=(<span class="n">1</span>, <span class="n">3</span>))
+
+<span class="c"># El ejemplo de la sección 2</span>
+X = np.<span class="f">zeros</span>((<span class="n">5</span>, <span class="n">5</span>)); X[:, <span class="n">3</span>:] = <span class="n">9</span>
+K = np.<span class="f">array</span>([[-<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>]] * <span class="n">3</span>)
+<span class="f">print</span>(<span class="f">conv2d</span>(X, K))                     <span class="c"># columnas 0, 27, 27</span>
+
+<span class="c"># Un dígito real de 8 × 8: Sobel + ReLU + max pool</span>
+d = <span class="f">load_digits</span>()
+sobel = np.<span class="f">array</span>([[-<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>], [-<span class="n">2</span>, <span class="n">0</span>, <span class="n">2</span>], [-<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>]])
+mapa = np.<span class="f">maximum</span>(<span class="f">conv2d</span>(d.images[<span class="n">0</span>], sobel, pad=<span class="n">1</span>), <span class="n">0</span>)
+<span class="f">print</span>(mapa.shape, <span class="f">maxpool</span>(mapa).shape)    <span class="c"># (8, 8) (4, 4)</span>
+
+<span class="c"># Una CNN para MNIST con PyTorch</span>
+<span class="k">import</span> torch, torch.nn <span class="k">as</span> nn
+<span class="k">from</span> torchvision <span class="k">import</span> datasets, transforms
+
+red = nn.<span class="f">Sequential</span>(
+    nn.<span class="f">Conv2d</span>(<span class="n">1</span>, <span class="n">16</span>, <span class="n">3</span>, padding=<span class="n">1</span>), nn.<span class="f">ReLU</span>(), nn.<span class="f">MaxPool2d</span>(<span class="n">2</span>),    <span class="c"># 28×28×16 → 14×14×16 ·   160 parámetros</span>
+    nn.<span class="f">Conv2d</span>(<span class="n">16</span>, <span class="n">32</span>, <span class="n">3</span>, padding=<span class="n">1</span>), nn.<span class="f">ReLU</span>(), nn.<span class="f">MaxPool2d</span>(<span class="n">2</span>),   <span class="c"># 14×14×32 → 7×7×32   · 4 640</span>
+    nn.<span class="f">Flatten</span>(),                                                 <span class="c"># 7·7·32 = 1 568</span>
+    nn.<span class="f">Linear</span>(<span class="n">1568</span>, <span class="n">64</span>), nn.<span class="f">ReLU</span>(), nn.<span class="f">Dropout</span>(<span class="n">0.3</span>),               <span class="c"># 100 416</span>
+    nn.<span class="f">Linear</span>(<span class="n">64</span>, <span class="n">10</span>))                                           <span class="c"># 650</span>
+<span class="f">print</span>(<span class="f">sum</span>(p.<span class="f">numel</span>() <span class="k">for</span> p <span class="k">in</span> red.<span class="f">parameters</span>()))              <span class="c"># 105 866</span>
+
+tf = transforms.<span class="f">Compose</span>([transforms.<span class="f">ToTensor</span>(), transforms.<span class="f">Normalize</span>((<span class="n">0.1307</span>,), (<span class="n">0.3081</span>,))])
+entr = torch.utils.data.<span class="f">DataLoader</span>(datasets.<span class="f">MNIST</span>(<span class="s">"datos"</span>, train=<span class="k">True</span>, download=<span class="k">True</span>, transform=tf),
+                                   batch_size=<span class="n">64</span>, shuffle=<span class="k">True</span>)
+prueba = torch.utils.data.<span class="f">DataLoader</span>(datasets.<span class="f">MNIST</span>(<span class="s">"datos"</span>, train=<span class="k">False</span>, transform=tf), batch_size=<span class="n">1000</span>)
+opt = torch.optim.<span class="f">Adam</span>(red.<span class="f">parameters</span>(), lr=<span class="n">1e-3</span>)
+perdida = nn.<span class="f">CrossEntropyLoss</span>()                                    <span class="c"># softmax + entropía cruzada</span>
+
+<span class="k">for</span> epoca <span class="k">in</span> <span class="f">range</span>(<span class="n">3</span>):
+    red.<span class="f">train</span>()
+    <span class="k">for</span> xb, yb <span class="k">in</span> entr:
+        opt.<span class="f">zero_grad</span>(); l = <span class="f">perdida</span>(<span class="f">red</span>(xb), yb); l.<span class="f">backward</span>(); opt.<span class="f">step</span>()
+    red.<span class="f">eval</span>()
+    <span class="k">with</span> torch.<span class="f">no_grad</span>():
+        acierto = <span class="f">sum</span>((<span class="f">red</span>(xb).<span class="f">argmax</span>(<span class="n">1</span>) == yb).<span class="f">sum</span>().<span class="f">item</span>() <span class="k">for</span> xb, yb <span class="k">in</span> prueba)
+    <span class="f">print</span>(epoca, acierto / <span class="n">10000</span>)                                <span class="c"># ≈ 0.98-0.99</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>conv2d &lt;- <span class="k">function</span>(img, k, stride = <span class="n">1</span>, pad = <span class="n">0</span>) {
+  <span class="k">if</span> (pad &gt; <span class="n">0</span>) {                                       <span class="c"># relleno con ceros</span>
+    big &lt;- <span class="f">matrix</span>(<span class="n">0</span>, <span class="f">nrow</span>(img) + <span class="n">2</span> * pad, <span class="f">ncol</span>(img) + <span class="n">2</span> * pad)
+    big[(pad + <span class="n">1</span>):(pad + <span class="f">nrow</span>(img)), (pad + <span class="n">1</span>):(pad + <span class="f">ncol</span>(img))] &lt;- img
+    img &lt;- big
+  }
+  kh &lt;- <span class="f">nrow</span>(k); kw &lt;- <span class="f">ncol</span>(k)
+  H &lt;- (<span class="f">nrow</span>(img) - kh) %/% stride + <span class="n">1</span>
+  W &lt;- (<span class="f">ncol</span>(img) - kw) %/% stride + <span class="n">1</span>
+  out &lt;- <span class="f">matrix</span>(<span class="n">0</span>, H, W)
+  <span class="k">for</span> (i <span class="k">in</span> <span class="n">1</span>:H) <span class="k">for</span> (j <span class="k">in</span> <span class="n">1</span>:W) {
+    r &lt;- (i - <span class="n">1</span>) * stride; c &lt;- (j - <span class="n">1</span>) * stride
+    out[i, j] &lt;- <span class="f">sum</span>(img[r + <span class="n">1</span>:kh, c + <span class="n">1</span>:kw] * k)
+  }
+  out
+}
+maxpool &lt;- <span class="k">function</span>(x, s = <span class="n">2</span>) {
+  H &lt;- <span class="f">nrow</span>(x) %/% s; W &lt;- <span class="f">ncol</span>(x) %/% s
+  out &lt;- <span class="f">matrix</span>(<span class="n">0</span>, H, W)
+  <span class="k">for</span> (i <span class="k">in</span> <span class="n">1</span>:H) <span class="k">for</span> (j <span class="k">in</span> <span class="n">1</span>:W) out[i, j] &lt;- <span class="f">max</span>(x[(i - <span class="n">1</span>) * s + <span class="n">1</span>:s, (j - <span class="n">1</span>) * s + <span class="n">1</span>:s])
+  out
+}
+
+<span class="c"># El ejemplo de la sección 2</span>
+X &lt;- <span class="f">matrix</span>(<span class="n">0</span>, <span class="n">5</span>, <span class="n">5</span>); X[, <span class="n">4</span>:<span class="n">5</span>] &lt;- <span class="n">9</span>
+K &lt;- <span class="f">matrix</span>(<span class="f">c</span>(-<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>), <span class="n">3</span>, <span class="n">3</span>, byrow = <span class="k">TRUE</span>)
+<span class="f">conv2d</span>(X, K)                                       <span class="c"># columnas 0, 27, 27</span>
+<span class="f">maxpool</span>(<span class="f">pmax</span>(<span class="f">conv2d</span>(X, K, pad = <span class="n">1</span>), <span class="n">0</span>))                <span class="c"># 2 × 2</span>
+
+<span class="c"># Una CNN para MNIST con keras3</span>
+<span class="k">library</span>(keras3)
+mnist &lt;- <span class="f">dataset_mnist</span>()
+x_tr &lt;- <span class="f">array_reshape</span>(mnist$train$x / <span class="n">255</span>, <span class="f">c</span>(<span class="n">60000</span>, <span class="n">28</span>, <span class="n">28</span>, <span class="n">1</span>))
+x_te &lt;- <span class="f">array_reshape</span>(mnist$test$x / <span class="n">255</span>, <span class="f">c</span>(<span class="n">10000</span>, <span class="n">28</span>, <span class="n">28</span>, <span class="n">1</span>))
+
+red &lt;- <span class="f">keras_model_sequential</span>(input_shape = <span class="f">c</span>(<span class="n">28</span>, <span class="n">28</span>, <span class="n">1</span>)) |&gt;
+  <span class="f">layer_conv_2d</span>(filters = <span class="n">16</span>, kernel_size = <span class="n">3</span>, padding = <span class="s">"same"</span>, activation = <span class="s">"relu"</span>) |&gt;
+  <span class="f">layer_max_pooling_2d</span>(pool_size = <span class="n">2</span>) |&gt;
+  <span class="f">layer_conv_2d</span>(filters = <span class="n">32</span>, kernel_size = <span class="n">3</span>, padding = <span class="s">"same"</span>, activation = <span class="s">"relu"</span>) |&gt;
+  <span class="f">layer_max_pooling_2d</span>(pool_size = <span class="n">2</span>) |&gt;
+  <span class="f">layer_flatten</span>() |&gt;
+  <span class="f">layer_dense</span>(<span class="n">64</span>, activation = <span class="s">"relu"</span>) |&gt;
+  <span class="f">layer_dropout</span>(<span class="n">0.3</span>) |&gt;
+  <span class="f">layer_dense</span>(<span class="n">10</span>, activation = <span class="s">"softmax"</span>)
+<span class="f">summary</span>(red)                                          <span class="c"># 105 866 parámetros</span>
+
+red |&gt; <span class="f">compile</span>(optimizer = <span class="s">"adam"</span>, loss = <span class="s">"sparse_categorical_crossentropy"</span>, metrics = <span class="s">"accuracy"</span>)
+red |&gt; <span class="f">fit</span>(x_tr, mnist$train$y, epochs = <span class="n">3</span>, batch_size = <span class="n">64</span>, validation_split = <span class="n">0.1</span>)
+red |&gt; <span class="f">evaluate</span>(x_te, mnist$test$y)                    <span class="c"># exactitud ≈ 0.98-0.99</span></code></pre>
+      </div>
+      <p>Con solo 105 866 parámetros y tres épocas, esta red acierta cerca del 99 % de los dígitos de prueba. Una red densa de tamaño parecido se queda alrededor del 97-98 %. Fíjate en el reparto: las dos capas convolucionales suman 4 800 parámetros y la capa densa después de aplanar tiene más de 100 000. Reemplazar <code>Flatten</code> por un promedio global reduciría la red a unos 7 500 parámetros.</p>
+
+      <h2 id="cnn-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="Con n = 28, k = 3, p = 1 y s = 2: ⌊(28 + 2 − 3)/2⌋ + 1 = ⌊13,5⌋ + 1 = 14. El paso 2 reduce la resolución a la mitad." data-wrong="Usa la fórmula ⌊(n + 2p − k)/s⌋ + 1 con n = 28, k = 3, p = 1 y s = 2. Recuerda redondear hacia abajo antes de sumar 1.">
+        <h3>Una capa convolucional con filtro 3 × 3, relleno 1 y paso 2 recibe un mapa de 28 × 28. ¿Qué tamaño tiene la salida?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>13 × 13</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>14 × 14</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>26 × 26</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>28 × 28</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Cada filtro mira solo una ventana pequeña y sus pesos se reutilizan en todas las posiciones de la imagen. Por eso el número de parámetros no depende del tamaño de la imagen." data-wrong="Piensa en cuántos pesos tiene un filtro de 3 × 3 y en cuántas posiciones de la imagen se usan esos mismos pesos.">
+        <h3>¿Por qué una capa convolucional tiene muchos menos parámetros que una capa densa con la misma entrada y salida?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque usa ReLU en lugar de sigmoide</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Porque el pooling elimina tres de cada cuatro pesos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque trabaja solo en escala de grises</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Por la conectividad local y los pesos compartidos entre posiciones</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El max pooling resume cada bloque con su máximo: si el patrón se corre un píxel dentro del bloque, la salida casi no cambia. No tiene parámetros que aprender." data-wrong="El max pooling no tiene pesos: solo toma el máximo de cada bloque de 2 × 2. ¿Qué pasa con ese máximo si el patrón se mueve un píxel?">
+        <h3>¿Cuál de estas afirmaciones sobre el max pooling 2 × 2 es correcta?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Da tolerancia a pequeños desplazamientos y no tiene parámetros</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Duplica la resolución del mapa</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Tiene 4 pesos por canal que se aprenden con retropropagación</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Reduce el número de canales a la mitad</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="cnn-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <p>Resuélvelos con lápiz y papel. El segundo laboratorio te sirve para revisar el conteo de parámetros.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una imagen de 32 × 32 × 3 pasa por una capa con 10 filtros de 5 × 5, sin relleno y paso 1. ¿Qué forma tiene la salida y cuántos parámetros tiene la capa? ¿Y si usas relleno 2 y paso 2?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Sin relleno: \((32 - 5)/1 + 1 = 28\), salida \(28 \times 28 \times 10\). Parámetros: \(5\cdot5\cdot3\cdot10 + 10 = 760\). Con \(p = 2\), \(s = 2\): \(\lfloor(32 + 4 - 5)/2\rfloor + 1 = 15 + 1 = 16\), salida \(16 \times 16 \times 10\). Los parámetros no cambian (760): relleno y paso cambian dónde se aplica el filtro, no cuántos pesos tiene.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un mapa de \(56 \times 56 \times 64\) entra a una capa con 128 filtros de 3 × 3. ¿Cuántos parámetros tiene? Compara con una convolución 1 × 1 que lleve los 64 canales a 128, y con una capa densa que conecte el mapa aplanado a otro de \(56 \times 56 \times 128\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>3 × 3: \(3\cdot3\cdot64\cdot128 + 128 = 73\,856\). 1 × 1: \(64\cdot128 + 128 = 8\,320\). Densa: la entrada tiene \(56\cdot56\cdot64 = 200\,704\) valores y la salida \(401\,408\), así que necesita \(200\,704 \times 401\,408 \approx 8 \times 10^{10}\) pesos: unos 80 mil millones, más de un millón de veces la capa convolucional.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con la entrada \(X = \begin{pmatrix} 1&amp;2&amp;0&amp;1\\ 3&amp;1&amp;2&amp;2\\ 0&amp;1&amp;3&amp;1\\ 2&amp;0&amp;1&amp;4 \end{pmatrix}\) y el filtro \(K = \begin{pmatrix} 1&amp;0\\0&amp;-1\end{pmatrix}\) (paso 1, sin relleno, sin sesgo), calcula el mapa \(X * K\) y después aplícale ReLU. Calcula aparte el max pooling 2 × 2 de \(X\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>El filtro calcula \(X_{i,j} - X_{i+1,j+1}\) (diferencia en diagonal). La salida es 3 × 3:</p><div class="eq">\[ X * K = \begin{pmatrix} 0&amp;0&amp;-2\\ 2&amp;-2&amp;1\\ 0&amp;0&amp;-1 \end{pmatrix}, \qquad \operatorname{ReLU}(X*K) = \begin{pmatrix} 0&amp;0&amp;0\\ 2&amp;0&amp;1\\ 0&amp;0&amp;0 \end{pmatrix}, \qquad \text{maxpool}(X) = \begin{pmatrix} 3&amp;2\\ 2&amp;4 \end{pmatrix} \]</div><p>Por ejemplo, la celda (1, 0) es \(X_{1,0} - X_{2,1} = 3 - 1 = 2\). En el pooling, el bloque superior izquierdo \(\{1, 2, 3, 1\}\) da 3.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>X = np.<span class="f">array</span>([[<span class="n">1</span>, <span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>], [<span class="n">3</span>, <span class="n">1</span>, <span class="n">2</span>, <span class="n">2</span>], [<span class="n">0</span>, <span class="n">1</span>, <span class="n">3</span>, <span class="n">1</span>], [<span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">4</span>]])
+K = np.<span class="f">array</span>([[<span class="n">1</span>, <span class="n">0</span>], [<span class="n">0</span>, -<span class="n">1</span>]])
+<span class="f">print</span>(np.<span class="f">maximum</span>(<span class="f">conv2d</span>(X, K), <span class="n">0</span>), <span class="f">maxpool</span>(X))   <span class="c"># usa las funciones del § 9</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>X &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">3</span>, <span class="n">1</span>, <span class="n">2</span>, <span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">3</span>, <span class="n">1</span>, <span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">4</span>), <span class="n">4</span>, byrow = <span class="k">TRUE</span>)
+K &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="n">0</span>, -<span class="n">1</span>), <span class="n">2</span>, byrow = <span class="k">TRUE</span>)
+<span class="f">pmax</span>(<span class="f">conv2d</span>(X, K), <span class="n">0</span>); <span class="f">maxpool</span>(X)              <span class="c"># usa las funciones del § 9</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Una red apila: conv 3 × 3 (paso 1), conv 3 × 3 (paso 1), max pool 2 × 2 (paso 2), conv 3 × 3 (paso 1), conv 3 × 3 (paso 1), max pool 2 × 2, conv 3 × 3. (a) Calcula el campo receptivo de una neurona de la última capa. (b) Tres capas 3 × 3 seguidas, todas con \(C\) canales de entrada y salida, tienen el mismo campo receptivo que una sola capa de \(k \times k\). ¿Cuánto vale \(k\) y cuántos pesos (sin sesgos) tiene cada opción?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Aplicamos \(r_l = r_{l-1} + (k_l - 1)\,j_{l-1}\), donde \(j\) es el producto de los pasos anteriores. Empezamos con \(r = 1\), \(j = 1\): conv → 3; conv → 5; pool → \(5 + 1 = 6\), \(j = 2\); conv → \(6 + 2\cdot2 = 10\); conv → 14; pool → \(14 + 1\cdot 2 = 16\), \(j = 4\); conv → \(16 + 2\cdot4 = 24\). La neurona final ve un parche de <b>24 × 24</b> píxeles.</p><p>(b) Tres capas 3 × 3 dan \(1 + 2 + 2 + 2 = 7\): equivalen a una capa de <b>7 × 7</b>. Pesos: tres capas \(3 \cdot 9C^2 = 27C^2\); una capa 7 × 7, \(49C^2\). La pila de 3 × 3 usa un 45 % menos de pesos y agrega dos no linealidades más.</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

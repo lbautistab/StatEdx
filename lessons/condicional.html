@@ -1,0 +1,327 @@
+<!-- StatEdx · sesión: condicional -->
+<div id="view-condicional" data-view="condicional" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Probabilidad condicional y teorema de Bayes</h1>
+      <p>Saber algo cambia lo que esperas: si el correo dice “gratis”, sube la probabilidad de que sea spam; si la prueba sale positiva, sube la de estar enfermo. Aquí aprendes a condicionar con cuidado, a distinguir independencia de exclusión, a usar la probabilidad total y a invertir condicionales con Bayes sin caer en las trampas más comunes.</p>
+      <div class="lmeta"><span>40 min</span><span>Nivel básico</span><span>Requiere: probabilidad y variables aleatorias</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#condicional-idea" data-sec="condicional-idea">La idea</a></li>
+        <li><a href="#condicional-def" data-sec="condicional-def">Condicionar</a></li>
+        <li><a href="#condicional-indep" data-sec="condicional-indep">Independencia</a></li>
+        <li><a href="#condicional-bayes" data-sec="condicional-bayes">Probabilidad total y Bayes</a></li>
+        <li><a href="#condicional-lab" data-sec="condicional-lab">Laboratorio: la prueba positiva</a></li>
+        <li><a href="#condicional-trampas" data-sec="condicional-trampas">Trampas clásicas</a></li>
+        <li><a href="#condicional-code" data-sec="condicional-code">En R y Python</a></li>
+        <li><a href="#condicional-quiz" data-sec="condicional-quiz">Comprueba</a></li>
+        <li><a href="#condicional-ej" data-sec="condicional-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="condicional-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una prueba rápida detecta una infección que tiene el 2 % de la población. La prueba es buena: da positivo en el 90 % de las personas infectadas y da negativo en el 95 % de las sanas. Te haces la prueba y sale positiva. ¿Qué tan probable es que estés infectado?</p>
+      <p>Mucha gente responde “90 %”. La respuesta correcta es cerca de <b>27 %</b>. Para verlo, imagina 1 000 personas: 20 están infectadas y 18 de ellas dan positivo; 980 están sanas, pero el 5 % de ellas, unas 49, también dan positivo. De los 67 positivos, solo 18 están infectados: \(18/67 \approx 0{,}27\).</p>
+      <div class="callout"><b>La idea central:</b> “positivo si estás infectado” (90 %) y “infectado si diste positivo” (27 %) son dos probabilidades condicionales distintas. Pasar de una a otra exige saber qué tan común es la infección. Esa es exactamente la tarea del teorema de Bayes.</div>
+
+      <h2 id="condicional-def"><span class="sec">§ 2</span>Condicionar es cambiar el universo</h2>
+      <p>La <b>probabilidad condicional</b> de \(A\) dado \(B\) es la probabilidad de \(A\) cuando ya sabes que ocurrió \(B\). Dejas de mirar todo el espacio muestral \(\Omega\) y te quedas solo con \(B\); dentro de ese nuevo universo, miras qué fracción también es \(A\):</p>
+      <div class="eq">\[ P(A \mid B) = \frac{P(A \cap B)}{P(B)}, \qquad P(B) &gt; 0 \]
+        <div class="note">Para un \(B\) fijo, \(P(\cdot \mid B)\) es una probabilidad completa: cumple los axiomas, así que valen todas las reglas conocidas, por ejemplo \(P(A^c \mid B) = 1 - P(A \mid B)\).</div>
+      </div>
+      <p>Con datos, condicionar es filtrar filas. Un servidor clasificó 1 000 correos según si son spam y si contienen la palabra “gratis”:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th></th><th>Contiene “gratis”</th><th>No contiene</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>Spam</td><td>120</td><td>80</td><td>200</td></tr>
+          <tr><td>No spam</td><td>40</td><td>760</td><td>800</td></tr>
+          <tr><td>Total</td><td>160</td><td>840</td><td>1 000</td></tr>
+        </tbody>
+      </table></div>
+      <p>\(P(\text{gratis} \mid \text{spam}) = 120/200 = 0{,}60\): divides por el total de la <b>fila</b>. En cambio \(P(\text{spam} \mid \text{gratis}) = 120/160 = 0{,}75\): divides por el total de la <b>columna</b>. Mismo numerador, distinto universo.</p>
+      <p>Despejando la definición sale la <b>regla del producto</b>, y aplicándola varias veces, la <b>regla de la cadena</b>:</p>
+      <div class="eq">\[ P(A \cap B) = P(B)\,P(A \mid B), \qquad P(A_1 \cap A_2 \cap \cdots \cap A_n) = P(A_1)\,P(A_2 \mid A_1)\,P(A_3 \mid A_1 \cap A_2)\cdots P(A_n \mid A_1 \cap \cdots \cap A_{n-1}) \]
+        <div class="note">Ejemplo: sacas 3 cartas sin reemplazo de una baraja de 52. La probabilidad de que las tres sean corazones es \(\tfrac{13}{52}\cdot\tfrac{12}{51}\cdot\tfrac{11}{50} \approx 0{,}0129\). Cada factor está condicionado a lo que ya salió.</div>
+      </div>
+
+      <h2 id="condicional-indep"><span class="sec">§ 3</span>Independencia</h2>
+      <p>\(A\) y \(B\) son <b>independientes</b> si saber que ocurrió uno no cambia la probabilidad del otro: \(P(A \mid B) = P(A)\). La definición simétrica, que también vale cuando \(P(B) = 0\), es</p>
+      <div class="eq">\[ A \perp B \iff P(A \cap B) = P(A)\,P(B) \]
+        <div class="note">En la tabla de correos, \(P(\text{spam}) = 0{,}20\) pero \(P(\text{spam} \mid \text{gratis}) = 0{,}75\): la palabra “gratis” es informativa, los eventos son dependientes. Si fueran independientes, esperaríamos \(0{,}20 \times 0{,}16 \times 1\,000 = 32\) correos en la celda spam-gratis, no 120.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Concepto</th><th>Definición</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td>Excluyentes (disjuntos)</td><td>\(P(A \cap B) = 0\)</td><td>Un dado sale 1 y sale 6 en la misma tirada</td></tr>
+          <tr><td>Independientes</td><td>\(P(A \cap B) = P(A)P(B)\)</td><td>Dos monedas distintas salen cara</td></tr>
+          <tr><td>Mutuamente independientes</td><td>El producto vale para <i>todo</i> subconjunto de eventos</td><td>Tres lanzamientos de una moneda</td></tr>
+          <tr><td>Condicionalmente independientes dado \(C\)</td><td>\(P(A \cap B \mid C) = P(A \mid C)P(B \mid C)\)</td><td>Dos pruebas médicas, dado el estado real del paciente</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Independencia a pares no basta.</b> Lanza dos monedas. Sea \(A\) = “la primera es cara”, \(B\) = “la segunda es cara” y \(C\) = “las dos coinciden”. Cada par es independiente (por ejemplo \(P(A \cap C) = 1/4 = P(A)P(C)\)), pero \(P(A \cap B \cap C) = 1/4 \neq 1/8\): conociendo \(A\) y \(B\), sabes \(C\) con certeza.</p>
+      <p><b>La independencia condicional no implica la marginal, ni al revés.</b> Dos pruebas pueden equivocarse de forma independiente <i>dado</i> que la persona está enferma, y aun así estar muy correlacionadas en la población: si la primera sale positiva, es más probable que la persona esté enferma y, por tanto, que la segunda también salga positiva.</p>
+      <div class="callout"><b>Error común:</b> creer que excluyentes significa independientes. Es casi lo contrario: si \(A\) y \(B\) son disjuntos y ambos tienen probabilidad positiva, saber que ocurrió \(A\) te dice con certeza que \(B\) no ocurrió. Son fuertemente dependientes.</div>
+
+      <h2 id="condicional-bayes"><span class="sec">§ 4</span>Probabilidad total y teorema de Bayes</h2>
+      <p>Si los eventos \(B_1, \dots, B_k\) forman una <b>partición</b> de \(\Omega\) (son disjuntos y alguno ocurre siempre), cualquier probabilidad se puede calcular “por casos”:</p>
+      <div class="eq">\[ P(A) = \sum_{j=1}^{k} P(A \mid B_j)\,P(B_j) \qquad \text{(probabilidad total)} \]
+        <div class="note">En el ejemplo de la prueba: \(P(+) = P(+ \mid I)P(I) + P(+ \mid I^c)P(I^c) = 0{,}90 \cdot 0{,}02 + 0{,}05 \cdot 0{,}98 = 0{,}067\).</div>
+      </div>
+      <p>Combinando la regla del producto en los dos sentidos con la probabilidad total, se obtiene el <b>teorema de Bayes</b>: la forma de invertir una condicional.</p>
+      <div class="eq">\[ P(B_j \mid A) = \frac{P(A \mid B_j)\,P(B_j)}{\sum_{i} P(A \mid B_i)\,P(B_i)} \qquad\Longrightarrow\qquad P(I \mid +) = \frac{0{,}90 \cdot 0{,}02}{0{,}067} \approx 0{,}269 \]
+        <div class="note">\(P(B_j)\) es la probabilidad <b>a priori</b> (antes de ver el dato), \(P(A \mid B_j)\) la <b>verosimilitud</b> del dato bajo cada hipótesis y \(P(B_j \mid A)\) la probabilidad <b>a posteriori</b>.</div>
+      </div>
+      <p>En diagnóstico, cada número tiene nombre propio:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Nombre</th><th>Probabilidad</th><th>En el ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td>Prevalencia</td><td>\(P(I)\)</td><td>0,02</td></tr>
+          <tr><td>Sensibilidad</td><td>\(P(+ \mid I)\)</td><td>0,90</td></tr>
+          <tr><td>Especificidad</td><td>\(P(- \mid I^c)\)</td><td>0,95</td></tr>
+          <tr><td>Valor predictivo positivo (VPP)</td><td>\(P(I \mid +)\)</td><td>0,269</td></tr>
+          <tr><td>Valor predictivo negativo (VPN)</td><td>\(P(I^c \mid -)\)</td><td>0,998</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Bayes en forma de chances.</b> Las chances (<i>odds</i>) de un evento son \(O = p/(1-p)\). Con ellas Bayes se vuelve una multiplicación:</p>
+      <div class="eq">\[ \underbrace{\frac{P(I \mid +)}{P(I^c \mid +)}}_{\text{chances a posteriori}} = \underbrace{\frac{P(+ \mid I)}{P(+ \mid I^c)}}_{LR^{+} \,=\, \frac{\text{sens}}{1 - \text{esp}}} \times \underbrace{\frac{P(I)}{P(I^c)}}_{\text{chances a priori}} \]
+        <div class="note">Aquí \(LR^+ = 0{,}90/0{,}05 = 18\). Chances a priori \(2/98 \approx 0{,}0204\); a posteriori \(18 \times 0{,}0204 \approx 0{,}367\), es decir \(p = 0{,}367/1{,}367 \approx 0{,}269\). Si una segunda prueba, condicionalmente independiente, también sale positiva, vuelves a multiplicar por 18: chances \(6{,}6\) y probabilidad \(\approx 0{,}87\).</div>
+      </div>
+      <div class="callout"><b>Para recordar:</b> la posterior de hoy es la prior de mañana. Cada dato nuevo multiplica las chances por su razón de verosimilitud, y una razón mayor que 1 empuja hacia la hipótesis, una menor que 1 la aleja.</div>
+
+      <h2 id="condicional-lab"><span class="sec">§ 5</span>Laboratorio: la prueba positiva</h2>
+      <p>La cuadrícula representa 1 000 personas que llegan a hacerse la prueba. Mueve la prevalencia, la sensibilidad y la especificidad, y mira cuántos de los positivos son verdaderos. Con “Pruebas positivas = 2 o 3”, las personas que llegan a la siguiente prueba son las que ya dieron positivo, así que la prevalencia de entrada sube.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · valor predictivo de una prueba</span><span class="num" id="condicional-dx-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="condicional-prev">PREVALENCIA · <b id="condicional-prev-v" class="num">2 %</b></label><input id="condicional-prev" type="range" min="0" max="100" value="48"></div>
+            <div class="ctrl"><label for="condicional-sens">SENSIBILIDAD · <b id="condicional-sens-v" class="num">90 %</b></label><input id="condicional-sens" type="range" min="50" max="100" value="90"></div>
+            <div class="ctrl"><label for="condicional-esp">ESPECIFICIDAD · <b id="condicional-esp-v" class="num">95,0 %</b></label><input id="condicional-esp" type="range" min="500" max="999" value="950"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="condicional-k-label">PRUEBAS POSITIVAS SEGUIDAS</label>
+              <div class="seg" id="condicional-k" role="group" aria-labelledby="condicional-k-label">
+                <button data-k="1" aria-pressed="true">1</button>
+                <button data-k="2" aria-pressed="false">2</button>
+                <button data-k="3" aria-pressed="false">3</button>
+              </div>
+            </div>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>1 000 personas en la prueba</span><span id="condicional-grid-lbl">–</span></div>
+              <canvas class="plot" id="condicional-c-grid" height="250" aria-label="Cuadrícula de mil personas coloreadas según estado real y resultado de la prueba"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>VPP según la prevalencia</span><span>escala log</span></div>
+              <canvas class="plot" id="condicional-c-vpp" height="250" aria-label="Curva del valor predictivo positivo en función de la prevalencia"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>infectado y positivo</span><span><i style="background:var(--hot)"></i>sano y positivo (falso positivo)</span><span><i style="background:var(--ink)"></i>infectado y negativo</span><span><i style="background:var(--line)"></i>sano y negativo</span></div>
+          <div class="readout">
+            <div><span>P(infectado | +)</span><b id="condicional-vpp">–</b></div>
+            <div><span>P(sano | −)</span><b id="condicional-vpn">–</b></div>
+            <div><span>positivos de cada 1 000</span><b id="condicional-npos">–</b></div>
+            <div><span>razón LR+</span><b id="condicional-lr">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con prevalencia del 0,1 % incluso una prueba con 99 % de especificidad tiene un VPP bajo: casi todos los positivos son falsos. Repetir la prueba en quienes dieron positivo es la forma práctica de subir el VPP, siempre que los errores de las dos pruebas sean independientes.</figcaption>
+      </figure>
+
+      <h2 id="condicional-trampas"><span class="sec">§ 6</span>Trampas clásicas</h2>
+      <p><b>1. La falacia de la tasa base.</b> Es ignorar \(P(B)\), como en la prueba positiva. Aparece en filtros de fraude, en reconocimiento facial y en cualquier detector de algo raro: si el evento es poco frecuente, hasta un buen detector produce más falsas alarmas que aciertos.</p>
+      <p><b>2. La falacia del fiscal.</b> Confundir \(P(\text{evidencia} \mid \text{inocente})\) con \(P(\text{inocente} \mid \text{evidencia})\). Que una coincidencia de ADN tenga probabilidad 1 en un millón si la persona es inocente no significa que la probabilidad de inocencia sea 1 en un millón: en una ciudad de 5 millones habría unas 5 personas inocentes que también coinciden.</p>
+      <p><b>3. El problema de Monty Hall.</b> Hay tres puertas; detrás de una hay un auto. Eliges una, y el presentador, que sabe dónde está el auto, abre otra puerta que tiene una cabra. ¿Te conviene cambiar? Sí: cambiar gana con probabilidad \(2/3\). Tu primera elección acierta con probabilidad \(1/3\), y el presentador nunca te quita esa probabilidad; el \(2/3\) restante se concentra en la única puerta cerrada que queda. Con Bayes: si eliges la puerta 1 y él abre la 3,</p>
+      <div class="eq">\[ P(\text{auto en 2} \mid \text{abre 3}) = \frac{P(\text{abre 3} \mid \text{auto en 2})\,P(\text{auto en 2})}{P(\text{abre 3})} = \frac{1 \cdot \tfrac13}{\tfrac12} = \frac23 \]
+        <div class="note">\(P(\text{abre 3}) = \tfrac12\) por probabilidad total: si el auto está en 1 abre la 3 con probabilidad \(\tfrac12\), si está en 2 con probabilidad 1, si está en 3 nunca: \(\tfrac13(\tfrac12 + 1 + 0) = \tfrac12\).</div>
+      </div>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · Monty Hall</span><span class="num" id="condicional-mh-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="condicional-doors-label">PUERTAS</label>
+              <div class="seg" id="condicional-doors" role="group" aria-labelledby="condicional-doors-label">
+                <button data-n="3" aria-pressed="true">3</button>
+                <button data-n="10" aria-pressed="false">10</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="condicional-play10" type="button">Jugar 10 veces</button>
+            <button class="btn btn-ghost btn-sm" id="condicional-play500" type="button">Jugar 500 veces</button>
+            <button class="btn btn-ghost btn-sm" id="condicional-reset" type="button">Reiniciar</button>
+          </div>
+          <canvas class="plot" id="condicional-c-mh" height="230" aria-label="Proporción acumulada de victorias al quedarse y al cambiar de puerta"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>cambiar de puerta</span><span><i style="background:var(--hot)"></i>quedarse</span><span><i style="background:var(--muted)"></i>valores teóricos</span></div>
+          <div class="readout">
+            <div><span>juegos</span><b id="condicional-mh-n">–</b></div>
+            <div><span>gana quedándose</span><b id="condicional-mh-stay">–</b></div>
+            <div><span>gana cambiando</span><b id="condicional-mh-sw">–</b></div>
+            <div><span>teórico cambiando</span><b id="condicional-mh-th">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con 10 puertas el presentador abre 8 puertas con cabra y deja una cerrada. Quedarte gana solo si acertaste al principio (1 de 10); cambiar gana en los otros 9 de cada 10 juegos.</figcaption>
+      </figure>
+      <p><b>4. La paradoja de Simpson.</b> Una asociación puede invertirse al condicionar en una tercera variable. En un estudio clásico de tratamientos para cálculos renales (Charig y colegas, 1986):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Tratamiento</th><th>Cálculos pequeños</th><th>Cálculos grandes</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>A (cirugía abierta)</td><td>81/87 = <b>93 %</b></td><td>192/263 = <b>73 %</b></td><td>273/350 = 78 %</td></tr>
+          <tr><td>B (percutánea)</td><td>234/270 = 87 %</td><td>55/80 = 69 %</td><td>289/350 = <b>83 %</b></td></tr>
+        </tbody>
+      </table></div>
+      <p>A gana en <i>cada</i> tamaño de cálculo, pero B gana en el total. La razón: A se usó sobre todo en los casos difíciles (cálculos grandes), que tienen menor tasa de éxito con cualquier tratamiento. Por probabilidad total, \(P(\text{éxito} \mid A) = \sum_t P(\text{éxito} \mid A, t)\,P(t \mid A)\), y los pesos \(P(t \mid A)\) y \(P(t \mid B)\) son muy distintos. Para comparar tratamientos hay que condicionar en el tamaño (o asignarlos al azar).</p>
+
+      <h2 id="condicional-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
+      <p>Calculamos el VPP con la fórmula, lo verificamos simulando un millón de personas y obtenemos las condicionales de la tabla de correos dividiendo por filas o por columnas.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+
+<span class="k">def</span> <span class="f">vpp</span>(prev, sens, esp):
+    <span class="s">"""P(enfermo | +) por el teorema de Bayes."""</span>
+    pos = sens * prev + (<span class="n">1</span> - esp) * (<span class="n">1</span> - prev)      <span class="c"># probabilidad total</span>
+    <span class="k">return</span> sens * prev / pos
+
+<span class="f">print</span>(<span class="f">round</span>(<span class="f">vpp</span>(<span class="n">0.02</span>, <span class="n">0.90</span>, <span class="n">0.95</span>), <span class="n">3</span>))            <span class="c"># 0.269</span>
+
+<span class="c"># segunda prueba positiva: la posterior pasa a ser la prior</span>
+p1 = <span class="f">vpp</span>(<span class="n">0.02</span>, <span class="n">0.90</span>, <span class="n">0.95</span>)
+<span class="f">print</span>(<span class="f">round</span>(<span class="f">vpp</span>(p1, <span class="n">0.90</span>, <span class="n">0.95</span>), <span class="n">3</span>))              <span class="c"># 0.869</span>
+
+<span class="c"># verificación por simulación</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+n = <span class="n">1_000_000</span>
+enfermo = rng.<span class="f">random</span>(n) &lt; <span class="n">0.02</span>
+positivo = np.<span class="f">where</span>(enfermo, rng.<span class="f">random</span>(n) &lt; <span class="n">0.90</span>, rng.<span class="f">random</span>(n) &lt; <span class="n">0.05</span>)
+<span class="f">print</span>(<span class="f">round</span>(enfermo[positivo].<span class="f">mean</span>(), <span class="n">3</span>))              <span class="c"># ≈ 0.269</span>
+
+<span class="c"># condicionales en una tabla: normalizar por filas o por columnas</span>
+correos = pd.<span class="f">DataFrame</span>({
+    <span class="s">"spam"</span>:   [<span class="s">"sí"</span>] * <span class="n">200</span> + [<span class="s">"no"</span>] * <span class="n">800</span>,
+    <span class="s">"gratis"</span>: [<span class="s">"sí"</span>] * <span class="n">120</span> + [<span class="s">"no"</span>] * <span class="n">80</span> + [<span class="s">"sí"</span>] * <span class="n">40</span> + [<span class="s">"no"</span>] * <span class="n">760</span>,
+})
+<span class="f">print</span>(pd.<span class="f">crosstab</span>(correos.spam, correos.gratis, normalize=<span class="s">"index"</span>))    <span class="c"># P(gratis | spam) = 0.60</span>
+<span class="f">print</span>(pd.<span class="f">crosstab</span>(correos.spam, correos.gratis, normalize=<span class="s">"columns"</span>))  <span class="c"># P(spam | gratis) = 0.75</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>vpp &lt;- <span class="k">function</span>(prev, sens, esp) {
+  pos &lt;- sens * prev + (<span class="n">1</span> - esp) * (<span class="n">1</span> - prev)          <span class="c"># probabilidad total</span>
+  sens * prev / pos
+}
+<span class="f">round</span>(<span class="f">vpp</span>(<span class="n">0.02</span>, <span class="n">0.90</span>, <span class="n">0.95</span>), <span class="n">3</span>)                     <span class="c"># 0.269</span>
+
+<span class="c"># segunda prueba positiva: la posterior pasa a ser la prior</span>
+p1 &lt;- <span class="f">vpp</span>(<span class="n">0.02</span>, <span class="n">0.90</span>, <span class="n">0.95</span>)
+<span class="f">round</span>(<span class="f">vpp</span>(p1, <span class="n">0.90</span>, <span class="n">0.95</span>), <span class="n">3</span>)                       <span class="c"># 0.869</span>
+
+<span class="c"># verificación por simulación</span>
+<span class="f">set.seed</span>(<span class="n">42</span>)
+n &lt;- <span class="n">1e6</span>
+enfermo  &lt;- <span class="f">runif</span>(n) &lt; <span class="n">0.02</span>
+positivo &lt;- <span class="f">ifelse</span>(enfermo, <span class="f">runif</span>(n) &lt; <span class="n">0.90</span>, <span class="f">runif</span>(n) &lt; <span class="n">0.05</span>)
+<span class="f">mean</span>(enfermo[positivo])                              <span class="c"># ≈ 0.269</span>
+
+<span class="c"># condicionales en una tabla: margin = 1 divide por filas, margin = 2 por columnas</span>
+tab &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">120</span>, <span class="n">80</span>, <span class="n">40</span>, <span class="n">760</span>), nrow = <span class="n">2</span>, byrow = <span class="k">TRUE</span>,
+              dimnames = <span class="f">list</span>(spam = <span class="f">c</span>(<span class="s">"sí"</span>, <span class="s">"no"</span>), gratis = <span class="f">c</span>(<span class="s">"sí"</span>, <span class="s">"no"</span>)))
+<span class="f">prop.table</span>(tab, margin = <span class="n">1</span>)                           <span class="c"># P(gratis | spam) = 0.60</span>
+<span class="f">prop.table</span>(tab, margin = <span class="n">2</span>)                           <span class="c"># P(spam | gratis) = 0.75</span></code></pre>
+</div>
+
+      <h2 id="condicional-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="De 100 000 personas, 100 están enfermas y todas dan positivo, pero de las 99 900 sanas unas 4 995 también dan positivo. 100 / 5 095 ≈ 2 %." data-wrong="Piensa en 100 000 personas. ¿Cuántas están enfermas y dan positivo? ¿Cuántas sanas dan positivo con 5 % de falsos positivos? Divide.">
+        <h3>Una enfermedad afecta a 1 de cada 1 000 personas. Una prueba detecta al 100 % de los enfermos y tiene 5 % de falsos positivos. Si das positivo, ¿cuál es aproximadamente la probabilidad de estar enfermo?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>95 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>50 %</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>2 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>5 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Si son disjuntos, P(A ∩ B) = 0, que es distinto de P(A)·P(B) &gt; 0. Saber que ocurrió A te dice que B no ocurrió: son dependientes." data-wrong="Compara P(A ∩ B) con P(A)·P(B). Si A y B no pueden ocurrir juntos, ¿cuánto vale P(A ∩ B)?">
+        <h3>A y B son excluyentes, con P(A) = 0,3 y P(B) = 0,4. ¿Son independientes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>No: P(A ∩ B) = 0 pero P(A)·P(B) = 0,12</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Sí: no tienen nada que ver entre sí</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Sí, porque P(A) + P(B) ≤ 1</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No se puede saber sin más datos</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Tu primera elección acierta 1 de cada 3 veces y abrir una cabra no cambia eso. El resto, 2/3, queda en la otra puerta cerrada." data-wrong="Pregúntate con qué probabilidad acertaste al principio. El presentador siempre puede abrir una cabra, así que eso no cambia tu probabilidad inicial.">
+        <h3>En el juego de Monty Hall con 3 puertas, ¿con qué probabilidad ganas si siempre cambias de puerta?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>1/3</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>1/2</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>3/4</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>2/3</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="condicional-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. El laboratorio de la prueba positiva te sirve para comprobar el último.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>De 400 clientes de una tienda, 160 usaron un cupón de descuento. De los que usaron cupón, 96 volvieron a comprar en el mes siguiente; de los que no lo usaron, volvieron 72. Calcula P(volver | cupón), P(volver | sin cupón), P(volver) y P(cupón | volvió).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(P(\text{volver} \mid \text{cupón}) = 96/160 = 0{,}60\) y \(P(\text{volver} \mid \text{sin cupón}) = 72/240 = 0{,}30\).</p>
+            <p>\(P(\text{volver}) = (96 + 72)/400 = 168/400 = 0{,}42\). Con probabilidad total: \(0{,}60 \cdot 0{,}4 + 0{,}30 \cdot 0{,}6 = 0{,}42\).</p>
+            <p>\(P(\text{cupón} \mid \text{volvió}) = 96/168 \approx 0{,}571\). Ojo: esto no prueba que el cupón <i>cause</i> que vuelvan; quizá lo usan los clientes que ya eran más fieles.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>En una encuesta, P(A) = 0,3 (usa transporte público), P(B) = 0,5 (vive en la capital) y P(A ∩ B) = 0,15. ¿Son A y B independientes? Calcula P(A ∪ B) y P(A | B).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(P(A)P(B) = 0{,}3 \times 0{,}5 = 0{,}15 = P(A \cap B)\): son <b>independientes</b>.</p>
+            <p>\(P(A \cup B) = 0{,}3 + 0{,}5 - 0{,}15 = 0{,}65\) y \(P(A \mid B) = 0{,}15/0{,}5 = 0{,}30 = P(A)\), como corresponde a eventos independientes.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Tres plantas fabrican un mismo repuesto: A produce el 50 %, B el 30 % y C el 20 %. Sus tasas de defectos son 1 %, 2 % y 3 %. Eliges un repuesto al azar y está defectuoso. ¿Cuál es la probabilidad de que venga de cada planta?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Probabilidad total: \(P(D) = 0{,}01 \cdot 0{,}5 + 0{,}02 \cdot 0{,}3 + 0{,}03 \cdot 0{,}2 = 0{,}005 + 0{,}006 + 0{,}006 = 0{,}017\).</p>
+            <p>Bayes: \(P(A \mid D) = 0{,}005/0{,}017 \approx 0{,}294\), \(P(B \mid D) = 0{,}006/0{,}017 \approx 0{,}353\) y \(P(C \mid D) = 0{,}006/0{,}017 \approx 0{,}353\). La planta C fabrica solo el 20 %, pero aporta más de un tercio de los defectos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Un sistema antifraude marca transacciones. El 0,5 % de las transacciones es fraude; el sistema marca el 99 % de los fraudes y el 2 % de las legítimas. (a) Si una transacción es marcada, ¿qué probabilidad hay de que sea fraude? (b) Las marcadas pasan por un segundo sistema con las mismas tasas, cuyos errores son independientes de los del primero dado el tipo de transacción. Si también la marca, ¿cuál es la probabilidad ahora? Usa la forma de chances y verifica con una simulación.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(LR^+ = 0{,}99/0{,}02 = 49{,}5\). Chances a priori \(0{,}005/0{,}995 \approx 0{,}00503\); a posteriori \(49{,}5 \times 0{,}00503 \approx 0{,}249\), o sea \(p \approx 0{,}249/1{,}249 \approx 0{,}199\). Solo 1 de cada 5 marcadas es fraude.</p>
+            <p>(b) Multiplica otra vez: chances \(0{,}249 \times 49{,}5 \approx 12{,}3\), probabilidad \(\approx 12{,}3/13{,}3 \approx 0{,}925\).</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+n = <span class="n">5_000_000</span>
+fraude = rng.<span class="f">random</span>(n) &lt; <span class="n">0.005</span>
+p_marca = np.<span class="f">where</span>(fraude, <span class="n">0.99</span>, <span class="n">0.02</span>)
+m1 = rng.<span class="f">random</span>(n) &lt; p_marca
+m2 = rng.<span class="f">random</span>(n) &lt; p_marca           <span class="c"># independiente de m1 dado el tipo</span>
+<span class="f">print</span>(fraude[m1].<span class="f">mean</span>(), fraude[m1 &amp; m2].<span class="f">mean</span>())   <span class="c"># ≈ 0.199 y ≈ 0.925</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
+n &lt;- <span class="n">5e6</span>
+fraude  &lt;- <span class="f">runif</span>(n) &lt; <span class="n">0.005</span>
+p_marca &lt;- <span class="f">ifelse</span>(fraude, <span class="n">0.99</span>, <span class="n">0.02</span>)
+m1 &lt;- <span class="f">runif</span>(n) &lt; p_marca
+m2 &lt;- <span class="f">runif</span>(n) &lt; p_marca                   <span class="c"># independiente de m1 dado el tipo</span>
+<span class="f">c</span>(<span class="f">mean</span>(fraude[m1]), <span class="f">mean</span>(fraude[m1 &amp; m2]))   <span class="c"># ≈ 0.199 y ≈ 0.925</span></code></pre>
+</div>
+          </div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

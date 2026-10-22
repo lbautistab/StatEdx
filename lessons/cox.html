@@ -1,0 +1,325 @@
+<!-- StatEdx · sesión: cox -->
+<div id="view-cox" data-view="cox" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Regresión de riesgos proporcionales de Cox</h1>
+      <p>La prueba log-rank dice si dos grupos difieren, pero no cuánto ni ajustando por qué. El modelo de Cox es la regresión del análisis de supervivencia: estima cuánto multiplica el riesgo cada variable, sin suponer nada sobre la forma del riesgo basal. Aquí entiendes de dónde salen sus estimaciones, cómo se leen las razones de riesgo y cómo verificar el supuesto del que depende todo.</p>
+      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: log-rank y regresión logística</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#cox-idea" data-sec="cox-idea">La idea</a></li>
+        <li><a href="#cox-modelo" data-sec="cox-modelo">El modelo</a></li>
+        <li><a href="#cox-parcial" data-sec="cox-parcial">Verosimilitud parcial</a></li>
+        <li><a href="#cox-lab" data-sec="cox-lab">Laboratorio: estima β</a></li>
+        <li><a href="#cox-interp" data-sec="cox-interp">Interpretar razones de riesgo</a></li>
+        <li><a href="#cox-supuesto" data-sec="cox-supuesto">El supuesto de proporcionalidad</a></li>
+        <li><a href="#cox-lab-ph" data-sec="cox-lab-ph">Laboratorio: verifica el supuesto</a></li>
+        <li><a href="#cox-code" data-sec="cox-code">En R y Python</a></li>
+        <li><a href="#cox-quiz" data-sec="cox-quiz">Comprueba</a></li>
+        <li><a href="#cox-ej" data-sec="cox-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="cox-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>En un estudio de 400 pacientes con insuficiencia cardiaca, los que reciben un fármaco nuevo parecen vivir más. Pero también son, en promedio, más jóvenes, porque los médicos se lo indicaron con más frecuencia a pacientes con mejor estado general. ¿Cuánto del beneficio es del fármaco y cuánto de la edad? Con Kaplan-Meier y log-rank solo puedes comparar grupos; para separar efectos necesitas una regresión.</p>
+      <p>El problema es qué modelar. El tiempo tiene censura, así que una regresión lineal sobre los tiempos no sirve. Una logística sobre “murió sí o no” ignora cuándo. La idea de David Cox (1972) fue modelar el <b>riesgo</b> y hacerlo de una forma que no obliga a decir cómo es el riesgo de base a lo largo del tiempo.</p>
+      <div class="callout"><b>Qué vas a aprender:</b> el modelo de Cox dice que cada variable multiplica el riesgo por un factor constante en el tiempo. Ese factor, la <b>razón de riesgos</b> o <i>hazard ratio</i> (HR), es el número que verás reportado en casi todo ensayo clínico.</div>
+
+      <h2 id="cox-modelo"><span class="sec">§ 2</span>El modelo de riesgos proporcionales</h2>
+      <p>Para un individuo con covariables \(x = (x_1, \dots, x_p)\), el modelo de Cox es:</p>
+      <div class="eq">\[ h(t \mid x) = h_0(t)\,\exp(\beta_1 x_1 + \dots + \beta_p x_p) = h_0(t)\,e^{x^\top \beta} \]
+        <div class="note">\(h_0(t)\) es el <b>riesgo basal</b>: el riesgo de alguien con todas las covariables en 0. No se especifica: puede tener cualquier forma. La parte \(e^{x^\top\beta}\) no depende de \(t\). Por eso es un modelo <b>semiparamétrico</b>: una parte paramétrica (los \(\beta\)) y una no paramétrica (\(h_0\)).</div>
+      </div>
+      <p>Si comparas dos individuos que difieren solo en \(x_1\), en una unidad, el riesgo basal se cancela:</p>
+      <div class="eq">\[ \frac{h(t \mid x_1 + 1, \dots)}{h(t \mid x_1, \dots)} = \frac{h_0(t)\,e^{\beta_1 (x_1 + 1) + \dots}}{h_0(t)\,e^{\beta_1 x_1 + \dots}} = e^{\beta_1} = \text{HR}_1 \]
+        <div class="note">La razón es la misma en todo momento: los riesgos son <b>proporcionales</b>. Graficados en escala logarítmica, \(\ln h(t \mid x)\) de dos individuos son curvas paralelas separadas por \(\beta_1\).</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Coeficiente</th><th>HR = e<sup>β</sup></th><th>Lectura</th></tr></thead>
+        <tbody>
+          <tr><td>β = −0,51</td><td>0,60</td><td>El riesgo instantáneo es 40 % menor en todo momento</td></tr>
+          <tr><td>β = 0</td><td>1</td><td>La variable no cambia el riesgo</td></tr>
+          <tr><td>β = 0,04 por año de edad</td><td>1,04</td><td>Cada año suma un 4 %; diez años multiplican por \(e^{0{,}4} = 1{,}49\)</td></tr>
+          <tr><td>β = 0,69</td><td>2,0</td><td>El riesgo se duplica</td></tr>
+        </tbody>
+      </table></div>
+      <p>Algunos detalles que se olvidan:</p>
+      <ul>
+        <li><b>No hay intercepto.</b> Cualquier constante se absorbe en \(h_0(t)\). Por eso el software no lo reporta.</li>
+        <li><b>Las categóricas</b> entran como variables indicadoras con una categoría de referencia; cada HR compara contra ella.</li>
+        <li><b>El efecto es multiplicativo y log-lineal</b> en las covariables continuas: pasar de 40 a 50 años tiene el mismo efecto relativo que de 70 a 80. Si eso no es razonable, usa splines o categorías.</li>
+        <li><b>Las interacciones</b> funcionan como en cualquier regresión: un término trat × sexo permite que el HR del tratamiento sea distinto en hombres y mujeres.</li>
+      </ul>
+      <p>En términos de supervivencia, el modelo implica \(S(t \mid x) = S_0(t)^{\exp(x^\top\beta)}\). Un HR de 2 no significa que la supervivencia se reduzca a la mitad: si \(S_0(12) = 0{,}80\), con HR = 2 queda \(0{,}80^2 = 0{,}64\).</p>
+
+      <h2 id="cox-parcial"><span class="sec">§ 3</span>La verosimilitud parcial</h2>
+      <p>¿Cómo se estiman los \(\beta\) sin conocer \(h_0\)? Mira un tiempo de evento \(t_j\) en que falla el individuo \(i\), y llama \(R_j\) al conjunto en riesgo justo antes. Dado que <b>alguien</b> de \(R_j\) falla en \(t_j\), la probabilidad de que sea precisamente \(i\) es:</p>
+      <div class="eq">\[ \frac{h(t_j \mid x_i)}{\sum_{k \in R_j} h(t_j \mid x_k)} = \frac{h_0(t_j)\,e^{x_i^\top\beta}}{\sum_{k \in R_j} h_0(t_j)\,e^{x_k^\top\beta}} = \frac{e^{x_i^\top\beta}}{\sum_{k \in R_j} e^{x_k^\top\beta}} \]
+        <div class="note">\(h_0(t_j)\) se cancela. Es como una lotería en cada tiempo de evento, donde cada persona en riesgo tiene un número de boletos proporcional a \(e^{x^\top\beta}\).</div>
+      </div>
+      <p>Multiplicando sobre todos los tiempos de evento se obtiene la <b>verosimilitud parcial</b> de Cox:</p>
+      <div class="eq">\[ L_p(\beta) = \prod_{j=1}^{D} \frac{e^{x_{(j)}^\top\beta}}{\sum_{k \in R_j} e^{x_k^\top\beta}}, \qquad \ell_p(\beta) = \sum_{j=1}^{D} \Big[\, x_{(j)}^\top\beta - \ln \sum_{k \in R_j} e^{x_k^\top\beta} \Big] \]
+        <div class="note">\(x_{(j)}\) son las covariables de quien falla en \(t_j\). Solo importa el <b>orden</b> de los tiempos, no sus valores: si multiplicas todos los tiempos por 2, \(\hat\beta\) no cambia. Los censurados aportan a los denominadores mientras están en riesgo.</div>
+      </div>
+      <p>Se maximiza por Newton-Raphson. El gradiente (la función <i>score</i>) tiene una forma muy interpretable:</p>
+      <div class="eq">\[ U(\beta) = \frac{\partial \ell_p}{\partial \beta} = \sum_{j=1}^{D} \big[\, x_{(j)} - \bar x_j(\beta) \big], \qquad \bar x_j(\beta) = \frac{\sum_{k \in R_j} x_k\,e^{x_k^\top\beta}}{\sum_{k \in R_j} e^{x_k^\top\beta}} \]
+        <div class="note">En el máximo, la covariable de quien falla coincide en promedio con el promedio ponderado del conjunto en riesgo. Cada término \(x_{(j)} - \bar x_j(\hat\beta)\) es un <b>residuo de Schoenfeld</b>, la herramienta para verificar el supuesto. Con una covariable binaria y \(\beta = 0\), \(U(0) = O_1 - E_1\): la prueba del score de Cox es la log-rank.</div>
+      </div>
+      <p>La información \(I(\hat\beta) = -\ell_p''(\hat\beta)\) da el error estándar, \(\operatorname{EE}(\hat\beta) = I(\hat\beta)^{-1/2}\), y con él tres pruebas asintóticamente equivalentes para \(H_0: \beta = 0\): la de <b>Wald</b> (\(z = \hat\beta/\operatorname{EE}\)), la del <b>score</b> y la de <b>razón de verosimilitudes</b>, \(2[\ell_p(\hat\beta) - \ell_p(0)] \sim \chi^2_p\). Con muestras pequeñas, la de razón de verosimilitudes es la más confiable.</p>
+      <p><b>Empates.</b> Si varios fallan en el mismo tiempo, la fórmula exacta es costosa. La aproximación de <b>Breslow</b> usa el mismo denominador para todos; la de <b>Efron</b>, más precisa, va descontando a quienes fallaron. R usa Efron por defecto; algunos programas, Breslow. Con pocos empates casi no hay diferencia.</p>
+      <p><b>El riesgo basal.</b> Una vez estimado \(\hat\beta\), el estimador de Breslow recupera \(\hat H_0(t) = \sum_{t_j \le t} d_j \big/ \sum_{k \in R_j} e^{x_k^\top\hat\beta}\), y con él las curvas predichas \(\hat S(t \mid x) = \exp\big[-\hat H_0(t)\,e^{x^\top\hat\beta}\big]\) para cualquier perfil de paciente.</p>
+
+      <h2 id="cox-lab"><span class="sec">§ 4</span>Laboratorio: estima β con la verosimilitud parcial</h2>
+      <p>Veinticuatro pacientes, la mitad con tratamiento (\(x = 1\)). A la izquierda, la log-verosimilitud parcial en función de \(\beta\); la franja marca los \(\beta\) que no se rechazan al 5 % con la prueba de razón de verosimilitudes, que forman el intervalo de confianza. A la derecha, las curvas que predice el modelo con ese \(\beta\) (líneas suaves en escalera) frente al Kaplan-Meier de cada grupo. Mueve \(\beta\) hasta que las curvas del modelo se ajusten mejor a los datos.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · verosimilitud parcial de Cox</span><span class="num" id="cox-pl-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="cox-pl-b">COEFICIENTE · β = <b id="cox-pl-b-v" class="num">0,00</b></label><input id="cox-pl-b" type="range" min="-3" max="1.5" step="0.01" value="0"></div>
+            <button class="btn btn-ghost btn-sm" id="cox-pl-fit" type="button">Maximizar (Newton)</button>
+            <button class="btn btn-ghost btn-sm" id="cox-pl-new" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>ℓₚ(β)</span><span>franja: IC 95 % por razón de verosimilitudes</span></div>
+              <canvas class="plot" id="cox-c-pl" height="240" aria-label="Log-verosimilitud parcial en función de beta con el valor actual y el máximo marcados"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>S(t | x) del modelo y Kaplan-Meier</span><span class="legend"><span><i style="background:var(--accent)"></i>control</span><span><i style="background:var(--hot)"></i>tratado</span></span></div>
+              <canvas class="plot" id="cox-c-pls" height="240" aria-label="Curvas de supervivencia predichas por el modelo de Cox frente a las curvas de Kaplan-Meier de cada grupo"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>HR = e^β</span><b id="cox-pl-hr">–</b></div>
+            <div><span>ℓₚ(β)</span><b id="cox-pl-ll">–</b></div>
+            <div><span>razón de verosim. vs β = 0</span><b id="cox-pl-lr">–</b></div>
+            <div><span>score U(β)</span><b id="cox-pl-u">–</b></div>
+          </div>
+        </div>
+        <figcaption>En el máximo el score vale 0 y la curva roja del modelo queda entre los escalones del Kaplan-Meier tratado. Con solo 24 pacientes la franja es ancha: el intervalo para el HR suele ir de un efecto grande a casi ninguno. Con β = 0, el score es O − E del grupo tratado, el numerador de la log-rank.</figcaption>
+      </figure>
+
+      <h2 id="cox-interp"><span class="sec">§ 5</span>Interpretar razones de riesgo</h2>
+      <p>Un resultado típico, del ejemplo de la sección de código (400 pacientes, 188 muertes):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Variable</th><th>β̂</th><th>EE</th><th>HR</th><th>IC 95 % del HR</th><th>p</th></tr></thead>
+        <tbody>
+          <tr><td>tratamiento (sí vs no)</td><td>−0,543</td><td>0,149</td><td>0,58</td><td>0,43 a 0,78</td><td>&lt; 0,001</td></tr>
+          <tr><td>edad (por año)</td><td>0,043</td><td>0,008</td><td>1,044</td><td>1,028 a 1,061</td><td>&lt; 0,001</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li><b>Tratamiento:</b> a igual edad, el riesgo instantáneo de muerte de los tratados es 0,58 veces el de los no tratados, una reducción del 42 % (IC 22 % a 57 %) en cualquier momento del seguimiento.</li>
+        <li><b>Edad:</b> cada año adicional multiplica el riesgo por 1,044, con el tratamiento fijo. Para diez años, \(e^{10 \cdot 0{,}043} \approx 1{,}54\). El IC se transforma igual: \(\exp(10\,[\hat\beta \pm 1{,}96\,\operatorname{EE}])\).</li>
+        <li><b>Ajuste:</b> cada HR está condicionado a las demás variables del modelo. Si edad confunde la relación entre tratamiento y supervivencia, el HR crudo (sin edad) y el ajustado serán distintos.</li>
+      </ul>
+      <div class="callout"><b>Errores frecuentes:</b> (1) Decir que un HR de 0,58 significa “58 % de las muertes” o “vive 1,7 veces más”. El HR compara tasas instantáneas, no proporciones acumuladas ni tiempos; para eso usa \(S(t \mid x)\), medianas o la RMST. (2) Leer \(1 - \text{HR}\) como reducción del riesgo absoluto: con eventos raros, un HR de 0,5 puede ser pasar de 2 % a 1 %. (3) Hablar de un HR único cuando los riesgos no son proporcionales: en ese caso el HR estimado es una especie de promedio ponderado por los eventos y depende del seguimiento.</div>
+      <p>Una sutileza más: aunque el tratamiento esté aleatorizado, el HR en el tiempo \(t\) compara a los sobrevivientes de cada grupo, que ya no son comparables (en el grupo con más riesgo solo quedan los más robustos). Por eso un HR que “cambia con el tiempo” no siempre significa que el efecto biológico cambie. Es una de las razones por las que hoy se recomienda reportar también diferencias absolutas.</p>
+
+      <h2 id="cox-supuesto"><span class="sec">§ 6</span>El supuesto de riesgos proporcionales</h2>
+      <p>Todo lo anterior supone que \(\text{HR}\) no depende de \(t\). Hay tres formas habituales de revisarlo:</p>
+      <ul>
+        <li><b>Gráfico log-log.</b> Bajo el modelo, \(\ln[-\ln S(t \mid x)] = \ln H_0(t) + x^\top\beta\). Si grafica \(\ln[-\ln \hat S(t)]\) de Kaplan-Meier contra \(\ln t\) para cada grupo, las curvas deben ser aproximadamente <b>paralelas</b>. Si se cruzan o convergen, hay problema.</li>
+        <li><b>Residuos de Schoenfeld escalados.</b> Grambsch y Therneau (1994) mostraron que si el efecto real es \(\beta(t)\), los residuos escalados \(s^*_j\) cumplen \(E[s^*_j] \approx \beta(t_j)\). Su gráfica contra el tiempo, con un suavizado, muestra <b>cómo</b> cambia el efecto. Si la tendencia es plana, el supuesto se sostiene.</li>
+        <li><b>Prueba formal.</b> Se regresa \(s^*_j\) contra una función del tiempo \(g(t_j)\) (el rango, \(\ln t\) o la transformación de Kaplan-Meier) y se prueba pendiente cero. En R es <code>cox.zph</code>, con una prueba por variable y una global.</li>
+      </ul>
+      <div class="eq">\[ s^*_j = \hat\beta + D\,\widehat{\operatorname{Var}}(\hat\beta)\,\big[x_{(j)} - \bar x_j(\hat\beta)\big], \qquad T_{\text{GT}} = \frac{\big[\sum_j (g_j - \bar g)\,r_j\big]^2}{\frac{I(\hat\beta)}{D}\sum_j (g_j - \bar g)^2} \;\approx\; \chi^2_1 \]
+        <div class="note">\(r_j = x_{(j)} - \bar x_j(\hat\beta)\) es el residuo de Schoenfeld del evento \(j\), \(D\) el número de eventos y \(g_j\) la función del tiempo elegida. Con muestras grandes, la prueba detecta desviaciones irrelevantes: mira siempre la gráfica antes de decidir.</div>
+      </div>
+      <p>Si el supuesto falla para una variable, hay varias salidas:</p>
+      <ul>
+        <li><b>Estratificar</b> por esa variable (<code>strata(centro)</code>): cada estrato tiene su propio \(h_0\) y no se estima su efecto. Ideal para variables de ajuste que no te interesa interpretar.</li>
+        <li><b>Efecto que cambia en el tiempo:</b> \(\beta(t) = \beta + \gamma\,g(t)\), con una interacción entre la variable y \(\ln t\) (en R, el argumento <code>tt</code>), o un coeficiente distinto por tramos de tiempo (<code>survSplit</code>).</li>
+        <li><b>Cambiar de escala:</b> la RMST o un modelo de tiempo de falla acelerado, que no suponen riesgos proporcionales.</li>
+      </ul>
+
+      <h2 id="cox-lab-ph"><span class="sec">§ 7</span>Laboratorio: verifica el supuesto</h2>
+      <p>Trescientos pacientes en dos grupos. Elige si el efecto del tratamiento es constante, si se desvanece después del mes 6 o si solo aparece después del mes 6. A la izquierda, el gráfico log-log de Kaplan-Meier; a la derecha, los residuos de Schoenfeld escalados contra el rango del tiempo, con un suavizado y la línea horizontal en \(\hat\beta\).</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · diagnóstico de riesgos proporcionales</span><span class="num" id="cox-ph-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="cox-ph-sc-label">EFECTO REAL DEL TRATAMIENTO</label>
+              <div class="seg" id="cox-ph-sc" role="group" aria-labelledby="cox-ph-sc-label">
+                <button type="button" data-s="ph" aria-pressed="true">Constante</button>
+                <button type="button" data-s="fade" aria-pressed="false">Se desvanece</button>
+                <button type="button" data-s="late" aria-pressed="false">Aparece tarde</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="cox-ph-hr">HR EN EL TRAMO CON EFECTO · <b id="cox-ph-hr-v" class="num">0,40</b></label><input id="cox-ph-hr" type="range" min="0.2" max="1" step="0.05" value="0.4"></div>
+            <button class="btn btn-ghost btn-sm" id="cox-ph-new" type="button">Nueva muestra</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>ln(−ln Ŝ) frente a ln t</span><span class="legend"><span><i style="background:var(--accent)"></i>control</span><span><i style="background:var(--hot)"></i>tratado</span></span></div>
+              <canvas class="plot" id="cox-c-ll" height="240" aria-label="Gráfico log-log de Kaplan-Meier por grupo"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Schoenfeld escalados · β(t)</span><span>— suavizado · ┄ β̂</span></div>
+              <canvas class="plot" id="cox-c-sch" height="240" aria-label="Residuos de Schoenfeld escalados frente al rango del tiempo con una curva suavizada"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>HR de Cox</span><b id="cox-ph-hrhat">–</b></div>
+            <div><span>IC 95 %</span><b id="cox-ph-ci">–</b></div>
+            <div><span>χ² de Grambsch-Therneau</span><b id="cox-ph-gt">–</b></div>
+            <div><span>valor p del supuesto</span><b id="cox-ph-p">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con “Se desvanece”, el modelo de Cox reporta un HR intermedio que no describe ningún momento real: ni el fuerte efecto inicial ni la ausencia de efecto posterior. El suavizado de los residuos lo delata, subiendo desde β muy negativo hacia 0.</figcaption>
+      </figure>
+
+      <h2 id="cox-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Simulamos 400 pacientes con riesgo basal constante de 0,03 por mes, un tratamiento con HR real 0,61 y un efecto de edad de 0,04 por año. Ajustamos el modelo, interpretamos, revisamos el supuesto y predecimos curvas para perfiles concretos. En Python usamos <code>statsmodels</code> (con <code>lifelines</code>, <code>CoxPHFitter</code> hace lo mismo e incluye <code>check_assumptions</code>).</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+n = <span class="n">400</span>
+df = pd.<span class="f">DataFrame</span>({<span class="s">"trat"</span>: rng.<span class="f">integers</span>(<span class="n">0</span>, <span class="n">2</span>, n), <span class="s">"edad"</span>: rng.<span class="f">normal</span>(<span class="n">60</span>, <span class="n">10</span>, n).<span class="f">round</span>()})
+lin = -<span class="n">0.5</span> * df.trat + <span class="n">0.04</span> * (df.edad - <span class="n">60</span>)
+T = rng.<span class="f">exponential</span>(<span class="n">1</span> / (<span class="n">0.03</span> * np.<span class="f">exp</span>(lin)))
+C = rng.<span class="f">uniform</span>(<span class="n">6</span>, <span class="n">48</span>, n)
+df[<span class="s">"tiempo"</span>] = np.<span class="f">minimum</span>(T, C)
+df[<span class="s">"evento"</span>] = (T &lt;= C).<span class="f">astype</span>(<span class="f">int</span>)
+
+mod = smf.<span class="f">phreg</span>(<span class="s">"tiempo ~ trat + edad"</span>, df, status=df.evento, ties=<span class="s">"efron"</span>).<span class="f">fit</span>()
+<span class="f">print</span>(mod.<span class="f">summary</span>())                   <span class="c"># HR trat ≈ 0.58 (0.43 a 0.78), edad ≈ 1.044</span>
+<span class="f">print</span>(<span class="s">"HR por 10 años:"</span>, np.<span class="f">exp</span>(<span class="n">10</span> * mod.params[<span class="n">1</span>]))       <span class="c"># ≈ 1.54</span>
+
+<span class="c"># prueba de razón de verosimilitudes para edad</span>
+m0 = smf.<span class="f">phreg</span>(<span class="s">"tiempo ~ trat"</span>, df, status=df.evento, ties=<span class="s">"efron"</span>).<span class="f">fit</span>()
+<span class="f">print</span>(<span class="s">"LR edad:"</span>, <span class="n">2</span> * (mod.llf - m0.llf))                  <span class="c"># ≈ 31, 1 gl</span>
+
+<span class="c"># supuesto de PH: residuos de Schoenfeld frente al rango del tiempo</span>
+ev = df.evento.values == <span class="n">1</span>
+sch = mod.schoenfeld_residuals[ev]
+rango = stats.<span class="f">rankdata</span>(df.tiempo[ev])
+<span class="k">for</span> j, nom <span class="k">in</span> <span class="f">enumerate</span>([<span class="s">"trat"</span>, <span class="s">"edad"</span>]):
+    r, p = stats.<span class="f">pearsonr</span>(rango, sch[:, j])
+    <span class="f">print</span>(nom, <span class="s">"corr. con el tiempo ="</span>, <span class="f">round</span>(r, <span class="n">3</span>), <span class="s">" p ="</span>, <span class="f">round</span>(p, <span class="n">3</span>))  <span class="c"># p grandes: sin evidencia</span>
+
+<span class="c"># curvas predichas: S(t|x) = exp(-H0(t) · exp(x'β)), H0 de Breslow con x = 0</span>
+t0, H0, _ = mod.baseline_cumulative_hazard[<span class="n">0</span>]
+H24 = H0[t0 &lt;= <span class="n">24</span>][-<span class="n">1</span>]
+<span class="k">for</span> trat <span class="k">in</span> (<span class="n">0</span>, <span class="n">1</span>):
+    x = np.<span class="f">array</span>([trat, <span class="n">70</span>])
+    <span class="f">print</span>(<span class="s">f"S(24 | trat={trat}, edad=70) ="</span>, np.<span class="f">exp</span>(-H24 * np.<span class="f">exp</span>(x @ mod.params)))</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+
+<span class="f">set.seed</span>(<span class="n">3</span>)
+n &lt;- <span class="n">400</span>
+df &lt;- <span class="f">data.frame</span>(trat = <span class="f">rbinom</span>(n, <span class="n">1</span>, <span class="n">0.5</span>), edad = <span class="f">round</span>(<span class="f">rnorm</span>(n, <span class="n">60</span>, <span class="n">10</span>)))
+lin &lt;- -<span class="n">0.5</span> * df$trat + <span class="n">0.04</span> * (df$edad - <span class="n">60</span>)
+t_real &lt;- <span class="f">rexp</span>(n, <span class="n">0.03</span> * <span class="f">exp</span>(lin))
+C &lt;- <span class="f">runif</span>(n, <span class="n">6</span>, <span class="n">48</span>)
+df$tiempo &lt;- <span class="f">pmin</span>(t_real, C)
+df$evento &lt;- <span class="f">as.integer</span>(t_real &lt;= C)
+
+mod &lt;- <span class="f">coxph</span>(<span class="f">Surv</span>(tiempo, evento) ~ trat + edad, data = df)   <span class="c"># Efron por defecto</span>
+<span class="f">summary</span>(mod)              <span class="c"># exp(coef) = HR, IC 95 %, y pruebas LR, Wald y score</span>
+<span class="f">exp</span>(<span class="n">10</span> * <span class="f">coef</span>(mod)[<span class="s">"edad"</span>])  <span class="c"># HR por 10 años ≈ 1.5</span>
+
+<span class="c"># razón de verosimilitudes para edad</span>
+<span class="f">anova</span>(<span class="f">coxph</span>(<span class="f">Surv</span>(tiempo, evento) ~ trat, data = df), mod)
+
+<span class="c"># supuesto de PH: residuos de Schoenfeld escalados</span>
+zph &lt;- <span class="f">cox.zph</span>(mod, transform = <span class="s">"rank"</span>)
+zph                       <span class="c"># una prueba por variable y una global</span>
+<span class="f">plot</span>(zph[<span class="n">1</span>]); <span class="f">abline</span>(h = <span class="f">coef</span>(mod)[<span class="n">1</span>], lty = <span class="n">3</span>)
+
+<span class="c"># gráfico log-log por grupo</span>
+<span class="f">plot</span>(<span class="f">survfit</span>(<span class="f">Surv</span>(tiempo, evento) ~ trat, data = df), fun = <span class="s">"cloglog"</span>, col = <span class="n">1</span>:<span class="n">2</span>)
+
+<span class="c"># curvas predichas para dos perfiles</span>
+nuevos &lt;- <span class="f">data.frame</span>(trat = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>), edad = <span class="n">70</span>)
+pred &lt;- <span class="f">survfit</span>(mod, newdata = nuevos)
+<span class="f">summary</span>(pred, times = <span class="n">24</span>)   <span class="c"># S(24 | x) de cada perfil</span>
+
+<span class="c"># si una variable no cumple PH: estratificar o efecto variable en el tiempo</span>
+<span class="c"># coxph(Surv(tiempo, evento) ~ trat + edad + tt(trat), data = df, tt = function(x, t, ...) x * log(t))</span></code></pre>
+      </div>
+
+      <h2 id="cox-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="Correcto. Bajo el modelo, el HR para k unidades es e^(kβ) = HR^k. Para 5 años: 1,03⁵ ≈ 1,16." data-wrong="El efecto es multiplicativo en la escala del riesgo: para k unidades se eleva el HR de una unidad a la potencia k, no se multiplica por k.">
+        <h3>El HR por año de un factor es 1,03. ¿Cuál es el HR para una diferencia de 5 años?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>1,15, porque 5 × 0,03 = 0,15</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>5,15</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Cerca de 1,16</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No se puede calcular sin el riesgo basal</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Exacto. La verosimilitud parcial compara a quien falla con los que estaban en riesgo en ese instante, y el riesgo basal se cancela. Por eso no hay que especificarlo." data-wrong="Mira la probabilidad de que falle el individuo i dado que alguien del conjunto en riesgo falla. ¿Qué factor aparece igual en el numerador y en el denominador?">
+        <h3>¿Por qué el modelo de Cox puede estimar β sin conocer el riesgo basal h₀(t)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Porque h₀(t) se cancela en cada término de la verosimilitud parcial</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Porque supone que h₀(t) es constante</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque estima h₀(t) primero con Kaplan-Meier</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Porque elimina a los censurados del cálculo</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Bien. Una tendencia clara en los residuos escalados indica que el efecto cambia en el tiempo. Las salidas son estratificar, modelar β(t) o usar una medida como la RMST." data-wrong="Los residuos de Schoenfeld escalados estiman β(t). Si tienen pendiente, ¿qué dice eso sobre la constancia del HR?">
+        <h3>Los residuos de Schoenfeld escalados del tratamiento suben claramente con el tiempo (p = 0,002). ¿Qué concluyes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El tratamiento no tiene efecto</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Hay censura informativa</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Hay que agregar un intercepto al modelo</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>El efecto cambia con el tiempo y un HR único lo describe mal</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="cox-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Los dos primeros son de interpretación; el tercero y el cuarto piden calcular con la verosimilitud parcial.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Un modelo de Cox para el tiempo hasta la cancelación de clientes da: plan anual (vs mensual) β = −0,92, EE = 0,20; número de reclamos en el último mes β = 0,26, EE = 0,05. Calcula e interpreta los HR y sus IC al 95 %.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Plan anual: HR = e^(−0,92) ≈ <b>0,40</b>, IC = e^(−0,92 ± 0,392) = [0,27; 0,59]. A igual número de reclamos, el riesgo de cancelar de un cliente con plan anual es 0,4 veces el de uno mensual en cualquier momento: 60 % menor. Reclamos: HR = e^(0,26) ≈ <b>1,30</b>, IC = e^(0,26 ± 0,098) = [1,18; 1,43]. Cada reclamo adicional multiplica el riesgo de cancelar por 1,3; tres reclamos, por 1,3³ ≈ 2,2.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con el modelo del ejercicio 1, la supervivencia basal (plan mensual, 0 reclamos) a 12 meses es S₀(12) = 0,70. Calcula S(12) para un cliente con plan anual y 2 reclamos.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Predictor lineal: −0,92 + 2 × 0,26 = −0,40; e^(−0,40) = 0,670. S(12 | x) = S₀(12)^0,670 = 0,70^0,670 = e^(0,670 · ln 0,70) = e^(−0,239) ≈ <b>0,79</b>. El 79 % de esos clientes seguiría activo al año.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Cuatro pacientes, sin empates: A (x = 1) falla en t = 2; B (x = 0) falla en t = 3; C (x = 1) se censura en t = 4; D (x = 0) falla en t = 5. Escribe la verosimilitud parcial, calcula el score en β = 0 y encuentra β̂ numéricamente.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Tiempos de evento: t = 2 (en riesgo A, B, C, D; falla A), t = 3 (en riesgo B, C, D; falla B), t = 5 (en riesgo D; falla D, aporta 1). Con θ = e^β:</p>
+            <p>\(L_p(\beta) = \frac{\theta}{2\theta + 2}\cdot\frac{1}{\theta + 2}\cdot 1\), \(\ell_p = \beta - \ln(2e^\beta + 2) - \ln(e^\beta + 2)\).</p>
+            <p>Score: \(U(\beta) = 1 - \frac{e^\beta}{e^\beta + 1} - \frac{e^\beta}{e^\beta + 2}\). En β = 0: U = 1 − 1/2 − 1/3 = <b>1/6</b>, positivo: los de x = 1 fallan más de lo esperado. Es O − E del grupo x = 1 (O = 1, E = 1/2 + 1/3 = 5/6), el numerador de la log-rank. Igualando U = 0 se llega a \(\theta^2 = 2\), así que \(\hat\theta = \sqrt 2\), <b>β̂ = ½ ln 2 ≈ 0,347</b> y HR ≈ 1,41.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+df = pd.<span class="f">DataFrame</span>({<span class="s">"t"</span>: [<span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>], <span class="s">"e"</span>: [<span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>], <span class="s">"x"</span>: [<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>]})
+m = smf.<span class="f">phreg</span>(<span class="s">"t ~ x"</span>, df, status=df.e).<span class="f">fit</span>()
+<span class="f">print</span>(m.params, np.<span class="f">log</span>(<span class="n">2</span>) / <span class="n">2</span>)   <span class="c"># 0.3466 0.3466</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="f">coxph</span>(<span class="f">Surv</span>(<span class="f">c</span>(<span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>), <span class="f">c</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>)) ~ <span class="f">c</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>))   <span class="c"># coef = 0.347</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>En un ensayo, <code>cox.zph</code> muestra que el efecto del tratamiento se desvanece: los residuos escalados van de β ≈ −1,2 al inicio a β ≈ 0 después del mes 12. (a) ¿Qué representa el HR de 0,62 que reporta el modelo estándar? (b) Escribe un modelo de Cox que estime un HR para cada tramo de tiempo. (c) ¿Cómo comunicarías el resultado a un clínico?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Es un promedio del efecto log ponderado, aproximadamente, por la información (los eventos) de cada momento. Depende de cuánto seguimiento hay en cada tramo: con un seguimiento más largo bajaría hacia 1. No describe ningún período real. (b) Partir el seguimiento en t = 12 y usar una interacción con el tramo: \(h(t \mid x) = h_0(t)\exp\{\beta_1 x\,\mathbf 1(t &lt; 12) + \beta_2 x\,\mathbf 1(t \ge 12)\}\). En R: <code>d2 &lt;- survSplit(Surv(tiempo, evento) ~ ., data = df, cut = 12, episode = "tramo")</code> y <code>coxph(Surv(tstart, tiempo, evento) ~ trat:strata(tramo), data = d2)</code>. Se esperaría HR ≈ e^(−1,2) ≈ 0,30 antes de 12 meses y ≈ 1 después. (c) “El tratamiento reduce el riesgo en torno al 70 % durante el primer año; después no hay diferencia detectable”, acompañado de las curvas de Kaplan-Meier y de la diferencia en supervivencia (o RMST) a horizontes clínicamente relevantes.</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

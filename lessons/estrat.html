@@ -1,0 +1,280 @@
+<!-- StatEdx · sesión: estrat -->
+<div id="view-estrat" data-view="estrat" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Muestreo estratificado</h1>
+      <p>Si ya sabes que la población se divide en grupos muy distintos, no dejes al azar cuántos caen de cada uno. Estratificar es sortear por separado dentro de cada grupo. Aquí aprendes el estimador estratificado, cómo repartir la muestra entre estratos (asignación proporcional y de Neyman) y cuánta precisión ganas frente al muestreo aleatorio simple.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: muestreo aleatorio simple</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#estrat-idea" data-sec="estrat-idea">La idea</a></li>
+        <li><a href="#estrat-est" data-sec="estrat-est">El estimador estratificado</a></li>
+        <li><a href="#estrat-asig" data-sec="estrat-asig">Asignar la muestra</a></li>
+        <li><a href="#estrat-gana" data-sec="estrat-gana">Cuánto se gana</a></li>
+        <li><a href="#estrat-lab" data-sec="estrat-lab">Laboratorio</a></li>
+        <li><a href="#estrat-formar" data-sec="estrat-formar">Formar estratos</a></li>
+        <li><a href="#estrat-code" data-sec="estrat-code">En R y Python</a></li>
+        <li><a href="#estrat-quiz" data-sec="estrat-quiz">Comprueba</a></li>
+        <li><a href="#estrat-ej" data-sec="estrat-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="estrat-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>La cámara de comercio de una ciudad quiere estimar las ventas anuales promedio de sus 1 000 empresas afiliadas. Tiene la lista y sabe el tamaño de cada una: 600 pequeñas, 300 medianas y 100 grandes. Las pequeñas venden alrededor de 20 millones al año y se parecen mucho entre sí; las grandes venden 150 millones en promedio, con enormes diferencias entre ellas.</p>
+      <p>Con un MAS de 100 empresas, el número de grandes que sale en la muestra es aleatorio: puede ser 5 o puede ser 16. Como las grandes pesan tanto en la media, esa sola lotería mueve muchísimo la estimación. La solución es obvia en cuanto se dice: <b>decide de antemano cuántas empresas de cada tamaño vas a encuestar</b> y sortea dentro de cada grupo. A esos grupos se les llama <b>estratos</b>.</p>
+      <div class="callout"><b>La intuición:</b> al estratificar eliminas de la varianza la parte que viene de las diferencias <i>entre</i> grupos. Solo queda la variación <i>dentro</i> de cada grupo. Cuanto más distintos sean los estratos entre sí y más homogéneos por dentro, más ganas.</div>
+
+      <h2 id="estrat-est"><span class="sec">§ 2</span>El estimador estratificado</h2>
+      <p>La población se divide en \(H\) estratos disjuntos que la cubren completa, con \(N_h\) unidades cada uno y pesos \(W_h = N_h/N\). En cada estrato se hace un MAS independiente de tamaño \(n_h\), con \(n = \sum_h n_h\). El estimador de la media combina las medias de cada estrato con sus pesos poblacionales:</p>
+      <div class="eq">\[ \bar y_{st} = \sum_{h=1}^{H} W_h\,\bar y_h, \qquad V(\bar y_{st}) = \sum_{h=1}^{H} W_h^2\,(1 - f_h)\,\frac{S_h^2}{n_h}, \qquad f_h = \frac{n_h}{N_h} \]
+        <div class="note">Es insesgado porque cada \(\bar y_h\) lo es para \(\bar Y_h\), y \(\bar Y = \sum W_h \bar Y_h\). La varianza es una suma porque los sorteos de cada estrato son independientes. Para estimarla se reemplaza \(S_h^2\) por la varianza muestral \(s_h^2\) de cada estrato, lo que exige \(n_h \ge 2\).</div>
+      </div>
+      <p>El total y la proporción siguen la misma lógica: \(\hat Y_{st} = N\,\bar y_{st} = \sum_h N_h \bar y_h\) y \(\hat p_{st} = \sum_h W_h \hat p_h\), con</p>
+      <div class="eq">\[ v(\hat p_{st}) = \sum_{h=1}^{H} W_h^2\,(1-f_h)\,\frac{\hat p_h(1-\hat p_h)}{n_h - 1} \]
+        <div class="note">El peso de diseño de una unidad del estrato \(h\) es \(w_{hi} = N_h/n_h\). Si las fracciones de muestreo difieren entre estratos, los pesos difieren y la media simple de la muestra completa está sesgada: hay que ponderar.</div>
+      </div>
+      <p>Un beneficio adicional, muchas veces la verdadera razón para estratificar: obtienes estimaciones confiables <b>por estrato</b> (por región, por tamaño de empresa), porque controlas cuántas unidades tiene cada uno.</p>
+
+      <h2 id="estrat-asig"><span class="sec">§ 3</span>Asignar la muestra entre estratos</h2>
+      <p>Con \(n\) fijo, ¿cuántas unidades le tocan a cada estrato? Hay tres respuestas clásicas:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Asignación</th><th>Regla</th><th>Cuándo usarla</th></tr></thead>
+        <tbody>
+          <tr><td>Igual</td><td>\(n_h = n/H\)</td><td>Cuando lo que importa son las comparaciones entre estratos</td></tr>
+          <tr><td>Proporcional</td><td>\(n_h = n\,W_h = n\,N_h/N\)</td><td>Por defecto; no necesita conocer las \(S_h\)</td></tr>
+          <tr><td>Neyman (óptima)</td><td>\(n_h = n\,\dfrac{N_h S_h}{\sum_k N_k S_k}\)</td><td>Estratos con variabilidades muy distintas y \(S_h\) conocidas aproximadamente</td></tr>
+        </tbody>
+      </table></div>
+      <p>La asignación <b>proporcional</b> hace que todas las fracciones de muestreo sean iguales (\(f_h = f\)), así que la muestra es <i>autoponderada</i>: todos tienen el mismo peso \(N/n\) y la media simple coincide con \(\bar y_{st}\). Su varianza es</p>
+      <div class="eq">\[ V_{prop} = \frac{1-f}{n}\sum_{h} W_h S_h^2 \]</div>
+      <p>La asignación de <b>Neyman</b> minimiza \(V(\bar y_{st})\) para un \(n\) total dado. Sale de minimizar \(\sum W_h^2 S_h^2/n_h\) sujeto a \(\sum n_h = n\) con un multiplicador de Lagrange (o con la desigualdad de Cauchy-Schwarz): el óptimo es \(n_h \propto W_h S_h\). Su varianza mínima es</p>
+      <div class="eq">\[ V_{ney} = \frac{1}{n}\Big(\sum_h W_h S_h\Big)^2 - \frac{1}{N}\sum_h W_h S_h^2 \]
+        <div class="note">Regla práctica: <b>muestrea más donde hay más unidades y donde hay más variación</b>. Si además entrevistar en el estrato \(h\) cuesta \(c_h\), la asignación óptima para un presupuesto fijo es \(n_h \propto N_h S_h/\sqrt{c_h}\): donde es caro, muestreas menos.</div>
+      </div>
+      <p>Con las empresas del ejemplo (\(S_h\) = 5, 10 y 40 millones) y \(n = 100\): la proporcional da 60, 30 y 10 empresas; la de Neyman da \(N_hS_h\) = 3 000, 3 000 y 4 000, es decir 30, 30 y 40. Neyman manda 40 encuestas al estrato de grandes aunque solo tiene el 10 % de las empresas, porque ahí está casi toda la incertidumbre.</p>
+      <div class="callout"><b>Sobreasignación:</b> si Neyman da \(n_h &gt; N_h\) (pasa con estratos pequeños y muy variables), se censa ese estrato completo (\(n_h = N_h\), sin varianza) y se reparte el resto de la muestra entre los demás con la misma fórmula. Es común en encuestas a empresas: las más grandes entran siempre, “con certeza”.</div>
+
+      <h2 id="estrat-gana"><span class="sec">§ 4</span>Cuánto se gana al estratificar</h2>
+      <p>La varianza poblacional total se descompone en una parte dentro de los estratos y otra entre ellos. Ignorando términos de orden \(1/N\):</p>
+      <div class="eq">\[ V_{MAS} \approx \frac{1-f}{n}\Big[\underbrace{\sum_h W_h S_h^2}_{\text{dentro}} + \underbrace{\sum_h W_h (\bar Y_h - \bar Y)^2}_{\text{entre}}\Big], \qquad V_{prop} - V_{ney} = \frac{1}{n}\sum_h W_h\,(S_h - \bar S)^2 \]
+        <div class="note">Aquí \(\bar S = \sum_h W_h S_h\). La proporcional elimina el término “entre”; Neyman además aprovecha que las \(S_h\) son distintas. Por eso, salvo detalles finitos, \(V_{ney} \le V_{prop} \le V_{MAS}\).</div>
+      </div>
+      <p>La ganancia se resume con el <b>efecto de diseño</b>, el cociente entre la varianza del diseño y la de un MAS del mismo tamaño: \(\mathrm{deff} = V_{st}/V_{MAS}\). Un deff de 0,25 significa que tu muestra estratificada de 100 rinde como un MAS de 400. En el ejemplo de las empresas:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Diseño (n = 100)</th><th>\(n_h\)</th><th>Error estándar</th><th>deff</th></tr></thead>
+        <tbody>
+          <tr><td>MAS</td><td>aleatorio</td><td>3,89</td><td>1</td></tr>
+          <tr><td>Estratificado, igual</td><td>34 / 33 / 33</td><td>0,90</td><td>0,05</td></tr>
+          <tr><td>Estratificado, proporcional</td><td>60 / 30 / 10</td><td>1,36</td><td>0,12</td></tr>
+          <tr><td>Estratificado, Neyman</td><td>30 / 30 / 40</td><td>0,89</td><td>0,05</td></tr>
+        </tbody>
+      </table></div>
+      <p>Las ganancias son espectaculares porque aquí las medias de los estratos son muy distintas (20, 50 y 150) y las variabilidades también. En encuestas de hogares, donde los estratos geográficos se parecen más, lo usual es un deff entre 0,7 y 0,95: menos dramático, pero gratis.</p>
+      <div class="callout"><b>Cuidado:</b> Neyman es óptima con las \(S_h\) <i>verdaderas</i>. Si las estimas mal (con un censo viejo, o para otra variable), puedes quedar peor que con la proporcional. Y en una encuesta con muchas variables no hay una asignación óptima para todas: la proporcional es la elección robusta.</div>
+
+      <h2 id="estrat-lab"><span class="sec">§ 5</span>Laboratorio</h2>
+      <p>Las 1 000 empresas del ejemplo, con dos perillas: qué tan separadas están las medias de los estratos y qué tan variable es el estrato de grandes. Elige la asignación y compara su error estándar con el de un MAS. El histograma muestra 500 muestras simuladas con el diseño elegido.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · asignación entre estratos</span><span class="num" id="estrat-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="estrat-d">SEPARACIÓN DE MEDIAS · d = <b id="estrat-d-v" class="num">30</b></label><input id="estrat-d" type="range" min="0" max="45" step="1" value="30"></div>
+            <div class="ctrl"><label for="estrat-s3">VARIACIÓN DE GRANDES · S₃ = <b id="estrat-s3-v" class="num">40</b></label><input id="estrat-s3" type="range" min="5" max="80" step="1" value="40"></div>
+            <div class="ctrl"><label for="estrat-n">MUESTRA · n = <b id="estrat-n-v" class="num">100</b></label><input id="estrat-n" type="range" min="30" max="300" step="10" value="100"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="estrat-al-label">ASIGNACIÓN</label>
+              <div class="seg" id="estrat-al" role="group" aria-labelledby="estrat-al-label">
+                <button data-a="igual" aria-pressed="false">Igual</button>
+                <button data-a="prop" aria-pressed="true">Proporcional</button>
+                <button data-a="ney" aria-pressed="false">Neyman</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="estrat-again" type="button">Otras 500 muestras</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Población y muestra por estrato</span><span>% del total</span></div>
+              <canvas class="plot" id="estrat-c-al" height="250" aria-label="Barras con la fracción de la población y de la muestra en cada estrato"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Estimaciones de la media</span><span>millones</span></div>
+              <canvas class="plot" id="estrat-c-dist" height="250" aria-label="Histograma de estimaciones del diseño estratificado comparado con la curva del MAS"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--muted)"></i>población (W<sub>h</sub>) y MAS</span><span><i style="background:var(--accent)"></i>muestra y diseño elegido</span><span><i style="background:var(--ink)"></i>curva teórica del diseño</span></div>
+          <div class="readout">
+            <div><span>n por estrato</span><b id="estrat-r-nh">–</b></div>
+            <div><span>EE estratificado</span><b id="estrat-r-st">–</b></div>
+            <div><span>EE de un MAS</span><b id="estrat-r-mas">–</b></div>
+            <div><span>efecto de diseño</span><b id="estrat-r-deff">–</b></div>
+          </div>
+        </div>
+        <figcaption>Pon d = 0 y S₃ = 5: los estratos son iguales y estratificar no gana nada (deff cercano a 1). Sube d: la proporcional mejora mucho. Sube S₃ y alterna entre proporcional y Neyman: Neyman manda más muestra a las grandes y gana todavía más. Con S₃ alto y n grande verás que el estrato de grandes se censa completo.</figcaption>
+      </figure>
+
+      <h2 id="estrat-formar"><span class="sec">§ 6</span>Formar estratos y postestratificar</h2>
+      <p>Una buena variable de estratificación cumple tres condiciones: se conoce para <b>todas</b> las unidades del marco antes de sortear, está muy relacionada con lo que quieres medir y define grupos que también te interesan como resultados. Ejemplos típicos: región y zona urbana o rural en encuestas de hogares; sector y tamaño en encuestas de empresas; carrera y año en encuestas universitarias.</p>
+      <ul>
+        <li><b>Pocos estratos bastan.</b> Con una variable continua, la ganancia se estanca después de unos 5 o 6 estratos. Para elegir los cortes existe la regla de Dalenius y Hodges (cortes iguales en la escala acumulada de \(\sqrt{\text{frecuencia}}\)).</li>
+        <li><b>Al menos 2 unidades por estrato</b> en la muestra; si no, no puedes estimar \(S_h^2\) y la varianza queda indefinida.</li>
+        <li><b>No sirve una variable que no conoces de antemano.</b> Si solo la observas en la encuesta (por ejemplo, el nivel educativo), puedes <i>postestratificar</i>.</li>
+      </ul>
+      <p>La <b>postestratificación</b> hace un MAS y, después, pondera usando los pesos \(W_h\) conocidos por un censo: \(\bar y_{post} = \sum_h W_h \bar y_h\). Recupera casi toda la precisión de la estratificación proporcional cuando la muestra es grande, y además corrige parte del sesgo de no respuesta si quienes no responden se concentran en ciertos grupos. Es la idea detrás de la <i>calibración</i> que usan casi todas las encuestas oficiales.</p>
+
+      <h2 id="estrat-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>Simulamos las 1 000 empresas, sacamos muestras estratificadas con asignación proporcional y de Neyman, y comparamos con un MAS. En R, el paquete <code>survey</code> recibe el estrato y el tamaño de cada estrato en el diseño.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+<span class="c"># población: ventas anuales (millones) de 1 000 empresas en tres estratos</span>
+Nh = {<span class="s">"pequeña"</span>: <span class="n">600</span>, <span class="s">"mediana"</span>: <span class="n">300</span>, <span class="s">"grande"</span>: <span class="n">100</span>}
+mu = {<span class="s">"pequeña"</span>: <span class="n">20</span>, <span class="s">"mediana"</span>: <span class="n">50</span>, <span class="s">"grande"</span>: <span class="n">150</span>}
+sd = {<span class="s">"pequeña"</span>: <span class="n">5</span>, <span class="s">"mediana"</span>: <span class="n">10</span>, <span class="s">"grande"</span>: <span class="n">40</span>}
+pob = pd.<span class="f">concat</span>([pd.<span class="f">DataFrame</span>({<span class="s">"estrato"</span>: h, <span class="s">"ventas"</span>: rng.<span class="f">normal</span>(mu[h], sd[h], Nh[h])}) <span class="k">for</span> h <span class="k">in</span> Nh],
+                ignore_index=<span class="k">True</span>)
+<span class="f">print</span>(pob[<span class="s">"ventas"</span>].<span class="f">mean</span>())                        <span class="c"># media real ≈ 42.5</span>
+
+<span class="k">def</span> <span class="f">estratificado</span>(pob, nh):
+    filas = []
+    <span class="k">for</span> h, n_h <span class="k">in</span> nh.<span class="f">items</span>():
+        y = pob.loc[pob[<span class="s">"estrato"</span>] == h, <span class="s">"ventas"</span>].<span class="f">sample</span>(n_h, random_state=rng).<span class="f">to_numpy</span>()
+        N_h = (pob[<span class="s">"estrato"</span>] == h).<span class="f">sum</span>()
+        filas.<span class="f">append</span>({<span class="s">"N_h"</span>: N_h, <span class="s">"n_h"</span>: n_h, <span class="s">"media"</span>: y.<span class="f">mean</span>(), <span class="s">"s2"</span>: y.<span class="f">var</span>(ddof=<span class="n">1</span>)})
+    t = pd.<span class="f">DataFrame</span>(filas)
+    W = t[<span class="s">"N_h"</span>] / t[<span class="s">"N_h"</span>].<span class="f">sum</span>()
+    est = (W * t[<span class="s">"media"</span>]).<span class="f">sum</span>()
+    var = (W**<span class="n">2</span> * (<span class="n">1</span> - t[<span class="s">"n_h"</span>] / t[<span class="s">"N_h"</span>]) * t[<span class="s">"s2"</span>] / t[<span class="s">"n_h"</span>]).<span class="f">sum</span>()
+    <span class="k">return</span> est, np.<span class="f">sqrt</span>(var)
+
+n = <span class="n">100</span>
+prop = (n * pob[<span class="s">"estrato"</span>].<span class="f">value_counts</span>(normalize=<span class="k">True</span>)).<span class="f">round</span>().<span class="f">astype</span>(<span class="f">int</span>)
+<span class="f">print</span>(prop.<span class="f">to_dict</span>(), <span class="f">estratificado</span>(pob, prop))    <span class="c"># 60/30/10, EE ≈ 1.4</span>
+
+<span class="c"># Neyman: n_h proporcional a N_h · S_h (en la práctica, S_h de un estudio previo)</span>
+g = pob.<span class="f">groupby</span>(<span class="s">"estrato"</span>)[<span class="s">"ventas"</span>]
+NS = g.<span class="f">size</span>() * g.<span class="f">std</span>()
+ney = (n * NS / NS.<span class="f">sum</span>()).<span class="f">round</span>().<span class="f">astype</span>(<span class="f">int</span>)
+<span class="f">print</span>(ney.<span class="f">to_dict</span>(), <span class="f">estratificado</span>(pob, ney))      <span class="c"># ≈ 29/29/42, EE ≈ 0.9</span>
+
+<span class="c"># MAS del mismo tamaño, para comparar</span>
+y = pob[<span class="s">"ventas"</span>].<span class="f">sample</span>(n, random_state=rng)
+<span class="f">print</span>(y.<span class="f">mean</span>(), np.<span class="f">sqrt</span>((<span class="n">1</span> - n / <span class="f">len</span>(pob)) * y.<span class="f">var</span>(ddof=<span class="n">1</span>) / n))   <span class="c"># EE ≈ 4</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survey)
+<span class="f">library</span>(dplyr)
+<span class="f">set.seed</span>(<span class="n">3</span>)
+<span class="c"># población: ventas anuales (millones) de 1 000 empresas en tres estratos</span>
+pob &lt;- <span class="f">data.frame</span>(
+  estrato = <span class="f">rep</span>(<span class="f">c</span>(<span class="s">"pequeña"</span>, <span class="s">"mediana"</span>, <span class="s">"grande"</span>), times = <span class="f">c</span>(<span class="n">600</span>, <span class="n">300</span>, <span class="n">100</span>)),
+  ventas  = <span class="f">c</span>(<span class="f">rnorm</span>(<span class="n">600</span>, <span class="n">20</span>, <span class="n">5</span>), <span class="f">rnorm</span>(<span class="n">300</span>, <span class="n">50</span>, <span class="n">10</span>), <span class="f">rnorm</span>(<span class="n">100</span>, <span class="n">150</span>, <span class="n">40</span>))
+)
+<span class="f">mean</span>(pob$ventas)                               <span class="c"># media real ≈ 42</span>
+
+<span class="c"># asignación de Neyman con las S_h de la población (en la práctica, de un estudio previo)</span>
+n &lt;- <span class="n">100</span>
+tab &lt;- pob |&gt; <span class="f">group_by</span>(estrato) |&gt; <span class="f">summarise</span>(N_h = <span class="f">n</span>(), S_h = <span class="f">sd</span>(ventas)) |&gt;
+  <span class="f">mutate</span>(prop = <span class="f">round</span>(n * N_h / <span class="f">sum</span>(N_h)), ney = <span class="f">round</span>(n * N_h * S_h / <span class="f">sum</span>(N_h * S_h)))
+tab
+
+muestra_estr &lt;- <span class="k">function</span>(asig) {
+  pob |&gt; <span class="f">left_join</span>(tab, by = <span class="s">"estrato"</span>) |&gt; <span class="f">group_by</span>(estrato) |&gt;
+    <span class="f">group_modify</span>(~ <span class="f">slice_sample</span>(.x, n = .x[[asig]][<span class="n">1</span>])) |&gt; <span class="f">ungroup</span>()
+}
+<span class="k">for</span> (asig <span class="k">in</span> <span class="f">c</span>(<span class="s">"prop"</span>, <span class="s">"ney"</span>)) {
+  m &lt;- <span class="f">muestra_estr</span>(asig)
+  dis &lt;- <span class="f">svydesign</span>(ids = ~<span class="n">1</span>, strata = ~estrato, fpc = ~N_h, data = m)
+  <span class="f">print</span>(<span class="f">svymean</span>(~ventas, dis))                  <span class="c"># EE ≈ 1.4 (prop) y ≈ 0.9 (Neyman)</span>
+}
+
+<span class="c"># MAS del mismo tamaño</span>
+m &lt;- pob[<span class="f">sample</span>(<span class="f">nrow</span>(pob), n), ]
+m$N &lt;- <span class="f">nrow</span>(pob)
+<span class="f">svymean</span>(~ventas, <span class="f">svydesign</span>(ids = ~<span class="n">1</span>, fpc = ~N, data = m))   <span class="c"># EE ≈ 4</span></code></pre>
+      </div>
+      <p>Con <code>survey</code> los pesos \(N_h/n_h\) se calculan solos a partir de <code>fpc</code>. Si tu muestra ya trae pesos, pásalos con <code>weights =</code> y sigue indicando los estratos: sin ellos la varianza sale inflada.</p>
+
+      <h2 id="estrat-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="Neyman asigna n_h ∝ N_h·S_h. El estrato B tiene la mitad de unidades pero cuatro veces la desviación, así que N_h·S_h es el doble: le toca más muestra." data-wrong="Calcula N_h·S_h para cada estrato: A da 400·5 = 2 000 y B da 200·20 = 4 000. La muestra se reparte en esa proporción.">
+        <h3>Dos estratos: A con 400 unidades y S = 5; B con 200 unidades y S = 20. Con n = 60 y asignación de Neyman, ¿cuántas unidades van a B?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>20</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>30</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>40</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>48</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La estratificación elimina la variación entre estratos. Si las medias de los estratos son iguales, no hay nada que eliminar y la proporcional rinde lo mismo que un MAS." data-wrong="Recuerda la descomposición: V_MAS ≈ dentro + entre. ¿Qué término quita la estratificación proporcional?">
+        <h3>¿En qué caso la estratificación proporcional casi no mejora a un MAS?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Cuando las medias de los estratos son casi iguales</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Cuando los estratos son muy homogéneos por dentro</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Cuando hay más de 5 estratos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Cuando la población es muy grande</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con fracciones de muestreo distintas, los pesos N_h/n_h difieren. La media simple sobrerrepresenta a los estratos sobremuestreados; hay que usar Σ W_h·ȳ_h." data-wrong="Piensa en los pesos de diseño. Si un estrato tiene 10 % de la población pero 40 % de la muestra, ¿qué pasa con la media sin ponderar?">
+        <h3>Usaste asignación de Neyman y ahora calculas la media simple de toda la muestra. ¿Qué problema tienes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Ninguno, la media simple siempre es insesgada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Solo afecta al error estándar, no a la estimación</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Está sesgada hacia los estratos sobremuestreados: hay que ponderar por W_h</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Está sesgada solo si algún estrato se censó</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="estrat-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Puedes comprobar varios con el laboratorio.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una universidad tiene 6 000 estudiantes de licenciatura, 1 500 de maestría y 500 de doctorado. Quiere una muestra de 400. Calcula la asignación proporcional y el peso de diseño de cada estudiante.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(N = 8\,000\), \(f = 400/8\,000 = 0{,}05\). Asignación: \(n_h = 0{,}05\,N_h\) = <b>300, 75 y 25</b>. Como todas las fracciones son iguales, todos tienen el mismo peso \(w = 1/0{,}05 = \) <b>20</b>: la muestra es autoponderada.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Con la muestra proporcional del ejercicio 1 se pregunta cuántas horas a la semana trabaja cada estudiante. Resultados: licenciatura \(\bar y = 12\), \(s = 8\); maestría \(\bar y = 20\), \(s = 10\); doctorado \(\bar y = 6\), \(s = 5\). Estima la media de la universidad y su error estándar.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(W_h\) = 0,75, 0,1875 y 0,0625. \(\bar y_{st} = 0{,}75\cdot 12 + 0{,}1875\cdot 20 + 0{,}0625 \cdot 6 = 9 + 3{,}75 + 0{,}375 = \) <b>13,13 horas</b>.</p><p>Varianza: \(0{,}95\,[0{,}75^2\cdot 64/300 + 0{,}1875^2\cdot 100/75 + 0{,}0625^2\cdot 25/25] = 0{,}95\,[0{,}1200 + 0{,}0469 + 0{,}0039] = 0{,}1623\). Error estándar ≈ <b>0,40 horas</b>.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con los datos del ejercicio 2 (usando las \(s_h\) como si fueran las \(S_h\)), calcula la asignación de Neyman para n = 400 y su error estándar. ¿Cuánto mejora a la proporcional?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(N_h S_h\) = 48 000, 15 000 y 2 500; suma 65 500. \(n_h = 400\cdot N_hS_h/65\,500\) ≈ <b>293, 92 y 15</b>.</p><p>Con la fórmula de la varianza mínima: \(\sum W_hS_h = 6 + 1{,}875 + 0{,}3125 = 8{,}1875\); \(V = 8{,}1875^2/400 - (0{,}75\cdot 64 + 0{,}1875 \cdot 100 + 0{,}0625\cdot 25)/8\,000 = 0{,}16759 - 0{,}00853 = 0{,}1591\). Error estándar ≈ <b>0,399</b> frente a 0,403: apenas 2 % de varianza menos.</p><p>La mejora es pequeña porque las \(S_h\) no son tan distintas (8, 10 y 5). Aquí la proporcional, más simple y autoponderada, es una gran elección.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Encuesta de empresas con dos estratos: 950 pymes (\(S = 4\)) y 50 grandes (\(S = 200\)), n = 100. (a) Calcula la asignación de Neyman. (b) ¿Qué problema aparece y cómo lo resuelves? (c) Calcula el error estándar resultante y compáralo con el de la proporcional.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(N_hS_h\) = 3 800 y 10 000; suma 13 800. Neyman da 27,5 pymes y <b>72,5 grandes</b>.</p><p>(b) 72,5 &gt; 50: sobreasignación. Se <b>censan las 50 grandes</b> (aportan varianza cero) y las 50 restantes van a las pymes.</p><p>(c) \(V = 0{,}95^2 \cdot (1 - 50/950)\cdot 16/50 = 0{,}9025 \cdot 0{,}947 \cdot 0{,}32 = 0{,}2736\), EE ≈ <b>0,52</b>. Con la proporcional (95 y 5): \(V = 0{,}9025\cdot 0{,}9\cdot 16/95 + 0{,}0025\cdot 0{,}9 \cdot 40\,000/5 = 0{,}137 + 18{,}0 = 18{,}14\), EE ≈ <b>4,26</b>. Censar a las grandes reduce el error estándar unas 8 veces.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+Nh, Sh, n = np.<span class="f">array</span>([<span class="n">950</span>, <span class="n">50</span>]), np.<span class="f">array</span>([<span class="n">4.</span>, <span class="n">200.</span>]), <span class="n">100</span>
+W = Nh / Nh.<span class="f">sum</span>()
+V = <span class="k">lambda</span> nh: (W**<span class="n">2</span> * (<span class="n">1</span> - nh / Nh) * Sh**<span class="n">2</span> / nh).<span class="f">sum</span>()
+<span class="f">print</span>(n * Nh * Sh / (Nh * Sh).<span class="f">sum</span>())                <span class="c"># [27.5 72.5] → sobreasignación</span>
+<span class="f">print</span>(np.<span class="f">sqrt</span>(<span class="f">V</span>(np.<span class="f">array</span>([<span class="n">50</span>, <span class="n">50</span>]))))              <span class="c"># ≈ 0.52 (grandes censadas)</span>
+<span class="f">print</span>(np.<span class="f">sqrt</span>(<span class="f">V</span>(np.<span class="f">array</span>([<span class="n">95</span>, <span class="n">5</span>]))))               <span class="c"># ≈ 4.26 (proporcional)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>Nh &lt;- <span class="f">c</span>(<span class="n">950</span>, <span class="n">50</span>); Sh &lt;- <span class="f">c</span>(<span class="n">4</span>, <span class="n">200</span>); n &lt;- <span class="n">100</span>
+W &lt;- Nh / <span class="f">sum</span>(Nh)
+V &lt;- <span class="k">function</span>(nh) <span class="f">sum</span>(W^<span class="n">2</span> * (<span class="n">1</span> - nh / Nh) * Sh^<span class="n">2</span> / nh)
+n * Nh * Sh / <span class="f">sum</span>(Nh * Sh)        <span class="c"># 27.5 72.5 → sobreasignación</span>
+<span class="f">sqrt</span>(<span class="f">V</span>(<span class="f">c</span>(<span class="n">50</span>, <span class="n">50</span>)))               <span class="c"># ≈ 0.52 (grandes censadas)</span>
+<span class="f">sqrt</span>(<span class="f">V</span>(<span class="f">c</span>(<span class="n">95</span>, <span class="n">5</span>)))                <span class="c"># ≈ 4.26 (proporcional)</span></code></pre>
+</div></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

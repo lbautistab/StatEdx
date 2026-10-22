@@ -1,0 +1,372 @@
+<!-- StatEdx · sesión: mcmc -->
+<div id="view-mcmc" data-view="mcmc" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Métodos MCMC: Metropolis-Hastings y Gibbs</h1>
+      <p>Cuando la posterior no tiene fórmula cerrada, se muestrea. Aquí entiendes por qué una cadena de Markov bien construida termina visitando cada región en proporción a su probabilidad posterior, programas Metropolis-Hastings y Gibbs, ajustas la propuesta y aprendes a diagnosticar si las cadenas convergieron con trazas, R̂ y tamaño efectivo de muestra.</p>
+      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: priors conjugados</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#mcmc-idea" data-sec="mcmc-idea">La idea</a></li>
+        <li><a href="#mcmc-markov" data-sec="mcmc-markov">Cadenas de Markov</a></li>
+        <li><a href="#mcmc-mh" data-sec="mcmc-mh">Metropolis-Hastings</a></li>
+        <li><a href="#mcmc-lab" data-sec="mcmc-lab">Laboratorio: la cadena en 2D</a></li>
+        <li><a href="#mcmc-gibbs" data-sec="mcmc-gibbs">Muestreo de Gibbs</a></li>
+        <li><a href="#mcmc-diag" data-sec="mcmc-diag">Diagnóstico de convergencia</a></li>
+        <li><a href="#mcmc-hmc" data-sec="mcmc-hmc">Más allá: HMC y NUTS</a></li>
+        <li><a href="#mcmc-code" data-sec="mcmc-code">Ejemplo en R y Python</a></li>
+        <li><a href="#mcmc-quiz" data-sec="mcmc-quiz">Comprueba</a></li>
+        <li><a href="#mcmc-ej" data-sec="mcmc-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="mcmc-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Imagina que tienes que estimar la altura media de una cordillera, pero está cubierta de niebla: solo puedes saber la altura del punto donde estás parado y comparar con la de un punto cercano. Una estrategia es caminar al azar, pero aceptando más a menudo los pasos hacia arriba que hacia abajo. Si lo haces bien, pasarás más tiempo en las zonas altas, justo en proporción a su altura. Eso es, en esencia, MCMC.</p>
+      <p>En inferencia bayesiana casi todo lo que quieres es una integral sobre la posterior: una media, una probabilidad, un intervalo. Si tuvieras muestras \(\theta^{(1)}, \dots, \theta^{(S)}\) de \(p(\theta \mid y)\), las aproximarías con promedios (<b>Monte Carlo</b>):</p>
+      <div class="eq">\[ E[h(\theta) \mid y] = \int h(\theta)\,p(\theta \mid y)\,d\theta \;\approx\; \frac{1}{S}\sum_{s=1}^{S} h\big(\theta^{(s)}\big) \]
+        <div class="note">Con \(h(\theta) = \theta\) obtienes la media posterior; con \(h(\theta) = \mathbb{1}[\theta &gt; c]\), la probabilidad \(P(\theta &gt; c \mid y)\). El problema es que, fuera de los casos conjugados, no sabes muestrear directamente de \(p(\theta \mid y)\), y ni siquiera conoces su constante \(p(y)\).</div>
+      </div>
+      <div class="callout"><b>La idea central:</b> MCMC (Monte Carlo por cadenas de Markov) construye una sucesión de valores en la que cada uno depende solo del anterior, diseñada para que, a largo plazo, la sucesión se distribuya como la posterior. Para lograrlo solo necesita evaluar la posterior <b>hasta una constante</b>: verosimilitud por prior.</div>
+
+      <h2 id="mcmc-markov"><span class="sec">§ 2</span>Cadenas de Markov</h2>
+      <p>Una <b>cadena de Markov</b> es una sucesión \(\theta^{(0)}, \theta^{(1)}, \dots\) en la que la distribución del siguiente estado depende solo del actual, a través de un <b>núcleo de transición</b> \(T(\theta' \mid \theta)\). Una distribución \(\pi\) es <b>estacionaria</b> si, cuando el estado actual sigue \(\pi\), el siguiente también la sigue:</p>
+      <div class="eq">\[ \pi(\theta') = \int T(\theta' \mid \theta)\,\pi(\theta)\,d\theta \]
+        <div class="note">Si además la cadena es <b>irreducible</b> (puede llegar a cualquier región con probabilidad positiva) y <b>aperiódica</b> (no queda atrapada en ciclos), entonces desde cualquier punto de partida la distribución de \(\theta^{(t)}\) converge a \(\pi\), y los promedios a lo largo de la cadena convergen a las esperanzas bajo \(\pi\) (teorema ergódico).</div>
+      </div>
+      <p>¿Cómo se diseña \(T\) para que su distribución estacionaria sea justo la posterior? La condición suficiente más usada es el <b>balance detallado</b> (reversibilidad):</p>
+      <div class="eq">\[ \pi(\theta)\,T(\theta' \mid \theta) = \pi(\theta')\,T(\theta \mid \theta') \quad \text{para todo } \theta, \theta' \]
+        <div class="note">El flujo de probabilidad de \(\theta\) a \(\theta'\) es igual al flujo de vuelta. Integrando ambos lados en \(\theta\) se obtiene la ecuación de estacionariedad. Metropolis-Hastings está construido para cumplir esta igualdad.</div>
+      </div>
+      <p>Dos consecuencias prácticas: las muestras son <b>dependientes</b> (cada una se parece a la anterior), así que valen menos que muestras independientes; y los primeros valores reflejan el punto de partida, no la posterior, por eso se descarta un <b>calentamiento</b> (<i>warmup</i> o <i>burn-in</i>).</p>
+
+      <h2 id="mcmc-mh"><span class="sec">§ 3</span>El algoritmo de Metropolis-Hastings</h2>
+      <p>Sea \(\tilde p(\theta) = p(y \mid \theta)\,p(\theta)\) la posterior sin normalizar y \(q(\theta^* \mid \theta)\) una distribución de <b>propuesta</b> de la que sí sabes muestrear. En cada iteración \(t\):</p>
+      <ol>
+        <li>Propón \(\theta^* \sim q(\cdot \mid \theta^{(t)})\).</li>
+        <li>Calcula la razón de aceptación \( r = \dfrac{\tilde p(\theta^*)\; q(\theta^{(t)} \mid \theta^*)}{\tilde p(\theta^{(t)})\; q(\theta^* \mid \theta^{(t)})} \).</li>
+        <li>Con probabilidad \(\min(1, r)\) acepta: \(\theta^{(t+1)} = \theta^*\). Si no, quédate: \(\theta^{(t+1)} = \theta^{(t)}\).</li>
+      </ol>
+      <div class="eq">\[ \alpha(\theta^* \mid \theta) = \min\!\left(1,\ \frac{p(y\mid\theta^*)\,p(\theta^*)}{p(y\mid\theta)\,p(\theta)}\cdot\frac{q(\theta \mid \theta^*)}{q(\theta^* \mid \theta)}\right) \]
+        <div class="note">La constante \(p(y)\) aparece arriba y abajo y se cancela. Si la propuesta es simétrica, \(q(\theta^* \mid \theta) = q(\theta \mid \theta^*)\) (por ejemplo, \(\theta^* = \theta + \varepsilon\) con \(\varepsilon \sim \mathcal{N}(0, \delta^2)\)), el segundo cociente vale 1 y tienes el algoritmo de <b>Metropolis</b> de paseo aleatorio.</div>
+      </div>
+      <p>Por qué funciona: para \(\theta \ne \theta'\), \(T(\theta' \mid \theta) = q(\theta' \mid \theta)\,\alpha(\theta' \mid \theta)\), y \(\pi(\theta)\,q(\theta'\mid\theta)\,\min(1, r) = \min\big(\pi(\theta)q(\theta'\mid\theta),\ \pi(\theta')q(\theta\mid\theta')\big)\), una expresión simétrica en \(\theta\) y \(\theta'\). Eso es el balance detallado.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Tamaño de paso δ</th><th>Aceptación</th><th>Qué pasa</th></tr></thead>
+        <tbody>
+          <tr><td>Muy pequeño</td><td>Cercana a 100 %</td><td>Casi todo se acepta, pero la cadena avanza a pasitos: alta autocorrelación, exploración lentísima.</td></tr>
+          <tr><td>Adecuado</td><td>20 % a 50 %</td><td>Buen equilibrio. Teoría para objetivos normales: óptimo cerca de 44 % en una dimensión y 23,4 % en muchas, con \(\delta \approx 2{,}38\,\sigma/\sqrt{d}\).</td></tr>
+          <tr><td>Muy grande</td><td>Cercana a 0 %</td><td>Las propuestas caen en zonas de baja probabilidad y se rechazan; la cadena se queda quieta muchas iteraciones.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Error común:</b> descartar las iteraciones rechazadas. Cuando se rechaza, el valor actual se <b>repite</b> en la cadena: esa repetición es la que da más peso a las zonas de alta probabilidad. Si solo guardas los valores aceptados, la muestra queda sesgada.</div>
+      <p>En la práctica se trabaja con logaritmos para evitar desbordamientos: se acepta si \(\log u &lt; \log\tilde p(\theta^*) - \log\tilde p(\theta^{(t)})\), con \(u \sim \text{Uniforme}(0,1)\). Y si un parámetro está restringido (una varianza, una tasa), se propone en una escala transformada como \(\log\sigma\), recordando incluir el jacobiano, o se rechazan las propuestas fuera del soporte.</p>
+
+      <h2 id="mcmc-lab"><span class="sec">§ 4</span>Laboratorio: la cadena en dos dimensiones</h2>
+      <p>El objetivo es una normal bivariada con medias 0, varianzas 1 y correlación \(\rho\); las elipses marcan las regiones de 1, 2 y 3 desviaciones. La cadena parte lejos, en (−3, 3). Con Metropolis, prueba pasos muy chicos y muy grandes y mira la tasa de aceptación y el tamaño efectivo. Luego cambia a Gibbs, que se mueve en zigzag paralelo a los ejes, y sube la correlación a 0,95.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · MCMC en 2D</span><span class="num" id="mcmc-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="mcmc-alg-label">ALGORITMO</label>
+              <div class="seg" id="mcmc-alg" role="group" aria-labelledby="mcmc-alg-label">
+                <button data-a="mh" aria-pressed="true">Metropolis</button>
+                <button data-a="gibbs" aria-pressed="false">Gibbs</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="mcmc-step">PASO DE LA PROPUESTA · δ = <b id="mcmc-step-v" class="num">1,00</b></label><input id="mcmc-step" type="range" min="0.05" max="5" step="0.05" value="1"></div>
+            <div class="ctrl"><label for="mcmc-rho">CORRELACIÓN · ρ = <b id="mcmc-rho-v" class="num">0,70</b></label><input id="mcmc-rho" type="range" min="0" max="0.98" step="0.01" value="0.7"></div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-ghost btn-sm" id="mcmc-run" type="button">Iniciar</button>
+            <button class="btn btn-ghost btn-sm" id="mcmc-reset" type="button">Reiniciar</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Recorrido de la cadena</span><span><span style="color:var(--hot)">×</span> propuesta rechazada</span></div>
+              <canvas class="plot" id="mcmc-c-path" height="260" aria-label="Recorrido de la cadena sobre las elipses de la normal bivariada objetivo"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Traza de θ₁ (últimas 400)</span><span>┄ media real 0</span></div>
+              <canvas class="plot" id="mcmc-c-trace" height="260" aria-label="Gráfico de traza del primer parámetro"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>iteraciones</span><b id="mcmc-it">–</b></div>
+            <div><span>tasa de aceptación</span><b id="mcmc-acc">–</b></div>
+            <div><span>media de θ₁ (tras calentar)</span><b id="mcmc-mean">–</b></div>
+            <div><span>ESS de θ₁ por cada 100 iter.</span><b id="mcmc-ess">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con δ = 0,1 casi todo se acepta pero la traza parece un gusano lento; con δ = 5 casi todo se rechaza y la traza queda en escalones. Alrededor de δ = 1,5 la cadena mezcla mejor. Con ρ = 0,95, Gibbs también se vuelve lento: solo puede moverse en dirección de los ejes.</figcaption>
+      </figure>
+
+      <h2 id="mcmc-gibbs"><span class="sec">§ 5</span>Muestreo de Gibbs</h2>
+      <p>Cuando el parámetro tiene varias componentes, \(\theta = (\theta_1, \dots, \theta_d)\), y sabes muestrear de cada <b>condicional completa</b> \(p(\theta_j \mid \theta_{-j}, y)\) (la distribución de una componente dado el resto y los datos), puedes actualizar una componente a la vez:</p>
+      <div class="eq">\[ \theta_1^{(t+1)} \sim p\big(\theta_1 \mid \theta_2^{(t)}, \dots, \theta_d^{(t)}, y\big), \quad \theta_2^{(t+1)} \sim p\big(\theta_2 \mid \theta_1^{(t+1)}, \theta_3^{(t)}, \dots, y\big), \quad \dots \]
+        <div class="note">Cada paso de Gibbs es un caso particular de Metropolis-Hastings cuya propuesta es la propia condicional completa: la razón \(r\) vale exactamente 1 y <b>siempre se acepta</b>. No hay paso que ajustar.</div>
+      </div>
+      <p>Las condicionales completas suelen ser fáciles cuando el modelo es <b>condicionalmente conjugado</b>. El ejemplo clásico es la normal con media y varianza desconocidas y priors semiconjugados \(\mu \sim \mathcal{N}(m_0, s_0^2)\), \(\sigma^2 \sim \text{Gamma-Inv}(a_0, b_0)\):</p>
+      <div class="eq">\[ \mu \mid \sigma^2, y \sim \mathcal{N}\!\left(\frac{m_0/s_0^2 + n\bar y/\sigma^2}{1/s_0^2 + n/\sigma^2},\ \frac{1}{1/s_0^2 + n/\sigma^2}\right), \qquad \sigma^2 \mid \mu, y \sim \text{Gamma-Inv}\!\left(a_0 + \frac{n}{2},\ b_0 + \frac{1}{2}\sum_{i}(y_i - \mu)^2\right) \]
+        <div class="note">La primera es la actualización Normal-Normal de la clase anterior, tratando \(\sigma^2\) como conocida; la segunda es la actualización conjugada de una varianza con media conocida. Alternarlas da muestras de la posterior conjunta \(p(\mu, \sigma^2 \mid y)\). Es el ejemplo resuelto de la sección 8.</div>
+      </div>
+      <p>Para la normal bivariada del laboratorio, las condicionales son \(\theta_1 \mid \theta_2 \sim \mathcal{N}(\rho\,\theta_2,\ 1-\rho^2)\) y lo simétrico para \(\theta_2\). Con \(\rho\) cercano a 1, la varianza condicional \(1-\rho^2\) es diminuta y cada paso apenas se mueve: Gibbs sufre con parámetros muy correlacionados. Las soluciones son reparametrizar (por ejemplo, centrar los predictores en una regresión) o actualizar los parámetros correlacionados en bloque.</p>
+
+      <h2 id="mcmc-diag"><span class="sec">§ 6</span>Diagnóstico de convergencia</h2>
+      <p>Ninguna prueba demuestra que una cadena convergió; los diagnósticos solo detectan problemas. Por eso se corren <b>varias cadenas</b> (al menos 4) desde puntos de partida dispersos y se comprueba que todas cuentan la misma historia.</p>
+      <ul>
+        <li><b>Trazas</b>: las cadenas deben verse como “orugas peludas” superpuestas, sin tendencias ni cadenas separadas.</li>
+        <li><b>\(\hat R\)</b> (Gelman-Rubin) compara la varianza entre cadenas con la varianza dentro de cada cadena. Con \(m\) cadenas de \(n\) iteraciones, \(W\) el promedio de las varianzas internas y \(B = \frac{n}{m-1}\sum_j(\bar\theta_j - \bar\theta)^2\):</li>
+      </ul>
+      <div class="eq">\[ \hat V = \frac{n-1}{n}\,W + \frac{1}{n}\,B, \qquad \hat R = \sqrt{\frac{\hat V}{W}} \]
+        <div class="note">Si todas las cadenas exploran la misma distribución, \(B/n\) es pequeño y \(\hat R \approx 1\). La recomendación actual (Vehtari y colaboradores, 2021) es usar la versión dividida y normalizada por rangos, y exigir \(\hat R &lt; 1{,}01\).</div>
+      </div>
+      <ul>
+        <li><b>Tamaño efectivo de muestra (ESS)</b>: cuántas muestras independientes equivalen a tus \(S\) muestras autocorrelacionadas. Con autocorrelaciones \(\rho_k\) en el retardo \(k\):</li>
+      </ul>
+      <div class="eq">\[ \text{ESS} = \frac{S}{1 + 2\sum_{k=1}^{\infty}\rho_k}, \qquad \text{EEMC}(\bar\theta) = \frac{\operatorname{sd}(\theta \mid y)}{\sqrt{\text{ESS}}} \]
+        <div class="note">El error estándar de Monte Carlo (EEMC) mide cuánto cambiaría tu estimación si corrieras otra vez el algoritmo. Para una cadena AR(1) con \(\rho_k = \phi^k\), \(\text{ESS} = S\,\frac{1-\phi}{1+\phi}\): con \(\phi = 0{,}9\), 10 000 iteraciones valen solo 526 muestras independientes. Busca al menos unos cientos de ESS por parámetro.</div>
+      </div>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cuatro cadenas y R̂</span><span class="num" id="mcmc-rh-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="mcmc-tg-label">OBJETIVO</label>
+              <div class="seg" id="mcmc-tg" role="group" aria-labelledby="mcmc-tg-label">
+                <button data-t="norm" aria-pressed="true">Normal</button>
+                <button data-t="bimod" aria-pressed="false">Bimodal</button>
+              </div>
+            </div>
+            <div class="ctrl"><label for="mcmc-d2">PASO · δ = <b id="mcmc-d2-v" class="num">0,30</b></label><input id="mcmc-d2" type="range" min="0.05" max="8" step="0.05" value="0.3"></div>
+          </div>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="mcmc-ni-label">ITERACIONES POR CADENA</label>
+              <div class="seg" id="mcmc-ni" role="group" aria-labelledby="mcmc-ni-label">
+                <button data-n="200" aria-pressed="true">200</button>
+                <button data-n="1000" aria-pressed="false">1 000</button>
+                <button data-n="4000" aria-pressed="false">4 000</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="mcmc-rh-new" type="button">Nuevas cadenas</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Trazas de 4 cadenas</span><span>sombreado: calentamiento</span></div>
+              <canvas class="plot" id="mcmc-c-chains" height="220" aria-label="Trazas de cuatro cadenas de Metropolis que parten de puntos dispersos"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Autocorrelación (2.ª mitad)</span><span>retardos 0 a 40</span></div>
+              <canvas class="plot" id="mcmc-c-acf" height="220" aria-label="Función de autocorrelación de las cadenas"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>R̂</span><b id="mcmc-rh">–</b></div>
+            <div><span>ESS total</span><b id="mcmc-rh-ess">–</b></div>
+            <div><span>tasa de aceptación</span><b id="mcmc-rh-acc">–</b></div>
+            <div><span>autocorrelación lag 1</span><b id="mcmc-rh-r1">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con 200 iteraciones y δ = 0,3 las cadenas no alcanzan a juntarse: R̂ muy por encima de 1. Súbelas a 4 000 o aumenta δ y R̂ baja a cerca de 1,00. Con el objetivo bimodal y paso chico, cada cadena se queda en su modo: R̂ lo delata, aunque cada traza por separado parezca sana.</figcaption>
+      </figure>
+      <div class="callout"><b>Buenas prácticas:</b> descarta la primera mitad como calentamiento (es lo que hace Stan por defecto), revisa \(\hat R\) y ESS de <b>todos</b> los parámetros, y no adelgaces (<i>thinning</i>) las cadenas para “quitar autocorrelación”: tirar iteraciones siempre reduce la información, solo sirve para ahorrar memoria.</div>
+
+      <h2 id="mcmc-hmc"><span class="sec">§ 7</span>Más allá: Hamiltonian Monte Carlo y NUTS</h2>
+      <p>El paseo aleatorio escala mal: en 100 dimensiones, una propuesta al azar casi siempre apunta hacia zonas de baja probabilidad, y el paso tiene que ser diminuto. <b>Hamiltonian Monte Carlo</b> (HMC) usa el <b>gradiente</b> de \(\log p(\theta \mid y)\) para proponer movimientos largos que siguen la forma de la posterior, como una pelota que rueda por una superficie sin fricción. Las propuestas lejanas se aceptan con alta probabilidad.</p>
+      <ul>
+        <li><b>NUTS</b> (<i>No-U-Turn Sampler</i>) ajusta solo la longitud de cada trayectoria y el tamaño de paso durante el calentamiento. Es el algoritmo por defecto de Stan (desde R con <code>brms</code>, <code>rstanarm</code> o <code>cmdstanr</code>) y de PyMC y NumPyro en Python.</li>
+        <li>HMC da un diagnóstico extra muy valioso: las <b>transiciones divergentes</b>, que avisan de regiones de curvatura extrema (como el “embudo” de los modelos jerárquicos) que la cadena no puede explorar bien.</li>
+        <li>Requiere parámetros continuos: los discretos se marginalizan o se muestrean con otros métodos.</li>
+      </ul>
+      <div class="callout"><b>Para recordar:</b> programar Metropolis o Gibbs a mano es la mejor manera de entender MCMC, pero para análisis reales usa Stan o PyMC. Lo que no cambia es tu responsabilidad: revisar \(\hat R\), ESS, divergencias y trazas antes de interpretar cualquier resultado.</div>
+
+      <h2 id="mcmc-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>Tiempos de entrega (minutos) de 12 pedidos de un restaurante. Queremos la posterior de la media \(\mu\) y la desviación \(\sigma\) con priors \(\mu \sim \mathcal{N}(30, 10^2)\) y \(\sigma^2 \sim \text{Gamma-Inv}(2, 20)\). Corremos un Gibbs con 4 cadenas desde puntos dispersos y calculamos \(\hat R\) y ESS a mano.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+y = np.<span class="f">array</span>([<span class="n">31</span>, <span class="n">27</span>, <span class="n">35</span>, <span class="n">29</span>, <span class="n">42</span>, <span class="n">33</span>, <span class="n">30</span>, <span class="n">38</span>, <span class="n">26</span>, <span class="n">34</span>, <span class="n">37</span>, <span class="n">32</span>])   <span class="c"># minutos</span>
+n, ybar = <span class="f">len</span>(y), y.<span class="f">mean</span>()
+m0, s0, a0, b0 = <span class="n">30</span>, <span class="n">10</span>, <span class="n">2</span>, <span class="n">20</span>          <span class="c"># priors: μ ~ N(30, 10²), σ² ~ Gamma-Inv(2, 20)</span>
+
+<span class="k">def</span> <span class="f">gibbs</span>(n_iter, mu, rng):
+    out = np.<span class="f">empty</span>((n_iter, <span class="n">2</span>))
+    <span class="k">for</span> t <span class="k">in</span> <span class="f">range</span>(n_iter):
+        <span class="c"># 1. σ² | μ, y ~ Gamma-Inv(a0 + n/2, b0 + SC/2)</span>
+        sc = np.<span class="f">sum</span>((y - mu) ** <span class="n">2</span>)
+        s2 = <span class="n">1</span> / rng.<span class="f">gamma</span>(a0 + n / <span class="n">2</span>, <span class="n">1</span> / (b0 + sc / <span class="n">2</span>))
+        <span class="c"># 2. μ | σ², y ~ Normal (promedio ponderado por precisión)</span>
+        prec = <span class="n">1</span> / s0**<span class="n">2</span> + n / s2
+        media = (m0 / s0**<span class="n">2</span> + n * ybar / s2) / prec
+        mu = rng.<span class="f">normal</span>(media, np.<span class="f">sqrt</span>(<span class="n">1</span> / prec))
+        out[t] = mu, s2
+    <span class="k">return</span> out
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+cadenas = np.<span class="f">array</span>([<span class="f">gibbs</span>(<span class="n">3000</span>, m, rng) <span class="k">for</span> m <span class="k">in</span> [<span class="n">0</span>, <span class="n">20</span>, <span class="n">50</span>, <span class="n">100</span>]])
+cadenas = cadenas[:, <span class="n">500</span>:, :]                   <span class="c"># descartamos el calentamiento</span>
+
+<span class="k">def</span> <span class="f">rhat</span>(x):                                    <span class="c"># x: (cadenas, iteraciones)</span>
+    m, n = x.shape
+    B = n * x.<span class="f">mean</span>(axis=<span class="n">1</span>).<span class="f">var</span>(ddof=<span class="n">1</span>)
+    W = x.<span class="f">var</span>(axis=<span class="n">1</span>, ddof=<span class="n">1</span>).<span class="f">mean</span>()
+    <span class="k">return</span> np.<span class="f">sqrt</span>(((n - <span class="n">1</span>) / n * W + B / n) / W)
+
+<span class="k">def</span> <span class="f">ess</span>(x):                                     <span class="c"># una cadena; corta la suma cuando ρk &lt; 0.05</span>
+    x = x - x.<span class="f">mean</span>(); n = <span class="f">len</span>(x)
+    acf = np.<span class="f">correlate</span>(x, x, <span class="s">'full'</span>)[n - <span class="n">1</span>:] / (x @ x)
+    s = <span class="n">0</span>
+    <span class="k">for</span> k <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, n):
+        <span class="k">if</span> acf[k] &lt; <span class="n">0.05</span>: <span class="k">break</span>
+        s += acf[k]
+    <span class="k">return</span> n / (<span class="n">1</span> + <span class="n">2</span> * s)
+
+mu_s, sd_s = cadenas[:, :, <span class="n">0</span>], np.<span class="f">sqrt</span>(cadenas[:, :, <span class="n">1</span>])
+<span class="f">print</span>(mu_s.<span class="f">mean</span>(), np.<span class="f">percentile</span>(mu_s, [<span class="n">2.5</span>, <span class="n">97.5</span>]))   <span class="c"># ≈ 32.8  [30.2, 35.4]</span>
+<span class="f">print</span>(sd_s.<span class="f">mean</span>(), np.<span class="f">percentile</span>(sd_s, [<span class="n">2.5</span>, <span class="n">97.5</span>]))   <span class="c"># ≈ 4.55  [3.2, 6.7]</span>
+<span class="f">print</span>(<span class="f">rhat</span>(mu_s), <span class="f">rhat</span>(sd_s))                          <span class="c"># ≈ 1.000  1.000</span>
+<span class="f">print</span>(<span class="f">sum</span>(<span class="f">ess</span>(c) <span class="k">for</span> c <span class="k">in</span> mu_s))                       <span class="c"># ≈ 10 000: casi independientes</span>
+<span class="f">print</span>((mu_s &gt; <span class="n">35</span>).<span class="f">mean</span>())                               <span class="c"># P(μ &gt; 35 | y) ≈ 0.05</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>y &lt;- <span class="f">c</span>(<span class="n">31</span>, <span class="n">27</span>, <span class="n">35</span>, <span class="n">29</span>, <span class="n">42</span>, <span class="n">33</span>, <span class="n">30</span>, <span class="n">38</span>, <span class="n">26</span>, <span class="n">34</span>, <span class="n">37</span>, <span class="n">32</span>)   <span class="c"># minutos</span>
+n &lt;- <span class="f">length</span>(y); ybar &lt;- <span class="f">mean</span>(y)
+m0 &lt;- <span class="n">30</span>; s0 &lt;- <span class="n">10</span>; a0 &lt;- <span class="n">2</span>; b0 &lt;- <span class="n">20</span>
+
+gibbs &lt;- <span class="k">function</span>(n_iter, mu) {
+  out &lt;- <span class="f">matrix</span>(<span class="k">NA</span>, n_iter, <span class="n">2</span>, dimnames = <span class="f">list</span>(<span class="k">NULL</span>, <span class="f">c</span>(<span class="s">"mu"</span>, <span class="s">"s2"</span>)))
+  <span class="k">for</span> (t <span class="k">in</span> <span class="n">1</span>:n_iter) {
+    sc &lt;- <span class="f">sum</span>((y - mu)^<span class="n">2</span>)
+    s2 &lt;- <span class="n">1</span> / <span class="f">rgamma</span>(<span class="n">1</span>, shape = a0 + n / <span class="n">2</span>, rate = b0 + sc / <span class="n">2</span>)
+    prec &lt;- <span class="n">1</span> / s0^<span class="n">2</span> + n / s2
+    mu &lt;- <span class="f">rnorm</span>(<span class="n">1</span>, (m0 / s0^<span class="n">2</span> + n * ybar / s2) / prec, <span class="f">sqrt</span>(<span class="n">1</span> / prec))
+    out[t, ] &lt;- <span class="f">c</span>(mu, s2)
+  }
+  out
+}
+
+<span class="f">set.seed</span>(<span class="n">42</span>)
+cadenas &lt;- <span class="f">lapply</span>(<span class="f">c</span>(<span class="n">0</span>, <span class="n">20</span>, <span class="n">50</span>, <span class="n">100</span>), <span class="k">function</span>(m) <span class="f">gibbs</span>(<span class="n">3000</span>, m)[-(<span class="n">1</span>:<span class="n">500</span>), ])
+mu_s &lt;- <span class="f">sapply</span>(cadenas, <span class="k">function</span>(ch) ch[, <span class="s">"mu"</span>])            <span class="c"># matriz iteraciones × cadenas</span>
+sd_s &lt;- <span class="f">sapply</span>(cadenas, <span class="k">function</span>(ch) <span class="f">sqrt</span>(ch[, <span class="s">"s2"</span>]))
+
+rhat &lt;- <span class="k">function</span>(x) {
+  n &lt;- <span class="f">nrow</span>(x)
+  B &lt;- n * <span class="f">var</span>(<span class="f">colMeans</span>(x)); W &lt;- <span class="f">mean</span>(<span class="f">apply</span>(x, <span class="n">2</span>, var))
+  <span class="f">sqrt</span>(((n - <span class="n">1</span>) / n * W + B / n) / W)
+}
+<span class="f">mean</span>(mu_s); <span class="f">quantile</span>(mu_s, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))   <span class="c"># ≈ 32.8  [30.2, 35.4]</span>
+<span class="f">mean</span>(sd_s); <span class="f">quantile</span>(sd_s, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))   <span class="c"># ≈ 4.55  [3.2, 6.7]</span>
+<span class="f">c</span>(<span class="f">rhat</span>(mu_s), <span class="f">rhat</span>(sd_s))                         <span class="c"># ≈ 1.000  1.000</span>
+
+<span class="c"># con el paquete coda: ESS y R̂ estándar</span>
+<span class="f">library</span>(coda)
+mc &lt;- <span class="f">mcmc.list</span>(<span class="f">lapply</span>(<span class="n">1</span>:<span class="n">4</span>, <span class="k">function</span>(j) <span class="f">mcmc</span>(mu_s[, j])))
+<span class="f">effectiveSize</span>(mc)                                <span class="c"># ≈ 10 000</span>
+<span class="f">gelman.diag</span>(mc)                                  <span class="c"># ≈ 1.00</span>
+<span class="f">traceplot</span>(mc)
+<span class="f">mean</span>(mu_s &gt; <span class="n">35</span>)                                  <span class="c"># ≈ 0.05</span></code></pre>
+      </div>
+      <p><b>Cómo leerlo.</b> Las cuatro cadenas parten de 0, 20, 50 y 100 minutos, pero en pocas iteraciones llegan a la misma zona: \(\hat R \approx 1{,}000\). La media posterior de \(\mu\) es 32,8 minutos (IC 95 % de 30,2 a 35,4) y la de \(\sigma\), 4,55. Como en este modelo \(\mu\) y \(\sigma^2\) están casi incorrelacionados a posteriori, Gibbs produce muestras casi independientes y el ESS es prácticamente igual al número de iteraciones. La probabilidad de que la entrega media supere 35 minutos es cercana al 5 %.</p>
+
+      <h2 id="mcmc-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="Una tasa de aceptación cercana al 99 % suele indicar pasos demasiado pequeños: la cadena casi no se mueve en cada iteración y la autocorrelación es altísima. Hay que aumentar δ." data-wrong="Aceptar mucho no es lo mismo que explorar bien. Piensa en qué tamaño de paso produce que casi todas las propuestas se acepten.">
+        <h3>Tu Metropolis de paseo aleatorio acepta el 99 % de las propuestas. ¿Qué es lo más probable?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La cadena está mezclando de forma óptima</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El paso es demasiado grande</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>El paso es demasiado pequeño y la cadena explora muy despacio</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La posterior está mal especificada</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Cuando se rechaza la propuesta, el valor actual se vuelve a registrar. Esa repetición da más peso a las zonas de alta probabilidad y es necesaria para que la cadena tenga la distribución correcta." data-wrong="Repasa el paso 3 del algoritmo: si la propuesta se rechaza, ¿qué valor ocupa la posición t + 1 de la cadena?">
+        <h3>En Metropolis-Hastings, ¿qué se hace cuando una propuesta es rechazada?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Se repite el valor actual como siguiente elemento de la cadena</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Se descarta la iteración y no se guarda nada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se vuelve a proponer hasta que alguna propuesta sea aceptada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Se reinicia la cadena desde el punto inicial</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="R̂ mucho mayor que 1 significa que la variación entre cadenas es grande comparada con la variación dentro de cada una: no exploran la misma distribución. No se debe interpretar la posterior todavía." data-wrong="R̂ compara la varianza entre cadenas con la varianza dentro de ellas. ¿Qué indica que la primera sea mucho mayor?">
+        <h3>Corres 4 cadenas y obtienes R̂ = 1,8 para un parámetro. ¿Qué concluyes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El parámetro tiene una posterior muy ancha</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Hay que adelgazar las cadenas para reducir la autocorrelación</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El ESS es 1,8 veces mayor que el número de iteraciones</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Las cadenas no convergieron a la misma distribución: los resultados no son fiables</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="mcmc-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Los tres primeros se hacen con calculadora.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>La posterior sin normalizar es \(\tilde p(\theta) = e^{-\theta^2/2}\) y usas una propuesta normal simétrica. El valor actual es \(\theta = 1\). Calcula la probabilidad de aceptar si la propuesta es (a) \(\theta^* = 2\) y (b) \(\theta^* = 0{,}5\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(r = e^{-4/2}/e^{-1/2} = e^{-1{,}5} \approx 0{,}223\): se acepta con probabilidad <b>0,223</b>. (b) \(r = e^{-0{,}125}/e^{-0{,}5} = e^{0{,}375} \approx 1{,}45 &gt; 1\): se acepta <b>siempre</b>. Los pasos hacia mayor densidad siempre se aceptan; los que bajan, solo a veces.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Cuatro cadenas de 1 000 iteraciones tienen medias 0,10; −0,05; 0,02 y 2,90, y la varianza dentro de cada cadena es 1. Calcula \(\hat R\). ¿Qué está pasando?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(W = 1\). La varianza de las cuatro medias (con \(m-1\) en el denominador) es 2,073, así que \(B = 1\,000 \times 2{,}073 = 2\,073\). \(\hat V = \frac{999}{1000}\cdot 1 + \frac{2\,073}{1\,000} \approx 3{,}07\) y \(\hat R = \sqrt{3{,}07} \approx\) <b>1,75</b>. Una cadena está explorando una zona distinta (quizás otro modo o se quedó atascada). Hay que mirar las trazas y no interpretar la posterior.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Una cadena se comporta como un AR(1) con autocorrelación \(\phi = 0{,}9\) y la desviación posterior del parámetro es 2. (a) ¿Cuál es el ESS de 10 000 iteraciones? (b) ¿Cuál es el error estándar de Monte Carlo de la media? (c) ¿Cuántas iteraciones necesitas para un EEMC de 0,02?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\text{ESS} = 10\,000 \cdot \frac{0{,}1}{1{,}9} \approx\) <b>526</b>. (b) \(\text{EEMC} = 2/\sqrt{526} \approx\) <b>0,087</b>. (c) Necesitas \(\text{ESS} = (2/0{,}02)^2 = 10\,000\), es decir, \(10\,000 \times 19 =\) <b>190 000 iteraciones</b>. Mejorar el muestreador (bajar \(\phi\)) suele ser mucho más barato que alargar la cadena.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Programa un Metropolis para la tasa \(\lambda\) del centro de llamadas de la clase anterior (prior Gamma(8, 2), 31 llamadas en 5 horas). Ajusta el paso para obtener cerca de 44 % de aceptación y compara la media y el intervalo con la posterior exacta Gamma(39, 7) (media 5,57, IC 95 % de 3,96 a 7,45).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>La desviación posterior es cerca de 0,89, así que la regla \(2{,}4\,\sigma\) sugiere un paso cercano a 2. Las propuestas con \(\lambda \le 0\) se rechazan devolviendo \(-\infty\) en la log-posterior. Con paso 2 se acepta alrededor del 46 % y la media resulta ≈ 5,57 con IC ≈ [3,9 ; 7,4], igual que la solución exacta salvo error de Monte Carlo.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+<span class="k">def</span> <span class="f">log_post</span>(lam):
+    <span class="k">if</span> lam &lt;= <span class="n">0</span>:
+        <span class="k">return</span> -np.inf
+    <span class="k">return</span> stats.gamma.<span class="f">logpdf</span>(lam, <span class="n">8</span>, scale=<span class="n">1</span> / <span class="n">2</span>) + stats.poisson.<span class="f">logpmf</span>(<span class="n">31</span>, <span class="n">5</span> * lam)
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+lam, cadena, acept, paso = <span class="n">4.0</span>, [], <span class="n">0</span>, <span class="n">2.0</span>
+<span class="k">for</span> t <span class="k">in</span> <span class="f">range</span>(<span class="n">20000</span>):
+    prop = lam + rng.<span class="f">normal</span>(<span class="n">0</span>, paso)
+    <span class="k">if</span> np.<span class="f">log</span>(rng.<span class="f">uniform</span>()) &lt; <span class="f">log_post</span>(prop) - <span class="f">log_post</span>(lam):
+        lam, acept = prop, acept + <span class="n">1</span>
+    cadena.<span class="f">append</span>(lam)          <span class="c"># se guarda aunque se rechace</span>
+
+cadena = np.<span class="f">array</span>(cadena[<span class="n">2000</span>:])
+<span class="f">print</span>(acept / <span class="n">20000</span>)                                   <span class="c"># ≈ 0.46</span>
+<span class="f">print</span>(cadena.<span class="f">mean</span>(), np.<span class="f">percentile</span>(cadena, [<span class="n">2.5</span>, <span class="n">97.5</span>]))   <span class="c"># ≈ 5.57  [3.9, 7.4]</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>log_post &lt;- <span class="k">function</span>(lam) {
+  <span class="k">if</span> (lam &lt;= <span class="n">0</span>) <span class="k">return</span>(-<span class="k">Inf</span>)
+  <span class="f">dgamma</span>(lam, <span class="n">8</span>, rate = <span class="n">2</span>, log = <span class="k">TRUE</span>) + <span class="f">dpois</span>(<span class="n">31</span>, <span class="n">5</span> * lam, log = <span class="k">TRUE</span>)
+}
+<span class="f">set.seed</span>(<span class="n">3</span>)
+lam &lt;- <span class="n">4</span>; paso &lt;- <span class="n">2</span>; acept &lt;- <span class="n">0</span>; cadena &lt;- <span class="f">numeric</span>(<span class="n">20000</span>)
+<span class="k">for</span> (t <span class="k">in</span> <span class="n">1</span>:<span class="n">20000</span>) {
+  prop &lt;- lam + <span class="f">rnorm</span>(<span class="n">1</span>, <span class="n">0</span>, paso)
+  <span class="k">if</span> (<span class="f">log</span>(<span class="f">runif</span>(<span class="n">1</span>)) &lt; <span class="f">log_post</span>(prop) - <span class="f">log_post</span>(lam)) { lam &lt;- prop; acept &lt;- acept + <span class="n">1</span> }
+  cadena[t] &lt;- lam
+}
+cadena &lt;- cadena[-(<span class="n">1</span>:<span class="n">2000</span>)]
+acept / <span class="n">20000</span>                                   <span class="c"># ≈ 0.46</span>
+<span class="f">mean</span>(cadena); <span class="f">quantile</span>(cadena, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))   <span class="c"># ≈ 5.57  [3.9, 7.4]</span></code></pre>
+</div></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

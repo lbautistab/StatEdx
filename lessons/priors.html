@@ -1,0 +1,318 @@
+<!-- StatEdx · sesión: priors -->
+<div id="view-priors" data-view="priors" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Priors conjugados y elección del prior</h1>
+      <p>El prior es la parte del análisis bayesiano que más dudas genera. Aquí aprendes las familias conjugadas que permiten actualizar con fórmulas cerradas, la diferencia entre priors informativos, débiles y planos, cómo traducir conocimiento experto a una distribución y cómo comprobar con la predictiva previa y un análisis de sensibilidad que tu prior es razonable.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel avanzado</span><span>Requiere: inferencia bayesiana</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#priors-idea" data-sec="priors-idea">La idea</a></li>
+        <li><a href="#priors-conj" data-sec="priors-conj">Familias conjugadas</a></li>
+        <li><a href="#priors-tipos" data-sec="priors-tipos">Tipos de prior</a></li>
+        <li><a href="#priors-lab" data-sec="priors-lab">Laboratorio: Gamma-Poisson</a></li>
+        <li><a href="#priors-elicit" data-sec="priors-elicit">Elicitar un prior</a></li>
+        <li><a href="#priors-sens" data-sec="priors-sens">Análisis de sensibilidad</a></li>
+        <li><a href="#priors-pred" data-sec="priors-pred">Predictiva previa</a></li>
+        <li><a href="#priors-code" data-sec="priors-code">Ejemplo en R y Python</a></li>
+        <li><a href="#priors-quiz" data-sec="priors-quiz">Comprueba</a></li>
+        <li><a href="#priors-ej" data-sec="priors-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="priors-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una empresa abre un centro de atención telefónica nuevo. En las primeras 5 horas entran 31 llamadas: 6,2 por hora. Si la tasa real supera las 5 llamadas por hora, conviene contratar un segundo operador. ¿Lo contratas?</p>
+      <p>Con 5 horas de datos, la respuesta depende mucho de lo que ya sabías. Los otros centros de la empresa reciben en promedio unas 4 llamadas por hora. Una persona con esa experiencia y otra que no sabe nada pueden llegar a conclusiones distintas con los mismos datos, y las dos pueden tener razón según su información. El prior es la forma explícita y auditable de decir qué sabías antes.</p>
+      <div class="callout"><b>La idea central:</b> el prior no es un capricho ni un truco para obtener el resultado que quieres. Es un supuesto del modelo, como la normalidad o la independencia, y se elige con los mismos criterios: tiene que ser defendible, se reporta y se pone a prueba.</div>
+
+      <h2 id="priors-conj"><span class="sec">§ 2</span>Familias conjugadas</h2>
+      <p>Una familia de priors \(\mathcal{F}\) es <b>conjugada</b> para una verosimilitud si, para cualquier prior de \(\mathcal{F}\) y cualquier dato, la posterior también pertenece a \(\mathcal{F}\). Actualizar se reduce a cambiar unos pocos parámetros. Ya viste el caso Beta-Binomial; veamos el de conteos.</p>
+      <p><b>Gamma-Poisson.</b> Sean \(y_1, \dots, y_n\) conteos Poisson con tasa \(\lambda\) (llamadas en cada hora) y un prior \(\lambda \sim \text{Gamma}(\alpha, \beta)\) con densidad \(p(\lambda) \propto \lambda^{\alpha-1}e^{-\beta\lambda}\). Con \(S = \sum y_i\):</p>
+      <div class="eq">\[ p(\lambda \mid y) \;\propto\; \underbrace{\lambda^{S} e^{-n\lambda}}_{\text{verosimilitud}} \cdot \underbrace{\lambda^{\alpha-1} e^{-\beta\lambda}}_{\text{prior}} \;=\; \lambda^{\alpha + S - 1}\,e^{-(\beta + n)\lambda} \quad\Longrightarrow\quad \lambda \mid y \sim \text{Gamma}(\alpha + S,\ \beta + n) \]
+        <div class="note">Lectura en <b>pseudo-observaciones</b>: el prior equivale a haber visto \(\alpha\) eventos en \(\beta\) unidades de exposición. Su media es \(\alpha/\beta\) y su varianza \(\alpha/\beta^2\). La media posterior es un promedio ponderado: \(\frac{\alpha+S}{\beta+n} = \frac{\beta}{\beta+n}\cdot\frac{\alpha}{\beta} + \frac{n}{\beta+n}\cdot\frac{S}{n}\).</div>
+      </div>
+      <p><b>Normal-Normal (σ conocida).</b> Si \(y_i \sim \mathcal{N}(\mu, \sigma^2)\) y \(\mu \sim \mathcal{N}(\mu_0, \tau_0^2)\), la posterior es normal. Lo más claro es trabajar con <b>precisiones</b> (inversos de varianzas), que simplemente se suman:</p>
+      <div class="eq">\[ \frac{1}{\tau_n^2} = \frac{1}{\tau_0^2} + \frac{n}{\sigma^2}, \qquad \mu_n = \tau_n^2\left(\frac{\mu_0}{\tau_0^2} + \frac{n\,\bar y}{\sigma^2}\right) \]
+        <div class="note">El prior vale \(n_0 = \sigma^2/\tau_0^2\) observaciones. Ejemplo: prior \(\mathcal{N}(70, 5^2)\), \(\sigma = 10\) y 4 datos con media 78. El prior vale \(100/25 = 4\) datos, igual que la muestra, así que \(\mu_n = 74\) y \(\tau_n = 1/\sqrt{1/25 + 4/100} \approx 3{,}54\).</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Verosimilitud</th><th>Prior conjugado</th><th>Posterior</th><th>Pseudo-datos del prior</th></tr></thead>
+        <tbody>
+          <tr><td>Binomial(\(n, \theta\))</td><td>Beta(\(a, b\))</td><td>Beta(\(a + k,\ b + n - k\))</td><td>\(a\) éxitos y \(b\) fracasos</td></tr>
+          <tr><td>Poisson(\(\lambda\))</td><td>Gamma(\(\alpha, \beta\))</td><td>Gamma(\(\alpha + S,\ \beta + n\))</td><td>\(\alpha\) eventos en \(\beta\) unidades</td></tr>
+          <tr><td>Exponencial(\(\lambda\))</td><td>Gamma(\(\alpha, \beta\))</td><td>Gamma(\(\alpha + n,\ \beta + \sum y_i\))</td><td>\(\alpha\) tiempos que suman \(\beta\)</td></tr>
+          <tr><td>Normal, \(\sigma\) conocida</td><td>\(\mathcal{N}(\mu_0, \tau_0^2)\)</td><td>\(\mathcal{N}(\mu_n, \tau_n^2)\)</td><td>\(\sigma^2/\tau_0^2\) datos con media \(\mu_0\)</td></tr>
+          <tr><td>Normal, \(\mu\) y \(\sigma^2\) desconocidas</td><td>Normal-Gamma inversa</td><td>Normal-Gamma inversa</td><td>\(\kappa_0\) datos para \(\mu\), \(2\alpha_0\) para \(\sigma^2\)</td></tr>
+          <tr><td>Multinomial</td><td>Dirichlet(\(\alpha_1, \dots, \alpha_K\))</td><td>Dirichlet(\(\alpha_j + n_j\))</td><td>\(\alpha_j\) casos en la categoría \(j\)</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Para recordar:</b> la conjugación es una comodidad matemática, no una exigencia. Hoy, con MCMC, puedes usar cualquier prior. Pero los conjugados siguen siendo útiles para razonar: te dicen cuántos datos vale tu prior, y esa es la pregunta clave al elegirlo.</div>
+
+      <h2 id="priors-tipos"><span class="sec">§ 3</span>Tipos de prior</h2>
+      <p>Según cuánta información aportan, los priors se ubican en un espectro:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Tipo</th><th>Ejemplo</th><th>Cuándo tiene sentido</th></tr></thead>
+        <tbody>
+          <tr><td>Informativo</td><td>Gamma(8, 2): “unas 4 llamadas por hora, más o menos 1,4”</td><td>Hay estudios previos, datos históricos o conocimiento experto sólido. Muy valioso con pocos datos nuevos.</td></tr>
+          <tr><td>Débilmente informativo</td><td>\(\mathcal{N}(0, 2{,}5^2)\) para un coeficiente logístico estandarizado</td><td>Opción por defecto: descarta valores absurdos (una razón de momios de un millón) sin imponer una dirección.</td></tr>
+          <tr><td>Vago o difuso</td><td>Gamma(0,01; 0,01), \(\mathcal{N}(0, 1000^2)\)</td><td>Cuando se quiere que “hablen los datos”. Cuidado: puede dar pesos absurdos a valores extremos.</td></tr>
+          <tr><td>Impropio</td><td>\(p(\mu) \propto 1\) en toda la recta</td><td>No integra 1. Se acepta solo si la posterior resultante sí es propia, cosa que hay que comprobar.</td></tr>
+          <tr><td>De referencia (Jeffreys)</td><td>Beta(½, ½) para una proporción</td><td>Cuando se busca un prior “objetivo” que no dependa de cómo se parametriza el modelo.</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Plano no significa sin información.</b> Un prior uniforme para una proporción \(\theta\) no es uniforme para sus log-odds \(\psi = \log\frac{\theta}{1-\theta}\): por el cambio de variable, \(p(\psi) = \frac{e^\psi}{(1+e^\psi)^2}\), una campana centrada en 0. Y al revés, un prior “plano” muy ancho en log-odds, como \(\mathcal{N}(0, 10^2)\), pone casi dos tercios de la probabilidad en proporciones menores que 1 % o mayores que 99 %. Lo verás en la predictiva previa.</p>
+      <p>El <b>prior de Jeffreys</b> resuelve ese problema eligiendo una forma que se transforma bien con cualquier reparametrización. Se define a partir de la información de Fisher \(I(\theta)\):</p>
+      <div class="eq">\[ p_J(\theta) \propto \sqrt{I(\theta)}, \qquad I(\theta) = -E\!\left[\frac{\partial^2 \log p(y\mid\theta)}{\partial\theta^2}\right] \]
+        <div class="note">Binomial: \(I(\theta) = \frac{n}{\theta(1-\theta)}\), así que \(p_J \propto \theta^{-1/2}(1-\theta)^{-1/2}\), una Beta(½, ½). Poisson: \(I(\lambda) = 1/\lambda\), así que \(p_J \propto \lambda^{-1/2}\) (impropio). Media normal: plano. Desviación típica normal: \(p_J \propto 1/\sigma\).</div>
+      </div>
+      <div class="callout"><b>Error común:</b> asignar probabilidad cero a valores posibles. Si tu prior para una tasa es uniforme entre 0 y 5, ningún dato podrá convencerte de que la tasa es 6: la posterior también valdrá cero ahí. Prefiere priors con colas suaves a cortes duros, salvo que el límite sea físico (una proporción no puede pasar de 1).</div>
+
+      <h2 id="priors-lab"><span class="sec">§ 4</span>Laboratorio: el peso del prior Gamma-Poisson</h2>
+      <p>El simulador usa el centro de llamadas. Define el prior con su media y con cuántas horas de experiencia equivale (\(\beta\)); define los datos con las horas observadas y la tasa observada. La posterior queda entre el prior y la verosimilitud, más cerca de quien aporte más información. La línea vertical marca el umbral de 5 llamadas por hora.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · prior Gamma, datos Poisson</span><span class="num" id="priors-gp-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="priors-m0">MEDIA DEL PRIOR · α/β = <b id="priors-m0-v" class="num">4</b></label><input id="priors-m0" type="range" min="1" max="10" step="0.5" value="4"></div>
+            <div class="ctrl"><label for="priors-b0">HORAS EQUIVALENTES · β = <b id="priors-b0-v" class="num">2</b></label><input id="priors-b0" type="range" min="0.1" max="30" step="0.1" value="2"></div>
+            <div class="ctrl">
+              <label id="priors-pre-label">PRIORS</label>
+              <div class="seg" id="priors-pre" role="group" aria-labelledby="priors-pre-label">
+                <button data-m="1" data-b="0.1" aria-pressed="false">Vago</button>
+                <button data-m="4" data-b="2" aria-pressed="true">Informativo</button>
+                <button data-m="4" data-b="10" aria-pressed="false">Fuerte</button>
+                <button data-m="2.5" data-b="6" aria-pressed="false">Escéptico</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="priors-n">HORAS OBSERVADAS · n = <b id="priors-n-v" class="num">5</b></label><input id="priors-n" type="range" min="1" max="60" step="1" value="5"></div>
+            <div class="ctrl"><label for="priors-r">TASA OBSERVADA · S/n = <b id="priors-r-v" class="num">6,2</b></label><input id="priors-r" type="range" min="0" max="12" step="0.1" value="6.2"></div>
+          </div>
+          <canvas class="plot" id="priors-c-gp" height="260" aria-label="Prior Gamma, verosimilitud de Poisson y posterior de la tasa de llamadas por hora"></canvas>
+          <div class="legend"><span><i style="background:var(--muted)"></i>prior</span><span><i style="background:var(--hot)"></i>verosimilitud</span><span><i style="background:var(--accent)"></i>posterior e IC 95 %</span><span><i style="background:var(--ink)"></i>umbral λ = 5</span></div>
+          <div class="readout">
+            <div><span>media posterior</span><b id="priors-gp-mean">–</b></div>
+            <div><span>IC 95 %</span><b id="priors-gp-ci">–</b></div>
+            <div><span>peso de los datos</span><b id="priors-gp-w">–</b></div>
+            <div><span>P(λ &gt; 5 | datos)</span><b id="priors-gp-p">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con 5 horas, cambia entre los cuatro priors: P(λ &gt; 5) va de cerca de 84 % a menos de 10 %. Ahora sube las horas observadas a 60 manteniendo la tasa: todos los priors razonables llegan a la misma conclusión.</figcaption>
+      </figure>
+
+      <h2 id="priors-elicit"><span class="sec">§ 5</span>Elicitar un prior</h2>
+      <p><b>Elicitar</b> es traducir lo que sabe una persona experta (o lo que dicen datos previos) a una distribución. Rara vez alguien piensa en “α y β”; piensa en un valor típico y en un rango plausible. Tres técnicas:</p>
+      <ul>
+        <li><b>Por momentos.</b> Pide una media \(m\) y una desviación \(s\) y despeja. Para una Gamma: \(\alpha = m^2/s^2\), \(\beta = m/s^2\). Si los otros centros reciben 4 ± 1,4 llamadas por hora, \(\alpha = 16/2 = 8\) y \(\beta = 4/2 = 2\). Para una Beta con media \(m\) y desviación \(s\): \(a + b = \frac{m(1-m)}{s^2} - 1\), \(a = m(a+b)\).</li>
+        <li><b>Por cuantiles.</b> Pregunta “¿entre qué valores estás 90 % seguro?” y busca numéricamente la distribución que tiene esos cuantiles 5 % y 95 %. Suele dar priors más honestos que pedir una desviación típica.</li>
+        <li><b>Por tamaño de muestra equivalente.</b> Fija la media y pregunta “¿cuántas observaciones vale tu experiencia?”. Si los datos históricos vienen de centros parecidos pero no idénticos, es prudente <b>descontarlos</b>: usar 2 horas equivalentes aunque haya miles de horas de historia.</li>
+      </ul>
+      <div class="eq">\[ \text{Beta con } m = 0{,}3,\ s = 0{,}1: \quad a + b = \frac{0{,}3 \cdot 0{,}7}{0{,}01} - 1 = 20, \quad a = 6, \quad b = 14 \]
+        <div class="note">Ese prior equivale a 20 observaciones con 6 éxitos. Si te parece demasiado fuerte para tu caso, aumenta \(s\): con \(s = 0{,}15\) obtienes \(a + b \approx 8{,}3\).</div>
+      </div>
+      <div class="callout"><b>Buenas prácticas:</b> después de elicitar, muestra a la persona experta lo que su prior implica en términos observables (por ejemplo, “con este prior, en una hora esperas entre 1 y 8 llamadas el 95 % de las veces”). Si no le parece razonable, ajusta. Ese es exactamente el papel de la predictiva previa.</div>
+
+      <h2 id="priors-sens"><span class="sec">§ 6</span>Análisis de sensibilidad</h2>
+      <p>Como no hay un único prior correcto, la práctica estándar es repetir el análisis con varios priors razonables y reportar si la conclusión cambia. Para el centro de llamadas, con 31 llamadas en 5 horas y luego con 124 en 20 horas (la misma tasa):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Prior</th><th>5 h: media</th><th>IC 95 %</th><th>P(λ &gt; 5)</th><th>20 h: media</th><th>IC 95 %</th></tr></thead>
+        <tbody>
+          <tr><td>Vago Gamma(0,01; 0,01)</td><td>6,19</td><td>[4,21 ; 8,55]</td><td>0,86</td><td>6,20</td><td>[5,16 ; 7,34]</td></tr>
+          <tr><td>Débil Gamma(2; 0,5)</td><td>6,00</td><td>[4,13 ; 8,21]</td><td>0,83</td><td>6,15</td><td>[5,12 ; 7,27]</td></tr>
+          <tr><td>Informativo Gamma(8, 2)</td><td>5,57</td><td>[3,96 ; 7,45]</td><td>0,73</td><td>6,00</td><td>[5,02 ; 7,07]</td></tr>
+          <tr><td>Fuerte Gamma(40, 10)</td><td>4,73</td><td>[3,70 ; 5,90]</td><td>0,31</td><td>5,47</td><td>[4,66 ; 6,33]</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con 5 horas, la decisión depende del prior: con los tres primeros conviene contratar (P &gt; 0,7), con el fuerte no. La lectura honesta es “los datos apuntan a más de 5 llamadas por hora, pero no son concluyentes frente a la experiencia previa”, y la acción sensata es recoger más datos. Con 20 horas las tres primeras filas casi coinciden y solo el prior fuerte, que vale 10 horas, sigue tirando hacia abajo.</p>
+      <div class="callout"><b>Para recordar:</b> si la conclusión no cambia con priors razonables, es robusta y puedes decirlo con confianza. Si cambia, eso no es un fallo del método bayesiano: es información valiosa de que los datos todavía no bastan.</div>
+
+      <h2 id="priors-pred"><span class="sec">§ 7</span>Predictiva previa</h2>
+      <p>La forma más eficaz de revisar un prior es mirar qué <b>datos</b> predice antes de ver los datos reales. La <b>distribución predictiva previa</b> promedia el modelo sobre el prior:</p>
+      <div class="eq">\[ p(\tilde y) = \int p(\tilde y \mid \theta)\,p(\theta)\,d\theta \]
+        <div class="note">Para Gamma-Poisson, la predictiva previa de una hora es binomial negativa. Con Gamma(8, 2): media 4 llamadas, varianza 6 y \(P(\tilde y \ge 10) \approx 0{,}027\). Si alguien con experiencia dice que 10 llamadas en una hora pasa “bastante seguido”, el prior es demasiado estrecho.</div>
+      </div>
+      <p>En modelos con varios parámetros la predictiva previa casi nunca tiene forma cerrada, pero se simula fácilmente: saca parámetros del prior, simula datos con ellos y míralos. El simulador lo hace para una regresión logística \(P(y=1) = \operatorname{logit}^{-1}(\beta_0 + \beta_1 x)\) con \(x\) estandarizada y priors \(\beta_0, \beta_1 \sim \mathcal{N}(0, \sigma^2)\).</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · predictiva previa logística</span><span class="num" id="priors-pp-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="priors-s">DESVIACIÓN DEL PRIOR · σ = <b id="priors-s-v" class="num">10</b></label><input id="priors-s" type="range" min="0.3" max="10" step="0.1" value="10"></div>
+            <div class="ctrl">
+              <label id="priors-spre-label">ATAJOS</label>
+              <div class="seg" id="priors-spre" role="group" aria-labelledby="priors-spre-label">
+                <button data-s="10" aria-pressed="true">σ = 10</button>
+                <button data-s="2.5" aria-pressed="false">σ = 2,5</button>
+                <button data-s="1" aria-pressed="false">σ = 1</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="priors-pp-new" type="button">Otras curvas</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>40 curvas P(y = 1 | x) del prior</span><span>x estandarizada</span></div>
+              <canvas class="plot" id="priors-c-curves" height="220" aria-label="Cuarenta curvas logísticas simuladas desde el prior"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Probabilidades implicadas</span><span>2 000 sorteos, x ~ N(0, 1)</span></div>
+              <canvas class="plot" id="priors-c-hist" height="220" aria-label="Histograma de las probabilidades implicadas por el prior"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>P(p &lt; 1 % o p &gt; 99 %) en x = 0</span><b id="priors-pp-ext">–</b></div>
+            <div><span>extremas en la simulación</span><b id="priors-pp-sim">–</b></div>
+            <div><span>razón de momios típica por 1 DE</span><b id="priors-pp-or">–</b></div>
+            <div><span>IC 90 % de p en x = 0</span><b id="priors-pp-ci">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con σ = 10, el prior “no informativo” predice curvas casi escalón y probabilidades pegadas a 0 o 1: no es neutral, es extremo. Con σ = 1 o 2,5 la mayoría de las curvas son suaves y las probabilidades se reparten por todo el rango.</figcaption>
+      </figure>
+      <p>Tras ajustar el modelo, el mismo ejercicio con la posterior es la <b>predictiva posterior</b>, que sirve para revisar el ajuste. Con Gamma(39, 7), la media de llamadas en la próxima hora es 5,57, la varianza 6,37 y \(P(\tilde y \ge 10) \approx 0{,}070\). Usar solo la estimación puntual, Poisson(5,57), da \(0{,}058\): ignora la incertidumbre sobre \(\lambda\).</p>
+
+      <h2 id="priors-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <p>El centro de llamadas completo: posterior conjugada, análisis de sensibilidad con cuatro priors, predictiva previa y predictiva posterior.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+S, n = <span class="n">31</span>, <span class="n">5</span>                       <span class="c"># 31 llamadas en 5 horas</span>
+priors = {<span class="s">'vago'</span>: (<span class="n">0.01</span>, <span class="n">0.01</span>), <span class="s">'débil'</span>: (<span class="n">2</span>, <span class="n">0.5</span>),
+          <span class="s">'informativo'</span>: (<span class="n">8</span>, <span class="n">2</span>), <span class="s">'fuerte'</span>: (<span class="n">40</span>, <span class="n">10</span>)}
+
+<span class="c"># 1. Análisis de sensibilidad: posterior Gamma(α + S, β + n)</span>
+<span class="k">for</span> nombre, (a, b) <span class="k">in</span> priors.<span class="f">items</span>():
+    post = stats.<span class="f">gamma</span>(a + S, scale=<span class="n">1</span> / (b + n))   <span class="c"># scipy usa escala = 1/tasa</span>
+    lo, hi = post.<span class="f">interval</span>(<span class="n">0.95</span>)
+    <span class="f">print</span>(<span class="s">f'{nombre:12s} media={post.mean():.2f} IC=[{lo:.2f}, {hi:.2f}] P(λ&gt;5)={post.sf(5):.2f}'</span>)
+<span class="c"># vago        media=6.19 IC=[4.21, 8.55] P(λ&gt;5)=0.86</span>
+<span class="c"># débil       media=6.00 IC=[4.13, 8.21] P(λ&gt;5)=0.83</span>
+<span class="c"># informativo media=5.57 IC=[3.96, 7.45] P(λ&gt;5)=0.73</span>
+<span class="c"># fuerte      media=4.73 IC=[3.70, 5.90] P(λ&gt;5)=0.31</span>
+
+<span class="c"># 2. Predictiva previa con Gamma(8, 2): simular λ y luego conteos</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+lam = rng.<span class="f">gamma</span>(<span class="n">8</span>, <span class="n">1</span> / <span class="n">2</span>, size=<span class="n">100_000</span>)
+y_prev = rng.<span class="f">poisson</span>(lam)
+<span class="f">print</span>(y_prev.<span class="f">mean</span>(), y_prev.<span class="f">var</span>(), (y_prev &gt;= <span class="n">10</span>).<span class="f">mean</span>())   <span class="c"># ≈ 4  6  0.027</span>
+<span class="c"># forma exacta: binomial negativa con r = α y p = β/(β+1)</span>
+<span class="f">print</span>(stats.<span class="f">nbinom</span>(<span class="n">8</span>, <span class="n">2</span> / <span class="n">3</span>).<span class="f">sf</span>(<span class="n">9</span>))                        <span class="c"># 0.027</span>
+
+<span class="c"># 3. Predictiva posterior para la próxima hora: Gamma(39, 7)</span>
+pred = stats.<span class="f">nbinom</span>(<span class="n">8</span> + S, (<span class="n">2</span> + n) / (<span class="n">2</span> + n + <span class="n">1</span>))
+<span class="f">print</span>(pred.<span class="f">mean</span>(), pred.<span class="f">var</span>(), pred.<span class="f">sf</span>(<span class="n">9</span>))                 <span class="c"># 5.57  6.37  0.070</span>
+<span class="f">print</span>(stats.<span class="f">poisson</span>(<span class="n">39</span> / <span class="n">7</span>).<span class="f">sf</span>(<span class="n">9</span>))                         <span class="c"># 0.058 (ignora la incertidumbre)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>S &lt;- <span class="n">31</span>; n &lt;- <span class="n">5</span>                      <span class="c"># 31 llamadas en 5 horas</span>
+priors &lt;- <span class="f">data.frame</span>(nombre = <span class="f">c</span>(<span class="s">"vago"</span>, <span class="s">"débil"</span>, <span class="s">"informativo"</span>, <span class="s">"fuerte"</span>),
+                     a = <span class="f">c</span>(<span class="n">0.01</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">40</span>), b = <span class="f">c</span>(<span class="n">0.01</span>, <span class="n">0.5</span>, <span class="n">2</span>, <span class="n">10</span>))
+
+<span class="c"># 1. Análisis de sensibilidad: posterior Gamma(α + S, β + n)</span>
+priors$media &lt;- (priors$a + S) / (priors$b + n)
+priors$lo    &lt;- <span class="f">qgamma</span>(<span class="n">0.025</span>, shape = priors$a + S, rate = priors$b + n)
+priors$hi    &lt;- <span class="f">qgamma</span>(<span class="n">0.975</span>, shape = priors$a + S, rate = priors$b + n)
+priors$p5    &lt;- <span class="f">pgamma</span>(<span class="n">5</span>, shape = priors$a + S, rate = priors$b + n, lower.tail = <span class="k">FALSE</span>)
+<span class="f">print</span>(priors, digits = <span class="n">3</span>)          <span class="c"># medias 6.19, 6.00, 5.57, 4.73; P(λ&gt;5) 0.86 ... 0.31</span>
+
+<span class="c"># 2. Predictiva previa con Gamma(8, 2)</span>
+<span class="f">set.seed</span>(<span class="n">0</span>)
+lam &lt;- <span class="f">rgamma</span>(<span class="n">100000</span>, shape = <span class="n">8</span>, rate = <span class="n">2</span>)
+y_prev &lt;- <span class="f">rpois</span>(<span class="n">100000</span>, lam)
+<span class="f">c</span>(<span class="f">mean</span>(y_prev), <span class="f">var</span>(y_prev), <span class="f">mean</span>(y_prev &gt;= <span class="n">10</span>))     <span class="c"># ≈ 4  6  0.027</span>
+<span class="f">pnbinom</span>(<span class="n">9</span>, size = <span class="n">8</span>, prob = <span class="n">2</span> / <span class="n">3</span>, lower.tail = <span class="k">FALSE</span>)    <span class="c"># 0.027 exacto</span>
+
+<span class="c"># 3. Predictiva posterior para la próxima hora: Gamma(39, 7)</span>
+<span class="f">pnbinom</span>(<span class="n">9</span>, size = <span class="n">39</span>, prob = <span class="n">7</span> / <span class="n">8</span>, lower.tail = <span class="k">FALSE</span>)   <span class="c"># 0.070</span>
+<span class="f">ppois</span>(<span class="n">9</span>, <span class="n">39</span> / <span class="n">7</span>, lower.tail = <span class="k">FALSE</span>)                    <span class="c"># 0.058</span></code></pre>
+      </div>
+      <p><b>Cómo leerlo.</b> Con 5 horas, la probabilidad de que la tasa supere 5 va de 0,31 a 0,86 según el prior: la decisión de contratar no es robusta. La predictiva previa del prior informativo (media 4, rara vez 10 o más llamadas en una hora) es coherente con la experiencia de los otros centros, así que es un prior defendible. La predictiva posterior es un poco más ancha que la Poisson con la tasa estimada, porque incorpora la incertidumbre sobre \(\lambda\).</p>
+
+      <h2 id="priors-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <div class="quiz" data-right="Con prior Gamma(α, β) y S eventos en n unidades, la posterior es Gamma(α + S, β + n) = Gamma(3 + 10, 1 + 2) = Gamma(13, 3), con media 13/3 ≈ 4,33." data-wrong="En el par Gamma-Poisson, los eventos se suman al primer parámetro y la exposición al segundo.">
+        <h3>Tu prior para la tasa diaria de devoluciones es Gamma(3, 1). En 2 días observas 10 devoluciones en total. ¿Cuál es la posterior?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Gamma(10, 2)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Gamma(13, 1)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Gamma(5, 3)</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Gamma(13, 3)</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Un prior N(0, 10²) en log-odds pone cerca del 65 % de la probabilidad en p menor que 1 % o mayor que 99 %. Parece vago en la escala del coeficiente, pero es muy informativo en la escala de las probabilidades." data-wrong="Simula mentalmente la predictiva previa: con σ = 10, un β₀ típico vale ±7, y logit⁻¹(7) ≈ 0,999. ¿Dónde se acumulan las probabilidades?">
+        <h3>Para el intercepto de una logística usas β₀ ~ N(0, 10²) porque quieres un prior no informativo. ¿Qué implica sobre la probabilidad base?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Concentra la mayor parte del peso en probabilidades cercanas a 0 o a 1</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Es aproximadamente uniforme entre 0 y 1</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Concentra el peso cerca de 0,5</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No implica nada: el prior solo afecta a β₀</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Si priors igual de defendibles llevan a decisiones distintas, los datos aún no bastan. Se reporta esa sensibilidad y, si se puede, se recogen más datos." data-wrong="El análisis de sensibilidad no busca elegir el prior que da la respuesta preferida. Piensa en qué nos dice que la conclusión cambie.">
+        <h3>En un análisis de sensibilidad, dos priors razonables llevan a decisiones opuestas. ¿Qué es lo más adecuado?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Quedarte con el prior que da el resultado más significativo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Usar siempre el prior plano para evitar discusiones</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Reportar que la conclusión depende del prior y recoger más datos si es posible</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Promediar las dos posteriores y no mencionar la diferencia</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="priors-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Puedes comprobar el ejercicio 3 con el laboratorio.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Una experta cree que la tasa de abandono de un curso en línea ronda el 20 %, con una desviación de 8 puntos. (a) Encuentra el prior Beta que tiene esa media y desviación. (b) ¿Cuántas observaciones vale? (c) Si de 30 estudiantes nuevos abandonan 9, ¿cuál es la media posterior?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(a + b = \frac{0{,}2 \cdot 0{,}8}{0{,}08^2} - 1 = 25 - 1 = 24\), así que \(a = 0{,}2 \times 24 = 4{,}8\) y \(b = 19{,}2\). (b) Vale <b>24 observaciones</b>. (c) Posterior Beta(4,8 + 9; 19,2 + 21) = Beta(13,8; 40,2), con media \(13{,}8/54 \approx\) <b>0,256</b>, entre el 20 % del prior y el 30 % observado.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Mides el tiempo de respuesta medio de un servidor. Tu prior es \(\mu \sim \mathcal{N}(100, 15^2)\) ms, la desviación de cada medición es \(\sigma = 30\) ms (conocida) y 9 mediciones dan \(\bar y = 120\) ms. Calcula la posterior.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Precisión del prior: \(1/225\). Precisión de los datos: \(9/900 = 1/100\). Precisión posterior: \(1/225 + 1/100 = 13/900\), así que \(\tau_n^2 = 900/13 \approx 69{,}2\) y \(\tau_n \approx 8{,}3\) ms. Media: \(\mu_n = \frac{4}{13}\cdot 100 + \frac{9}{13}\cdot 120 \approx\) <b>113,8 ms</b>. Posterior \(\mathcal{N}(113{,}8;\ 8{,}3^2)\). El prior vale \(900/225 = 4\) mediciones frente a las 9 reales.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Con el prior informativo Gamma(8, 2) y 31 llamadas en 5 horas: (a) escribe la posterior y su media; (b) calcula \(P(\tilde y \ge 10)\) para la próxima hora con la predictiva posterior; (c) compáralo con el cálculo “ingenuo” Poisson(media posterior) y explica la diferencia.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Gamma(39, 7), media \(39/7 \approx 5{,}57\). (b) La predictiva es binomial negativa con \(r = 39\) y \(p = 7/8\): \(P(\tilde y \ge 10) \approx\) <b>0,070</b>. (c) Poisson(5,57) da 0,058. La predictiva posterior tiene varianza \(6{,}37 &gt; 5{,}57\) porque suma la incertidumbre sobre \(\lambda\) a la variabilidad de Poisson; por eso las colas son más pesadas.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="f">print</span>(stats.<span class="f">nbinom</span>(<span class="n">39</span>, <span class="n">7</span> / <span class="n">8</span>).<span class="f">sf</span>(<span class="n">9</span>))    <span class="c"># 0.070</span>
+<span class="f">print</span>(stats.<span class="f">poisson</span>(<span class="n">39</span> / <span class="n">7</span>).<span class="f">sf</span>(<span class="n">9</span>))     <span class="c"># 0.058</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">pnbinom</span>(<span class="n">9</span>, size = <span class="n">39</span>, prob = <span class="n">7</span> / <span class="n">8</span>, lower.tail = <span class="k">FALSE</span>)   <span class="c"># 0.070</span>
+<span class="f">ppois</span>(<span class="n">9</span>, <span class="n">39</span> / <span class="n">7</span>, lower.tail = <span class="k">FALSE</span>)                    <span class="c"># 0.058</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Un gerente dice: “estoy 90 % seguro de que la tasa de llamadas está entre 2 y 7 por hora”. Encuentra el prior Gamma cuyos cuantiles 5 % y 95 % son 2 y 7. ¿Cuántas horas equivalentes vale y cuál es su media?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>El cociente de cuantiles \(q_{0,95}/q_{0,05}\) de una Gamma depende solo de la forma \(\alpha\) (la tasa \(\beta\) escala ambos por igual). Se busca \(\alpha\) tal que el cociente valga \(7/2 = 3{,}5\) y luego se ajusta \(\beta\). Resultado: \(\alpha \approx 7{,}3\), \(\beta \approx\) <b>1,75 horas equivalentes</b>, media \(\approx\) <b>4,18</b> llamadas por hora. Es muy parecido al prior informativo Gamma(8, 2).</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats, optimize
+
+<span class="k">def</span> <span class="f">cociente</span>(a):    <span class="c"># q95 / q05 de una Gamma de forma a (no depende de la tasa)</span>
+    g = stats.<span class="f">gamma</span>(a)
+    <span class="k">return</span> g.<span class="f">ppf</span>(<span class="n">0.95</span>) / g.<span class="f">ppf</span>(<span class="n">0.05</span>) - <span class="n">3.5</span>
+
+a = optimize.<span class="f">brentq</span>(cociente, <span class="n">0.5</span>, <span class="n">100</span>)
+b = stats.<span class="f">gamma</span>(a).<span class="f">ppf</span>(<span class="n">0.05</span>) / <span class="n">2</span>          <span class="c"># que el cuantil 5 % sea 2</span>
+<span class="f">print</span>(a, b, a / b)                           <span class="c"># ≈ 7.31  1.75  4.18</span>
+<span class="f">print</span>(stats.<span class="f">gamma</span>(a, scale=<span class="n">1</span> / b).<span class="f">ppf</span>([<span class="n">0.05</span>, <span class="n">0.95</span>]))   <span class="c"># [2. 7.]</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>cociente &lt;- <span class="k">function</span>(a) <span class="f">qgamma</span>(<span class="n">0.95</span>, a) / <span class="f">qgamma</span>(<span class="n">0.05</span>, a) - <span class="n">3.5</span>
+a &lt;- <span class="f">uniroot</span>(cociente, <span class="f">c</span>(<span class="n">0.5</span>, <span class="n">100</span>))$root
+b &lt;- <span class="f">qgamma</span>(<span class="n">0.05</span>, a) / <span class="n">2</span>
+<span class="f">c</span>(a, b, a / b)                                       <span class="c"># ≈ 7.31  1.75  4.18</span>
+<span class="f">qgamma</span>(<span class="f">c</span>(<span class="n">0.05</span>, <span class="n">0.95</span>), shape = a, rate = b)          <span class="c"># 2  7</span></code></pre>
+</div></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

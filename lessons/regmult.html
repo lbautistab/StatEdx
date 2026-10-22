@@ -1,0 +1,339 @@
+<!-- StatEdx · sesión: regmult -->
+<div id="view-regmult" data-view="regmult" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Regresión lineal múltiple</h1>
+      <p>El precio de un departamento no depende solo de su tamaño: también de su antigüedad, de la zona y de muchas cosas más. La regresión múltiple pone varios predictores en el mismo modelo para responder la pregunta que de verdad interesa: cuánto cambia la respuesta cuando cambia una variable y las demás se mantienen fijas.</p>
+      <div class="lmeta"><span>55 min</span><span>Nivel intermedio</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#regmult-idea" data-sec="regmult-idea">La idea</a></li>
+        <li><a href="#regmult-modelo" data-sec="regmult-modelo">El modelo en forma matricial</a></li>
+        <li><a href="#regmult-cp" data-sec="regmult-cp">Ceteris paribus y variables omitidas</a></li>
+        <li><a href="#regmult-lab" data-sec="regmult-lab">Laboratorio: confusión y colinealidad</a></li>
+        <li><a href="#regmult-cat" data-sec="regmult-cat">Variables categóricas</a></li>
+        <li><a href="#regmult-inter" data-sec="regmult-inter">Interacciones</a></li>
+        <li><a href="#regmult-inf" data-sec="regmult-inf">Ajuste e inferencia</a></li>
+        <li><a href="#regmult-vif" data-sec="regmult-vif">Multicolinealidad</a></li>
+        <li><a href="#regmult-code" data-sec="regmult-code">En R y Python</a></li>
+        <li><a href="#regmult-quiz" data-sec="regmult-quiz">Comprueba</a></li>
+        <li><a href="#regmult-ej" data-sec="regmult-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="regmult-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Una inmobiliaria registra 16 departamentos vendidos: precio (miles de dólares), superficie (m²), antigüedad (años) y zona (centro o afueras). Una regresión simple del precio sobre la antigüedad da una pendiente <b>positiva</b>: \(\hat y = 121{,}3 + 1{,}06\cdot\text{antig}\). ¿Los departamentos ganan 1 060 dólares de valor por cada año que envejecen?</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Zona</th><th>n</th><th>Precio medio</th><th>Superficie media</th><th>Antigüedad media</th></tr></thead>
+        <tbody>
+          <tr><td>Centro</td><td>8</td><td>170,3</td><td>81,8 m²</td><td>33,9 años</td></tr>
+          <tr><td>Afueras</td><td>8</td><td>121,4</td><td>74,4 m²</td><td>12,3 años</td></tr>
+        </tbody>
+      </table></div>
+      <p>La tabla delata el truco. Los edificios del centro son más viejos <b>y</b> más caros, porque están en el centro. La antigüedad está mezclada con la zona. Cuando metes las tres variables en el mismo modelo, la historia se invierte:</p>
+      <div class="eq">\[ \widehat{\text{precio}} = 16{,}2 + 1{,}53\,\text{m}^2 - 0{,}69\,\text{antig} + 52{,}6\,\text{centro} \]
+        <div class="note">Entre departamentos de la misma zona y la misma superficie, cada año extra de antigüedad se asocia con 690 dólares <b>menos</b>. El signo cambió porque ahora la comparación es justa.</div>
+      </div>
+      <div class="callout"><b>Lo que aporta la regresión múltiple:</b> separar el efecto de cada variable del de las demás que incluiste en el modelo. No resuelve la confusión por variables que no mediste, pero es la herramienta básica para controlar las que sí tienes.</div>
+
+      <h2 id="regmult-modelo"><span class="sec">§ 2</span>El modelo en forma matricial</h2>
+      <p>Con \(p\) predictores, el modelo para la observación \(i\) es:</p>
+      <div class="eq">\[ y_i = \beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \cdots + \beta_p x_{ip} + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2) \text{ independientes} \]
+        <div class="note">Ya no hay una recta sino un plano (con dos predictores) o un hiperplano. \(E[y \mid x_1, \dots, x_p]\) es lineal en los parámetros \(\beta_j\); los predictores pueden ser transformaciones como \(x^2\) o \(\log x\).</div>
+      </div>
+      <p>Apilando las \(n\) ecuaciones, \(\mathbf y = X\boldsymbol\beta + \boldsymbol\varepsilon\), donde \(X\) es la matriz de diseño de \(n \times (p+1)\) con una primera columna de unos. Mínimos cuadrados minimiza \(\lVert \mathbf y - X\mathbf b\rVert^2\), y la solución sale de las <b>ecuaciones normales</b> \(X^\top X\,\mathbf b = X^\top \mathbf y\):</p>
+      <div class="eq">\[ \hat{\boldsymbol\beta} = (X^\top X)^{-1}X^\top \mathbf y, \qquad \widehat{\operatorname{Var}}(\hat{\boldsymbol\beta}) = s^2 (X^\top X)^{-1}, \qquad s^2 = \frac{SSE}{n - p - 1} \]
+        <div class="note">Se divide entre \(n - p - 1\) porque estimaste \(p + 1\) coeficientes. Los errores estándar son las raíces de la diagonal de esa matriz. \((X^\top X)^{-1}\) existe solo si ninguna columna es combinación lineal exacta de las otras.</div>
+      </div>
+      <p>Geométricamente, \(\hat{\mathbf y} = X\hat{\boldsymbol\beta}\) es la proyección ortogonal de \(\mathbf y\) sobre el espacio que generan las columnas de \(X\), y los residuos son perpendiculares a todas ellas: suman cero y no están correlacionados con ningún predictor del modelo.</p>
+
+      <h2 id="regmult-cp"><span class="sec">§ 3</span>Ceteris paribus y sesgo por variables omitidas</h2>
+      <p>El coeficiente \(\beta_j\) es el cambio esperado en \(y\) cuando \(x_j\) aumenta en una unidad <b>manteniendo constantes los demás predictores del modelo</b> (ceteris paribus, “lo demás igual”). Con los departamentos:</p>
+      <ul>
+        <li>\(\hat\beta_{\text{m}^2} = 1{,}53\): entre departamentos con la misma antigüedad y en la misma zona, cada m² extra se asocia con 1 530 dólares más.</li>
+        <li>\(\hat\beta_{\text{antig}} = -0{,}69\): con igual superficie y zona, cada año extra resta en promedio 690 dólares.</li>
+        <li>\(\hat\beta_{\text{centro}} = 52{,}6\): a igual superficie y antigüedad, un departamento del centro cuesta en promedio 52 600 dólares más que uno de las afueras.</li>
+      </ul>
+      <p>El teorema de <b>Frisch-Waugh-Lovell</b> precisa qué significa “mantener constante”: \(\hat\beta_j\) es la pendiente de una regresión simple de \(y\) sobre la parte de \(x_j\) que no explican los demás predictores (los residuos de regresar \(x_j\) sobre ellos). Por eso cada coeficiente usa solo la variación “propia” de su variable.</p>
+      <p>¿Y si omites una variable relevante? Supón que el modelo verdadero es \(y = \beta_0 + \beta_1x_1 + \beta_2x_2 + \varepsilon\) y ajustas solo \(y\) sobre \(x_1\). La pendiente que obtienes estima:</p>
+      <div class="eq">\[ E[\tilde\beta_1] = \beta_1 + \beta_2\,\delta, \qquad \delta = \frac{\operatorname{Cov}(x_1, x_2)}{\operatorname{Var}(x_1)} \]
+        <div class="note">\(\delta\) es la pendiente de regresar \(x_2\) sobre \(x_1\). Hay sesgo si la variable omitida afecta a \(y\) (\(\beta_2 \ne 0\)) <b>y</b> está correlacionada con \(x_1\) (\(\delta \ne 0\)). En los departamentos, \(-0{,}69 + 52{,}6 \cdot 0{,}032 + 1{,}53 \cdot 0{,}033 = 1{,}06\): la zona omitida explica casi todo el cambio de signo.</div>
+      </div>
+
+      <h2 id="regmult-lab"><span class="sec">§ 4</span>Laboratorio: confusión y colinealidad</h2>
+      <p>El modelo real es \(y = 1\cdot x_1 + \beta_2 x_2 + \varepsilon\), con \(x_1\) y \(x_2\) correlacionadas. A la izquierda ves una muestra: los puntos están coloreados según \(x_2\), la recta roja es la regresión simple de \(y\) sobre \(x_1\) y la azul es la pendiente de \(x_1\) en la regresión múltiple. A la derecha, las pendientes estimadas de \(x_1\) en 200 muestras repetidas, con la verdadera (\(\beta_1 = 1\)) marcada.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · variable omitida y VIF</span><span class="num" id="regmult-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="regmult-rho">CORRELACIÓN x₁ Y x₂ · ρ = <b id="regmult-rho-v" class="num">0,60</b></label><input id="regmult-rho" type="range" min="-0.98" max="0.98" step="0.02" value="0.6"></div>
+            <div class="ctrl"><label for="regmult-b2">EFECTO DE x₂ · β₂ = <b id="regmult-b2-v" class="num">1,5</b></label><input id="regmult-b2" type="range" min="-3" max="3" step="0.1" value="1.5"></div>
+            <div class="ctrl"><label for="regmult-n">TAMAÑO · n = <b id="regmult-n-v" class="num">50</b></label><input id="regmult-n" type="range" min="10" max="400" step="5" value="50"></div>
+            <button class="btn btn-ghost btn-sm" id="regmult-again" type="button">Nuevas muestras</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>y frente a x₁ (color: x₂)</span><span>una muestra</span></div>
+              <canvas class="plot" id="regmult-c-xy" height="250" aria-label="Diagrama de dispersión de y frente a x1 con la recta simple y la pendiente de la regresión múltiple"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Pendiente de x₁ en 200 muestras</span><span>┄ β₁ real</span></div>
+              <canvas class="plot" id="regmult-c-dist" height="250" aria-label="Distribución de las pendientes estimadas de x1 con regresión simple y múltiple"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--hot)"></i>regresión simple (omite x₂)</span><span><i style="background:var(--accent)"></i>regresión múltiple</span><span><i style="background:var(--ink)"></i>valor real β₁ = 1</span></div>
+          <div class="readout">
+            <div><span>pendiente simple (media)</span><b id="regmult-r-s">–</b></div>
+            <div><span>pendiente múltiple (media)</span><b id="regmult-r-m">–</b></div>
+            <div><span>VIF de x₁</span><b id="regmult-r-vif">–</b></div>
+            <div><span>EE múltiple / EE si ρ = 0</span><b id="regmult-r-se">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con ρ = 0 las dos regresiones aciertan en promedio: omitir x₂ solo cuesta precisión. Con ρ y β₂ distintos de cero la simple se desplaza en β₂·ρ. Lleva ρ a 0,95: la múltiple sigue centrada en 1, pero su distribución se ensancha unas 3 veces. Eso es la multicolinealidad.</figcaption>
+      </figure>
+
+      <h2 id="regmult-cat"><span class="sec">§ 5</span>Variables categóricas</h2>
+      <p>Una variable categórica con \(k\) niveles entra al modelo como \(k - 1\) <b>variables indicadoras</b> (dummies) que valen 1 o 0. El nivel sin indicadora es la <b>categoría de referencia</b>, y cada coeficiente compara su nivel con ella, manteniendo fijo lo demás.</p>
+      <div class="eq">\[ \text{centro}_i = \begin{cases} 1 & \text{si el departamento está en el centro} \\ 0 & \text{si está en las afueras (referencia)} \end{cases} \qquad \hat y = (16{,}2 + 52{,}6\cdot\text{centro}) + 1{,}53\,\text{m}^2 - 0{,}69\,\text{antig} \]
+        <div class="note">La indicadora solo mueve el intercepto: dos planos paralelos separados por 52,6. Si la zona tuviera tres niveles (centro, intermedia, afueras), usarías dos indicadoras y cada una se compararía con las afueras.</div>
+      </div>
+      <ul>
+        <li><b>Trampa de las variables ficticias:</b> si incluyes las \(k\) indicadoras más el intercepto, suman la columna de unos y \(X^\top X\) no se puede invertir. R y Python eliminan una automáticamente.</li>
+        <li><b>Cambiar la referencia</b> cambia los coeficientes pero no las predicciones ni el ajuste. Elige la que haga más legible la interpretación (un grupo control, el nivel más común).</li>
+        <li>Para saber si la variable categórica <i>en conjunto</i> importa, no mires cada indicadora por separado: usa una prueba F parcial (§ 7).</li>
+        <li>Nunca codifiques una categoría nominal como 1, 2, 3 en una sola columna: el modelo supondría que pasar de 1 a 2 tiene el mismo efecto que de 2 a 3.</li>
+      </ul>
+
+      <h2 id="regmult-inter"><span class="sec">§ 6</span>Interacciones</h2>
+      <p>El modelo aditivo supone que el efecto de cada variable es el mismo para cualquier valor de las demás: el m² vale lo mismo en el centro que en las afueras. Si sospechas que no, agregas un término de <b>interacción</b>, el producto de las dos variables:</p>
+      <div class="eq">\[ y = \beta_0 + \beta_1 x + \beta_2 D + \beta_3\,(x \cdot D) + \varepsilon \quad\Longrightarrow\quad \frac{\partial E[y]}{\partial x} = \beta_1 + \beta_3 D \]
+        <div class="note">Con \(D\) indicadora: la pendiente de \(x\) es \(\beta_1\) en la referencia y \(\beta_1 + \beta_3\) en el otro grupo. \(\beta_3\) es la <b>diferencia de pendientes</b>, y \(\beta_2\) pasa a ser la diferencia entre grupos solo cuando \(x = 0\).</div>
+      </div>
+      <p>En los departamentos, la interacción m² × centro vale −0,05 con \(p = 0{,}85\): no hay evidencia de que el m² se pague distinto en cada zona, y el modelo aditivo basta. Dos reglas al usar interacciones: si incluyes \(x\cdot D\), incluye también \(x\) y \(D\) por separado (principio jerárquico), y centra las variables continuas (resta su media) para que los efectos principales se lean en un punto con sentido en lugar de en \(x = 0\).</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · interacción</span><span class="num" id="regmult-i-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="regmult-i-d">DIFERENCIA REAL DE PENDIENTES · β₃ = <b id="regmult-i-d-v" class="num">0,8</b></label><input id="regmult-i-d" type="range" min="-1.5" max="1.5" step="0.1" value="0.8"></div>
+            <div class="ctrl">
+              <label id="regmult-i-mod-label">MODELO AJUSTADO</label>
+              <div class="seg" id="regmult-i-mod" role="group" aria-labelledby="regmult-i-mod-label">
+                <button data-m="add" aria-pressed="false">Aditivo</button>
+                <button data-m="int" aria-pressed="true">Con interacción</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="regmult-i-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="plot-label"><span>Precio según superficie, por zona</span><span id="regmult-i-lbl">–</span></div>
+          <canvas class="plot" id="regmult-c-int" height="260" aria-label="Precio frente a superficie para dos zonas, con las rectas ajustadas del modelo elegido"></canvas>
+          <div class="legend"><span><i style="background:var(--hot)"></i>centro</span><span><i style="background:var(--accent)"></i>afueras</span></div>
+          <div class="readout">
+            <div><span>pendiente en las afueras</span><b id="regmult-i-b1">–</b></div>
+            <div><span>pendiente en el centro</span><b id="regmult-i-b13">–</b></div>
+            <div><span>valor p de la interacción</span><b id="regmult-i-p">–</b></div>
+            <div><span>R² ajustado</span><b id="regmult-i-r2">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con β₃ = 0 ambos modelos dan casi lo mismo. Con β₃ = 1,2, el modelo aditivo obliga a dos rectas paralelas que se equivocan en los extremos; el de interacción deja que cada zona tenga su pendiente.</figcaption>
+      </figure>
+
+      <h2 id="regmult-inf"><span class="sec">§ 7</span>Ajuste e inferencia</h2>
+      <p>El \(R^2\) sigue siendo \(1 - SSE/SST\), pero tiene un defecto: <b>nunca baja</b> al agregar un predictor, aunque sea ruido puro. El \(R^2\) ajustado penaliza el número de predictores:</p>
+      <div class="eq">\[ R^2_{\text{aj}} = 1 - (1 - R^2)\,\frac{n-1}{n-p-1} \]
+        <div class="note">Departamentos: \(R^2 = 0{,}974\) y \(R^2_{\text{aj}} = 0{,}967\), con \(n = 16\) y \(p = 3\). Al agregar la interacción inútil, \(R^2\) sube a 0,974 (por milésimas) y \(R^2_{\text{aj}}\) baja a 0,964.</div>
+      </div>
+      <p>Hay tres niveles de pruebas, y responden preguntas distintas:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Prueba</th><th>Hipótesis nula</th><th>Estadístico</th><th>Departamentos</th></tr></thead>
+        <tbody>
+          <tr><td>t individual</td><td>\(\beta_j = 0\), con los demás predictores en el modelo</td><td>\(t = \hat\beta_j/SE(\hat\beta_j) \sim t_{n-p-1}\)</td><td>antig: \(t = -2{,}70\), \(p = 0{,}019\)</td></tr>
+          <tr><td>F global</td><td>\(\beta_1 = \cdots = \beta_p = 0\)</td><td>\(F = \dfrac{SSR/p}{SSE/(n-p-1)}\)</td><td>\(F = 148{,}5\) con 3 y 12 gl, \(p &lt; 0{,}0001\)</td></tr>
+          <tr><td>F parcial (modelos anidados)</td><td>Los \(q\) coeficientes extra del modelo grande valen 0</td><td>\(F = \dfrac{(SSE_r - SSE_c)/q}{SSE_c/(n-p_c-1)}\)</td><td>interacción: \(F = 0{,}04\), \(p = 0{,}85\)</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Un predictor no significativo no es inútil por sí solo.</b> La t individual pregunta si \(x_j\) aporta algo <i>después</i> de los demás. Dos predictores muy correlacionados pueden salir ambos no significativos por separado y, sin embargo, ser muy significativos en conjunto según la F. Por eso nunca elimines varias variables a la vez mirando solo sus valores p individuales.</div>
+
+      <h2 id="regmult-vif"><span class="sec">§ 8</span>Multicolinealidad</h2>
+      <p>Cuando los predictores están muy correlacionados entre sí, el modelo tiene poca información para separar sus efectos: si casi siempre suben juntos, ¿a cuál le atribuyes el cambio en \(y\)? La varianza de cada coeficiente se infla según el <b>factor de inflación de la varianza</b>:</p>
+      <div class="eq">\[ \operatorname{Var}(\hat\beta_j) = \frac{\sigma^2}{(n-1)\,s_{x_j}^2}\cdot\underbrace{\frac{1}{1 - R_j^2}}_{VIF_j} \]
+        <div class="note">\(R_j^2\) es el \(R^2\) de regresar \(x_j\) sobre los demás predictores. Con \(R_j^2 = 0{,}9\), \(VIF = 10\) y el error estándar se multiplica por \(\sqrt{10} \approx 3{,}2\). Con dos predictores, \(R_j^2 = \rho^2\).</div>
+      </div>
+      <p>En los departamentos, los VIF son 1,15 (m²), 3,67 (antigüedad) y 3,85 (centro): la antigüedad y la zona están bastante asociadas (\(r = 0{,}84\)), pero no tanto como para impedir la estimación. Reglas prácticas: VIF mayor que 5 merece atención, mayor que 10 es un problema serio para interpretar coeficientes.</p>
+      <ul>
+        <li>La multicolinealidad <b>no sesga</b> los coeficientes ni empeora las predicciones dentro del rango de los datos: solo hace imprecisos los coeficientes individuales y los vuelve inestables (cambian mucho al quitar unos pocos datos).</li>
+        <li>Síntomas típicos: F global significativa con todas las t no significativas, signos absurdos, coeficientes que saltan al agregar una variable.</li>
+        <li>Remedios: quitar uno de los predictores redundantes, combinarlos en un índice, conseguir más datos o con más variación independiente, o usar regularización (ridge), que verás más adelante.</li>
+      </ul>
+
+      <h2 id="regmult-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Los 16 departamentos: regresión simple y múltiple, interacción, prueba F parcial, VIF y predicción.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+<span class="k">from</span> statsmodels.stats.outliers_influence <span class="k">import</span> variance_inflation_factor
+
+df = pd.<span class="f">DataFrame</span>({
+    <span class="s">"precio"</span>: [<span class="n">165</span>, <span class="n">189</span>, <span class="n">203</span>, <span class="n">131</span>, <span class="n">143</span>, <span class="n">210</span>, <span class="n">117</span>, <span class="n">204</span>, <span class="n">164</span>, <span class="n">114</span>, <span class="n">112</span>, <span class="n">109</span>, <span class="n">94</span>, <span class="n">118</span>, <span class="n">129</span>, <span class="n">131</span>],
+    <span class="s">"m2"</span>:     [<span class="n">86</span>, <span class="n">103</span>, <span class="n">95</span>, <span class="n">60</span>, <span class="n">65</span>, <span class="n">102</span>, <span class="n">45</span>, <span class="n">98</span>, <span class="n">97</span>, <span class="n">75</span>, <span class="n">65</span>, <span class="n">63</span>, <span class="n">62</span>, <span class="n">74</span>, <span class="n">78</span>, <span class="n">81</span>],
+    <span class="s">"antig"</span>:  [<span class="n">45</span>, <span class="n">40</span>, <span class="n">36</span>, <span class="n">45</span>, <span class="n">25</span>, <span class="n">24</span>, <span class="n">35</span>, <span class="n">21</span>, <span class="n">7</span>, <span class="n">18</span>, <span class="n">11</span>, <span class="n">17</span>, <span class="n">14</span>, <span class="n">15</span>, <span class="n">4</span>, <span class="n">12</span>],
+    <span class="s">"zona"</span>:   [<span class="s">"centro"</span>] * <span class="n">8</span> + [<span class="s">"afueras"</span>] * <span class="n">8</span>,
+})
+
+<span class="c"># la regresión simple engaña</span>
+<span class="f">print</span>(smf.<span class="f">ols</span>(<span class="s">"precio ~ antig"</span>, data=df).<span class="f">fit</span>().params)   <span class="c"># antig ≈ +1.06</span>
+
+<span class="c"># regresión múltiple (afueras es la referencia por orden alfabético)</span>
+m = smf.<span class="f">ols</span>(<span class="s">"precio ~ m2 + antig + C(zona)"</span>, data=df).<span class="f">fit</span>()
+<span class="f">print</span>(m.<span class="f">summary</span>())
+<span class="c"># Intercept ≈ 16.15, centro ≈ 52.56, m2 ≈ 1.529, antig ≈ -0.692 (p ≈ 0.019)</span>
+<span class="c"># R² ≈ 0.974, R² ajustado ≈ 0.967, F ≈ 148.5</span>
+
+<span class="c"># interacción m2 × zona y prueba F parcial</span>
+mi = smf.<span class="f">ols</span>(<span class="s">"precio ~ m2 * C(zona) + antig"</span>, data=df).<span class="f">fit</span>()
+<span class="f">print</span>(sm.stats.<span class="f">anova_lm</span>(m, mi))            <span class="c"># F ≈ 0.036, p ≈ 0.85: no hace falta</span>
+
+<span class="c"># VIF de cada predictor (se omite la columna del intercepto)</span>
+X = m.model.exog
+<span class="k">for</span> i, nombre <span class="k">in</span> <span class="f">enumerate</span>(m.model.exog_names):
+    <span class="k">if</span> i &gt; <span class="n">0</span>:
+        <span class="f">print</span>(nombre, <span class="f">variance_inflation_factor</span>(X, i))   <span class="c"># centro ≈ 3.85, m2 ≈ 1.15, antig ≈ 3.67</span>
+
+<span class="c"># predicción: 80 m², 10 años, afueras</span>
+nuevo = pd.<span class="f">DataFrame</span>({<span class="s">"m2"</span>: [<span class="n">80</span>], <span class="s">"antig"</span>: [<span class="n">10</span>], <span class="s">"zona"</span>: [<span class="s">"afueras"</span>]})
+<span class="f">print</span>(m.<span class="f">get_prediction</span>(nuevo).<span class="f">summary_frame</span>())   <span class="c"># ≈ 131.5, predicción individual ≈ [115.5, 147.6]</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>df &lt;- <span class="f">data.frame</span>(
+  precio = <span class="f">c</span>(<span class="n">165</span>, <span class="n">189</span>, <span class="n">203</span>, <span class="n">131</span>, <span class="n">143</span>, <span class="n">210</span>, <span class="n">117</span>, <span class="n">204</span>, <span class="n">164</span>, <span class="n">114</span>, <span class="n">112</span>, <span class="n">109</span>, <span class="n">94</span>, <span class="n">118</span>, <span class="n">129</span>, <span class="n">131</span>),
+  m2     = <span class="f">c</span>(<span class="n">86</span>, <span class="n">103</span>, <span class="n">95</span>, <span class="n">60</span>, <span class="n">65</span>, <span class="n">102</span>, <span class="n">45</span>, <span class="n">98</span>, <span class="n">97</span>, <span class="n">75</span>, <span class="n">65</span>, <span class="n">63</span>, <span class="n">62</span>, <span class="n">74</span>, <span class="n">78</span>, <span class="n">81</span>),
+  antig  = <span class="f">c</span>(<span class="n">45</span>, <span class="n">40</span>, <span class="n">36</span>, <span class="n">45</span>, <span class="n">25</span>, <span class="n">24</span>, <span class="n">35</span>, <span class="n">21</span>, <span class="n">7</span>, <span class="n">18</span>, <span class="n">11</span>, <span class="n">17</span>, <span class="n">14</span>, <span class="n">15</span>, <span class="n">4</span>, <span class="n">12</span>),
+  zona   = <span class="f">factor</span>(<span class="f">rep</span>(<span class="f">c</span>(<span class="s">"centro"</span>, <span class="s">"afueras"</span>), each = <span class="n">8</span>), levels = <span class="f">c</span>(<span class="s">"afueras"</span>, <span class="s">"centro"</span>))
+)
+
+<span class="c"># la regresión simple engaña</span>
+<span class="f">coef</span>(<span class="f">lm</span>(precio ~ antig, data = df))        <span class="c"># antig ≈ +1.06</span>
+
+<span class="c"># regresión múltiple: afueras es la referencia</span>
+m &lt;- <span class="f">lm</span>(precio ~ m2 + antig + zona, data = df)
+<span class="f">summary</span>(m)       <span class="c"># m2 ≈ 1.529, antig ≈ -0.692, zonacentro ≈ 52.56; R² aj ≈ 0.967</span>
+<span class="f">confint</span>(m)
+
+<span class="c"># interacción y prueba F parcial</span>
+mi &lt;- <span class="f">lm</span>(precio ~ m2 * zona + antig, data = df)
+<span class="f">anova</span>(m, mi)      <span class="c"># F ≈ 0.036, p ≈ 0.85</span>
+
+<span class="c"># VIF (paquete car)</span>
+car::<span class="f">vif</span>(m)       <span class="c"># m2 ≈ 1.15, antig ≈ 3.67, zona ≈ 3.85</span>
+
+<span class="c"># predicción: 80 m², 10 años, afueras</span>
+<span class="f">predict</span>(m, <span class="f">data.frame</span>(m2 = <span class="n">80</span>, antig = <span class="n">10</span>, zona = <span class="s">"afueras"</span>),
+        interval = <span class="s">"prediction"</span>)               <span class="c"># ≈ 131.5 [115.5, 147.6]</span></code></pre>
+      </div>
+
+      <h2 id="regmult-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="En regresión múltiple cada coeficiente se interpreta manteniendo fijos los demás predictores del modelo. Aquí: a igual experiencia, cada año de educación se asocia con 1,2 mil más de salario promedio." data-wrong="Recuerda que el coeficiente de una variable en un modelo múltiple ya descuenta a las demás variables incluidas. ¿Qué se mantiene constante al leer 1,2?">
+        <h3>En salario = 8 + 1,2·educación + 0,4·experiencia (miles por año), ¿qué significa 1,2?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cada año de educación causa 1,2 mil más de salario a cada persona</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La correlación entre educación y salario es 1,2</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Entre personas con la misma experiencia, cada año de educación se asocia con 1,2 mil más de salario promedio</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Es el salario de alguien sin educación ni experiencia</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con 4 categorías se usan 3 indicadoras y una queda como referencia. Si pones las 4 más el intercepto, las columnas son linealmente dependientes y X'X no se puede invertir." data-wrong="Piensa en qué pasa si sumas todas las indicadoras de una variable categórica: ¿con qué columna de la matriz de diseño coincide esa suma?">
+        <h3>Una variable región tiene 4 categorías. ¿Cuántas variables indicadoras incluyes en un modelo con intercepto?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>4, una por cada región</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>3, y la región restante queda como referencia</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>1, codificando las regiones como 1, 2, 3 y 4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>2, porque log₂(4) = 2</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="VIF = 1/(1 − R²) = 1/(1 − 0,96) = 25, y el error estándar se multiplica por √25 = 5. La estimación no tiene sesgo, pero es muy imprecisa." data-wrong="El VIF se calcula con el R² de regresar ese predictor sobre los demás: VIF = 1/(1 − R²). El error estándar crece con la raíz del VIF.">
+        <h3>Al regresar x₁ sobre los demás predictores obtienes R² = 0,96. ¿Por cuánto se multiplica el error estándar de su coeficiente frente a predictores no correlacionados?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Por 25</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Por 0,96</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>No cambia: la colinealidad solo sesga el coeficiente</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Por 5</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="regmult-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Un estudio estima \(\widehat{\text{salario}} = 8 + 1{,}2\,\text{educ} + 0{,}4\,\text{exper} + 2{,}5\,\text{público}\) (miles de dólares al año), donde público vale 1 si la persona trabaja en el sector público. Predice el salario de alguien con 16 años de educación y 5 de experiencia en el sector privado, e interpreta el coeficiente 2,5.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(\hat y = 8 + 1{,}2 \cdot 16 + 0{,}4 \cdot 5 + 2{,}5 \cdot 0 = 8 + 19{,}2 + 2 = 29{,}2\) mil dólares.</p>
+            <p>2,5: entre personas con la misma educación y experiencia, quienes trabajan en el sector público ganan en promedio 2 500 dólares más al año que en el privado (la referencia). Es una asociación ajustada por esas dos variables, no por otras como la ocupación o la región.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Un modelo con \(n = 50\) observaciones y \(p = 4\) predictores tiene \(R^2 = 0{,}62\). Calcula el \(R^2\) ajustado. Si uno de los predictores tiene \(R_j^2 = 0{,}9\) al regresarlo sobre los otros tres, ¿cuánto vale su VIF y cuánto se infla su error estándar?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(R^2_{\text{aj}} = 1 - 0{,}38 \cdot 49/45 = 1 - 0{,}414 = 0{,}586\).</p>
+            <p>\(VIF = 1/(1 - 0{,}9) = 10\). El error estándar se multiplica por \(\sqrt{10} \approx 3{,}16\) respecto de un predictor no correlacionado con los demás: su intervalo de confianza es unas tres veces más ancho.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Un modelo de rendimiento de un cultivo es \(\hat y = 50 + 2x + 10D + 1{,}5\,xD\), donde \(x\) es la dosis de riego (litros por m²) y \(D = 1\) para una variedad mejorada. Escribe la recta de cada variedad, interpreta \(\beta_3 = 1{,}5\) y calcula cuánto más rinde la variedad mejorada con \(x = 0\) y con \(x = 10\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Variedad común (\(D = 0\)): \(\hat y = 50 + 2x\). Mejorada (\(D = 1\)): \(\hat y = 60 + 3{,}5x\).</p>
+            <p>\(\beta_3 = 1{,}5\): cada litro adicional de riego rinde 1,5 unidades más en la variedad mejorada que en la común. La ventaja de la mejorada depende de la dosis: \(10 + 1{,}5x\). Con \(x = 0\) es 10; con \(x = 10\) es \(10 + 15 = 25\).</p>
+            <p>Por eso, con interacción, el coeficiente 10 de \(D\) <b>no</b> es “el efecto de la variedad” en general: es el efecto cuando \(x = 0\). Si centras \(x\) en su media, el coeficiente de \(D\) pasa a ser la ventaja con un riego típico.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Con los 16 departamentos, verifica numéricamente la fórmula del sesgo por variables omitidas: obtén la pendiente simple de la antigüedad (1,06) a partir de los coeficientes del modelo múltiple y de las regresiones auxiliares de cada variable omitida sobre la antigüedad. Después comprueba el teorema de Frisch-Waugh-Lovell: la pendiente de \(y\) sobre los residuos de antig ~ m2 + zona es −0,69.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Regresiones auxiliares: centro ~ antig da pendiente \(\delta_1 = 0{,}0324\) y m2 ~ antig da \(\delta_2 = 0{,}0330\). Entonces \(\tilde\beta_{\text{antig}} = -0{,}692 + 52{,}56 \cdot 0{,}0324 + 1{,}529 \cdot 0{,}0330 = -0{,}692 + 1{,}705 + 0{,}050 = 1{,}063\). En la muestra la identidad es exacta, no solo en esperanza.</p>
+            <p>Casi todo el sesgo viene de la zona: tiene un efecto grande (52,6) y los edificios del centro son mucho más viejos. La superficie apenas aporta porque casi no está correlacionada con la antigüedad.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+df = pd.<span class="f">DataFrame</span>({
+    <span class="s">"precio"</span>: [<span class="n">165</span>, <span class="n">189</span>, <span class="n">203</span>, <span class="n">131</span>, <span class="n">143</span>, <span class="n">210</span>, <span class="n">117</span>, <span class="n">204</span>, <span class="n">164</span>, <span class="n">114</span>, <span class="n">112</span>, <span class="n">109</span>, <span class="n">94</span>, <span class="n">118</span>, <span class="n">129</span>, <span class="n">131</span>],
+    <span class="s">"m2"</span>:     [<span class="n">86</span>, <span class="n">103</span>, <span class="n">95</span>, <span class="n">60</span>, <span class="n">65</span>, <span class="n">102</span>, <span class="n">45</span>, <span class="n">98</span>, <span class="n">97</span>, <span class="n">75</span>, <span class="n">65</span>, <span class="n">63</span>, <span class="n">62</span>, <span class="n">74</span>, <span class="n">78</span>, <span class="n">81</span>],
+    <span class="s">"antig"</span>:  [<span class="n">45</span>, <span class="n">40</span>, <span class="n">36</span>, <span class="n">45</span>, <span class="n">25</span>, <span class="n">24</span>, <span class="n">35</span>, <span class="n">21</span>, <span class="n">7</span>, <span class="n">18</span>, <span class="n">11</span>, <span class="n">17</span>, <span class="n">14</span>, <span class="n">15</span>, <span class="n">4</span>, <span class="n">12</span>],
+    <span class="s">"centro"</span>: [<span class="n">1</span>] * <span class="n">8</span> + [<span class="n">0</span>] * <span class="n">8</span>,
+})
+b = smf.<span class="f">ols</span>(<span class="s">"precio ~ m2 + antig + centro"</span>, data=df).<span class="f">fit</span>().params
+d1 = smf.<span class="f">ols</span>(<span class="s">"centro ~ antig"</span>, data=df).<span class="f">fit</span>().params[<span class="s">"antig"</span>]
+d2 = smf.<span class="f">ols</span>(<span class="s">"m2 ~ antig"</span>, data=df).<span class="f">fit</span>().params[<span class="s">"antig"</span>]
+<span class="f">print</span>(b[<span class="s">"antig"</span>] + b[<span class="s">"centro"</span>] * d1 + b[<span class="s">"m2"</span>] * d2)    <span class="c"># ≈ 1.063 = pendiente simple</span>
+
+<span class="c"># Frisch-Waugh-Lovell</span>
+df[<span class="s">"r_antig"</span>] = smf.<span class="f">ols</span>(<span class="s">"antig ~ m2 + centro"</span>, data=df).<span class="f">fit</span>().resid
+<span class="f">print</span>(smf.<span class="f">ols</span>(<span class="s">"precio ~ r_antig"</span>, data=df).<span class="f">fit</span>().params[<span class="s">"r_antig"</span>])   <span class="c"># ≈ -0.692</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>df$centro &lt;- <span class="f">as.numeric</span>(df$zona == <span class="s">"centro"</span>)   <span class="c"># df del ejemplo de § 9</span>
+b  &lt;- <span class="f">coef</span>(<span class="f">lm</span>(precio ~ m2 + antig + centro, data = df))
+d1 &lt;- <span class="f">coef</span>(<span class="f">lm</span>(centro ~ antig, data = df))[<span class="s">"antig"</span>]
+d2 &lt;- <span class="f">coef</span>(<span class="f">lm</span>(m2 ~ antig, data = df))[<span class="s">"antig"</span>]
+b[<span class="s">"antig"</span>] + b[<span class="s">"centro"</span>] * d1 + b[<span class="s">"m2"</span>] * d2      <span class="c"># ≈ 1.063</span>
+
+<span class="c"># Frisch-Waugh-Lovell</span>
+r_antig &lt;- <span class="f">resid</span>(<span class="f">lm</span>(antig ~ m2 + centro, data = df))
+<span class="f">coef</span>(<span class="f">lm</span>(df$precio ~ r_antig))[<span class="n">2</span>]               <span class="c"># ≈ -0.692</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

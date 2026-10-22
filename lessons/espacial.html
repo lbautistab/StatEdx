@@ -1,0 +1,286 @@
+<!-- StatEdx · sesión: espacial -->
+<div id="view-espacial" data-view="espacial" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Introducción a los datos espaciales</h1>
+      <p>Cuando cada dato trae consigo un lugar, los vecinos se parecen y el supuesto de independencia se cae. Aquí aprendes a reconocer los tres tipos de datos espaciales, a manejar coordenadas y proyecciones sin cometer errores de cientos de kilómetros, y a medir cuánta información real tiene una muestra con dependencia espacial.</p>
+      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: correlación y varianza</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#espacial-idea" data-sec="espacial-idea">La idea</a></li>
+        <li><a href="#espacial-tipos" data-sec="espacial-tipos">Tres tipos de datos</a></li>
+        <li><a href="#espacial-coord" data-sec="espacial-coord">Coordenadas y proyecciones</a></li>
+        <li><a href="#espacial-lab-proy" data-sec="espacial-lab-proy">Laboratorio: Mercator</a></li>
+        <li><a href="#espacial-tobler" data-sec="espacial-tobler">La primera ley de la geografía</a></li>
+        <li><a href="#espacial-lab" data-sec="espacial-lab">Laboratorio: dependencia</a></li>
+        <li><a href="#espacial-code" data-sec="espacial-code">En R y Python</a></li>
+        <li><a href="#espacial-quiz" data-sec="espacial-quiz">Comprueba</a></li>
+        <li><a href="#espacial-ej" data-sec="espacial-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="espacial-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Imagina que una municipalidad mide la contaminación por material particulado (PM2,5) en 40 estaciones repartidas por la ciudad. Si calculas la media y su intervalo de confianza como en un curso básico, estás suponiendo que las 40 mediciones son independientes. Pero dos estaciones a 300 metros de distancia respiran casi el mismo aire: si una marca alto, la otra probablemente también. En la práctica tienes menos de 40 datos “de información”.</p>
+      <p>Ese es el corazón de la estadística espacial. El dónde no es un detalle de etiqueta: es parte del modelo. Te permite responder preguntas que sin ubicación ni siquiera se pueden plantear:</p>
+      <ul>
+        <li>¿Los casos de dengue se concentran en ciertos barrios o están repartidos al azar?</li>
+        <li>¿Cuánto zinc hay en el suelo en un punto donde nadie tomó una muestra?</li>
+        <li>¿La pobreza de un municipio se parece a la de sus vecinos más de lo esperado?</li>
+      </ul>
+      <div class="callout"><b>Idea central:</b> en datos espaciales la dependencia es la regla, no la excepción. Ignorarla da intervalos demasiado estrechos y valores p demasiado pequeños; modelarla permite interpolar, detectar agrupamientos y predecir con incertidumbre honesta.</div>
+
+      <h2 id="espacial-tipos"><span class="sec">§ 2</span>Tres tipos de datos espaciales</h2>
+      <p>Cressie (1993) propuso una clasificación que sigue vigente. Todo parte de un proceso \(\{Z(\mathbf{s}) : \mathbf{s} \in D\}\), donde \(\mathbf{s}\) es una ubicación y \(D\) la región de estudio. Lo que cambia entre tipos es la naturaleza de \(D\):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Tipo</th><th>Región \(D\)</th><th>Qué es aleatorio</th><th>Ejemplo</th><th>Herramientas</th></tr></thead>
+        <tbody>
+          <tr><td><b>Geoestadísticos</b></td><td>Continua y fija</td><td>El valor \(Z(\mathbf{s})\) en sitios elegidos</td><td>PM2,5, lluvia, zinc en el suelo</td><td>Variograma, kriging</td></tr>
+          <tr><td><b>Areales (reticulares)</b></td><td>Conjunto fijo y numerable de áreas</td><td>El valor agregado de cada área</td><td>Tasa de pobreza por municipio</td><td>Matrices de vecindad, I de Moran, modelos CAR/SAR</td></tr>
+          <tr><td><b>Patrones de puntos</b></td><td>Aleatoria</td><td>Las propias ubicaciones de los eventos</td><td>Árboles en un bosque, delitos, casos de una enfermedad</td><td>Intensidad, función K de Ripley</td></tr>
+        </tbody>
+      </table></div>
+      <p>La diferencia clave entre el primer y el tercer tipo: en geoestadística <i>tú eliges</i> dónde medir y el valor es lo incierto; en un patrón de puntos la pregunta es <i>dónde ocurren</i> los eventos. Si a cada punto le agregas una medición (el diámetro de cada árbol), tienes un <b>patrón de puntos marcado</b>.</p>
+      <p>En el computador, estos datos se guardan en dos modelos:</p>
+      <ul>
+        <li><b>Vectorial</b>: puntos, líneas y polígonos con atributos en una tabla. Formatos: GeoPackage, shapefile, GeoJSON. En R se manejan con <code>sf</code> y en Python con <code>geopandas</code>.</li>
+        <li><b>Ráster</b>: una grilla regular de celdas con un valor cada una (imágenes satelitales, modelos de elevación). En R: <code>terra</code>; en Python: <code>rasterio</code> o <code>xarray</code>.</li>
+      </ul>
+      <div class="callout"><b>Cuidado con el cambio de soporte:</b> un mismo fenómeno medido en puntos, en celdas de 1 km o en municipios da estadísticas distintas. Cuando las conclusiones dependen de cómo se trazan las áreas hablamos del <b>problema de la unidad de área modificable</b> (MAUP): agregar a escalas más gruesas suele inflar las correlaciones.</div>
+
+      <h2 id="espacial-coord"><span class="sec">§ 3</span>Coordenadas y proyecciones</h2>
+      <p>Una ubicación sin su <b>sistema de referencia de coordenadas</b> (CRS) es solo un par de números. Hay dos familias:</p>
+      <ul>
+        <li><b>Geográficas</b>: longitud \(\lambda\) y latitud \(\varphi\) en grados sobre un elipsoide (el más usado es WGS84, código EPSG:4326, el del GPS). No son coordenadas cartesianas: un grado de longitud mide distinto según la latitud.</li>
+        <li><b>Proyectadas</b>: el elipsoide se aplana con una fórmula y las coordenadas quedan en metros (por ejemplo UTM, que divide el mundo en 60 husos de 6°; Bogotá está en el huso 18N, EPSG:32618).</li>
+      </ul>
+      <p>En la esfera de radio \(R \approx 6\,371\) km, un grado de latitud mide siempre unos 111 km, pero un grado de longitud se encoge con el coseno de la latitud:</p>
+      <div class="eq">\[ \Delta x_{\text{1° lon}} = \frac{2\pi R}{360}\cos\varphi \approx 111{,}32\cos\varphi \ \text{km} \]
+        <div class="note">En el ecuador, 111 km; en Santiago de Chile (\(\varphi \approx -33{,}4^\circ\)), unos 93 km; a 60° de latitud, solo 55,7 km.</div>
+      </div>
+      <p>Por eso la distancia euclidiana calculada directamente sobre grados está mal. La distancia correcta sobre la esfera es la de <b>gran círculo</b>, que se calcula con la fórmula del haversine:</p>
+      <div class="eq">\[ d = 2R\arcsin\sqrt{\sin^2\!\frac{\varphi_2-\varphi_1}{2} + \cos\varphi_1\cos\varphi_2\sin^2\!\frac{\lambda_2-\lambda_1}{2}} \]
+        <div class="note">Santiago-Buenos Aires: el haversine da ≈ 1 139 km. Tratar los grados como plano da ≈ 1 374 km, un error del 21 %.</div>
+      </div>
+      <p>Ninguna proyección conserva a la vez distancias, áreas y ángulos (es un teorema de Gauss). Cada una sacrifica algo:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Proyección</th><th>Conserva</th><th>Distorsiona</th><th>Úsala para</th></tr></thead>
+        <tbody>
+          <tr><td>Mercator (y Web Mercator, EPSG:3857)</td><td>Ángulos (conforme)</td><td>Áreas: factor \(\sec^2\varphi\)</td><td>Navegación y mapas web, nunca para medir áreas</td></tr>
+          <tr><td>UTM (transversa de Mercator)</td><td>Ángulos; distancias casi exactas dentro del huso</td><td>Crece al alejarse del meridiano central</td><td>Estudios locales y regionales en metros</td></tr>
+          <tr><td>Albers o Lambert de igual área</td><td>Áreas</td><td>Formas y ángulos</td><td>Densidades, tasas por km², coropletas</td></tr>
+          <tr><td>Azimutal equidistante</td><td>Distancias desde un punto central</td><td>Todo lo demás</td><td>Alcance desde un sitio (radios de cobertura)</td></tr>
+        </tbody>
+      </table></div>
+      <p>En la proyección de Mercator el factor de escala lineal en la latitud \(\varphi\) es \(k = \sec\varphi = 1/\cos\varphi\), igual en todas las direcciones. Las áreas se inflan por \(k^2\). Por eso Groenlandia (alrededor de 72°N) parece del tamaño de África cuando en realidad es 14 veces más pequeña.</p>
+
+      <h2 id="espacial-lab-proy"><span class="sec">§ 4</span>Laboratorio: el mismo círculo en Mercator</h2>
+      <p>Cada círculo representa una zona de 300 km de radio en el terreno: todas son iguales en el globo. El mapa está girado (la latitud crece hacia la derecha) para que quepa en la pantalla. Mueve la latitud y mira cómo crece el círculo resaltado, y cómo se separan las líneas de latitud.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · distorsión de Mercator</span><span class="num" id="espacial-p-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="espacial-p-lat">LATITUD · φ = <b id="espacial-p-lat-v" class="num">45</b>°</label><input id="espacial-p-lat" type="range" min="0" max="80" value="45"></div>
+            <div class="ctrl">
+              <label id="espacial-p-pre-label">LUGARES</label>
+              <div class="seg" id="espacial-p-pre" role="group" aria-labelledby="espacial-p-pre-label">
+                <button type="button" data-lat="0" aria-pressed="false">Quito</button>
+                <button type="button" data-lat="34" aria-pressed="false">Santiago</button>
+                <button type="button" data-lat="55" aria-pressed="false">Ushuaia</button>
+                <button type="button" data-lat="72" aria-pressed="false">Groenlandia</button>
+              </div>
+            </div>
+          </div>
+          <canvas class="plot" id="espacial-c-merc" height="230" aria-label="Círculos de 300 km de radio dibujados en proyección de Mercator a distintas latitudes"></canvas>
+          <div class="legend"><span><i style="background:var(--muted)"></i>círculos de referencia (0°, 20°, 40°, 60°, 75°)</span><span><i style="background:var(--hot)"></i>círculo en la latitud elegida</span></div>
+          <div class="readout">
+            <div><span>1° de longitud</span><b id="espacial-p-km">–</b></div>
+            <div><span>escala lineal k = sec φ</span><b id="espacial-p-k">–</b></div>
+            <div><span>área aparente (k²)</span><b id="espacial-p-k2">–</b></div>
+            <div><span>error de usar grados como plano (E-O)</span><b id="espacial-p-err">–</b></div>
+          </div>
+        </div>
+        <figcaption>A 72° el círculo se ve más de 3 veces más ancho y su área más de 10 veces mayor que en el ecuador. Si calculas densidades sobre un mapa en Mercator, las regiones polares parecen vacías solo porque se ven gigantes.</figcaption>
+      </figure>
+
+      <h2 id="espacial-tobler"><span class="sec">§ 5</span>La primera ley de la geografía</h2>
+      <p>Waldo Tobler la enunció en 1970: <i>“Todo está relacionado con todo lo demás, pero las cosas cercanas están más relacionadas que las lejanas”</i>. En estadística, eso se traduce en que la covarianza entre dos observaciones depende de la distancia entre ellas.</p>
+      <p>Para un proceso <b>estacionario de segundo orden</b> (media constante y covarianza que solo depende de la separación \(\mathbf{h} = \mathbf{s}_i - \mathbf{s}_j\)) escribimos:</p>
+      <div class="eq">\[ \mathbb{E}[Z(\mathbf{s})] = \mu, \qquad \operatorname{Cov}\big(Z(\mathbf{s}), Z(\mathbf{s}+\mathbf{h})\big) = C(\mathbf{h}), \qquad \rho(\mathbf{h}) = \frac{C(\mathbf{h})}{C(\mathbf{0})} \]
+        <div class="note">Si además \(C\) depende solo de la longitud \(\|\mathbf{h}\|\) y no de la dirección, el proceso es <b>isótropo</b>. Si la correlación es más fuerte, por ejemplo, en dirección norte-sur (siguiendo un río o un valle), es <b>anisótropo</b>.</div>
+      </div>
+      <p>La consecuencia más importante tiene que ver con la precisión. Para la media muestral de \(n\) observaciones con varianza \(\sigma^2\):</p>
+      <div class="eq">\[ \operatorname{Var}(\bar Z) = \frac{\sigma^2}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\rho(\mathbf{s}_i - \mathbf{s}_j) = \frac{\sigma^2}{n_{\text{ef}}}, \qquad n_{\text{ef}} = \frac{n^2}{\sum_i\sum_j \rho_{ij}} \]
+        <div class="note">Con independencia, \(\rho_{ij} = 0\) para \(i \ne j\) y la doble suma vale \(n\): recuperas \(\sigma^2/n\). Con correlación positiva, la suma crece y el <b>tamaño de muestra efectivo</b> \(n_{\text{ef}}\) es menor que \(n\).</div>
+      </div>
+      <div class="callout"><b>Error común:</b> aplicar una prueba t, una regresión por MCO o una validación cruzada aleatoria a datos espaciales como si fueran independientes. Las estimaciones puntuales suelen estar bien, pero los errores estándar salen demasiado pequeños y aparecen “efectos significativos” que no lo son.</div>
+
+      <h2 id="espacial-lab"><span class="sec">§ 6</span>Laboratorio: cuánto se parecen los vecinos</h2>
+      <p>El mapa es un campo aleatorio de 40 × 40 celdas con media 0 y varianza 1. El control de <b>alcance</b> decide a qué distancia deja de notarse la dependencia. A la derecha, el <b>correlograma</b>: la correlación promedio entre pares de celdas según su distancia, comparada con la curva teórica.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · campo aleatorio y correlograma</span><span class="num" id="espacial-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="espacial-ell">ALCANCE · ℓ = <b id="espacial-ell-v" class="num">3</b> celdas</label><input id="espacial-ell" type="range" min="0" max="8" step="0.5" value="3"></div>
+            <div class="ctrl">
+              <label id="espacial-vista-label">MAPA</label>
+              <div class="seg" id="espacial-vista" role="group" aria-labelledby="espacial-vista-label">
+                <button type="button" data-v="campo" aria-pressed="true">Campo</button>
+                <button type="button" data-v="mezcla" aria-pressed="false">Celdas barajadas</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="espacial-again" type="button">Nuevo campo</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Valor de cada celda</span><span>alto / bajo</span></div>
+              <canvas class="plot" id="espacial-c-campo" height="280" aria-label="Mapa del campo aleatorio, celdas altas y bajas"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Correlación según distancia</span><span>celdas</span></div>
+              <canvas class="plot" id="espacial-c-cor" height="280" aria-label="Correlograma empírico y teórico"></canvas>
+            </div>
+          </div>
+          <div class="legend"><span><i style="background:var(--hot)"></i>valores altos</span><span><i style="background:var(--accent)"></i>valores bajos y correlación empírica</span><span><i style="background:var(--ink)"></i>correlación teórica</span></div>
+          <div class="readout">
+            <div><span>correlación con el vecino (d = 1)</span><b id="espacial-r1">–</b></div>
+            <div><span>distancia donde ρ &lt; 0,1</span><b id="espacial-rango">–</b></div>
+            <div><span>n efectivo (de 1 600)</span><b id="espacial-neff">–</b></div>
+            <div><span>Var(media) frente a iid</span><b id="espacial-vr">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con ℓ = 0 el campo es ruido blanco y n efectivo = 1 600. Con ℓ = 3 los 1 600 valores informan sobre la media como apenas unos 17 datos independientes. Barajar las celdas conserva los valores pero destruye la estructura espacial: el correlograma cae a cero.</figcaption>
+      </figure>
+      <p>El campo se construye suavizando ruido blanco con un núcleo gaussiano de ancho \(\ell\), lo que da una correlación teórica \(\rho(d) = e^{-d^2/(4\ell^2)}\). Observa dos cosas: la correlación empírica fluctúa alrededor de la teórica (con un solo mapa hay mucha variabilidad muestral, sobre todo a distancias grandes) y el n efectivo cae muy rápido. Eso es exactamente lo que miden las próximas sesiones: el I de Moran resume la correlación con los vecinos y el variograma describe cómo cambia con la distancia.</p>
+
+      <h2 id="espacial-code"><span class="sec">§ 7</span>En R y Python</h2>
+      <p>Cinco capitales sudamericanas como puntos en WGS84. Calculamos distancias de gran círculo, vemos el error de tratar los grados como plano y proyectamos a UTM 18N.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> geopandas <span class="k">as</span> gpd
+
+ciudades = gpd.<span class="f">GeoDataFrame</span>(
+    {<span class="s">"ciudad"</span>: [<span class="s">"Bogotá"</span>, <span class="s">"Quito"</span>, <span class="s">"Lima"</span>, <span class="s">"Santiago"</span>, <span class="s">"Buenos Aires"</span>]},
+    geometry=gpd.<span class="f">points_from_xy</span>(
+        x=[-<span class="n">74.0721</span>, -<span class="n">78.4678</span>, -<span class="n">77.0428</span>, -<span class="n">70.6693</span>, -<span class="n">58.3816</span>],   <span class="c"># longitud</span>
+        y=[<span class="n">4.7110</span>, -<span class="n">0.1807</span>, -<span class="n">12.0464</span>, -<span class="n">33.4489</span>, -<span class="n">34.6037</span>]),     <span class="c"># latitud</span>
+    crs=<span class="s">"EPSG:4326"</span>)                                             <span class="c"># WGS84, en grados</span>
+
+<span class="k">def</span> <span class="f">haversine</span>(lon1, lat1, lon2, lat2, R=<span class="n">6371.0</span>):
+    <span class="s">""</span><span class="s">"Distancia de gran círculo en km sobre una esfera de radio R."</span><span class="s">""</span>
+    lon1, lat1, lon2, lat2 = <span class="f">map</span>(np.radians, (lon1, lat1, lon2, lat2))
+    a = (np.<span class="f">sin</span>((lat2 - lat1) / <span class="n">2</span>)**<span class="n">2</span>
+         + np.<span class="f">cos</span>(lat1) * np.<span class="f">cos</span>(lat2) * np.<span class="f">sin</span>((lon2 - lon1) / <span class="n">2</span>)**<span class="n">2</span>)
+    <span class="k">return</span> <span class="n">2</span> * R * np.<span class="f">arcsin</span>(np.<span class="f">sqrt</span>(a))
+
+lon, lat = ciudades.geometry.x.<span class="f">to_numpy</span>(), ciudades.geometry.y.<span class="f">to_numpy</span>()
+D = <span class="f">haversine</span>(lon[:, <span class="k">None</span>], lat[:, <span class="k">None</span>], lon[<span class="k">None</span>, :], lat[<span class="k">None</span>, :])
+<span class="f">print</span>(np.<span class="f">round</span>(D[<span class="n">0</span>]))               <span class="c"># Bogotá a cada ciudad, en km</span>
+
+<span class="c"># Error típico: tratar los grados como si fueran un plano</span>
+<span class="f">print</span>(D[<span class="n">3</span>, <span class="n">4</span>])                                              <span class="c"># Santiago-Buenos Aires</span>
+<span class="f">print</span>(np.<span class="f">hypot</span>(lon[<span class="n">3</span>] - lon[<span class="n">4</span>], lat[<span class="n">3</span>] - lat[<span class="n">4</span>]) * <span class="n">111.32</span>)  <span class="c"># "distancia" en grados</span>
+
+<span class="c"># Proyectar a UTM zona 18N (metros) y medir en el plano</span>
+utm = ciudades.<span class="f">to_crs</span>(<span class="s">"EPSG:32618"</span>)
+<span class="f">print</span>((utm.<span class="f">distance</span>(utm.geometry.iloc[<span class="n">0</span>]) / <span class="n">1000</span>).<span class="f">round</span>())  <span class="c"># km desde Bogotá</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(sf)
+
+ciudades &lt;- <span class="f">st_as_sf</span>(
+  <span class="f">data.frame</span>(ciudad = <span class="f">c</span>(<span class="s">"Bogotá"</span>, <span class="s">"Quito"</span>, <span class="s">"Lima"</span>, <span class="s">"Santiago"</span>, <span class="s">"Buenos Aires"</span>),
+             lon = <span class="f">c</span>(-<span class="n">74.0721</span>, -<span class="n">78.4678</span>, -<span class="n">77.0428</span>, -<span class="n">70.6693</span>, -<span class="n">58.3816</span>),
+             lat = <span class="f">c</span>(<span class="n">4.7110</span>, -<span class="n">0.1807</span>, -<span class="n">12.0464</span>, -<span class="n">33.4489</span>, -<span class="n">34.6037</span>)),
+  coords = <span class="f">c</span>(<span class="s">"lon"</span>, <span class="s">"lat"</span>), crs = <span class="n">4326</span>)       <span class="c"># WGS84, en grados</span>
+
+<span class="f">st_crs</span>(ciudades)$epsg                         <span class="c"># 4326</span>
+<span class="f">st_is_longlat</span>(ciudades)                       <span class="c"># TRUE: coordenadas geográficas</span>
+
+<span class="c"># Con longitud/latitud, st_distance mide sobre la esfera (geometría s2)</span>
+D &lt;- <span class="f">st_distance</span>(ciudades)                    <span class="c"># matriz en metros</span>
+<span class="f">round</span>(<span class="f">as.numeric</span>(D[<span class="n">1</span>, ]) / <span class="n">1000</span>)              <span class="c"># ≈ 0 731 1892 4258 4671 km desde Bogotá</span>
+
+<span class="c"># Error típico: tratar los grados como si fueran un plano</span>
+xy &lt;- <span class="f">st_coordinates</span>(ciudades)
+<span class="f">sqrt</span>(<span class="f">sum</span>((xy[<span class="n">4</span>, ] - xy[<span class="n">5</span>, ])^<span class="n">2</span>)) * <span class="n">111.32</span>     <span class="c"># ≈ 1374 km, cuando la real es ≈ 1139</span>
+
+<span class="c"># Proyectar a UTM zona 18N (metros) y medir en el plano</span>
+utm &lt;- <span class="f">st_transform</span>(ciudades, <span class="n">32618</span>)
+<span class="f">round</span>(<span class="f">as.numeric</span>(<span class="f">st_distance</span>(utm)[<span class="n">1</span>, ]) / <span class="n">1000</span>)   <span class="c"># ≈ 0 729 1882 4241 4700</span></code></pre>
+</div>
+      <p>Fíjate en la última línea: UTM 18N es casi exacto para Quito y Lima (dentro o cerca del huso), pero se equivoca en unos 30 km para Buenos Aires, que está a más de 15° del meridiano central del huso (75°O). Para un estudio en toda Sudamérica conviene una proyección de igual área o calcular distancias geodésicas directamente.</p>
+
+      <h2 id="espacial-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <div class="quiz" data-right="En un patrón de puntos lo aleatorio son las ubicaciones de los eventos. La pregunta típica es si los nidos están agrupados, repartidos al azar o separados de forma regular." data-wrong="Pregúntate qué es lo aleatorio: ¿el valor medido en un sitio fijo, el valor de un área fija, o el lugar donde ocurre cada evento?">
+        <h3>Un biólogo registra con GPS la ubicación de cada nido de tortuga en una playa. ¿Qué tipo de dato espacial es?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Geoestadístico</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Areal o reticular</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Patrón de puntos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Ráster</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Un grado de longitud mide 111,32·cos φ km. A 60° eso es 111,32 × 0,5 ≈ 55,7 km, la mitad que en el ecuador." data-wrong="La latitud no cambia de tamaño, pero los meridianos se juntan hacia los polos. Usa 111,32·cos φ.">
+        <h3>¿Cuántos kilómetros mide aproximadamente un grado de longitud a 60° de latitud?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Unos 56 km</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Unos 111 km, como en todas partes</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Unos 96 km</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Unos 222 km</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con correlación positiva la doble suma de ρ supera n, así que n efectivo es menor que n y la varianza real de la media es mayor que σ²/n. El intervalo ingenuo queda demasiado estrecho." data-wrong="Piensa en la fórmula Var(media) = σ²·ΣΣρ/n². ¿Qué pasa con la doble suma si los vecinos están correlacionados positivamente?">
+        <h3>Tienes 200 mediciones con correlación espacial positiva y calculas el intervalo de la media con σ/√200. ¿Qué ocurre?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El intervalo es correcto: la media no se ve afectada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El intervalo es demasiado ancho</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>La media queda sesgada hacia los valores altos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>El intervalo es demasiado estrecho</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="espacial-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
+      <p>Intenta resolverlos antes de abrir la solución. Los laboratorios de arriba te sirven para comprobar algunos resultados.</p>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Clasifica cada caso como geoestadístico, areal o patrón de puntos: (a) tasa de desempleo por provincia; (b) profundidad de la napa freática medida en 60 pozos; (c) ubicación de los accidentes de tránsito de un año; (d) votos por candidato en cada distrito electoral.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) <b>Areal</b>: valores agregados en áreas fijas. (b) <b>Geoestadístico</b>: la napa existe en toda la región y se mide en sitios elegidos. (c) <b>Patrón de puntos</b>: lo aleatorio es dónde ocurre cada accidente. (d) <b>Areal</b>, igual que (a).</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Dos estaciones meteorológicas están a la misma latitud, −40°, separadas por 3° de longitud. ¿Qué distancia aproximada las separa? ¿Y cuánto diría alguien que multiplica los grados por 111 km?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Un grado de longitud a 40° mide 111,32 × cos 40° = 111,32 × 0,766 ≈ 85,3 km. La distancia es ≈ 3 × 85,3 ≈ <b>256 km</b> (el haversine da casi lo mismo a esta escala). Multiplicar por 111 da 334 km: un error del <b>31 %</b>, igual a 1/cos 40° − 1.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Tienes \(n = 3\) estaciones en línea, separadas 1 km cada una, con varianza \(\sigma^2 = 4\) y correlación \(\rho(d) = 0{,}5^{d}\) (\(d\) en km). Calcula la varianza de la media muestral y el tamaño de muestra efectivo.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>La matriz de correlación tiene unos en la diagonal, 0,5 entre vecinas (dos pares, cada uno contado dos veces) y 0,25 entre las extremas (un par, contado dos veces). La doble suma es 3 + 4 × 0,5 + 2 × 0,25 = 5,5.</p><p>\(\operatorname{Var}(\bar Z) = 4 \times 5{,}5 / 9 \approx 2{,}44\), frente a 4/3 ≈ 1,33 si fueran independientes. El tamaño efectivo es \(n_{\text{ef}} = 9 / 5{,}5 \approx\) <b>1,64</b>: tres estaciones tan juntas valen menos de dos independientes.</p><div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+s = np.<span class="f">array</span>([<span class="n">0</span>, <span class="n">1</span>, <span class="n">2</span>])
+rho = <span class="n">0.5</span> ** np.<span class="f">abs</span>(s[:, <span class="k">None</span>] - s[<span class="k">None</span>, :])
+<span class="f">print</span>(<span class="n">4</span> * rho.<span class="f">sum</span>() / <span class="n">9</span>, <span class="n">9</span> / rho.<span class="f">sum</span>())   <span class="c"># 2.444  1.636</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>s &lt;- <span class="n">0</span>:<span class="n">2</span>
+rho &lt;- <span class="n">0.5</span>^<span class="f">abs</span>(<span class="f">outer</span>(s, s, <span class="s">"-"</span>))
+<span class="n">4</span> * <span class="f">sum</span>(rho) / <span class="n">9</span>; <span class="n">9</span> / <span class="f">sum</span>(rho)   <span class="c"># 2.444  1.636</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Un mapa mundial en Mercator muestra Groenlandia (centro ≈ 72°N, área real ≈ 2,17 millones de km²) junto a la República Democrática del Congo (centro ≈ 3°S, área real ≈ 2,34 millones de km²). Usando el factor de área de Mercator en el centro de cada país, ¿cuántas veces más grande parece Groenlandia que el Congo en el mapa? ¿Qué proyección usarías para un mapa de densidad de población mundial y por qué?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>El factor de área es \(\sec^2\varphi\). Para Groenlandia: \(1/\cos^2 72^\circ = 1/0{,}0955 \approx 10{,}5\). Para el Congo: \(1/\cos^2 3^\circ \approx 1{,}003\). Área aparente: 2,17 × 10,5 ≈ 22,7 frente a 2,34 × 1,0 ≈ 2,35 millones de km². Groenlandia parece unas <b>9,7 veces</b> más grande, cuando en realidad es un poco más pequeña. (Es una aproximación: el factor varía dentro de Groenlandia, entre 60° y 83°.)</p><p>Para densidades necesitas una proyección de <b>igual área</b> (Mollweide, Equal Earth o Lambert acimutal), porque la densidad es personas por km² y el ojo compara superficies: en Mercator los países del norte parecerían despoblados.</p></div></details>
+        </div>
+      </div>
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

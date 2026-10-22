@@ -1,0 +1,309 @@
+<!-- StatEdx · sesión: chi2 -->
+<div id="view-chi2" data-view="chi2" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Pruebas chi-cuadrado</h1>
+      <p>No todo se mide con promedios. ¿Un dado está cargado? ¿El medio de transporte depende de la zona donde vives? Cuando tus datos son conteos de categorías, la prueba chi-cuadrado compara lo que observaste con lo que esperarías si no pasara nada interesante, y la V de Cramér te dice qué tan fuerte es la asociación.</p>
+      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: pruebas de hipótesis</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#chi2-idea" data-sec="chi2-idea">La idea</a></li>
+        <li><a href="#chi2-estad" data-sec="chi2-estad">El estadístico χ²</a></li>
+        <li><a href="#chi2-ajuste" data-sec="chi2-ajuste">Bondad de ajuste</a></li>
+        <li><a href="#chi2-lab" data-sec="chi2-lab">Laboratorio: el dado</a></li>
+        <li><a href="#chi2-indep" data-sec="chi2-indep">Independencia en tablas</a></li>
+        <li><a href="#chi2-lab2" data-sec="chi2-lab2">Laboratorio: la tabla</a></li>
+        <li><a href="#chi2-fuerza" data-sec="chi2-fuerza">Residuos y V de Cramér</a></li>
+        <li><a href="#chi2-supuestos" data-sec="chi2-supuestos">Supuestos y alternativas</a></li>
+        <li><a href="#chi2-code" data-sec="chi2-code">En R y Python</a></li>
+        <li><a href="#chi2-quiz" data-sec="chi2-quiz">Comprueba</a></li>
+        <li><a href="#chi2-ej" data-sec="chi2-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="chi2-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Lanzas un dado 120 veces. Si es justo, esperas ver cada cara unas 20 veces, pero nunca exactamente 20. Obtienes:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Cara</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>Total</td></tr></thead>
+        <tbody>
+          <tr><th>Observado \(O\)</th><td>25</td><td>17</td><td>15</td><td>23</td><td>24</td><td>16</td><td>120</td></tr>
+          <tr><th>Esperado \(E\)</th><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>20</td><td>120</td></tr>
+        </tbody>
+      </table></div>
+      <p>¿Son desvíos normales del azar, o el dado favorece al 1 y al 5? Necesitas un número que resuma todas las diferencias \(O - E\) a la vez y una distribución para saber si ese número es grande. Eso es la prueba chi-cuadrado (\(\chi^2\), se lee “ji cuadrado”), que sirve para dos preguntas:</p>
+      <ul>
+        <li><b>Bondad de ajuste</b>: ¿una variable categórica sigue una distribución teórica dada? (el dado justo, las proporciones de Mendel, la cuota de mercado del año pasado).</li>
+        <li><b>Independencia</b>: en una tabla de contingencia, ¿dos variables categóricas están relacionadas? (zona y medio de transporte, tratamiento y mejoría).</li>
+      </ul>
+
+      <h2 id="chi2-estad"><span class="sec">§ 2</span>El estadístico χ² de Pearson</h2>
+      <p>Para cada celda comparas el conteo observado con el esperado bajo \(H_0\), elevas al cuadrado para que los signos no se cancelen, y divides entre lo esperado para poner las celdas en la misma escala (un desvío de 5 es mucho si esperabas 10, poco si esperabas 1 000):</p>
+      <div class="eq">\[ \chi^2 = \sum_{\text{celdas}} \frac{(O - E)^2}{E} \]
+        <div class="note">Con el dado: \(\chi^2 = \tfrac{25 + 9 + 25 + 9 + 16 + 16}{20} = \tfrac{100}{20} = 5{,}0\). Cada término es la <b>contribución</b> de su celda al estadístico.</div>
+      </div>
+      <p>Si \(H_0\) es cierta y los conteos esperados no son demasiado pequeños, el estadístico sigue aproximadamente una <b>distribución chi-cuadrado</b> con \(\nu\) grados de libertad. Esa distribución es la de una suma de \(\nu\) normales estándar al cuadrado: \(\chi^2_\nu = Z_1^2 + \cdots + Z_\nu^2\). Tiene media \(\nu\), varianza \(2\nu\), solo toma valores positivos y es asimétrica a la derecha, cada vez menos cuando \(\nu\) crece.</p>
+      <div class="callout"><b>La prueba es de cola derecha.</b> Un \(\chi^2\) grande indica que los observados se alejan de los esperados. Un \(\chi^2\) cercano a 0 significa ajuste casi perfecto. Como regla rápida, compara el estadístico con sus grados de libertad: si \(\chi^2 \approx \nu\), no hay nada raro.</div>
+
+      <h2 id="chi2-ajuste"><span class="sec">§ 3</span>Bondad de ajuste</h2>
+      <p>Tienes una variable con \(k\) categorías, \(n\) observaciones y unas proporciones teóricas \(p_1, \dots, p_k\) que suman 1. Las hipótesis y los esperados son:</p>
+      <div class="eq">\[ H_0: P(\text{categoría } i) = p_i \text{ para todo } i, \qquad E_i = n\,p_i, \qquad \nu = k - 1 - m \]
+        <div class="note">\(m\) es el número de parámetros que estimaste con los mismos datos para calcular las \(p_i\). Si las proporciones vienen dadas (dado justo, \(p_i = 1/6\)), \(m = 0\). Si, por ejemplo, ajustas una Poisson estimando \(\lambda\) con la media muestral, \(m = 1\).</div>
+      </div>
+      <p>Para el dado, \(\nu = 6 - 1 = 5\). El valor crítico al 5 % es \(\chi^2_{0{,}05;\,5} = 11{,}07\) y obtuvimos 5,0, con valor p \(= P(\chi^2_5 \ge 5{,}0) = 0{,}42\). No hay evidencia de que el dado esté cargado: desvíos como estos aparecen en el 42 % de las series de 120 lanzamientos de un dado justo.</p>
+      <p>¿Por qué se resta 1? Porque los conteos están atados: si conoces cinco de ellos y el total, el sexto queda determinado. Solo \(k-1\) celdas pueden variar libremente.</p>
+
+      <h2 id="chi2-lab"><span class="sec">§ 4</span>Laboratorio: ¿está cargado el dado?</h2>
+      <p>Carga el dado hacia el 6 y lánzalo. Las barras son los conteos observados, la línea es el conteo esperado si el dado fuera justo, y el número sobre cada barra es su contribución \((O-E)^2/E\). A la derecha, la distribución \(\chi^2_5\) con el estadístico observado.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · bondad de ajuste</span><span class="num" id="chi2-d-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="chi2-d-bias">PROBABILIDAD DEL 6 = <b id="chi2-d-bias-v" class="num">16,7 %</b></label><input id="chi2-d-bias" type="range" min="0.1667" max="0.4" step="0.0033" value="0.1667"></div>
+            <div class="ctrl"><label for="chi2-d-n">LANZAMIENTOS · n = <b id="chi2-d-n-v" class="num">120</b></label><input id="chi2-d-n" type="range" min="30" max="1200" step="30" value="120"></div>
+            <button class="btn btn-ghost btn-sm" id="chi2-d-roll" type="button">Lanzar de nuevo</button>
+          </div>
+          <div class="twin">
+            <div>
+              <div class="plot-label"><span>Conteos por cara</span><span>— esperado si es justo</span></div>
+              <canvas class="plot" id="chi2-c-dado" height="240" aria-label="Barras con los conteos observados de cada cara y la línea del conteo esperado"></canvas>
+            </div>
+            <div>
+              <div class="plot-label"><span>Distribución χ² con 5 gl</span><span id="chi2-d-lbl">–</span></div>
+              <canvas class="plot" id="chi2-c-dist" height="240" aria-label="Distribución chi-cuadrado con cinco grados de libertad, el estadístico observado y la cola del valor p"></canvas>
+            </div>
+          </div>
+          <div class="readout">
+            <div><span>estadístico χ²</span><b id="chi2-d-x2">–</b></div>
+            <div><span>valor p</span><b id="chi2-d-p">–</b></div>
+            <div><span>esperado por cara</span><b id="chi2-d-e">–</b></div>
+            <div><span>residuo del 6</span><b id="chi2-d-r6">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con el 6 al 22 % y 120 lanzamientos, la trampa casi nunca se detecta. Sube a 1 200 lanzamientos con la misma carga y χ² se dispara: el estadístico crece proporcionalmente a n para una misma desviación en proporciones.</figcaption>
+      </figure>
+
+      <h2 id="chi2-indep"><span class="sec">§ 5</span>Independencia en tablas de contingencia</h2>
+      <p>Una encuesta pregunta a 200 personas (100 del centro y 100 de la periferia de una ciudad) cómo van al trabajo:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Zona</th><th>Auto</th><th>Transporte público</th><th>Bicicleta</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>Centro</td><td>30 <small>(40)</small></td><td>45 <small>(42,5)</small></td><td>25 <small>(17,5)</small></td><td>100</td></tr>
+          <tr><td>Periferia</td><td>50 <small>(40)</small></td><td>40 <small>(42,5)</small></td><td>10 <small>(17,5)</small></td><td>100</td></tr>
+          <tr><td>Total</td><td>80</td><td>85</td><td>35</td><td>200</td></tr>
+        </tbody>
+      </table></div>
+      <p>La hipótesis nula es que zona y medio de transporte son <b>independientes</b>: la distribución de medios es la misma en ambas zonas. Si eso fuera cierto, el 40 % de cada zona usaría auto (80 de 200), el 42,5 % transporte público y el 17,5 % bicicleta. Esos son los esperados entre paréntesis, que salen de los totales marginales:</p>
+      <div class="eq">\[ E_{ij} = \frac{(\text{total fila } i)\times(\text{total columna } j)}{n}, \qquad \chi^2 = \sum_{i=1}^{r}\sum_{j=1}^{c}\frac{(O_{ij}-E_{ij})^2}{E_{ij}}, \qquad \nu = (r-1)(c-1) \]
+        <div class="note">Por ejemplo, \(E_{\text{centro, bici}} = 100 \cdot 35/200 = 17{,}5\). Con 2 filas y 3 columnas, \(\nu = 1 \cdot 2 = 2\): una vez fijados los totales, basta con conocer dos celdas para reconstruir la tabla.</div>
+      </div>
+      <p>Las contribuciones son 2,50 y 2,50 (auto), 0,15 y 0,15 (público), 3,21 y 3,21 (bici), así que \(\chi^2 = 11{,}72\) con 2 gl. El crítico al 5 % es 5,99 y el valor p es 0,003. Se rechaza la independencia: el medio de transporte se asocia con la zona.</p>
+      <div class="callout"><b>Independencia u homogeneidad:</b> la cuenta es idéntica, pero la pregunta depende del muestreo. Si tomas una sola muestra de 200 personas y anotas ambas variables, pruebas <i>independencia</i>. Si fijas de antemano 100 personas por zona (como aquí), pruebas <i>homogeneidad</i>: si la distribución de medios es la misma en las dos poblaciones. Las conclusiones se redactan distinto, pero el cálculo y el valor p son los mismos.</div>
+
+      <h2 id="chi2-lab2"><span class="sec">§ 6</span>Laboratorio: la tabla de contingencia</h2>
+      <p>El gráfico de mosaico dibuja cada zona como una columna y cada medio como un rectángulo cuya altura es su proporción dentro de la zona. Si hubiera independencia, las divisiones quedarían a la misma altura en ambas columnas. El color indica el residuo estandarizado: rojo cuando hay más casos que los esperados, azul cuando hay menos, más intenso cuanto mayor el desvío.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · prueba de independencia</span><span class="num" id="chi2-t-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="chi2-t-a">FUERZA DE LA ASOCIACIÓN REAL = <b id="chi2-t-a-v" class="num">0,50</b></label><input id="chi2-t-a" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+            <div class="ctrl"><label for="chi2-t-n">PERSONAS POR ZONA = <b id="chi2-t-n-v" class="num">100</b></label><input id="chi2-t-n" type="range" min="10" max="1000" step="10" value="100"></div>
+            <button class="btn btn-ghost btn-sm" id="chi2-t-again" type="button">Nueva encuesta</button>
+          </div>
+          <div class="plot-label"><span>Medio de transporte según zona</span><span>conteo · residuo (O − E)/√E</span></div>
+          <canvas class="plot" id="chi2-c-mosaic" height="280" aria-label="Gráfico de mosaico de la tabla zona por medio de transporte, coloreado por los residuos estandarizados"></canvas>
+          <div class="legend"><span><i style="background:var(--hot)"></i>más casos que los esperados</span><span><i style="background:var(--accent)"></i>menos casos que los esperados</span><span><i style="background:var(--ink)"></i>altura esperada bajo independencia</span></div>
+          <div class="readout">
+            <div><span>estadístico χ²</span><b id="chi2-t-x2">–</b></div>
+            <div><span>grados de libertad</span><b id="chi2-t-df">2</b></div>
+            <div><span>valor p</span><b id="chi2-t-p">–</b></div>
+            <div><span>V de Cramér</span><b id="chi2-t-v">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con fuerza 0,1 y 100 personas por zona la asociación casi nunca es significativa; con 1 000 por zona casi siempre lo es, aunque la V de Cramér siga siendo pequeña. Significativo no es lo mismo que fuerte.</figcaption>
+      </figure>
+
+      <h2 id="chi2-fuerza"><span class="sec">§ 7</span>Residuos y V de Cramér</h2>
+      <p>El valor p dice si hay asociación, no dónde está ni cuán fuerte es. Para lo primero se miran los <b>residuos</b> de cada celda:</p>
+      <div class="eq">\[ r_{ij} = \frac{O_{ij} - E_{ij}}{\sqrt{E_{ij}}}, \qquad \tilde r_{ij} = \frac{O_{ij} - E_{ij}}{\sqrt{E_{ij}\,(1 - f_i/n)(1 - c_j/n)}} \]
+        <div class="note">\(r_{ij}\) es el residuo de Pearson (su cuadrado es la contribución de la celda). \(\tilde r_{ij}\) es el residuo <b>ajustado</b>, que bajo \(H_0\) se comporta aproximadamente como una normal estándar: valores por encima de 2 en valor absoluto señalan celdas que se apartan de la independencia. \(f_i\) y \(c_j\) son los totales de fila y columna.</div>
+      </div>
+      <p>En la encuesta, los residuos ajustados son −2,89 (centro, auto), +0,72 (centro, público) y +2,79 (centro, bici), con los signos opuestos en la periferia. La lectura es concreta: en el centro hay menos autos y más bicicletas de los que habría sin asociación; el transporte público se usa parecido en las dos zonas.</p>
+      <p>Para la fuerza de la asociación, la <b>V de Cramér</b> lleva el \(\chi^2\) a una escala de 0 a 1 que no depende de \(n\):</p>
+      <div class="eq">\[ V = \sqrt{\frac{\chi^2}{n\,(\min(r, c) - 1)}} \]
+        <div class="note">En la encuesta: \(V = \sqrt{11{,}72/(200 \cdot 1)} = 0{,}24\). En tablas 2×2, \(V\) coincide con el coeficiente \(\phi\) (en valor absoluto). Orientación para \(\min(r,c) - 1 = 1\): 0,1 débil, 0,3 moderada, 0,5 fuerte.</div>
+      </div>
+      <div class="callout"><b>Por qué hace falta V:</b> si multiplicas todos los conteos por 10 (las mismas proporciones con 2 000 personas), \(\chi^2\) también se multiplica por 10 y el valor p se vuelve minúsculo, pero \(V\) no cambia. El estadístico mide evidencia; \(V\) mide magnitud.</div>
+
+      <h2 id="chi2-supuestos"><span class="sec">§ 8</span>Supuestos y alternativas</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Supuesto</th><th>Qué pide</th><th>Si falla</th></tr></thead>
+        <tbody>
+          <tr><td>Conteos, no porcentajes</td><td>Las celdas son frecuencias absolutas de casos</td><td>Convertir porcentajes en conteos; con porcentajes el χ² sale sin sentido</td></tr>
+          <tr><td>Independencia de las observaciones</td><td>Cada caso aparece en una sola celda, una sola vez</td><td>Para datos pareados en 2×2 (antes y después en las mismas personas), prueba de McNemar</td></tr>
+          <tr><td>Esperados suficientes</td><td>Regla de Cochran: todos los \(E \ge 1\) y al menos el 80 % de las celdas con \(E \ge 5\)</td><td>Prueba exacta de Fisher (sobre todo en 2×2), agrupar categorías con sentido, valor p por simulación de Monte Carlo</td></tr>
+        </tbody>
+      </table></div>
+      <p>En tablas 2×2, R y SciPy aplican por defecto la <b>corrección de continuidad de Yates</b>, que resta 0,5 a cada \(|O - E|\) antes de elevar al cuadrado. Mejora la aproximación con muestras pequeñas, pero es conservadora: muchas veces es preferible usar directamente la prueba exacta de Fisher, que no depende de ninguna aproximación.</p>
+      <p>Dos errores frecuentes: usar la prueba chi-cuadrado con variables ordinales sin aprovechar el orden (existe la prueba de tendencia lineal de Mantel-Haenszel, más potente), y concluir causalidad desde una tabla observacional. Que vivir en el centro se asocie con usar bicicleta puede deberse a distancias, edad o ingreso.</p>
+
+      <h2 id="chi2-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Las dos pruebas de la clase, con esperados, residuos y V de Cramér.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+
+<span class="c"># 1) bondad de ajuste: ¿el dado es justo?</span>
+caras = np.<span class="f">array</span>([<span class="n">25</span>, <span class="n">17</span>, <span class="n">15</span>, <span class="n">23</span>, <span class="n">24</span>, <span class="n">16</span>])
+<span class="f">print</span>(stats.<span class="f">chisquare</span>(caras))        <span class="c"># estadístico 5.0, p ≈ 0.416 (esperados iguales por defecto)</span>
+<span class="c"># con proporciones teóricas cualesquiera: f_exp = n * p</span>
+p = np.<span class="f">full</span>(<span class="n">6</span>, <span class="n">1</span> / <span class="n">6</span>)
+<span class="f">print</span>(stats.<span class="f">chisquare</span>(caras, f_exp=caras.<span class="f">sum</span>() * p).pvalue)
+
+<span class="c"># 2) independencia: zona por medio de transporte</span>
+tabla = np.<span class="f">array</span>([[<span class="n">30</span>, <span class="n">45</span>, <span class="n">25</span>],     <span class="c"># centro: auto, público, bici</span>
+                  [<span class="n">50</span>, <span class="n">40</span>, <span class="n">10</span>]])    <span class="c"># periferia</span>
+res = stats.<span class="f">chi2_contingency</span>(tabla)
+<span class="f">print</span>(res.statistic, res.dof, res.pvalue)   <span class="c"># ≈ 11.72  2  0.0028</span>
+<span class="f">print</span>(res.expected_freq)                    <span class="c"># [[40, 42.5, 17.5], [40, 42.5, 17.5]]</span>
+
+<span class="c"># residuos ajustados y V de Cramér</span>
+<span class="f">print</span>(sm.stats.<span class="f">Table</span>(tabla).standardized_resids)   <span class="c"># centro: ≈ -2.89, 0.72, 2.79</span>
+<span class="f">print</span>(stats.contingency.<span class="f">association</span>(tabla, method=<span class="s">"cramer"</span>))   <span class="c"># ≈ 0.242</span>
+
+<span class="c"># 3) tabla 2×2 con esperados pequeños: Fisher</span>
+t2 = np.<span class="f">array</span>([[<span class="n">3</span>, <span class="n">7</span>], [<span class="n">9</span>, <span class="n">2</span>]])
+<span class="f">print</span>(stats.<span class="f">fisher_exact</span>(t2).pvalue)      <span class="c"># ≈ 0.030</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># 1) bondad de ajuste: ¿el dado es justo?</span>
+caras &lt;- <span class="f">c</span>(<span class="n">25</span>, <span class="n">17</span>, <span class="n">15</span>, <span class="n">23</span>, <span class="n">24</span>, <span class="n">16</span>)
+<span class="f">chisq.test</span>(caras, p = <span class="f">rep</span>(<span class="n">1</span> / <span class="n">6</span>, <span class="n">6</span>))      <span class="c"># X-squared = 5, df = 5, p ≈ 0.416</span>
+
+<span class="c"># 2) independencia: zona por medio de transporte</span>
+tabla &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">30</span>, <span class="n">45</span>, <span class="n">25</span>,
+                  <span class="n">50</span>, <span class="n">40</span>, <span class="n">10</span>), nrow = <span class="n">2</span>, byrow = <span class="k">TRUE</span>,
+                dimnames = <span class="f">list</span>(zona = <span class="f">c</span>(<span class="s">"centro"</span>, <span class="s">"periferia"</span>),
+                                medio = <span class="f">c</span>(<span class="s">"auto"</span>, <span class="s">"publico"</span>, <span class="s">"bici"</span>)))
+prueba &lt;- <span class="f">chisq.test</span>(tabla)
+prueba                        <span class="c"># X-squared ≈ 11.72, df = 2, p ≈ 0.0028</span>
+prueba$expected               <span class="c"># esperados</span>
+prueba$stdres                 <span class="c"># residuos ajustados: centro ≈ -2.89, 0.72, 2.79</span>
+
+<span class="c"># V de Cramér</span>
+<span class="f">sqrt</span>(prueba$statistic / (<span class="f">sum</span>(tabla) * (<span class="f">min</span>(<span class="f">dim</span>(tabla)) - <span class="n">1</span>)))   <span class="c"># ≈ 0.242</span>
+
+<span class="c"># gráfico de mosaico coloreado por residuos</span>
+<span class="f">mosaicplot</span>(tabla, shade = <span class="k">TRUE</span>, main = <span class="s">"Zona y medio de transporte"</span>)
+
+<span class="c"># 3) tabla 2×2 con esperados pequeños: Fisher</span>
+<span class="f">fisher.test</span>(<span class="f">matrix</span>(<span class="f">c</span>(<span class="n">3</span>, <span class="n">7</span>, <span class="n">9</span>, <span class="n">2</span>), nrow = <span class="n">2</span>, byrow = <span class="k">TRUE</span>))$p.value   <span class="c"># ≈ 0.030</span></code></pre>
+      </div>
+
+      <h2 id="chi2-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="ν = (r − 1)(c − 1) = (3 − 1)(4 − 1) = 6. Fijados los totales de filas y columnas, solo 6 celdas pueden variar libremente." data-wrong="En una prueba de independencia los grados de libertad no son el número de celdas menos 1. Usa (filas − 1) × (columnas − 1).">
+        <h3>Una tabla de contingencia tiene 3 filas y 4 columnas. ¿Cuántos grados de libertad tiene la prueba de independencia?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>11</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>12</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>6</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>7</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con las mismas proporciones, χ² crece en proporción a n, así que se multiplica por 10. La V de Cramér divide entre n y queda igual: la fuerza de la asociación no cambió." data-wrong="Mira la fórmula: cada (O − E)² crece con el cuadrado del factor y cada E con el factor. ¿Qué le pasa entonces a χ²? ¿Y a V, que divide entre n?">
+        <h3>Si multiplicas por 10 todos los conteos de una tabla, ¿qué pasa con χ² y con la V de Cramér?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>χ² se multiplica por 10 y V no cambia</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Ambos se multiplican por 10</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Ninguno cambia, porque las proporciones son las mismas</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>χ² no cambia y V se multiplica por √10</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con un esperado de 2,1 y otro de 3,4 en una 2×2, la aproximación chi-cuadrado no es confiable. La prueba exacta de Fisher calcula el valor p sin aproximaciones." data-wrong="Revisa la regla de los conteos esperados. En una tabla 2×2, ¿cuántas celdas pueden tener esperado menor que 5 sin romper la aproximación?">
+        <h3>En una tabla 2×2 dos celdas tienen conteos esperados de 2,1 y 3,4. ¿Qué haces?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Nada: la regla solo se aplica a los conteos observados</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Convertir la tabla a porcentajes para aumentar los valores</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Usar una prueba t sobre los conteos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Usar la prueba exacta de Fisher</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="chi2-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>En un experimento con guisantes, Mendel predijo las proporciones 9:3:3:1 para cuatro tipos de semilla. En 556 semillas observó 315, 108, 101 y 32. ¿Los datos son compatibles con su teoría?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Esperados: \(556 \cdot 9/16 = 312{,}75\), \(556 \cdot 3/16 = 104{,}25\) (dos veces) y \(556/16 = 34{,}75\).</p>
+            <p>\(\chi^2 = \tfrac{2{,}25^2}{312{,}75} + \tfrac{3{,}75^2}{104{,}25} + \tfrac{3{,}25^2}{104{,}25} + \tfrac{2{,}75^2}{34{,}75} = 0{,}016 + 0{,}135 + 0{,}101 + 0{,}218 = 0{,}47\) con 3 gl, p ≈ 0,93. No se rechaza \(H_0\): el ajuste es excelente.</p>
+            <p>Curiosidad: Ronald Fisher notó que muchos resultados de Mendel ajustaban <i>demasiado</i> bien. Un χ² muy cerca de 0 en muchos experimentos también es improbable, y sugiere que alguien redondeó o seleccionó datos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>En una tabla de 3 filas por 4 columnas con \(n = 200\), la fila 2 suma 60 y la columna 3 suma 50. Calcula el conteo esperado de esa celda bajo independencia y los grados de libertad de la prueba. Si la celda tiene un conteo observado de 24, ¿cuánto aporta al χ²?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(E = 60 \cdot 50/200 = 15\). Grados de libertad: \((3-1)(4-1) = 6\).</p>
+            <p>Contribución: \((24 - 15)^2/15 = 81/15 = 5{,}4\). Su residuo de Pearson es \(9/\sqrt{15} = 2{,}32\): esa celda tiene bastantes más casos de los esperados y probablemente es una de las que explica la asociación.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Un ensayo pequeño compara dos tratamientos: con A mejoran 3 de 10 pacientes y con B mejoran 9 de 11. Calcula los esperados, aplica la prueba chi-cuadrado con y sin la corrección de Yates, y la prueba exacta de Fisher. ¿Cuál reportas?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Tabla: A = (3 mejoran, 7 no), B = (9, 2). Total 21, con 12 mejorías. Esperados: A = (5,71; 4,29), B = (6,29; 4,71). Dos de las cuatro celdas tienen \(E &lt; 5\): la aproximación es dudosa.</p>
+            <p>Sin corrección: \(\chi^2 = 5{,}74\), p ≈ 0,017. Con Yates: \(\chi^2 = 3{,}82\), p ≈ 0,051. Fisher: p ≈ 0,030. Reportas <b>Fisher</b>, que es exacta. Fíjate cómo la decisión al 5 % cambia según la versión: con tablas tan pequeñas el valor p es frágil y conviene informar también la diferencia de proporciones (30 % frente a 82 %) con su intervalo.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+t = np.<span class="f">array</span>([[<span class="n">3</span>, <span class="n">7</span>], [<span class="n">9</span>, <span class="n">2</span>]])
+<span class="f">print</span>(stats.<span class="f">chi2_contingency</span>(t, correction=<span class="k">False</span>).pvalue)   <span class="c"># ≈ 0.017</span>
+<span class="f">print</span>(stats.<span class="f">chi2_contingency</span>(t).pvalue)                     <span class="c"># Yates ≈ 0.051</span>
+<span class="f">print</span>(stats.<span class="f">fisher_exact</span>(t).pvalue)                         <span class="c"># ≈ 0.030</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>t &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">3</span>, <span class="n">7</span>, <span class="n">9</span>, <span class="n">2</span>), nrow = <span class="n">2</span>, byrow = <span class="k">TRUE</span>)
+<span class="f">chisq.test</span>(t, correct = <span class="k">FALSE</span>)$p.value   <span class="c"># ≈ 0.017 (avisa que la aproximación puede ser incorrecta)</span>
+<span class="f">chisq.test</span>(t)$p.value                    <span class="c"># Yates ≈ 0.051</span>
+<span class="f">fisher.test</span>(t)$p.value                   <span class="c"># ≈ 0.030</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <p>Toma la tabla de zona por medio de transporte y multiplica todos los conteos por 10. Recalcula χ², el valor p y la V de Cramér. Después demuestra que, en general, si multiplicas una tabla por una constante \(c\), \(\chi^2\) se multiplica por \(c\) y \(V\) no cambia. ¿Qué te dice esto sobre cómo leer una prueba chi-cuadrado con datos masivos?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con 2 000 personas: \(\chi^2 = 117{,}2\), p ≈ \(3{,}5 \times 10^{-26}\) y \(V = \sqrt{117{,}2/2\,000} = 0{,}242\), idéntica a la original.</p>
+            <p>Demostración: si \(O'_{ij} = cO_{ij}\), los totales también se multiplican por \(c\) y \(E'_{ij} = (cf_i)(cc_j)/(cn) = cE_{ij}\). Entonces \((O' - E')^2/E' = c^2(O-E)^2/(cE) = c\,(O-E)^2/E\) y \(\chi^{2\prime} = c\chi^2\). Como \(n' = cn\), \(V' = \sqrt{c\chi^2/(cn(\min - 1))} = V\).</p>
+            <p>Moraleja: con millones de registros cualquier asociación mínima da p prácticamente 0. En datos masivos el valor p casi no informa; lo que importa es la magnitud (\(V\), diferencias de proporciones) y si tiene relevancia práctica.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+tabla = np.<span class="f">array</span>([[<span class="n">30</span>, <span class="n">45</span>, <span class="n">25</span>], [<span class="n">50</span>, <span class="n">40</span>, <span class="n">10</span>]])
+<span class="k">for</span> c <span class="k">in</span> (<span class="n">1</span>, <span class="n">10</span>):
+    r = stats.<span class="f">chi2_contingency</span>(tabla * c)
+    v = stats.contingency.<span class="f">association</span>(tabla * c, method=<span class="s">"cramer"</span>)
+    <span class="f">print</span>(c, r.statistic, r.pvalue, v)   <span class="c"># 1: 11.72 0.0028 0.242 · 10: 117.2 3.5e-26 0.242</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>tabla &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">30</span>, <span class="n">45</span>, <span class="n">25</span>, <span class="n">50</span>, <span class="n">40</span>, <span class="n">10</span>), nrow = <span class="n">2</span>, byrow = <span class="k">TRUE</span>)
+<span class="k">for</span> (c <span class="k">in</span> <span class="f">c</span>(<span class="n">1</span>, <span class="n">10</span>)) {
+  x2 &lt;- <span class="f">chisq.test</span>(tabla * c)$statistic
+  <span class="f">print</span>(<span class="f">c</span>(c = c, x2 = x2, V = <span class="f">sqrt</span>(x2 / <span class="f">sum</span>(tabla * c))))   <span class="c"># V ≈ 0.242 en ambos casos</span>
+}</code></pre>
+            </div>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>
