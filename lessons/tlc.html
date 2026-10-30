@@ -5,9 +5,9 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>El Teorema del Límite Central</h1>
-      <p>Toma muestras de una población con cualquier forma, calcula su media y repite. Las medias forman una campana cada vez más estrecha. Aquí vas a ver por qué y a medir cuánto se estrecha.</p>
+      <p>Toma muestras de una población con cualquier forma, calcula su media y repite. Las medias forman una campana cada vez más estrecha. Aquí vas a ver por qué: la ley de los grandes números, el enunciado preciso del teorema y su demostración, qué tan rápido converge, cuándo falla y cómo se usa para encuestas, seguros, control de calidad y experimentos.</p>
       <div class="lmeta">
-        <span>50 min</span><span>Nivel intermedio</span><span>Requiere: distribución normal</span><span>Python · NumPy</span>
+        <span>95 min</span><span>Nivel intermedio</span><span>Requiere: distribución normal</span><span>R · Python</span>
       </div>
     </div>
   </section>
@@ -16,32 +16,137 @@
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#tlc-idea" data-sec="tlc-idea">La idea</a></li>
-        <li><a href="#tlc-lab" data-sec="tlc-lab">Laboratorio</a></li>
-        <li><a href="#tlc-formula" data-sec="tlc-formula">La fórmula</a></li>
-        <li><a href="#tlc-ic" data-sec="tlc-ic">Intervalos de confianza</a></li>
+        <li><a href="#tlc-intro" data-sec="tlc-intro">Introducción</a></li>
+        <li><a href="#tlc-def" data-sec="tlc-def">Definición</a></li>
+        <li><a href="#tlc-lgn" data-sec="tlc-lgn">Ley de los grandes números</a></li>
+        <li><a href="#tlc-teorema" data-sec="tlc-teorema">El teorema y su demostración</a></li>
+        <li><a href="#tlc-velocidad" data-sec="tlc-velocidad">Velocidad de convergencia y límites</a></li>
+        <li><a href="#tlc-uso" data-sec="tlc-uso">Del teorema a la inferencia</a></li>
+        <li><a href="#tlc-prop" data-sec="tlc-prop">Propiedades</a></li>
+        <li><a href="#tlc-lab" data-sec="tlc-lab">Ejercicios de simulación</a></li>
+        <li><a href="#tlc-apps" data-sec="tlc-apps">Aplicaciones reales</a></li>
         <li><a href="#tlc-code" data-sec="tlc-code">En R y Python</a></li>
-        <li><a href="#tlc-quiz" data-sec="tlc-quiz">Comprueba</a></li>
-        <li><a href="#tlc-ej" data-sec="tlc-ej">Ejercicios</a></li>
+        <li><a href="#tlc-quiz" data-sec="tlc-quiz">Quiz</a></li>
+        <li><a href="#tlc-ej" data-sec="tlc-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
 
     <article class="prose">
-      <h2 id="tlc-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="tlc-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Imagina que mides el tiempo de espera de 30 clientes en una fila y calculas el promedio. Mañana mides a otros 30 y obtienes otro promedio, un poco distinto. Si repitieras el experimento mil veces, ¿qué forma tendría la lista de promedios?</p>
-      <p>La sorpresa es que casi no importa cómo se distribuyen los tiempos individuales. Pueden ser muy asimétricos, como suelen ser los tiempos de espera, y aun así los promedios se agrupan en una campana alrededor de la media real. Esa campana se llama <b>distribución muestral de la media</b>.</p>
-      <div class="callout"><b>Lo que vas a comprobar:</b> la forma de la campana no depende de la población, su centro es la media de la población y su ancho se reduce como \(1/\sqrt{n}\).</div>
+      <p>La sorpresa es que casi no importa cómo se distribuyen los tiempos individuales. Pueden ser muy asimétricos, como suelen ser los tiempos de espera, y aun así los promedios se agrupan en una campana alrededor de la media real. Esa campana se llama <b>distribución muestral de la media</b>, y el resultado que la explica es probablemente el más importante de toda la estadística: sin él no habría márgenes de error en las encuestas, ni gráficos de control, ni pruebas para comparar dos versiones de una página web.</p>
+      <p><b>Un poco de historia.</b> Abraham de Moivre probó en 1733 que la binomial con \(p = 1/2\) se aproxima por la curva normal, y Laplace extendió el resultado en 1812 a cualquier \(p\) y a sumas de errores de observación. Durante el siglo XIX se usó con demostraciones incompletas, hasta que la escuela rusa le dio rigor: Chebyshev y Markov con el método de momentos, y Aleksandr Lyapunov en 1901 con condiciones generales y funciones características. Jarl Lindeberg (1922) y Paul Lévy dieron la forma moderna, y William Feller mostró cuándo la condición de Lindeberg es también necesaria. El nombre “teorema central del límite” lo puso George Pólya en 1920, por su papel central en la teoría de probabilidades.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a definir la distribución muestral de la media, el error estándar y la convergencia en probabilidad y en distribución;</li>
+          <li>a demostrar la ley débil de los grandes números con la desigualdad de Chebyshev;</li>
+          <li>a enunciar el Teorema del Límite Central y a seguir su demostración con funciones generadoras;</li>
+          <li>a juzgar qué tan grande debe ser \(n\) según la asimetría de la población, y cuándo el teorema no aplica;</li>
+          <li>a usar el teorema para construir intervalos, calcular tamaños de muestra y aproximar sumas;</li>
+          <li>a verificar todo por simulación en R y Python con un caso de seguros.</li>
+        </ul>
+      </div>
 
-      <h2 id="tlc-lab"><span class="sec">§ 2</span>Laboratorio</h2>
-      <p>Elige una población y un tamaño de muestra. El simulador toma 2 000 muestras, calcula la media de cada una y dibuja el histograma de esas medias. La curva es la normal que predice el teorema.</p>
+      <h2 id="tlc-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Sean \(X_1, X_2, \dots, X_n\) variables aleatorias <b>independientes e idénticamente distribuidas</b> (i.i.d.), con media \(\mu = E[X_i]\) y varianza \(\sigma^2 = \operatorname{Var}(X_i) &lt; \infty\). Es el modelo de una muestra aleatoria simple de una población grande (ver <a href="#mas">muestreo aleatorio simple</a>).</p>
+      <div class="callout"><b>Definición.</b> La <b>media muestral</b> es \(\bar X_n = \frac1n\sum_{i=1}^n X_i\). Es una variable aleatoria: cambia de muestra en muestra. Su distribución es la <b>distribución muestral de la media</b>, y su desviación típica es el <b>error estándar</b>
+        \[ E[\bar X_n] = \mu, \qquad \operatorname{Var}(\bar X_n) = \frac{\sigma^2}{n}, \qquad \operatorname{EE}(\bar X_n) = \frac{\sigma}{\sqrt n}. \]</div>
+      <p>Las dos primeras igualdades salen de la linealidad: \(E[\bar X_n] = \frac1n\sum E[X_i] = \mu\), y por independencia \(\operatorname{Var}(\bar X_n) = \frac{1}{n^2}\sum\operatorname{Var}(X_i) = \frac{n\sigma^2}{n^2}\). Valen para cualquier \(n\) y cualquier distribución con varianza finita. El TLC agrega lo que falta: la <b>forma</b>.</p>
+      <p>Necesitamos dos nociones de convergencia de variables aleatorias:</p>
+      <ul>
+        <li><b>En probabilidad</b>: \(Y_n \xrightarrow{p} c\) si para todo \(\varepsilon &gt; 0\), \(P(|Y_n - c| &gt; \varepsilon) \to 0\). Dice que \(Y_n\) se concentra en \(c\).</li>
+        <li><b>En distribución</b>: \(Y_n \xrightarrow{d} Y\) si \(P(Y_n \le y) \to P(Y \le y)\) en todo punto \(y\) donde la acumulada de \(Y\) es continua. Dice que la <i>forma</i> de la distribución de \(Y_n\) se acerca a la de \(Y\).</li>
+      </ul>
+      <p><b>Ejemplo numérico.</b> Lanzas un dado: \(\mu = 3{,}5\) y \(\sigma^2 = E[X^2] - \mu^2 = \frac{91}{6} - 12{,}25 = \frac{35}{12} \approx 2{,}917\), así que \(\sigma \approx 1{,}708\). El promedio de \(n = 30\) lanzamientos tiene media 3,5 y error estándar \(1{,}708/\sqrt{30} \approx 0{,}312\). Con \(n = 2\), la distribución de \(\bar X_2\) ya no es plana sino triangular (11 valores de 1 a 6, con máximo en 3,5), una primera señal de la campana.</p>
+
+      <h2 id="tlc-lgn"><span class="sec">§ 3</span>Ley de los grandes números</h2>
+      <p>Antes de la forma, el centro: ¿se acerca el promedio a \(\mu\)? La herramienta es una desigualdad que vale para cualquier distribución.</p>
+      <p><b>Lema (desigualdad de Chebyshev).</b> Si \(Y\) tiene media \(m\) y varianza \(v\), para todo \(\varepsilon &gt; 0\), \(P(|Y - m| \ge \varepsilon) \le v/\varepsilon^2\). Prueba: aplica Markov, \(P(W \ge a) \le E[W]/a\) para \(W \ge 0\), a \(W = (Y - m)^2\) con \(a = \varepsilon^2\).</p>
+      <p><b>Teorema (ley débil de los grandes números).</b> Si las \(X_i\) son i.i.d. con varianza finita, \(\bar X_n \xrightarrow{p} \mu\). Demostración: por Chebyshev con \(v = \sigma^2/n\),</p>
+      <div class="eq">\[ P\big(|\bar X_n - \mu| \ge \varepsilon\big) \le \frac{\sigma^2}{n\,\varepsilon^2} \;\xrightarrow[n\to\infty]{}\; 0 \]
+        <div class="note">La ley fuerte (Kolmogorov) dice más: \(P(\bar X_n \to \mu) = 1\), y solo pide que exista \(E|X_i|\). Es la justificación de la simulación de Monte Carlo y de la interpretación frecuentista de la probabilidad como límite de frecuencias relativas.</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> ¿Cuántos lanzamientos de dado garantizan, sin suponer nada más, que el promedio esté a menos de 0,1 de 3,5 con probabilidad al menos 0,95? Chebyshev pide \(2{,}917/(n \cdot 0{,}01) \le 0{,}05\), es decir \(n \ge 5\,834\). El TLC (§ 4) dirá que bastan unos 1 121. Chebyshev es una cota segura pero conservadora.</p>
+      <div class="callout"><b>La “ley de los promedios” mal entendida:</b> la ley de los grandes números no dice que tras una racha de caras “tocan” sellos. Las diferencias absolutas entre caras y sellos pueden crecer; lo que se achica es la <i>proporción</i> de la diferencia. Y si la población no tiene media, como la distribución de Cauchy, el promedio no converge a nada: el tercer simulador de § 8 lo muestra.</div>
+
+      <h2 id="tlc-teorema"><span class="sec">§ 4</span>El teorema y su demostración</h2>
+      <p><b>Teorema del Límite Central (Lindeberg-Lévy).</b> Si \(X_1, X_2, \dots\) son i.i.d. con media \(\mu\) y varianza \(0 &lt; \sigma^2 &lt; \infty\), entonces</p>
+      <div class="eq">\[ Z_n = \frac{\bar X_n - \mu}{\sigma/\sqrt{n}} = \frac{\sum_{i=1}^n X_i - n\mu}{\sigma\sqrt n} \;\xrightarrow{\;d\;}\; \mathcal{N}(0,1), \qquad \text{es decir}, \qquad P(Z_n \le z) \to \Phi(z) \text{ para todo } z. \]
+        <div class="note">El denominador \(\sigma/\sqrt{n}\) es el error estándar. En la práctica se lee así: para \(n\) grande, \(\bar X_n \approx \mathcal{N}(\mu, \sigma^2/n)\) y \(\sum X_i \approx \mathcal{N}(n\mu, n\sigma^2)\).</div>
+      </div>
+      <p><b>Demostración (con generadora de momentos).</b> Supondremos, para simplificar, que la generadora \(M(t) = E[e^{tY}]\) de \(Y_i = (X_i - \mu)/\sigma\) existe cerca de 0 (la prueba general usa la función característica \(E[e^{itY}]\), que siempre existe, con el mismo argumento). Las \(Y_i\) tienen media 0 y varianza 1, y \(Z_n = \frac{1}{\sqrt n}\sum Y_i\).</p>
+      <ol>
+        <li>Por independencia, \(M_{Z_n}(t) = E\big[e^{t\sum Y_i/\sqrt n}\big] = \big[M(t/\sqrt n)\big]^n\).</li>
+        <li>Desarrollo de Taylor de \(M\) alrededor de 0: \(M(s) = 1 + sE[Y] + \frac{s^2}{2}E[Y^2] + o(s^2) = 1 + \frac{s^2}{2} + o(s^2)\), porque \(E[Y] = 0\) y \(E[Y^2] = 1\).</li>
+        <li>Con \(s = t/\sqrt n\): \(M_{Z_n}(t) = \Big[1 + \frac{t^2}{2n} + o\big(\tfrac1n\big)\Big]^n\).</li>
+        <li>Como \((1 + a_n/n)^n \to e^{a}\) cuando \(a_n \to a\), se obtiene \(M_{Z_n}(t) \to e^{t^2/2}\), que es la generadora de \(\mathcal{N}(0,1)\) (ver <a href="#normal">distribución normal</a>).</li>
+        <li>Por el teorema de continuidad de Lévy, la convergencia de generadoras (o de características) implica la convergencia en distribución.</li>
+      </ol>
+      <p><b>Interpretación.</b> Fíjate qué se usó: solo la media y la varianza de la población. Todos los demás detalles (asimetría, curtosis, si es discreta o continua) quedan en el término \(o(1/n)\) y se borran al crecer \(n\). Por eso la campana es universal. Y por eso hace falta \(\sigma^2 &lt; \infty\): sin segundo momento, el desarrollo de Taylor falla.</p>
+      <p><b>Versiones más generales.</b> El teorema de <b>Lyapunov</b> y el de <b>Lindeberg-Feller</b> permiten variables independientes pero <i>no idénticas</i>: basta que ninguna domine la suma. Por eso un error de medición que resulta de muchas pequeñas perturbaciones de origen distinto es aproximadamente normal. Hay versiones para variables débilmente dependientes (series de tiempo estacionarias, ver <a href="#ts">series de tiempo</a>) y una versión multivariada: el vector de medias de varias variables tiende a una normal multivariada con matriz de covarianzas \(\Sigma/n\).</p>
+      <p><b>Ejemplo resuelto.</b> El tiempo de atención en un banco es exponencial con media 4 minutos (\(\sigma = 4\)). Para 64 clientes, \(\operatorname{EE} = 4/8 = 0{,}5\) y \(P(\bar X &lt; 3{,}5) \approx \Phi\big(\frac{3{,}5 - 4}{0{,}5}\big) = \Phi(-1) \approx 0{,}159\). El valor exacto (la suma de exponenciales es gamma) es 0,158: la aproximación es excelente aunque la población sea muy asimétrica.</p>
+
+      <h2 id="tlc-velocidad"><span class="sec">§ 5</span>Velocidad de convergencia y límites del teorema</h2>
+      <p>El teorema habla de un límite; en la práctica tienes un \(n\) concreto. ¿Qué tan buena es la aproximación?</p>
+      <p><b>Teorema (Berry-Esseen).</b> Si además \(\rho = E|X - \mu|^3 &lt; \infty\), entonces para todo \(z\)</p>
+      <div class="eq">\[ \big|P(Z_n \le z) - \Phi(z)\big| \;\le\; \frac{C\,\rho}{\sigma^3\sqrt n}, \qquad C \le 0{,}4748 \]
+        <div class="note">El error baja como \(1/\sqrt n\) y es proporcional a \(\rho/\sigma^3\), una medida de asimetría y colas. Para la exponencial \(\rho/\sigma^3 \approx 2{,}41\), y la cota con \(n = 30\) es 0,21: una garantía muy conservadora (el error real es de unos 0,013), pero que muestra que la asimetría es lo que frena la convergencia.</div>
+      </div>
+      <p><b>La asimetría de la media.</b> Si la población tiene coeficiente de asimetría \(\gamma\), la media muestral tiene asimetría \(\gamma/\sqrt n\). Para la exponencial (\(\gamma = 2\)) con \(n = 30\), queda 0,37: todavía visible. Consecuencia práctica: las colas de la distribución de \(\bar X\) convergen más lento que el centro. Con la exponencial y \(n = 30\), la probabilidad exacta de quedar 1,645 errores estándar por debajo de la media es 0,037, y por encima, 0,059 (la normal diría 0,05 en ambos casos).</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Población</th><th>Asimetría</th><th>\(n\) razonable para la media</th></tr></thead>
+        <tbody>
+          <tr><td>Simétrica sin colas pesadas (uniforme, dado)</td><td>0</td><td>5 a 10</td></tr>
+          <tr><td>Moderadamente asimétrica (gamma con forma 4)</td><td>1</td><td>20 a 30</td></tr>
+          <tr><td>Muy asimétrica (exponencial, ingresos)</td><td>2 o más</td><td>50 a 100 o más</td></tr>
+          <tr><td>Bernoulli con \(p\) pequeña</td><td>\((1-2p)/\sqrt{p(1-p)}\)</td><td>\(np \ge 10\) y \(n(1-p) \ge 10\)</td></tr>
+          <tr><td>Sin varianza finita (Cauchy, Pareto con \(\alpha \le 2\))</td><td>no definida</td><td>el TLC clásico no aplica</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Cuándo falla.</b> (1) <b>Varianza infinita</b>: con colas tipo Pareto \(P(X &gt; x) \sim x^{-\alpha}\) y \(1 &lt; \alpha &lt; 2\), la media converge pero más lento que \(1/\sqrt n\) y el límite no es normal sino una distribución estable con colas pesadas; con la Cauchy, el promedio de \(n\) observaciones tiene exactamente la misma distribución que una sola. (2) <b>Dependencia fuerte</b>: si las observaciones están correlacionadas positivamente (alumnos de un mismo curso, días consecutivos), la varianza real de \(\bar X\) es mayor que \(\sigma^2/n\) (ver <a href="#conglo">muestreo por conglomerados</a>). (3) <b>Estadísticos que no son promedios</b>: el máximo de una muestra no se vuelve normal (converge a distribuciones de valores extremos).</p>
+
+      <h2 id="tlc-uso"><span class="sec">§ 6</span>Del teorema a la inferencia</h2>
+      <p>El TLC convierte una pregunta difícil (¿cómo se distribuye \(\bar X\)?) en una fácil (es casi normal con error estándar \(\sigma/\sqrt n\)). De ahí salen las herramientas de la <a href="#ic">inferencia</a>:</p>
+      <ul>
+        <li><b>Intervalos de confianza.</b> Como \(P(|\bar X - \mu| \le 1{,}96\,\sigma/\sqrt n) \approx 0{,}95\), el intervalo \(\bar x \pm 1{,}96\,\sigma/\sqrt n\) captura a \(\mu\) en el 95 % de las muestras. Con \(\sigma\) desconocida se usa \(s\) y, en muestras pequeñas de poblaciones normales, la distribución t.</li>
+        <li><b>Tamaño de muestra.</b> Para un margen de error \(E\) con confianza \(1 - \alpha\): \(n = (z_{\alpha/2}\,\sigma/E)^2\). Para el dado con \(E = 0{,}1\): \(n = (1{,}96 \cdot 1{,}708/0{,}1)^2 \approx 1\,121\).</li>
+        <li><b>Pruebas de hipótesis.</b> El estadístico \(z = (\bar x - \mu_0)/(s/\sqrt n)\) es aproximadamente normal bajo \(H_0\), y de ahí sale el <a href="#ph">valor p</a>.</li>
+        <li><b>Proporciones.</b> Una proporción muestral es la media de indicadores 0-1, así que \(\hat p \approx \mathcal{N}(p,\ p(1-p)/n)\).</li>
+        <li><b>Método delta.</b> Si \(\sqrt n(\bar X - \mu) \xrightarrow{d} \mathcal{N}(0, \sigma^2)\) y \(g\) es derivable con \(g'(\mu) \ne 0\), entonces \(\sqrt n\big(g(\bar X) - g(\mu)\big) \xrightarrow{d} \mathcal{N}\big(0,\ g'(\mu)^2\sigma^2\big)\). Sirve para logaritmos, cocientes y tasas.</li>
+      </ul>
+      <p><b>Para recordar:</b> para cuadruplicar la precisión de un promedio necesitas <b>16 veces</b> más datos, porque el error estándar baja con la raíz de \(n\). Pasar de 1 000 a 4 000 encuestados solo reduce el margen de error de 3,1 a 1,55 puntos.</p>
+
+      <h2 id="tlc-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Insesgadez de la media.</b> \(E[\bar X_n] = \mu\) para todo \(n\), por linealidad de la esperanza. No requiere independencia ni normalidad.</li>
+        <li><b>Ley de la raíz de n.</b> \(\operatorname{EE}(\bar X_n) = \sigma/\sqrt n\) con independencia, porque las varianzas de sumas independientes se suman: \(\operatorname{Var}(\sum X_i) = n\sigma^2\).</li>
+        <li><b>Caso exacto normal.</b> Si la población es normal, \(\bar X_n \sim \mathcal{N}(\mu, \sigma^2/n)\) exactamente para todo \(n\), por la cerradura lineal de la normal. El TLC extiende esto de forma aproximada a cualquier población.</li>
+        <li><b>Asimetría y curtosis de la media.</b> \(\gamma(\bar X_n) = \gamma/\sqrt n\) y \(\kappa_{\text{exceso}}(\bar X_n) = \kappa_{\text{exceso}}/n\), porque los cumulantes de orden \(r\) de una suma i.i.d. se suman y la estandarización divide por \(n^{r/2}\).</li>
+        <li><b>Error de Berry-Esseen.</b> \(\sup_z|P(Z_n \le z) - \Phi(z)| \le 0{,}4748\,\rho/(\sigma^3\sqrt n)\): la convergencia es de orden \(1/\sqrt n\).</li>
+        <li><b>Teorema de Slutsky.</b> Si \(Z_n \xrightarrow{d} Z\) y \(S_n \xrightarrow{p} \sigma\), entonces \(Z_n\sigma/S_n \xrightarrow{d} Z\). Justifica reemplazar \(\sigma\) por \(s\) en muestras grandes: \((\bar X - \mu)/(s/\sqrt n) \xrightarrow{d} \mathcal{N}(0,1)\).</li>
+        <li><b>Método delta.</b> \(g(\bar X_n) \approx \mathcal{N}\big(g(\mu),\ g'(\mu)^2\sigma^2/n\big)\), por un desarrollo de Taylor de primer orden más Slutsky.</li>
+        <li><b>TLC para sumas.</b> \(\sum X_i \approx \mathcal{N}(n\mu, n\sigma^2)\): la desviación de la suma crece como \(\sqrt n\), más lento que su media \(n\mu\). Por eso el riesgo relativo de una cartera grande de seguros es pequeño.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes:</b>
+        <ul>
+          <li>Creer que el TLC dice que los <i>datos</i> se vuelven normales con \(n\) grande. Lo que se vuelve normal es la distribución de la <i>media</i> (o de la suma); el histograma de los datos sigue pareciéndose a la población.</li>
+          <li>Aplicar la regla “\(n \ge 30\)” a ciegas con poblaciones muy asimétricas o con proporciones pequeñas.</li>
+          <li>Usar \(\sigma/\sqrt n\) con datos dependientes (conglomerados, series de tiempo): el error estándar real es mayor.</li>
+          <li>Confundir la desviación típica de la población \(\sigma\) con el error estándar \(\sigma/\sqrt n\).</li>
+          <li>Aplicarlo a poblaciones sin varianza finita (pérdidas catastróficas, tamaños de archivos, ciertas distribuciones de riqueza).</li>
+        </ul>
+      </div>
+
+      <h2 id="tlc-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>En el primer simulador elige una población y un tamaño de muestra. El simulador toma 2 000 muestras, calcula la media de cada una y dibuja el histograma de esas medias. La curva es la normal que predice el teorema.</p>
 
       <figure class="instrument lab">
-        <div class="instrument-head"><span><span class="dot"></span>simulador · distribución muestral de la media</span><span id="clt-k" class="num">2 000 muestras</span></div>
+        <div class="instrument-head"><span><span class="dot"></span>simulador · distribución muestral de la media</span><span id="tlc-k" class="num">2 000 muestras</span></div>
         <div class="lab-body">
           <div class="controls">
             <div class="ctrl">
-              <label id="pop-label">POBLACIÓN</label>
-              <div class="seg" id="pop" role="group" aria-labelledby="pop-label">
+              <label id="tlc-pop-label">POBLACIÓN</label>
+              <div class="seg" id="tlc-pop" role="group" aria-labelledby="tlc-pop-label">
                 <button data-pop="exp" aria-pressed="true">Exponencial</button>
                 <button data-pop="unif" aria-pressed="false">Uniforme</button>
                 <button data-pop="bim" aria-pressed="false">Bimodal</button>
@@ -49,98 +154,188 @@
               </div>
             </div>
             <div class="ctrl">
-              <label for="n">TAMAÑO DE MUESTRA · n = <b id="n-val" class="num">5</b></label>
-              <input id="n" type="range" min="1" max="60" value="5">
+              <label for="tlc-n">TAMAÑO DE MUESTRA · n = <b id="tlc-n-val" class="num">5</b></label>
+              <input id="tlc-n" type="range" min="1" max="60" value="5">
             </div>
-            <button class="btn btn-ghost btn-sm" id="resample" type="button">Volver a muestrear</button>
+            <button class="btn btn-ghost btn-sm" id="tlc-resample" type="button">Volver a muestrear</button>
           </div>
           <div class="twin">
             <div>
-              <div class="plot-label"><span>Población</span><span id="pop-desc"></span></div>
-              <canvas class="plot" id="c-pop" height="210" aria-label="Histograma de la población"></canvas>
+              <div class="plot-label"><span>Población</span><span id="tlc-pop-desc"></span></div>
+              <canvas class="plot" id="tlc-c-pop" height="210" aria-label="Histograma de la población"></canvas>
             </div>
             <div>
-              <div class="plot-label"><span>Medias de 2 000 muestras</span><span>— normal teórica</span></div>
-              <canvas class="plot" id="c-means" height="210" aria-label="Histograma de las medias muestrales con la curva normal teórica"></canvas>
+              <div class="plot-label"><span>Medias de 2 000 muestras</span><span>curva: normal teórica</span></div>
+              <canvas class="plot" id="tlc-c-means" height="210" aria-label="Histograma de las medias muestrales con la curva normal teórica"></canvas>
             </div>
           </div>
           <div class="readout">
-            <div><span>μ población</span><b id="r-mu">–</b></div>
-            <div><span>media de las medias</span><b id="r-mbar">–</b></div>
-            <div><span>σ/√n teórico</span><b id="r-se">–</b></div>
-            <div><span>desv. de las medias</span><b id="r-sd">–</b></div>
+            <div><span>μ población</span><b id="tlc-r-mu">–</b></div>
+            <div><span>media de las medias</span><b id="tlc-r-mbar">–</b></div>
+            <div><span>σ/√n teórico</span><b id="tlc-r-se">–</b></div>
+            <div><span>desv. de las medias</span><b id="tlc-r-sd">–</b></div>
           </div>
         </div>
         <figcaption>Prueba con n = 1: el histograma de la derecha copia a la población. Sube n poco a poco y mira cómo aparece la campana, incluso con el dado o la bimodal.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Elige “Dado” y pon n = 1, luego n = 2 y n = 5.
+          <details><summary>Qué deberías observar</summary><p>Con n = 1 el histograma es plano (6 barras iguales); con n = 2 es triangular, con máximo en 3,5; con n = 5 ya parece una campana. La desviación de las medias sigue a 1,708/√n: 1,71, 1,21 y 0,76.</p></details></li>
+        <li>Elige “Exponencial” con n = 5 y luego n = 60. Mira la cola derecha de las medias frente a la curva.
+          <details><summary>Qué deberías observar</summary><p>Con n = 5 el histograma de medias sigue sesgado a la derecha (asimetría 2/√5 ≈ 0,89) y la normal sobrestima la izquierda. Con n = 60 la asimetría baja a 0,26 y la curva ajusta bien, aunque todavía se nota una cola algo más larga a la derecha.</p></details></li>
+        <li>Con la “Bimodal”, sube n de 1 a 10. ¿Cuándo desaparecen los dos picos?
+          <details><summary>Qué deberías observar</summary><p>Con n = 1 hay dos picos en 2 y 8. Con n = 2 aparecen tres (medias de 2+2, 2+8 y 8+8); con n = 4 o 5 los picos se funden y desde n ≈ 10 la campana es clara. La bimodalidad es simétrica, así que converge rápido.</p></details></li>
+        <li>Fija una población y anota la desviación de las medias con n = 15 y con n = 60.
+          <details><summary>Qué deberías observar</summary><p>Con 4 veces más datos la desviación de las medias se reduce a la mitad, no a la cuarta parte: es la ley de la raíz de n. El cociente entre ambas lecturas debería estar cerca de 2.</p></details></li>
+      </ol>
 
-      <h2 id="tlc-formula"><span class="sec">§ 3</span>La fórmula</h2>
-      <p>Sean \(X_1, X_2, \dots, X_n\) variables aleatorias independientes con la misma distribución, media \(\mu\) y varianza finita \(\sigma^2\). Su media muestral es</p>
-      <div class="eq">\[ \bar{X}_n = \frac{1}{n}\sum_{i=1}^{n} X_i . \]</div>
-      <p>El teorema dice que, al estandarizarla, se acerca a una normal estándar cuando \(n\) crece:</p>
-      <div class="eq">\[ Z_n = \frac{\bar{X}_n - \mu}{\sigma/\sqrt{n}} \;\xrightarrow{\;d\;}\; \mathcal{N}(0,1) \qquad \text{cuando } n \to \infty . \]
-        <div class="note">El denominador \(\sigma/\sqrt{n}\) es el <b>error estándar</b>: la desviación típica de las medias que mediste en el laboratorio.</div>
-      </div>
-      <p>Dos consecuencias prácticas:</p>
-      <ul>
-        <li>Para cuadruplicar la precisión de un promedio necesitas <b>16 veces</b> más datos, porque el error estándar baja con la raíz de \(n\).</li>
-        <li>Con \(n \ge 30\) la aproximación suele ser buena, pero poblaciones muy asimétricas (como la exponencial) piden más. Compruébalo arriba.</li>
-      </ul>
-
-      <h2 id="tlc-ic"><span class="sec">§ 4</span>Intervalos de confianza</h2>
-      <p>Si las medias siguen una normal, podemos construir un intervalo que capture la media real con una probabilidad conocida:</p>
-      <div class="eq">\[ \bar{x} \;\pm\; z_{\alpha/2}\,\frac{\sigma}{\sqrt{n}} \]</div>
-      <p>“95 % de confianza” no significa que este intervalo tenga 95 % de probabilidad de contener a \(\mu\). Significa que, si repites el procedimiento muchas veces, el 95 % de los intervalos la contienen. El simulador dibuja 50 intervalos con muestras de tamaño 25 de una población con \(\mu = 50\) y \(\sigma = 10\).</p>
-
+      <p>El segundo simulador convierte el teorema en intervalos de confianza. Dibuja 50 intervalos \(\bar x \pm z\,\sigma/\sqrt n\) con muestras de tamaño 25 de una población con \(\mu = 50\) y \(\sigma = 10\). “95 % de confianza” no significa que un intervalo concreto tenga 95 % de probabilidad de contener a \(\mu\): significa que el 95 % de los intervalos que produce el procedimiento la contienen.</p>
       <figure class="instrument lab">
-        <div class="instrument-head"><span><span class="dot"></span>simulador · cobertura de intervalos</span><span class="num" id="ci-cover">–</span></div>
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cobertura de intervalos</span><span class="num" id="tlc-ci-cover">–</span></div>
         <div class="lab-body">
           <div class="controls">
             <div class="ctrl">
-              <label id="conf-label">NIVEL DE CONFIANZA</label>
-              <div class="seg" id="conf" role="group" aria-labelledby="conf-label">
+              <label id="tlc-conf-label">NIVEL DE CONFIANZA</label>
+              <div class="seg" id="tlc-conf" role="group" aria-labelledby="tlc-conf-label">
                 <button data-z="1.2816" data-c="80" aria-pressed="false">80 %</button>
                 <button data-z="1.6449" data-c="90" aria-pressed="false">90 %</button>
                 <button data-z="1.96" data-c="95" aria-pressed="true">95 %</button>
                 <button data-z="2.5758" data-c="99" aria-pressed="false">99 %</button>
               </div>
             </div>
-            <button class="btn btn-ghost btn-sm" id="ci-again" type="button">Repetir 50 muestras</button>
+            <button class="btn btn-ghost btn-sm" id="tlc-ci-again" type="button">Repetir 50 muestras</button>
           </div>
-          <canvas class="plot" id="c-ci" height="340" aria-label="Cincuenta intervalos de confianza; los que no contienen la media real aparecen resaltados"></canvas>
+          <canvas class="plot" id="tlc-c-ci" height="340" aria-label="Cincuenta intervalos de confianza; los que no contienen la media real aparecen resaltados"></canvas>
           <div class="legend"><span><i style="background:var(--accent)"></i>contiene a μ</span><span><i style="background:var(--hot)"></i>no contiene a μ</span><span><i style="background:var(--ink);height:1px"></i>μ = 50</span></div>
+          <div class="readout">
+            <div><span>intervalos que contienen a μ</span><b id="tlc-ci-hit">–</b></div>
+            <div><span>ancho de cada intervalo</span><b id="tlc-ci-w">–</b></div>
+          </div>
         </div>
+        <figcaption>Pulsa varias veces “Repetir”: el número de aciertos fluctúa alrededor del nivel elegido. Subir la confianza ensancha todos los intervalos.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con 95 %, pulsa “Repetir 50 muestras” diez veces y anota cuántos intervalos fallan cada vez.
+          <details><summary>Qué deberías observar</summary><p>En promedio fallan 2,5 de 50, pero en cada tanda puedes ver 0, 1, 4 o 5. El número de fallos es Binomial(50; 0,05), con desviación ≈ 1,5. La cobertura es una propiedad del procedimiento, no de un intervalo.</p></details></li>
+        <li>Compara el ancho con 80 % y con 99 %.
+          <details><summary>Qué deberías observar</summary><p>El ancho es 2z·10/5 = 4z: 5,13 con 80 % y 10,30 con 99 %. Más confianza cuesta el doble de ancho; para ganar confianza sin perder precisión solo queda aumentar n.</p></details></li>
+        <li>Mira los intervalos resaltados. ¿Tienen algo en común sus centros?
+          <details><summary>Qué deberías observar</summary><p>Fallan los intervalos cuyas medias quedaron a más de z errores estándar de 50, es decir, en las colas de la distribución muestral. Son justamente las muestras “raras” que predice el TLC.</p></details></li>
+      </ol>
 
-      <h2 id="tlc-code"><span class="sec">§ 5</span>En R y Python</h2>
-      <p>Este es el mismo experimento del laboratorio en pocas líneas. Cambia <code>n</code> y compara la desviación de las medias con \(\sigma/\sqrt{n}\).</p>
+      <p>El tercer simulador muestra la ley de los grandes números: cinco trayectorias de la media acumulada \(\bar X_n\) para \(n\) de 1 a 2 000 (eje en escala logarítmica), con la banda \(\mu \pm 2\sigma/\sqrt n\) cuando la varianza existe. La trayectoria resaltada es la que resumen los readouts.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · ley de los grandes números</span><span class="num" id="tlc-lgn-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="tlc-lgn-label">POBLACIÓN</label>
+              <div class="seg" id="tlc-lgn-pop" role="group" aria-labelledby="tlc-lgn-label">
+                <button data-d="dado" aria-pressed="true">Dado</button>
+                <button data-d="exp" aria-pressed="false">Exponencial</button>
+                <button data-d="ber" aria-pressed="false">Bernoulli</button>
+                <button data-d="cau" aria-pressed="false">Cauchy</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="tlc-lgn-new" type="button">Nuevas trayectorias</button>
+          </div>
+          <canvas class="plot" id="tlc-c-lgn" height="250" aria-label="Trayectorias de la media acumulada en función del tamaño de muestra, con la banda de dos errores estándar"></canvas>
+          <div class="legend"><span><i style="background:var(--hot)"></i>trayectoria resaltada</span><span><i style="background:var(--accent)"></i>otras trayectorias y banda ±2σ/√n</span><span><i style="background:var(--ink)"></i>μ</span></div>
+          <div class="readout">
+            <div><span>media tras n = 100</span><b id="tlc-lgn-100">–</b></div>
+            <div><span>media tras n = 2 000</span><b id="tlc-lgn-end">–</b></div>
+            <div><span>mayor |error| a n = 2 000</span><b id="tlc-lgn-err">–</b></div>
+            <div><span>banda 2σ/√n a n = 2 000</span><b id="tlc-lgn-band">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con el dado, la exponencial o la Bernoulli, las trayectorias se meten en la banda y se acercan a μ. Con la Cauchy saltan de golpe aunque n sea grande: sin media, no hay ley de los grandes números.</figcaption>
+      </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con el “Dado”, pulsa “Nuevas trayectorias” varias veces y compara el mayor error a n = 2 000 con la banda.
+          <details><summary>Qué deberías observar</summary><p>Casi siempre el mayor error de las cinco trayectorias queda por debajo de 2σ/√2000 ≈ 0,076. Cada trayectoria está dentro de la banda en un punto dado con probabilidad ≈ 0,95; con cinco, alguna puede salir de vez en cuando.</p></details></li>
+        <li>Elige “Bernoulli” (p = 0,3). Mira los primeros 10 lanzamientos.
+          <details><summary>Qué deberías observar</summary><p>Al principio las trayectorias saltan mucho (con n = 1 valen 0 o 1). Después de unos cientos de ensayos la proporción se estabiliza cerca de 0,3. Es la frecuencia relativa convergiendo a la probabilidad.</p></details></li>
+        <li>Elige “Cauchy” y pulsa varias veces “Nuevas trayectorias”.
+          <details><summary>Qué deberías observar</summary><p>Las trayectorias no se estabilizan: de vez en cuando una observación gigantesca mueve la media de golpe, incluso con n de cientos o miles. El readout de la banda dice “no existe” porque la varianza (y la media) no existen. La media de n Cauchy es otra Cauchy idéntica.</p></details></li>
+      </ol>
+
+      <h2 id="tlc-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Ciencias sociales: el margen de error de una encuesta</h3>
+      <p>Una encuesta nacional entrevista a 1 000 personas elegidas al azar y un 48 % apoya una reforma. La proporción muestral es la media de 1 000 indicadores, así que por el TLC \(\hat p \approx \mathcal{N}(p,\ p(1-p)/1\,000)\). En el peor caso (\(p = 0{,}5\)), el margen de error al 95 % es \(1{,}96\sqrt{0{,}25/1\,000} \approx 0{,}031\): los famosos “más o menos 3 puntos”. La decisión: no declarar que “la mayoría rechaza” la reforma, porque 48 % ± 3,1 incluye el 50 %. El margen supone muestreo aleatorio; con diseños por conglomerados o con no respuesta, el error real es mayor (ver <a href="#muestreo">muestreo</a>).</p>
+      <h3>Economía: la reserva de una aseguradora</h3>
+      <p>Una aseguradora tiene 10 000 pólizas de hogar. Cada una tiene siniestro con probabilidad 0,02 al año, con un monto medio de 5 000 dólares y desviación 3 000. La pérdida por póliza tiene media 100 y desviación ≈ 819, y por el TLC la pérdida total es aproximadamente \(\mathcal{N}(1\,000\,000;\ 81\,854^2)\). Para cubrir el 99,5 % de los años (el estándar de Solvencia II) necesita reservar \(1\,000\,000 + 2{,}576 \cdot 81\,854 \approx 1{,}21\) millones: solo 21 dólares extra por póliza. Con 100 pólizas el recargo relativo sería 10 veces mayor: así funciona la mutualización del riesgo. La simulación de § 10 muestra que la cola real es algo más pesada que la normal, y que el TLC subestima un poco la reserva.</p>
+      <h3>Industria: gráficos de control de medias</h3>
+      <p>Una planta mide cada hora 5 tornillos y grafica la media del diámetro. Aunque el diámetro individual no sea exactamente normal, la media de 5 lo es aproximadamente, con error estándar \(\sigma/\sqrt5\). Con \(\mu = 10{,}00\) mm y \(\sigma = 0{,}05\) mm, los límites de control 3σ del gráfico \(\bar X\) son \(10 \pm 3 \cdot 0{,}05/\sqrt5 = (9{,}933;\ 10{,}067)\) mm. La decisión: detener la línea cuando una media cae fuera, sabiendo que bajo control solo ocurre 27 veces cada 10 000 subgrupos. Promediar subgrupos hace que el gráfico detecte corrimientos de la media mucho más chicos que los que detectaría mirando tornillos sueltos.</p>
+      <h3>Tecnología: pruebas A/B en una tienda en línea</h3>
+      <p>Una tienda muestra el diseño A a 10 000 visitantes (10,0 % compra) y el diseño B a otros 10 000 (11,0 % compra). Por el TLC, la diferencia de proporciones es aproximadamente normal con error estándar \(\sqrt{0{,}1 \cdot 0{,}9/10^4 + 0{,}11 \cdot 0{,}89/10^4} \approx 0{,}00433\), así que \(z = 0{,}01/0{,}00433 \approx 2{,}31\) y el valor p bilateral es ≈ 0,021. La decisión: adoptar B, con la advertencia de que si se miran los resultados todos los días y se para “cuando sale significativo”, la tasa de falsos positivos se dispara (ver <a href="#ph">pruebas de hipótesis</a>).</p>
+
+      <h2 id="tlc-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <p>Primero el experimento del laboratorio en pocas líneas, midiendo también la asimetría de las medias. Después el caso de la aseguradora: reserva calculada con el TLC frente a una simulación de Monte Carlo de 20 000 años.</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
 
 rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
-n, k = <span class="n">30</span>, <span class="n">2_000</span>                 <span class="c"># tamaño de muestra, número de muestras</span>
 
-<span class="c"># población exponencial con media 2 y desviación 2</span>
-muestras = rng.<span class="f">exponential</span>(scale=<span class="n">2</span>, size=(k, n))
-medias = muestras.<span class="f">mean</span>(axis=<span class="n">1</span>)
+<span class="c"># --- 1) La distribución muestral de la media, población exponencial (μ = 2, σ = 2) ---</span>
+n, k = <span class="n">30</span>, <span class="n">20_000</span>
+medias = rng.<span class="f">exponential</span>(scale=<span class="n">2</span>, size=(k, n)).<span class="f">mean</span>(axis=<span class="n">1</span>)
+<span class="f">print</span>(<span class="f">round</span>(medias.<span class="f">mean</span>(), <span class="n">3</span>), <span class="f">round</span>(medias.<span class="f">std</span>(), <span class="n">3</span>), <span class="f">round</span>(<span class="n">2</span> / np.<span class="f">sqrt</span>(n), <span class="n">3</span>))   <span class="c"># ≈ 2.0  ≈ 0.36  0.365</span>
+<span class="f">print</span>(<span class="f">round</span>(stats.<span class="f">skew</span>(medias), <span class="n">2</span>), <span class="f">round</span>(<span class="n">2</span> / np.<span class="f">sqrt</span>(n), <span class="n">2</span>))                     <span class="c"># asimetría ≈ 0.37 = 2/√n</span>
 
-<span class="f">print</span>(<span class="s">f"media de las medias: {medias.mean():.3f}"</span>)   <span class="c"># ≈ 2</span>
-<span class="f">print</span>(<span class="s">f"desv. de las medias: {medias.std():.3f}"</span>)    <span class="c"># ≈ 2/√30 ≈ 0.365</span></code></pre>
+<span class="c"># --- 2) Caso aplicado: reserva de una aseguradora con 10 000 pólizas ---</span>
+<span class="c"># cada póliza tiene siniestro con prob. 0.02; el monto es gamma con media 5 000 y desv. 3 000</span>
+polizas, p = <span class="n">10_000</span>, <span class="n">0.02</span>
+forma = (<span class="n">5000</span> / <span class="n">3000</span>) ** <span class="n">2</span>                  <span class="c"># α = (media/desv)²</span>
+escala = <span class="n">3000</span> ** <span class="n">2</span> / <span class="n">5000</span>                   <span class="c"># θ = var/media</span>
+mu_L = p * <span class="n">5000</span>                             <span class="c"># pérdida esperada por póliza: 100</span>
+var_L = p * (<span class="n">3000</span>**<span class="n">2</span> + <span class="n">5000</span>**<span class="n">2</span>) - mu_L**<span class="n">2</span>   <span class="c"># 670 000</span>
+mu_S, sd_S = polizas * mu_L, np.<span class="f">sqrt</span>(polizas * var_L)
+<span class="f">print</span>(<span class="f">round</span>(mu_S), <span class="f">round</span>(sd_S))             <span class="c"># 1 000 000  81 854</span>
+
+<span class="c"># reserva al 99.5 % según el TLC</span>
+reserva_tlc = mu_S + stats.norm.<span class="f">ppf</span>(<span class="n">0.995</span>) * sd_S
+<span class="f">print</span>(<span class="f">round</span>(reserva_tlc))                   <span class="c"># ≈ 1 210 841</span>
+
+<span class="c"># comprobación por Monte Carlo: 20 000 años simulados</span>
+sim = <span class="n">20_000</span>
+nsin = rng.<span class="f">binomial</span>(polizas, p, size=sim)           <span class="c"># número de siniestros por año</span>
+total = np.<span class="f">array</span>([rng.<span class="f">gamma</span>(forma, escala, size=m).<span class="f">sum</span>() <span class="k">for</span> m <span class="k">in</span> nsin])
+<span class="f">print</span>(<span class="f">round</span>(total.<span class="f">mean</span>()), <span class="f">round</span>(total.<span class="f">std</span>()))     <span class="c"># ≈ 1 000 000  ≈ 81 500</span>
+<span class="f">print</span>(<span class="f">round</span>(np.<span class="f">quantile</span>(total, <span class="n">0.995</span>)))           <span class="c"># ≈ 1 219 000: algo mayor que el TLC</span>
+<span class="f">print</span>(<span class="f">round</span>((total &gt; reserva_tlc).<span class="f">mean</span>(), <span class="n">4</span>))      <span class="c"># ≈ 0.007 en vez de 0.005 (la suma es asimétrica)</span></code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">7</span>)
-n &lt;- <span class="n">30</span>; k &lt;- <span class="n">2000</span>              <span class="c"># tamaño de muestra, número de muestras</span>
+<span class="c"># --- 1) Distribución muestral de la media, población exponencial (μ = 2, σ = 2) ---</span>
+n &lt;- <span class="n">30</span>; k &lt;- <span class="n">20000</span>
+medias &lt;- <span class="f">replicate</span>(k, <span class="f">mean</span>(<span class="f">rexp</span>(n, rate = <span class="n">1</span> / <span class="n">2</span>)))
+<span class="f">c</span>(<span class="f">mean</span>(medias), <span class="f">sd</span>(medias), <span class="n">2</span> / <span class="f">sqrt</span>(n))        <span class="c"># ≈ 2  ≈ 0.365  0.365</span>
+<span class="f">hist</span>(medias, breaks = <span class="n">50</span>, freq = <span class="k">FALSE</span>, main = <span class="s">"Medias de muestras de tamaño 30"</span>)
+<span class="f">curve</span>(<span class="f">dnorm</span>(x, <span class="n">2</span>, <span class="n">2</span> / <span class="f">sqrt</span>(n)), add = <span class="k">TRUE</span>, lwd = <span class="n">2</span>)
 
-<span class="c"># población exponencial con media 2 y desviación 2</span>
-medias &lt;- <span class="f">replicate</span>(k, <span class="f">mean</span>(<span class="f">rexp</span>(n, rate = <span class="n">1</span>/<span class="n">2</span>)))
+<span class="c"># --- 2) Caso aplicado: reserva de una aseguradora con 10 000 pólizas ---</span>
+polizas &lt;- <span class="n">10000</span>; p &lt;- <span class="n">0.02</span>
+forma &lt;- (<span class="n">5000</span> / <span class="n">3000</span>)^<span class="n">2</span>; escala &lt;- <span class="n">3000</span>^<span class="n">2</span> / <span class="n">5000</span>
+mu_L &lt;- p * <span class="n">5000</span>
+var_L &lt;- p * (<span class="n">3000</span>^<span class="n">2</span> + <span class="n">5000</span>^<span class="n">2</span>) - mu_L^<span class="n">2</span>
+mu_S &lt;- polizas * mu_L; sd_S &lt;- <span class="f">sqrt</span>(polizas * var_L)
+<span class="f">c</span>(mu_S, sd_S)                                   <span class="c"># 1 000 000  81 854</span>
+reserva_tlc &lt;- mu_S + <span class="f">qnorm</span>(<span class="n">0.995</span>) * sd_S
+reserva_tlc                                     <span class="c"># ≈ 1 210 841</span>
 
-<span class="f">cat</span>(<span class="s">"media de las medias:"</span>, <span class="f">round</span>(<span class="f">mean</span>(medias), <span class="n">3</span>), <span class="s">"\n"</span>)   <span class="c"># ≈ 2</span>
-<span class="f">cat</span>(<span class="s">"desv. de las medias:"</span>, <span class="f">round</span>(<span class="f">sd</span>(medias), <span class="n">3</span>), <span class="s">"\n"</span>)     <span class="c"># ≈ 2/√30 ≈ 0.365</span>
-
-<span class="f">hist</span>(medias, breaks = <span class="n">40</span>, freq = <span class="k">FALSE</span>, main = <span class="s">"Medias de 2 000 muestras"</span>)
-<span class="f">curve</span>(<span class="f">dnorm</span>(x, <span class="n">2</span>, <span class="n">2</span> / <span class="f">sqrt</span>(n)), add = <span class="k">TRUE</span>, lwd = <span class="n">2</span>)</code></pre>
+<span class="c"># Monte Carlo: 20 000 años simulados</span>
+nsin &lt;- <span class="f">rbinom</span>(<span class="n">20000</span>, polizas, p)
+total &lt;- <span class="f">sapply</span>(nsin, <span class="k">function</span>(m) <span class="f">sum</span>(<span class="f">rgamma</span>(m, shape = forma, scale = escala)))
+<span class="f">c</span>(<span class="f">mean</span>(total), <span class="f">sd</span>(total))                       <span class="c"># ≈ 1 000 000  ≈ 82 000</span>
+<span class="f">quantile</span>(total, <span class="n">0.995</span>)                          <span class="c"># ≈ 1 219 000</span>
+<span class="f">mean</span>(total &gt; reserva_tlc)                       <span class="c"># ≈ 0.007</span></code></pre>
 </div>
+      <p>El TLC acierta en el centro (media y desviación) y casi acierta en la cola: la reserva normal se supera en el 0,7 % de los años simulados en vez del 0,5 % previsto, porque la suma de montos gamma conserva algo de asimetría (\(\approx \gamma/\sqrt n\)). Para colas extremas, las aseguradoras complementan el TLC con simulación o con aproximaciones que corrigen la asimetría.</p>
 
-      <h2 id="tlc-quiz"><span class="sec">§ 6</span>Comprueba</h2>
+      <h2 id="tlc-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="n se multiplica por 4, así que √n se multiplica por 2 y σ/√n queda a la mitad." data-wrong="El error estándar es σ/√n. Si n pasa de 25 a 100, ¿cuánto cambia √n?">
         <h3>Si el tamaño de muestra pasa de 25 a 100, ¿qué le pasa al error estándar de la media?</h3>
         <div class="opts">
@@ -151,71 +346,123 @@ medias &lt;- <span class="f">replicate</span>(k, <span class="f">mean</span>(<sp
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-
       <div class="quiz" data-right="Esa es la fuerza del teorema: la forma de la población no importa mientras tenga varianza finita. Lo que sí cambia es qué tan grande debe ser n." data-wrong="Vuelve al laboratorio y elige la población exponencial o la del dado: ¿la campana aparece igual al subir n?">
         <h3>Según el Teorema del Límite Central, para n grande la media muestral es aproximadamente normal…</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>solo si la población también es normal</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>sin importar la forma de la población, si su varianza es finita</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>solo cuando n es mayor que 1 000</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>con la misma desviación típica que la población</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>solo cuando n es mayor que 1 000</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>con la misma desviación típica que la población</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>sin importar la forma de la población, si su varianza es finita</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="La media muestral es un estimador insesgado: en promedio acierta a μ. Lo que se reduce con n es su dispersión, σ/√n." data-wrong="En el laboratorio compara el readout μ población con media de las medias. ¿Se parecen?">
-        <h3>¿Cuál es el centro (la media) de la distribución muestral de x̄?</h3>
+      <div class="quiz" data-right="Error estándar 12/√36 = 2, z = (53 − 50)/2 = 1,5 y P(Z &gt; 1,5) ≈ 0,067." data-wrong="Calcula primero el error estándar σ/√n y después estandariza 53 con él, no con σ.">
+        <h3>Una población tiene μ = 50 y σ = 12. Con muestras de tamaño 36, ¿cuál es aproximadamente P(x̄ &gt; 53)?</h3>
         <div class="opts">
-          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>μ/n</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>σ/√n</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>μ, la media de la población</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>depende de cada muestra</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>0,067</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,401</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>0,25</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>0,0013</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El TLC habla de la distribución de la media, no de los datos. El histograma de los ingresos de 5 000 personas seguirá siendo asimétrico como la población." data-wrong="Distingue entre la distribución de los datos individuales y la distribución de la media muestral. ¿Cuál de las dos se vuelve normal?">
+        <h3>Recolectas los ingresos de 5 000 hogares. ¿Qué predice el TLC?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Que el histograma de los 5 000 ingresos será una campana</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Que la mediana y la media coincidirán</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Que el ingreso medio de muestras de 5 000 hogares variaría de forma casi normal</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Nada, porque los ingresos no son normales</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con correlación positiva entre alumnos de un mismo curso, la información efectiva es menor que n independientes y la varianza de la media supera σ²/n." data-wrong="La fórmula σ/√n supone independencia. ¿Qué pasa con la varianza de una suma cuando las covarianzas son positivas?">
+        <h3>Encuestas a 30 cursos completos de 40 alumnos (1 200 alumnos) sobre horas de estudio. ¿Qué pasa si usas σ/√1200 como error estándar?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Es correcto, porque n es grande</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Sobrestimas el error, porque hay muchos alumnos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Da igual, el TLC corrige la dependencia</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Subestimas el error, porque alumnos de un mismo curso se parecen</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
 
-      <h2 id="tlc-ej"><span class="sec">§ 7</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. Los de simulación los puedes correr en R o en Python.</p>
+      <h2 id="tlc-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Estos ejercicios piden demostrar, derivar o simular. Intenta resolverlos antes de abrir la solución; los tres simuladores y el código de § 10 te sirven para comprobar resultados.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una población tiene μ = 50 y σ = 12. Si tomas muestras de tamaño n = 36, ¿cuál es el error estándar de la media?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>SE = σ/√n = 12/√36 = 12/6 = <b>2</b>.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra la desigualdad de Markov y deduce la de Chebyshev. (b) Para el promedio de lanzamientos de un dado, calcula el \(n\) que garantiza \(P(|\bar X_n - 3{,}5| \ge 0{,}1) \le 0{,}05\) con Chebyshev y el que da el TLC. (c) Explica la diferencia: ¿cuál es “correcto”?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Si \(W \ge 0\) y \(a &gt; 0\): \(E[W] \ge E[W\,\mathbf{1}\{W \ge a\}] \ge a\,P(W \ge a)\). Con \(W = (Y - m)^2\) y \(a = \varepsilon^2\): \(P(|Y - m| \ge \varepsilon) = P(W \ge \varepsilon^2) \le \operatorname{Var}(Y)/\varepsilon^2\).</p>
+            <p>(b) \(\sigma^2 = 35/12\). Chebyshev: \(\frac{35/12}{n \cdot 0{,}01} \le 0{,}05 \Rightarrow n \ge 5\,834\). TLC: \(1{,}96\sqrt{(35/12)/n} \le 0{,}1 \Rightarrow n \ge 1\,121\).</p>
+            <p>(c) Chebyshev es una cota válida para <i>cualquier</i> distribución con esa varianza, por eso es conservadora. El TLC da una aproximación (no una cota) que aprovecha la forma casi normal de \(\bar X\). Para el dado, con \(n = 1\,121\), la aproximación es excelente; Chebyshev desperdicia más de 4 700 lanzamientos. En contextos donde se necesita una garantía sin suponer nada (por ejemplo, algoritmos aleatorizados), se usan cotas como Chebyshev o Hoeffding.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Con los datos del ejercicio 1, ¿cuál es la probabilidad de que una muestra de 36 tenga media mayor que 53?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>z = (53 − 50)/2 = 1,5. P(Z &gt; 1,5) = 1 − Φ(1,5) ≈ <b>0,067</b>, es decir, cerca del 6,7 %.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Completa la demostración del TLC para variables de Bernoulli sin usar el teorema general: sea \(S_n \sim \text{Bin}(n, p)\) y \(Z_n = (S_n - np)/\sqrt{np(1-p)}\). (a) Calcula exactamente la generadora \(M_{Z_n}(t)\). (b) Toma logaritmo y usa \(\ln(1 + x) = x - x^2/2 + O(x^3)\) para probar que \(\ln M_{Z_n}(t) \to t^2/2\). (c) ¿Qué término controla la velocidad de convergencia y cómo depende de \(p\)?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Con \(q = 1 - p\) y \(s = t/\sqrt{npq}\): \(M_{Z_n}(t) = e^{-nps}\,(q + pe^{s})^n = \big(qe^{-ps} + pe^{qs}\big)^n\).</p>
+            <p>(b) Desarrollando, \(qe^{-ps} + pe^{qs} = 1 + \frac{pq\,s^2}{2} + \frac{pq(q - p)\,s^3}{6} + O(s^4)\). Entonces \(\ln M_{Z_n} = n\ln\big(1 + \frac{pq s^2}{2} + O(s^3)\big) = n\big(\frac{pqs^2}{2} + O(s^3)\big)\). Como \(npq\,s^2 = t^2\) y \(n s^3 = O(n^{-1/2})\), \(\ln M_{Z_n}(t) \to t^2/2\). Esa es la demostración de De Moivre-Laplace en lenguaje moderno.</p>
+            <p>(c) El término cúbico, \(\frac{(q-p)\,t^3}{6\sqrt{npq}}\), es la asimetría \(\frac{1-2p}{\sqrt{npq}}\) multiplicada por \(t^3/6\). Se anula con \(p = 0{,}5\) (convergencia muy rápida) y es grande si \(p\) es pequeña: por eso la regla práctica pide \(np \ge 10\).</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>El tiempo de atención en un banco es exponencial con media 4 minutos (y σ = 4). Si observas a 64 clientes, ¿qué probabilidad hay de que el tiempo promedio sea menor que 3,5 minutos? Compruébalo con una simulación.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>SE = 4/√64 = 0,5. z = (3,5 − 4)/0,5 = −1, así que P ≈ Φ(−1) ≈ <b>0,159</b>. La simulación debería dar un valor cercano.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Método delta.</b> Los tiempos entre fallas de un servidor son exponenciales con tasa \(\lambda\), y el estimador natural es \(\hat\lambda = 1/\bar X\). (a) Usa el TLC y un desarrollo de Taylor de \(g(x) = 1/x\) para obtener la distribución aproximada de \(\hat\lambda\). (b) Con \(n = 100\) y \(\bar x = 12{,}5\) horas, construye un IC al 95 % para \(\lambda\). (c) Repite usando \(g(x) = \ln x\) (intervalo para \(\ln\lambda\) y luego exponenciando) y explica por qué este segundo intervalo suele ser mejor.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\bar X \approx \mathcal{N}(1/\lambda,\ 1/(n\lambda^2))\). Con \(g(x) = 1/x\), \(g'(1/\lambda) = -\lambda^2\), así que \(\hat\lambda \approx \mathcal{N}\big(\lambda,\ \lambda^4 \cdot \frac{1}{n\lambda^2}\big) = \mathcal{N}(\lambda,\ \lambda^2/n)\).</p>
+            <p>(b) \(\hat\lambda = 0{,}08\) fallas por hora, \(\operatorname{EE} \approx 0{,}08/10 = 0{,}008\). IC: \(0{,}08 \pm 1{,}96 \cdot 0{,}008 = (0{,}0643;\ 0{,}0957)\).</p>
+            <p>(c) \(\ln\hat\lambda = -\ln\bar X\); con \(g(x) = -\ln x\), \(g'(1/\lambda) = -\lambda\), y \(\operatorname{Var}(\ln\hat\lambda) \approx \lambda^2 \cdot \frac{1}{n\lambda^2} = 1/n\). IC para \(\ln\lambda\): \(\ln 0{,}08 \pm 1{,}96/10\), y exponenciando, \((0{,}0658;\ 0{,}0973)\). La escala logarítmica estabiliza la varianza (no depende de \(\lambda\)) y la distribución de \(\ln\hat\lambda\) es más simétrica, así que la aproximación normal es mejor. Además el intervalo nunca incluye valores negativos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para una población exponencial con media 2, la suma de \(n\) observaciones es exactamente \(\text{Gamma}(n, 1/2)\). (a) Usa este hecho para calcular la probabilidad exacta de que \(\bar X_n &lt; \mu - 1{,}645\,\sigma/\sqrt n\) y de que \(\bar X_n &gt; \mu + 1{,}645\,\sigma/\sqrt n\) para \(n = 5, 30, 100\). (b) Compara con el 0,05 que da el TLC en cada cola y relaciona el error con la asimetría \(2/\sqrt n\). (c) ¿Qué implica para un intervalo de confianza \(\bar x \pm 1{,}96\,s/\sqrt n\) con datos de tiempos de espera?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Con <code>pgamma</code> (o <code>stats.gamma.cdf</code>) sobre \(\bar X_n \sim \text{Gamma}(n,\ \text{tasa } n/2)\): cola inferior 0,011; 0,037; 0,044 y cola superior 0,067; 0,059; 0,055 para \(n = 5, 30, 100\).</p>
+            <p>(b) La normal es simétrica y reparte 0,05 en cada cola; la distribución real tiene la cola derecha más larga, con asimetría 0,89; 0,37 y 0,20. El error en cada cola baja aproximadamente como \(1/\sqrt n\), como predice Berry-Esseen, y la suma de ambas colas (0,078; 0,096; 0,099) se acerca a 0,10 antes que cada cola por separado.</p>
+            <p>(c) Con datos asimétricos y \(n\) moderado, el intervalo simétrico tiene cobertura total aceptable, pero falla más por un lado que por el otro: subestima con frecuencia los valores altos de \(\mu\). Alternativas: transformar (log), usar intervalos bootstrap (ver <a href="#ic">intervalos de confianza</a>) o el intervalo exacto basado en la gamma.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Cuando el TLC no aplica.</b> Simula 2 000 medias de muestras de tamaño \(n = 10, 100, 1\,000\) de tres poblaciones: normal estándar, Cauchy estándar y Pareto con \(\alpha = 1{,}5\) y mínimo 1 (media 3, varianza infinita). Mide la dispersión de las medias con el rango intercuartílico (RIC), que existe aunque no exista la varianza. (a) ¿Cómo cambia el RIC con \(n\) en cada caso? (b) Demuestra que si \(X_i\) son Cauchy i.i.d., \(\bar X_n\) es Cauchy estándar, usando que la función característica de la Cauchy es \(e^{-|t|}\). (c) ¿Qué consecuencia práctica tiene para promediar pérdidas con colas tipo Pareto?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Normal: el RIC baja como \(1/\sqrt n\) (≈ 0,42; 0,13; 0,04). Cauchy: el RIC queda en ≈ 2 sin importar \(n\). Pareto 1,5: la mediana de las medias sube lentamente hacia 3 y el RIC baja aproximadamente como \(n^{-1/3}\), más lento que \(1/\sqrt n\).</p>
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
-medias = rng.<span class="f">exponential</span>(<span class="n">4</span>, size=(<span class="n">100000</span>, <span class="n">64</span>)).<span class="f">mean</span>(axis=<span class="n">1</span>)
-<span class="f">print</span>((medias &lt; <span class="n">3.5</span>).<span class="f">mean</span>())   <span class="c"># ≈ 0.158</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
-medias &lt;- <span class="f">replicate</span>(<span class="n">100000</span>, <span class="f">mean</span>(<span class="f">rexp</span>(<span class="n">64</span>, rate = <span class="n">1</span>/<span class="n">4</span>)))
-<span class="f">mean</span>(medias &lt; <span class="n">3.5</span>)   <span class="c"># ≈ 0.158</span></code></pre>
-</div><p>La simulación da cerca de 0,158: la aproximación normal es muy buena con n = 64, aunque la exponencial sea asimétrica.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Simula el promedio de lanzar un dado n = 1, 2, 5 y 30 veces, repitiendo 10 000 veces cada caso. Para cada n, compara la desviación de los promedios con σ/√n, donde σ ≈ 1,708.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Deberías obtener aproximadamente 1,708; 1,208; 0,764 y 0,312. El histograma pasa de plano (n = 1) a triangular (n = 2) y a campana (n = 30).</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
-<span class="k">for</span> n <span class="k">in</span> [<span class="n">1</span>, <span class="n">2</span>, <span class="n">5</span>, <span class="n">30</span>]:
-    prom = rng.<span class="f">integers</span>(<span class="n">1</span>, <span class="n">7</span>, size=(<span class="n">10000</span>, n)).<span class="f">mean</span>(axis=<span class="n">1</span>)
-    <span class="f">print</span>(n, <span class="f">round</span>(prom.<span class="f">std</span>(), <span class="n">3</span>), <span class="f">round</span>(<span class="n">1.708</span> / np.<span class="f">sqrt</span>(n), <span class="n">3</span>))</code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
-<span class="k">for</span> (n <span class="k">in</span> <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">5</span>, <span class="n">30</span>)) {
-  prom &lt;- <span class="f">replicate</span>(<span class="n">10000</span>, <span class="f">mean</span>(<span class="f">sample</span>(<span class="n">1</span>:<span class="n">6</span>, n, replace = <span class="k">TRUE</span>)))
-  <span class="f">cat</span>(n, <span class="f">round</span>(<span class="f">sd</span>(prom), <span class="n">3</span>), <span class="f">round</span>(<span class="n">1.708</span> / <span class="f">sqrt</span>(n), <span class="n">3</span>), <span class="s">"\n"</span>)
-}</code></pre>
-</div></div></details>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">11</span>)
+reps = <span class="n">2_000</span>
+<span class="k">for</span> n <span class="k">in</span> [<span class="n">10</span>, <span class="n">100</span>, <span class="n">1000</span>]:
+    norm_ = rng.<span class="f">standard_normal</span>((reps, n)).<span class="f">mean</span>(axis=<span class="n">1</span>)
+    cauchy = rng.<span class="f">standard_cauchy</span>((reps, n)).<span class="f">mean</span>(axis=<span class="n">1</span>)
+    pareto = (rng.<span class="f">pareto</span>(<span class="n">1.5</span>, (reps, n)) + <span class="n">1</span>).<span class="f">mean</span>(axis=<span class="n">1</span>)   <span class="c"># α = 1.5: media 3, varianza infinita</span>
+    iqr = <span class="k">lambda</span> x: np.<span class="f">subtract</span>(*np.<span class="f">percentile</span>(x, [<span class="n">75</span>, <span class="n">25</span>]))
+    <span class="f">print</span>(n, <span class="f">round</span>(<span class="f">iqr</span>(norm_), <span class="n">3</span>), <span class="f">round</span>(<span class="f">iqr</span>(cauchy), <span class="n">2</span>), <span class="f">round</span>(np.<span class="f">median</span>(pareto), <span class="n">2</span>), <span class="f">round</span>(<span class="f">iqr</span>(pareto), <span class="n">3</span>))
+<span class="c"># n   RIC normal   RIC Cauchy   mediana Pareto   RIC Pareto</span>
+<span class="c"># 10   ≈ 0.42      ≈ 1.9        ≈ 2.3            ≈ 1.25</span>
+<span class="c"># 100  ≈ 0.13      ≈ 2.0        ≈ 2.7            ≈ 0.75</span>
+<span class="c"># 1000 ≈ 0.04      ≈ 2.0        ≈ 2.9            ≈ 0.36</span>
+<span class="c"># normal: el RIC baja como 1/√n</span>
+<span class="c"># Cauchy: el RIC de la media NO baja (≈ 2 siempre): la media de n Cauchy es otra Cauchy</span>
+<span class="c"># Pareto 1.5: se acerca a 3 (lento y desde abajo); el RIC baja aprox. como n^(-1/3), más lento que 1/√n</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">11</span>)
+reps &lt;- <span class="n">2000</span>
+ric &lt;- <span class="k">function</span>(x) <span class="f">diff</span>(<span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.75</span>)))
+<span class="k">for</span> (n <span class="k">in</span> <span class="f">c</span>(<span class="n">10</span>, <span class="n">100</span>, <span class="n">1000</span>)) {
+  m_norm &lt;- <span class="f">replicate</span>(reps, <span class="f">mean</span>(<span class="f">rnorm</span>(n)))
+  m_cau  &lt;- <span class="f">replicate</span>(reps, <span class="f">mean</span>(<span class="f">rcauchy</span>(n)))
+  m_par  &lt;- <span class="f">replicate</span>(reps, <span class="f">mean</span>(<span class="f">runif</span>(n)^(-<span class="n">1</span> / <span class="n">1.5</span>)))   <span class="c"># Pareto α = 1.5 con mínimo 1 (transformada inversa)</span>
+  <span class="f">cat</span>(n, <span class="f">round</span>(<span class="f">ric</span>(m_norm), <span class="n">3</span>), <span class="f">round</span>(<span class="f">ric</span>(m_cau), <span class="n">2</span>), <span class="f">round</span>(<span class="f">median</span>(m_par), <span class="n">2</span>), <span class="f">round</span>(<span class="f">ric</span>(m_par), <span class="n">3</span>), <span class="s">"\n"</span>)
+}
+<span class="c"># normal: RIC ≈ 0.42, 0.13, 0.04 · Cauchy: ≈ 2 siempre · Pareto: RIC baja más lento que 1/√n</span></code></pre>
+</div>
+            <p>(b) \(\varphi_{\bar X_n}(t) = E[e^{it\sum X_j/n}] = \big[\varphi(t/n)\big]^n = \big(e^{-|t|/n}\big)^n = e^{-|t|}\): la misma función característica, luego la misma distribución. Promediar Cauchy no reduce la incertidumbre en absoluto.</p>
+            <p>(c) Con pérdidas de colas pesadas (catástrofes naturales, ciberataques, tamaños de archivos), los promedios convergen lentísimo y dominados por unos pocos valores extremos; los márgenes basados en \(\sigma/\sqrt n\) son engañosos o ni siquiera existen. Se usan modelos de valores extremos y reaseguro en lugar del TLC.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

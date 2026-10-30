@@ -5,75 +5,153 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Descriptiva bivariada: correlación y tablas cruzadas</h1>
-      <p>Hasta ahora describiste una variable a la vez. Las preguntas interesantes casi siempre involucran dos: ¿duermen menos quienes pasan más horas frente a la pantalla? ¿Usa más bicicleta la gente del centro? Aquí aprendes a medir la asociación entre dos variables cuantitativas con covarianza y correlaciones de Pearson, Spearman y Kendall, y entre dos cualitativas con tablas de contingencia, χ² y la V de Cramér.</p>
-      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: medidas de tendencia central y dispersión</span><span>R · Python</span></div>
+      <p>Hasta aquí describiste una variable a la vez. La mayoría de las preguntas interesantes son sobre dos: ¿duerme menos quien pasa más horas frente a una pantalla?, ¿depende el medio de transporte de la zona donde vives? Aquí aprendes a medir la dirección y la fuerza de una relación con covarianza, correlaciones de Pearson, Spearman y Kendall, y tablas de contingencia, a demostrar sus propiedades y a no confundir asociación con causa.</p>
+      <div class="lmeta"><span>95 min</span><span>Nivel intermedio</span><span>Requiere: tendencia central y dispersión</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#bivar-idea" data-sec="bivar-idea">La idea</a></li>
+        <li><a href="#bivar-intro" data-sec="bivar-intro">Introducción</a></li>
+        <li><a href="#bivar-def" data-sec="bivar-def">Definición</a></li>
         <li><a href="#bivar-pearson" data-sec="bivar-pearson">Covarianza y Pearson</a></li>
         <li><a href="#bivar-rangos" data-sec="bivar-rangos">Spearman y Kendall</a></li>
-        <li><a href="#bivar-lab" data-sec="bivar-lab">Laboratorio: correlaciones</a></li>
         <li><a href="#bivar-tablas" data-sec="bivar-tablas">Tablas de contingencia</a></li>
-        <li><a href="#bivar-lab2" data-sec="bivar-lab2">Laboratorio: tabla cruzada</a></li>
-        <li><a href="#bivar-cuidado" data-sec="bivar-cuidado">Asociación no es causa</a></li>
+        <li><a href="#bivar-cuidado" data-sec="bivar-cuidado">Confusión y Simpson</a></li>
+        <li><a href="#bivar-prop" data-sec="bivar-prop">Propiedades</a></li>
+        <li><a href="#bivar-lab" data-sec="bivar-lab">Ejercicios de simulación</a></li>
+        <li><a href="#bivar-apl" data-sec="bivar-apl">Aplicaciones reales</a></li>
         <li><a href="#bivar-code" data-sec="bivar-code">En R y Python</a></li>
-        <li><a href="#bivar-quiz" data-sec="bivar-quiz">Comprueba</a></li>
-        <li><a href="#bivar-ej" data-sec="bivar-ej">Ejercicios</a></li>
+        <li><a href="#bivar-quiz" data-sec="bivar-quiz">Quiz</a></li>
+        <li><a href="#bivar-ej" data-sec="bivar-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="bivar-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="bivar-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Diez personas registran durante una semana cuántas horas al día pasan frente a una pantalla fuera del trabajo (\(x\)) y cuántas horas duermen (\(y\)):</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Pantalla (h)</th><td>1,5</td><td>2</td><td>3</td><td>3,5</td><td>4</td><td>5</td><td>5,5</td><td>6</td><td>7</td><td>8,5</td></tr></thead>
         <tbody><tr><th>Sueño (h)</th><td>8,2</td><td>7,9</td><td>7,6</td><td>7,8</td><td>7,1</td><td>6,9</td><td>7,2</td><td>6,4</td><td>6,5</td><td>5,8</td></tr></tbody>
       </table></div>
       <p>Si dibujas cada persona como un punto \((x_i, y_i)\), obtienes un <b>diagrama de dispersión</b> que baja de izquierda a derecha: más pantalla va con menos sueño. La estadística bivariada responde tres preguntas sobre esa nube: en qué <b>dirección</b> va la relación, qué tan <b>fuerte</b> es y qué <b>forma</b> tiene (recta, curva, monótona…).</p>
-      <p>El tipo de variables decide la herramienta:</p>
+      <p>La idea de medir la fuerza de una relación con un número es de Francis Galton, que en 1888 estudió la “co-relación” entre la estatura y la longitud del antebrazo. Karl Pearson le dio en 1896 la forma del coeficiente producto-momento que usamos hoy. Charles Spearman, un psicólogo interesado en la inteligencia, propuso en 1904 correlacionar rangos, y Maurice Kendall presentó su tau en 1938. Para variables categóricas, Pearson introdujo en 1900 el estadístico \(\chi^2\), y Harald Cramér (1946) la medida que lleva su nombre. Finalmente, Edward Simpson (1951) describió la paradoja que muestra cuánto puede engañar una tabla agregada.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a definir distribución conjunta, marginal y condicional, covarianza y correlación;</li>
+          <li>a demostrar que \(-1 \le r \le 1\), qué significa \(r^2\) y por qué \(r = 0\) no implica independencia;</li>
+          <li>a calcular e interpretar Spearman y Kendall, y a derivar la fórmula de Spearman;</li>
+          <li>a analizar tablas de contingencia con porcentajes condicionales, \(\chi^2\), V de Cramér, \(\phi\) y razón de odds;</li>
+          <li>a reconocer variables de confusión y la paradoja de Simpson en datos reales.</li>
+        </ul>
+      </div>
+
+      <h2 id="bivar-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Con dos variables medidas en las mismas \(n\) unidades tienes pares \((x_i, y_i)\). Su <b>distribución conjunta</b> dice con qué frecuencia aparece cada combinación de valores; las <b>marginales</b> son las distribuciones de cada variable por separado, y la <b>condicional</b> de \(Y\) dado \(X = x\) es la distribución de \(Y\) solo entre las unidades con \(X = x\). Dos variables son <b>independientes</b> si todas las condicionales de \(Y\) son iguales a su marginal: conocer \(X\) no cambia nada sobre \(Y\).</p>
+      <div class="callout"><b>Definición (covarianza y correlación).</b> Para una muestra,
+        \[ s_{xy} = \frac{1}{n-1}\sum_{i=1}^{n}(x_i - \bar x)(y_i - \bar y), \qquad r = \frac{s_{xy}}{s_x\, s_y} = \frac{\sum (x_i - \bar x)(y_i - \bar y)}{\sqrt{\sum (x_i - \bar x)^2 \sum (y_i - \bar y)^2}}. \]
+        En la población, \(\operatorname{Cov}(X, Y) = \mathbb E[(X - \mu_X)(Y - \mu_Y)]\) y \(\rho = \operatorname{Cov}(X,Y)/(\sigma_X \sigma_Y)\). \(r\) es el <b>coeficiente de correlación de Pearson</b>.</div>
+      <p>Una forma equivalente y muy útil: si estandarizas \(z_{x,i} = (x_i - \bar x)/s_x\) y \(z_{y,i} = (y_i - \bar y)/s_y\), entonces \(r = \frac{1}{n-1}\sum z_{x,i}\,z_{y,i}\): la correlación es el promedio de los productos de puntajes z.</p>
+      <p><b>Ejemplo numérico.</b> Para 5 tiendas se registra la superficie \(x\) (cientos de m²) y las ventas \(y\) (millones): (1, 3), (2, 5), (3, 4), (4, 7), (5, 6). \(\bar x = 3\), \(\bar y = 5\). Desvíos de \(x\): −2, −1, 0, 1, 2; de \(y\): −2, 0, −1, 2, 1. Productos: 4, 0, 0, 2, 2, que suman 8, así que \(s_{xy} = 8/4 = 2\). Como \(\sum (x-\bar x)^2 = \sum (y - \bar y)^2 = 10\), \(r = 8/\sqrt{10 \cdot 10} = 0{,}8\): asociación positiva fuerte.</p>
+      <p>El tipo de variables decide la herramienta (ver <a href="#tipos">tipos de variables</a>):</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Variables</th><th>Gráfico</th><th>Medida de asociación</th></tr></thead>
         <tbody>
           <tr><td>Dos cuantitativas</td><td>Dispersión</td><td>Covarianza, Pearson \(r\)</td></tr>
           <tr><td>Dos ordinales, o cuantitativas con atípicos o relación curva monótona</td><td>Dispersión de rangos</td><td>Spearman \(\rho_s\), Kendall \(\tau\)</td></tr>
-          <tr><td>Dos cualitativas</td><td>Barras apiladas, mosaico</td><td>Tabla de contingencia, \(\chi^2\), V de Cramér</td></tr>
+          <tr><td>Dos cualitativas</td><td>Barras apiladas, mosaico</td><td>Tabla de contingencia, \(\chi^2\), V de Cramér, razón de odds</td></tr>
           <tr><td>Una cuantitativa y una cualitativa</td><td>Cajas lado a lado</td><td>Diferencias de medias o medianas por grupo</td></tr>
         </tbody>
       </table></div>
 
-      <h2 id="bivar-pearson"><span class="sec">§ 2</span>Covarianza y correlación de Pearson</h2>
-      <p>Traza una cruz en el punto de medias \((\bar x, \bar y) = (4{,}6;\ 7{,}14)\). Los puntos arriba a la derecha y abajo a la izquierda tienen desvíos del mismo signo: su producto \((x_i - \bar x)(y_i - \bar y)\) es positivo. Los de los otros dos cuadrantes dan productos negativos. La <b>covarianza</b> promedia esos productos:</p>
-      <div class="eq">\[ s_{xy} = \frac{1}{n-1}\sum_{i=1}^{n}(x_i - \bar x)(y_i - \bar y), \qquad r = \frac{s_{xy}}{s_x\, s_y} \]
-        <div class="note">Con los datos: \(s_{xy} = -1{,}616\) h², \(s_x = 2{,}221\) h y \(s_y = 0{,}757\) h, así que \(r = -1{,}616/(2{,}221 \cdot 0{,}757) = -0{,}96\): una asociación lineal negativa muy fuerte.</div>
+      <h2 id="bivar-pearson"><span class="sec">§ 3</span>Covarianza y correlación de Pearson</h2>
+      <p>Traza una cruz en el punto de medias \((\bar x, \bar y) = (4{,}6;\ 7{,}14)\). Los puntos arriba a la derecha y abajo a la izquierda tienen desvíos del mismo signo: su producto \((x_i - \bar x)(y_i - \bar y)\) es positivo. Los de los otros dos cuadrantes dan productos negativos. La covarianza promedia esos productos. Con los datos de pantalla y sueño: \(s_{xy} = -1{,}616\) h², \(s_x = 2{,}221\) h y \(s_y = 0{,}757\) h, así que \(r = -1{,}616/(2{,}221 \cdot 0{,}757) = -0{,}96\).</p>
+      <p>El signo de la covarianza da la dirección, pero su tamaño depende de las unidades (horas al cuadrado, pesos por kilo…). La correlación la estandariza, y su propiedad central es estar acotada.</p>
+      <p><b>Teorema 1.</b> \(-1 \le r \le 1\), y \(|r| = 1\) si y solo si todos los puntos están sobre una recta no horizontal ni vertical.</p>
+      <p><i>Demostración.</i> Usa los puntajes z. Como \(\frac{1}{n-1}\sum z_{x,i}^2 = \frac{1}{n-1}\sum z_{y,i}^2 = 1\),</p>
+      <div class="eq">\[ 0 \le \frac{1}{n-1}\sum_{i=1}^{n}\big(z_{x,i} \pm z_{y,i}\big)^2 = 1 + 1 \pm 2r = 2(1 \pm r) \]
+        <div class="note">Con el signo “+” se obtiene \(r \ge -1\); con “−”, \(r \le 1\). La igualdad \(r = 1\) exige \(z_{x,i} = z_{y,i}\) para todo \(i\), es decir, \(y_i = \bar y + \frac{s_y}{s_x}(x_i - \bar x)\): una recta de pendiente positiva. Lo mismo con \(r = -1\) y pendiente negativa. \(\square\)</div>
       </div>
-      <p>El signo de la covarianza da la dirección, pero su tamaño depende de las unidades (horas al cuadrado, pesos por kilo…) y no sirve para decir si la relación es fuerte. La <b>correlación de Pearson</b> \(r\) la estandariza. Sus propiedades:</p>
-      <ul>
-        <li>\(-1 \le r \le 1\), por la desigualdad de Cauchy-Schwarz. \(|r| = 1\) solo si todos los puntos están exactamente sobre una recta.</li>
-        <li>Es adimensional y no cambia con transformaciones lineales que conserven el sentido: si \(u = a + bx\) y \(v = c + dy\) con \(b, d &gt; 0\), entonces \(r_{uv} = r_{xy}\). Si \(b\) o \(d\) es negativo, solo cambia el signo.</li>
-        <li>Es simétrica: \(r_{xy} = r_{yx}\).</li>
-        <li>\(r^2\) es la proporción de la varianza de \(y\) que explica la recta de regresión sobre \(x\): aquí \(r^2 = 0{,}92\).</li>
-        <li>Mide solo asociación <b>lineal</b>. Una parábola perfecta y simétrica tiene \(r = 0\), y \(r = 0\) no significa independencia.</li>
-        <li>Es muy sensible a atípicos: un solo punto alejado puede crearla o destruirla.</li>
-      </ul>
+      <p><b>Teorema 2 (\(r^2\) y la recta de mínimos cuadrados).</b> La recta \(\hat y = b_0 + b_1 x\) que minimiza \(\sum (y_i - b_0 - b_1 x_i)^2\) tiene pendiente \(b_1 = r\,s_y/s_x\), y la proporción de la variabilidad de \(y\) que explica es \(R^2 = r^2\).</p>
+      <p><i>Demostración (esquema).</i> Igualando a cero las derivadas se obtiene \(b_0 = \bar y - b_1\bar x\) y \(b_1 = s_{xy}/s_x^2 = r\,s_y/s_x\). Los residuos son \(e_i = (y_i - \bar y) - b_1(x_i - \bar x)\), así que \(\sum e_i^2 = (n-1)(s_y^2 - 2b_1 s_{xy} + b_1^2 s_x^2) = (n-1)s_y^2(1 - r^2)\). Entonces \(1 - \sum e_i^2/\sum (y_i - \bar y)^2 = r^2\). Con los datos: \(b_1 = -0{,}96 \cdot 0{,}757/2{,}221 = -0{,}327\) h de sueño por hora de pantalla, \(b_0 = 8{,}65\) y \(r^2 = 0{,}92\). La regresión se desarrolla en <a href="#reg">regresión lineal simple</a>.</p>
+      <p><b>Incertidumbre.</b> Con 10 datos, \(r = -0{,}96\) no es exacto. La transformación de Fisher \(z = \operatorname{arctanh}(r) = \tfrac12\ln\frac{1+r}{1-r}\) es aproximadamente normal con error estándar \(1/\sqrt{n-3}\). Aquí \(z = -1{,}946\), \(SE = 0{,}378\), y el intervalo del 95 % \(z \pm 1{,}96\,SE\), devuelto con \(\tanh\), es \([-0{,}99;\ -0{,}84]\).</p>
       <div class="callout"><b>Escala de referencia, con cautela:</b> \(|r| &lt; 0{,}3\) se suele llamar débil, entre 0,3 y 0,7 moderada y mayor que 0,7 fuerte. Pero lo que es “fuerte” depende del campo: en física \(r = 0{,}9\) puede ser decepcionante y en ciencias sociales \(r = 0{,}3\) puede ser importante. Y nunca reportes \(r\) sin mirar la nube.</div>
 
-      <h2 id="bivar-rangos"><span class="sec">§ 3</span>Correlaciones de rango: Spearman y Kendall</h2>
-      <p>Cuando las variables son ordinales, cuando hay atípicos o cuando la relación es curva pero siempre en el mismo sentido (<b>monótona</b>), conviene trabajar con los <b>rangos</b>: reemplazar cada valor por su posición al ordenar (1 para el menor, 2 para el siguiente…).</p>
-      <p>La <b>correlación de Spearman</b> es la correlación de Pearson calculada sobre los rangos \(R(x_i)\) y \(R(y_i)\). Sin empates tiene una fórmula corta con las diferencias de rangos \(d_i = R(x_i) - R(y_i)\):</p>
-      <div class="eq">\[ \rho_s = 1 - \frac{6\sum_{i=1}^{n} d_i^2}{n(n^2-1)} \qquad\quad \text{(ejemplo: } 1 - \tfrac{6 \cdot 320}{10 \cdot 99} = -0{,}94\text{)} \]
-        <div class="note">En el ejemplo, los rangos de la pantalla son 1, 2, …, 10 y los del sueño 10, 9, 7, 8, 5, 4, 6, 2, 3, 1. \(\rho_s = \pm 1\) cuando la relación es perfectamente monótona, aunque sea muy curva.</div>
+      <h2 id="bivar-rangos"><span class="sec">§ 4</span>Correlaciones de rango: Spearman y Kendall</h2>
+      <p>Cuando las variables son ordinales, cuando hay atípicos o cuando la relación es curva pero siempre en el mismo sentido (<b>monótona</b>), conviene trabajar con los <b>rangos</b>: reemplazar cada valor por su posición al ordenar (1 para el menor, 2 para el siguiente…; con empates, el promedio de las posiciones).</p>
+      <p>La <b>correlación de Spearman</b> \(\rho_s\) es la correlación de Pearson calculada sobre los rangos \(R_i = R(x_i)\) y \(S_i = R(y_i)\).</p>
+      <p><b>Teorema 3.</b> Sin empates, \(\rho_s = 1 - \dfrac{6\sum d_i^2}{n(n^2-1)}\), con \(d_i = R_i - S_i\).</p>
+      <p><i>Demostración.</i> Los rangos son una permutación de \(1, \dots, n\), así que \(\sum R_i = \sum S_i = n(n+1)/2\) y \(\sum R_i^2 = \sum S_i^2 = n(n+1)(2n+1)/6\). La suma de cuadrados centrada es \(\sum (R_i - \bar R)^2 = \frac{n(n+1)(2n+1)}{6} - \frac{n(n+1)^2}{4} = \frac{n(n^2-1)}{12}\), igual para \(S\). Además \(\sum d_i^2 = \sum R_i^2 + \sum S_i^2 - 2\sum R_iS_i\), de donde \(\sum (R_i - \bar R)(S_i - \bar S) = \frac{n(n^2-1)}{12} - \frac12\sum d_i^2\). Dividiendo por \(\frac{n(n^2-1)}{12}\) sale la fórmula. \(\square\)</p>
+      <p>En el ejemplo, los rangos de la pantalla son 1, 2, …, 10 y los del sueño 10, 9, 7, 8, 5, 4, 6, 2, 3, 1. Las diferencias son −9, −7, −4, −4, 0, 2, 1, 6, 6, 9, con \(\sum d_i^2 = 320\), y \(\rho_s = 1 - 6\cdot 320/(10\cdot 99) = -0{,}94\).</p>
+      <p>La <b>tau de Kendall</b> mira pares de unidades. Un par \((i, j)\) es <b>concordante</b> si \((x_i - x_j)(y_i - y_j) &gt; 0\) y <b>discordante</b> si es negativo. Con \(C\) pares concordantes y \(D\) discordantes, sin empates:</p>
+      <div class="eq">\[ \tau = \frac{C - D}{\binom{n}{2}} = P(\text{concordante}) - P(\text{discordante}) \qquad\quad \text{(ejemplo: } \tfrac{4 - 41}{45} = -0{,}82\text{)} \]
+        <div class="note">Con \(\tau = -0{,}82\), en el 91 % de los pares quien usa más pantalla duerme menos (\((1 + 0{,}82)/2 = 0{,}91\)). Suele dar valores absolutos menores que \(\rho_s\); con empates se usa la versión \(\tau_b\), que los corrige.</div>
       </div>
-      <p>La <b>tau de Kendall</b> mira pares de personas. Un par \((i, j)\) es <b>concordante</b> si la persona con más pantalla también duerme más (o ambas cosas menos), y <b>discordante</b> si una variable sube y la otra baja. Con \(C\) pares concordantes y \(D\) discordantes, sin empates:</p>
-      <div class="eq">\[ \tau = \frac{C - D}{\binom{n}{2}} = \frac{C - D}{n(n-1)/2} \qquad\quad \text{(ejemplo: } \tfrac{4 - 41}{45} = -0{,}82\text{)} \]
-        <div class="note">\(\tau\) tiene una lectura directa: es la probabilidad de que un par elegido al azar sea concordante menos la de que sea discordante. Con \(\tau = -0{,}82\), en el 91 % de los pares quien usa más pantalla duerme menos. Suele dar valores absolutos menores que \(\rho_s\), y con empates se usa la versión \(\tau_b\), que los corrige.</div>
-      </div>
-      <p>Ambas son <b>robustas</b>: como solo importa el orden, mover un valor extremo todavía más lejos no cambia nada. Agrega una undécima persona con 2,5 horas de pantalla que duerme solo 4 horas (por ejemplo, alguien con un bebé recién nacido): Pearson cae de −0,96 a −0,33, mientras que Spearman queda en −0,63 y Kendall en −0,56.</p>
+      <p><b>Ejemplo resuelto a mano.</b> Dos catadores ordenan 6 vinos. A: 1, 2, 3, 4, 5, 6. B, en el mismo orden de vinos: 2, 1, 4, 3, 6, 5. Diferencias: −1, 1, −1, 1, −1, 1; \(\sum d_i^2 = 6\) y \(\rho_s = 1 - 36/210 = 0{,}829\). De los 15 pares, solo son discordantes los tres que B invirtió (vinos 1-2, 3-4 y 5-6): \(\tau = (12 - 3)/15 = 0{,}6\).</p>
+      <p>Ambas son <b>robustas</b>: como solo importa el orden, mover un valor extremo todavía más lejos no cambia nada, y son invariantes ante cualquier transformación creciente de \(x\) o de \(y\). Agrega una undécima persona con 2,5 horas de pantalla que duerme solo 4 horas: Pearson cae de −0,96 a −0,33, mientras que Spearman queda en −0,63 y Kendall en −0,56.</p>
 
-      <h2 id="bivar-lab"><span class="sec">§ 4</span>Laboratorio: tres correlaciones frente a frente</h2>
-      <p>Genera nubes de puntos con distintas formas de relación y compara las tres medidas. La cruz punteada marca \((\bar x, \bar y)\): los puntos de los cuadrantes que suman a la covarianza se dibujan en color, los que restan en rojo.</p>
+      <h2 id="bivar-tablas"><span class="sec">§ 5</span>Tablas de contingencia y χ²</h2>
+      <p>Para dos variables cualitativas se cuenta cuántas observaciones caen en cada combinación de categorías. Una encuesta a 400 personas registra la zona donde viven y su medio de transporte principal:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th></th><th>Auto</th><th>Transporte público</th><th>Bicicleta</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><th>Centro</th><td>30</td><td>80</td><td>50</td><td><b>160</b></td></tr>
+          <tr><th>Periferia</th><td>120</td><td>90</td><td>30</td><td><b>240</b></td></tr>
+          <tr><th>Total</th><td><b>150</b></td><td><b>170</b></td><td><b>80</b></td><td><b>400</b></td></tr>
+        </tbody>
+      </table></div>
+      <p>Cada celda es una <b>frecuencia conjunta</b> \(n_{ij}\); los totales son las <b>marginales</b> \(n_{i\cdot}\) (filas) y \(n_{\cdot j}\) (columnas). Comparar conteos crudos engaña, porque hay más gente en la periferia. La pregunta “¿depende el transporte de la zona?” se responde con <b>porcentajes condicionales por fila</b>: en el centro 18,8 % auto, 50 % transporte público, 31,3 % bicicleta; en la periferia 50 %, 37,5 % y 12,5 %.</p>
+      <p><b>Derivación de las frecuencias esperadas.</b> Independencia significa que la proporción conjunta es el producto de las marginales: \(p_{ij} = p_{i\cdot}\,p_{\cdot j}\). Estimando cada marginal con su frecuencia relativa, \(\hat p_{ij} = \frac{n_{i\cdot}}{n}\cdot\frac{n_{\cdot j}}{n}\), y el conteo esperado es \(n \hat p_{ij}\):</p>
+      <div class="eq">\[ e_{ij} = \frac{n_{i\cdot}\; n_{\cdot j}}{n}, \qquad \chi^2 = \sum_{i}\sum_{j} \frac{(n_{ij} - e_{ij})^2}{e_{ij}}, \qquad V = \sqrt{\frac{\chi^2}{n\,(\min(r, c) - 1)}} \]
+        <div class="note">Esperado de “Centro y Auto”: \(160 \cdot 150/400 = 60\), pero se observaron 30, que aporta \(30^2/60 = 15\). Sumando las seis celdas, \(\chi^2 = 45{,}4\) con \((r-1)(c-1) = 2\) grados de libertad. La <b>V de Cramér</b> lo lleva a una escala de 0 (independencia) a 1 (asociación perfecta): \(V = \sqrt{45{,}4/400} = 0{,}34\), una asociación moderada.</div>
+      </div>
+      <p>¿Por qué no basta con \(\chi^2\)? Porque crece con \(n\): si duplicas todas las celdas, los porcentajes no cambian pero \(\chi^2\) se duplica. \(\chi^2\) sirve para la prueba de hipótesis (ver <a href="#chi2">la prueba chi cuadrado</a>); \(V\) sirve para describir la fuerza.</p>
+      <p><b>Tablas 2×2.</b> Con celdas \(a, b\) (primera fila) y \(c, d\) (segunda), hay dos medidas clásicas:</p>
+      <div class="eq">\[ \phi = \frac{ad - bc}{\sqrt{(a+b)(c+d)(a+c)(b+d)}}, \qquad \phi^2 = \frac{\chi^2}{n}, \qquad OR = \frac{a/b}{c/d} = \frac{ad}{bc} \]
+        <div class="note">\(\phi\) es la correlación de Pearson entre los dos indicadores 0/1. La <b>razón de odds</b> \(OR\) compara las “chances” de éxito entre filas; vale 1 bajo independencia y no cambia si multiplicas una fila o una columna por una constante, lo que la hace ideal en estudios de casos y controles (ver <a href="#logit">regresión logística</a>).</div>
+      </div>
+      <p><b>Ejemplo resuelto a mano.</b> En 200 estudiantes: desayunan y aprueban 90, desayunan y reprueban 30, no desayunan y aprueban 40, no desayunan y reprueban 40. Aprobación: 75 % frente a 50 %. Marginales: 120 y 80 por fila, 130 y 70 por columna; esperados 78, 42, 52, 28. Todas las diferencias valen ±12, así que \(\chi^2 = 144(1/78 + 1/42 + 1/52 + 1/28) = 13{,}19\), \(\phi = (3\,600 - 1\,200)/\sqrt{120\cdot80\cdot130\cdot70} = 0{,}257\) (y \(0{,}257^2 \cdot 200 = 13{,}19\)), y \(OR = 90\cdot40/(30\cdot40) = 3\): quienes desayunan tienen el triple de chances de aprobar. Eso no prueba que desayunar cause aprobar, como verás ahora.</p>
+
+      <h2 id="bivar-cuidado"><span class="sec">§ 6</span>Asociación, confusión y paradoja de Simpson</h2>
+      <p>Una correlación fuerte entre pantalla y sueño no prueba que la pantalla quite sueño. Podría ser al revés (quien no puede dormir se queda mirando el celular), o puede haber una tercera variable que mueve a las dos, como el estrés o los turnos de trabajo: una <b>variable de confusión</b>.</p>
+      <p>Con variables cuantitativas, la <b>correlación parcial</b> mide la asociación entre \(X\) e \(Y\) después de quitar el efecto lineal de \(Z\):</p>
+      <div class="eq">\[ r_{xy\cdot z} = \frac{r_{xy} - r_{xz}\,r_{yz}}{\sqrt{(1 - r_{xz}^2)(1 - r_{yz}^2)}} \]
+        <div class="note">Si \(r_{xy} = 0{,}5\) pero \(r_{xz} = r_{yz} = 0{,}7\), entonces \(r_{xy\cdot z} = (0{,}5 - 0{,}49)/(1 - 0{,}49) = 0{,}02\): casi toda la asociación entre \(X\) e \(Y\) pasaba por \(Z\).</div>
+      </div>
+      <p>Con tablas de contingencia el efecto de una tercera variable puede ser dramático. En la <b>paradoja de Simpson</b>, una asociación que aparece en cada subgrupo se debilita, desaparece o se invierte al juntar los grupos. Un estudio real sobre tratamientos de cálculos renales (Charig y colaboradores, <i>BMJ</i>, 1986) lo muestra con claridad:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Cálculos</th><th>Cirugía abierta (A)</th><th>Percutánea (B)</th></tr></thead>
+        <tbody>
+          <tr><td>Pequeños</td><td>81/87 = 93 %</td><td>234/270 = 87 %</td></tr>
+          <tr><td>Grandes</td><td>192/263 = 73 %</td><td>55/80 = 69 %</td></tr>
+          <tr><td><b>Total</b></td><td><b>273/350 = 78 %</b></td><td><b>289/350 = 83 %</b></td></tr>
+        </tbody>
+      </table></div>
+      <p>A tiene mayor tasa de éxito en ambos tamaños, pero B gana en el total. La razón: A se aplicó sobre todo a cálculos grandes (263 de 350), que son más difíciles, y B a pequeños (270 de 350). El tamaño del cálculo es una variable de confusión: influye en el tratamiento elegido y en el resultado. La comparación correcta es dentro de cada estrato, y el resumen combinado se hace con la razón de odds de Mantel-Haenszel (pregunta propuesta 4).</p>
+      <div class="callout"><b>Checklist bivariado:</b> grafica siempre (dispersión, mosaico o barras apiladas); elige la medida según el tipo de variables y la forma de la relación; reporta porcentajes condicionales en la dirección que responde tu pregunta; desconfía de un valor alto de \(r\) o de \(\chi^2\) sin mirar atípicos, tamaño de muestra y posibles confusores.</div>
+
+      <h2 id="bivar-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Cota y caso de igualdad.</b> \(|r| \le 1\), con \(|r| = 1\) si y solo si hay relación lineal exacta. <i>Demostración:</i> Teorema 1.</li>
+        <li><b>Invariancia afín.</b> Si \(u = a + bx\) y \(v = c + dy\), entonces \(r_{uv} = \operatorname{sign}(bd)\,r_{xy}\), mientras que \(s_{uv} = bd\,s_{xy}\). <i>Demostración:</i> los desvíos se multiplican por \(b\) y \(d\), y las desviaciones típicas por \(|b|\) y \(|d|\).</li>
+        <li><b>Varianza de una suma.</b> \(\operatorname{Var}(X + Y) = \operatorname{Var}X + \operatorname{Var}Y + 2\operatorname{Cov}(X, Y)\). <i>Demostración:</i> desarrolla \(\mathbb E[((X - \mu_X) + (Y - \mu_Y))^2]\). Es la base de la diversificación en finanzas.</li>
+        <li><b>Independencia implica correlación cero, pero no al revés.</b> Si \(X\) e \(Y\) son independientes, \(\mathbb E[XY] = \mathbb E[X]\mathbb E[Y]\) y \(\operatorname{Cov} = 0\). Contraejemplo del recíproco: \(X \sim \mathcal N(0,1)\), \(Y = X^2\): \(\operatorname{Cov}(X, X^2) = \mathbb E[X^3] = 0\), aunque \(Y\) es función de \(X\).</li>
+        <li><b>Spearman y Kendall son invariantes ante transformaciones crecientes.</b> <i>Justificación:</i> una función creciente no cambia los rangos ni el signo de \((x_i - x_j)\). Valen ±1 con cualquier relación monótona exacta.</li>
+        <li><b>χ² escala con n.</b> Si todas las celdas se multiplican por \(k\), \(\chi^2\) se multiplica por \(k\) y \(V\) no cambia. <i>Demostración:</i> \(n_{ij} - e_{ij}\) y \(e_{ij}\) se multiplican por \(k\), así que cada término \((n-e)^2/e\) también.</li>
+        <li><b>En tablas 2×2, \(\phi^2 = \chi^2/n\) y \(V = |\phi|\).</b> <i>Justificación:</i> en una 2×2 todas las diferencias \(n_{ij} - e_{ij}\) valen \(\pm(ad - bc)/n\); sustituyendo en \(\chi^2\) y simplificando sale \(n\,\phi^2\).</li>
+        <li><b>La razón de odds no depende de los totales marginales.</b> Multiplicar una fila por \(k\) multiplica \(a\) y \(b\) (o \(c\) y \(d\)) por \(k\), y \(ad/bc\) no cambia. Por eso se puede estimar en estudios de casos y controles, donde los totales los fija el diseño.</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li><b>Concluir causalidad a partir de correlación.</b> Necesitas un diseño (experimento, o control explícito de confusores) para hablar de causa.</li>
+        <li><b>Leer \(r = 0\) como “no hay relación”.</b> Una U perfecta tiene \(r \approx 0\).</li>
+        <li><b>Usar Pearson con atípicos o relaciones curvas sin mirar el gráfico.</b> El cuarteto de Anscombe tiene cuatro nubes muy distintas con el mismo \(r = 0{,}816\).</li>
+        <li><b>Reportar \(\chi^2\) o el valor p como medida de fuerza.</b> Con \(n\) grande, todo es significativo; reporta \(V\), \(\phi\) u \(OR\).</li>
+        <li><b>Porcentajes en la dirección equivocada.</b> “El 75 % de los que aprueban desayunan” y “el 75 % de los que desayunan aprueban” son preguntas distintas.</li>
+      </ul>
+
+      <h2 id="bivar-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: tres correlaciones frente a frente.</b> Genera nubes de puntos con distintas formas de relación y compara las tres medidas. La cruz punteada marca \((\bar x, \bar y)\): los puntos de los cuadrantes que suman a la covarianza se dibujan en color, los que restan en rojo.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · Pearson, Spearman y Kendall</span><span class="num" id="bivar-head">–</span></div>
         <div class="lab-body">
@@ -104,30 +182,18 @@
         </div>
         <figcaption>En “Monótona curva” con ρ cerca de 1, Spearman y Kendall se acercan a 1 mientras Pearson se queda atrás: la relación es perfecta en orden, pero no es una recta. En “En U”, las tres se acercan a 0 aunque la relación sea muy fuerte. En “Con atípico”, un solo punto en la esquina opuesta arrastra a Pearson mucho más que a las de rango, sobre todo con n chico.</figcaption>
       </figure>
-
-      <h2 id="bivar-tablas"><span class="sec">§ 5</span>Tablas de contingencia</h2>
-      <p>Para dos variables cualitativas se cuenta cuántas observaciones caen en cada combinación de categorías. Una encuesta a 400 personas registra la zona donde viven y su medio de transporte principal:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th></th><th>Auto</th><th>Transporte público</th><th>Bicicleta</th><th>Total</th></tr></thead>
-        <tbody>
-          <tr><th>Centro</th><td>30</td><td>80</td><td>50</td><td><b>160</b></td></tr>
-          <tr><th>Periferia</th><td>120</td><td>90</td><td>30</td><td><b>240</b></td></tr>
-          <tr><th>Total</th><td><b>150</b></td><td><b>170</b></td><td><b>80</b></td><td><b>400</b></td></tr>
-        </tbody>
-      </table></div>
-      <p>Cada celda es una <b>frecuencia conjunta</b> \(n_{ij}\); los totales de los bordes son las <b>frecuencias marginales</b> \(n_{i\cdot}\) (filas) y \(n_{\cdot j}\) (columnas). Pero comparar conteos crudos engaña, porque hay más gente en la periferia. La pregunta “¿depende el transporte de la zona?” se responde con <b>porcentajes condicionales por fila</b>:</p>
-      <ul>
-        <li>En el centro: 18,8 % auto, 50 % transporte público, 31,3 % bicicleta.</li>
-        <li>En la periferia: 50 % auto, 37,5 % transporte público, 12,5 % bicicleta.</li>
-      </ul>
-      <p>Si el transporte no dependiera de la zona, las dos filas tendrían los mismos porcentajes, iguales a los del total (37,5 %, 42,5 %, 20 %). Esa es la definición de <b>independencia</b> en una tabla, y permite calcular las <b>frecuencias esperadas</b> y medir cuánto se aleja la tabla observada:</p>
-      <div class="eq">\[ e_{ij} = \frac{n_{i\cdot}\; n_{\cdot j}}{n}, \qquad \chi^2 = \sum_{i}\sum_{j} \frac{(n_{ij} - e_{ij})^2}{e_{ij}}, \qquad V = \sqrt{\frac{\chi^2}{n\,(\min(r, c) - 1)}} \]
-        <div class="note">Esperado de “Centro y Auto”: \(160 \cdot 150/400 = 60\), pero se observaron 30. Sumando las seis celdas, \(\chi^2 = 45{,}4\) con \((r-1)(c-1) = 2\) grados de libertad. La <b>V de Cramér</b> lo lleva a una escala de 0 (independencia) a 1 (asociación perfecta): \(V = \sqrt{45{,}4/(400 \cdot 1)} = 0{,}34\), una asociación moderada.</div>
-      </div>
-      <p>¿Por qué no basta con \(\chi^2\)? Porque crece con \(n\): si duplicas todas las celdas, los porcentajes no cambian pero \(\chi^2\) se duplica. \(\chi^2\) sirve para la prueba de hipótesis (lo verás en la clase de chi cuadrado); \(V\) sirve para describir la fuerza. Para tablas 2×2, \(V\) coincide con el valor absoluto del coeficiente \(\phi\), que es la correlación de Pearson entre los dos indicadores 0/1.</p>
-
-      <h2 id="bivar-lab2"><span class="sec">§ 6</span>Laboratorio: de la independencia a la asociación</h2>
-      <p>El <b>gráfico de mosaico</b> divide un cuadrado en rectángulos con área proporcional a cada celda: el ancho de cada columna es la proporción de la zona y las alturas son los porcentajes condicionales. Las líneas punteadas marcan dónde estarían los cortes si hubiera independencia. Con fuerza 1 ves la tabla de la clase; los totales de filas y columnas no cambian al mover el control.</p>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>En “Lineal”, fija n = 20 y ρ = 0,5 y pide diez muestras nuevas. Anota el menor y el mayor valor de Pearson.
+          <details><summary>Qué deberías observar</summary><p>Con 20 puntos, \(r\) puede ir de cerca de 0,1 a cerca de 0,8 alrededor del verdadero 0,5. La incertidumbre de una correlación con pocos datos es enorme (pregunta propuesta 3). Sube n a 300 y el rango se estrecha a unas pocas centésimas.</p></details></li>
+        <li>Elige “Monótona curva” y lleva ρ a 1.
+          <details><summary>Qué deberías observar</summary><p>Spearman y Kendall llegan a 1, porque el orden de \(y\) coincide exactamente con el de \(x\). Pearson se queda claramente por debajo: la relación es perfecta pero no es una recta. Es la propiedad 5.</p></details></li>
+        <li>Elige “En U” con ρ = 1.
+          <details><summary>Qué deberías observar</summary><p>Las tres medidas quedan cerca de 0 aunque la relación sea fuertísima: los puntos de la rama izquierda restan y los de la derecha suman a la covarianza, y se compensan. La cabecera muestra cuántos puntos suman y cuántos restan. Es la propiedad 4.</p></details></li>
+        <li>Elige “Con atípico”, ρ = 0,7, y compara n = 10 con n = 300.
+          <details><summary>Qué deberías observar</summary><p>Con n = 10, el punto atípico en la esquina opuesta arrastra a Pearson muchísimo (puede incluso cambiar de signo), mientras Spearman y Kendall bajan bastante menos. Con n = 300 el mismo punto casi no pesa: la influencia de un atípico disminuye con n, pero nunca es nula para Pearson.</p></details></li>
+      </ol>
+      <p><b>Laboratorio 2: de la independencia a la asociación.</b> El <b>gráfico de mosaico</b> divide un cuadrado en rectángulos con área proporcional a cada celda: el ancho de cada columna es la proporción de la zona y las alturas son los porcentajes condicionales. Las líneas punteadas marcan dónde estarían los cortes si hubiera independencia. Con fuerza 1 ves la tabla de la clase; los totales de filas y columnas no cambian al mover el control.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · tabla de contingencia</span><span class="num" id="bivar-t-head">–</span></div>
         <div class="lab-body">
@@ -147,14 +213,28 @@
         </div>
         <figcaption>Con fuerza 0 los cortes coinciden con las líneas punteadas y χ² = 0. Ahora deja la fuerza fija y sube n: los porcentajes y la V de Cramér no cambian, pero χ² crece en proporción a n y el valor p se desploma. Con n = 4 000, incluso una fuerza de 0,15 resulta “significativa” aunque la diferencia entre zonas sea pequeña.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Lleva la fuerza a 0 y luego a 2.
+          <details><summary>Qué deberías observar</summary><p>Con fuerza 0 los cortes coinciden con las líneas punteadas, \(\chi^2 = 0\) y \(V = 0\): independencia. Con fuerza 2 nadie del centro usa auto y \(V\) se duplica (0,67): la V de Cramér crece en proporción a la fuerza, \(\chi^2\) con su cuadrado.</p></details></li>
+        <li>Deja la fuerza en 1 y sube n de 400 a 4 000.
+          <details><summary>Qué deberías observar</summary><p>Los porcentajes, el mosaico y \(V = 0{,}337\) no cambian, pero \(\chi^2\) pasa de 45,4 a 454: se multiplica por 10, como dice la propiedad 6.</p></details></li>
+        <li>Con n = 4 000, baja la fuerza a 0,15. Después, con la misma fuerza, baja n a 400.
+          <details><summary>Qué deberías observar</summary><p>Con n = 4 000 y fuerza 0,15, \(\chi^2 \approx 10\) y el valor p es cerca de 0,006: “significativo”, aunque \(V \approx 0{,}05\) y los porcentajes de bicicleta por zona difieren en apenas unos puntos. Con n = 400 la misma asociación da \(p \approx 0{,}6\). Significancia estadística no es importancia práctica.</p></details></li>
+      </ol>
 
-      <h2 id="bivar-cuidado"><span class="sec">§ 7</span>Asociación no es causa</h2>
-      <p>Una correlación fuerte entre pantalla y sueño no prueba que la pantalla quite sueño. Podría ser al revés (quien no puede dormir se queda mirando el celular), o puede haber una tercera variable que mueve a las dos, como el estrés o los turnos de trabajo: una <b>variable de confusión</b>.</p>
-      <p>Con tablas de contingencia el efecto de una tercera variable puede ser dramático. En la <b>paradoja de Simpson</b>, una asociación que aparece en cada subgrupo se debilita, desaparece o se invierte al juntar los grupos. Ejemplo clásico: un tratamiento A tiene mayor tasa de éxito que B tanto en casos leves como en graves, pero como A se aplicó sobre todo a casos graves, en la tabla total parece peor.</p>
-      <div class="callout"><b>Checklist bivariado:</b> grafica siempre (dispersión, mosaico o barras apiladas); elige la medida según el tipo de variables y la forma de la relación; reporta porcentajes condicionales en la dirección que responde tu pregunta; desconfía de un valor alto de \(r\) o de \(\chi^2\) sin mirar atípicos, tamaño de muestra y posibles confusores.</div>
+      <h2 id="bivar-apl"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: elegir un tratamiento con datos observacionales</h3>
+      <p>El estudio de cálculos renales de Charig y colaboradores (1986) es un caso de manual. Si un hospital mirara solo la tabla total, adoptaría la técnica percutánea (83 % frente a 78 %). Estratificando por tamaño, la cirugía abierta es mejor en ambos grupos, y la razón de odds de Mantel-Haenszel, que combina los estratos, es cerca de 1,45 a su favor. La decisión clínica real fue más matizada (la percutánea es menos invasiva y se recomienda para cálculos pequeños), pero ningún análisis serio debe ignorar el confusor. Por eso los ensayos clínicos asignan el tratamiento al azar: así ninguna variable puede influir a la vez en la elección y en el resultado.</p>
+      <h3>Ciencias sociales: las admisiones de Berkeley</h3>
+      <p>En el otoño de 1973, la Universidad de California en Berkeley admitió al 44 % de los 8 442 hombres que postularon a posgrado y al 35 % de las 4 321 mujeres. La diferencia parecía discriminación. Bickel, Hammel y O'Connell (<i>Science</i>, 1975) analizaron los datos por departamento y encontraron que, en la mayoría, las mujeres eran admitidas en proporción similar o mayor. La diferencia global se debía a que las mujeres postulaban con más frecuencia a departamentos muy competitivos, con tasas de admisión bajas para todos. La tabla agregada respondía una pregunta distinta de la que importaba.</p>
+      <h3>Finanzas: correlación y diversificación</h3>
+      <p>Por la propiedad 3, la varianza de una cartera mitad en el activo 1 (\(\sigma_1 = 20\,\%\)) y mitad en el activo 2 (\(\sigma_2 = 15\,\%\)) es \(0{,}25\sigma_1^2 + 0{,}25\sigma_2^2 + 0{,}5\rho\sigma_1\sigma_2\). Con \(\rho = 0{,}2\) la volatilidad de la cartera es 13,6 %, menor que la de cada activo; con \(\rho = 0{,}8\) sube a 16,6 %. Los gestores eligen activos con baja correlación para diversificar. Una lección conocida de las crisis (2008, marzo de 2020) es que las correlaciones entre activos de riesgo tienden a subir justo cuando más se necesita la diversificación, así que se estiman también en períodos de estrés.</p>
+      <h3>Ciencia de datos: el cuarteto de Anscombe</h3>
+      <p>Francis Anscombe publicó en 1973 cuatro conjuntos de 11 puntos con las mismas medias, varianzas, correlación (\(r = 0{,}816\)) y recta de regresión (\(\hat y = 3 + 0{,}5x\)). Uno es una nube lineal razonable, otro una curva perfecta, otro una recta con un atípico y el último, una columna vertical con un punto alejado que crea toda la correlación. El dataset está incluido en R (<code>anscombe</code>) y en seaborn. En un flujo de selección de variables para un modelo, filtrar predictores por \(|r|\) sin graficar puede dejar fuera relaciones curvas fuertes o incluir variables cuya correlación depende de un solo dato. La decisión práctica: complementar \(r\) con Spearman, gráficos de dispersión y medidas de influencia (ver <a href="#eda">análisis exploratorio</a>).</p>
 
-      <h2 id="bivar-code"><span class="sec">§ 8</span>En R y Python</h2>
-      <p>Las tres correlaciones del ejemplo de pantalla y sueño, el efecto del atípico, y la tabla de transporte por zona con porcentajes, esperados, χ² y V de Cramér.</p>
+      <h2 id="bivar-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>Caso completo: las tres correlaciones de pantalla y sueño con su intervalo de confianza de Fisher, la recta de regresión y \(r^2\), el efecto del atípico, la tabla de transporte por zona con porcentajes, esperados, \(\chi^2\) y V de Cramér, y la tabla 2×2 del desayuno con \(\phi\) y razón de odds.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
@@ -165,60 +245,87 @@ df = pd.<span class="f">DataFrame</span>({
     <span class="s">"pantalla"</span>: [<span class="n">1.5</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">3.5</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">5.5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">8.5</span>],
     <span class="s">"sueno"</span>:    [<span class="n">8.2</span>, <span class="n">7.9</span>, <span class="n">7.6</span>, <span class="n">7.8</span>, <span class="n">7.1</span>, <span class="n">6.9</span>, <span class="n">7.2</span>, <span class="n">6.4</span>, <span class="n">6.5</span>, <span class="n">5.8</span>],
 })
-<span class="f">print</span>(df.<span class="f">cov</span>().iloc[<span class="n">0</span>, <span class="n">1</span>])                          <span class="c"># ≈ -1.616</span>
+x, y = df[<span class="s">"pantalla"</span>], df[<span class="s">"sueno"</span>]
+
+<span class="c"># 1. covarianza y las tres correlaciones</span>
+<span class="f">print</span>(<span class="f">round</span>(x.<span class="f">cov</span>(y), <span class="n">3</span>))                              <span class="c"># -1.616</span>
 <span class="k">for</span> m <span class="k">in</span> (<span class="s">"pearson"</span>, <span class="s">"spearman"</span>, <span class="s">"kendall"</span>):
-    <span class="f">print</span>(m, <span class="f">round</span>(df[<span class="s">"pantalla"</span>].<span class="f">corr</span>(df[<span class="s">"sueno"</span>], method=m), <span class="n">3</span>))
-<span class="c"># pearson -0.96, spearman -0.939, kendall -0.822</span>
+    <span class="f">print</span>(m, <span class="f">round</span>(x.<span class="f">corr</span>(y, method=m), <span class="n">3</span>))            <span class="c"># -0.96, -0.939, -0.822</span>
 
-<span class="c"># una persona atípica: Pearson se desploma, las de rango resisten</span>
+<span class="c"># 2. intervalo de confianza para r con la transformación z de Fisher</span>
+r, p = stats.<span class="f">pearsonr</span>(x, y)
+z, se = np.<span class="f">arctanh</span>(r), <span class="n">1</span> / np.<span class="f">sqrt</span>(<span class="f">len</span>(x) - <span class="n">3</span>)
+<span class="f">print</span>(np.<span class="f">tanh</span>([z - <span class="n">1.96</span> * se, z + <span class="n">1.96</span> * se]).<span class="f">round</span>(<span class="n">3</span>))   <span class="c"># ≈ [-0.991, -0.836]</span>
+
+<span class="c"># 3. r² y la recta de regresión: pendiente = r · s_y / s_x</span>
+b = r * y.<span class="f">std</span>() / x.<span class="f">std</span>()
+<span class="f">print</span>(<span class="f">round</span>(r**<span class="n">2</span>, <span class="n">3</span>), <span class="f">round</span>(b, <span class="n">3</span>), <span class="f">round</span>(y.<span class="f">mean</span>() - b * x.<span class="f">mean</span>(), <span class="n">2</span>))   <span class="c"># 0.922  -0.327  8.65</span>
+
+<span class="c"># 4. una persona atípica: Pearson se desploma, las de rango resisten</span>
 d2 = pd.<span class="f">concat</span>([df, pd.<span class="f">DataFrame</span>({<span class="s">"pantalla"</span>: [<span class="n">2.5</span>], <span class="s">"sueno"</span>: [<span class="n">4.0</span>]})])
-<span class="f">print</span>(stats.<span class="f">pearsonr</span>(d2.pantalla, d2.sueno)[<span class="n">0</span>],      <span class="c"># ≈ -0.33</span>
-      stats.<span class="f">spearmanr</span>(d2.pantalla, d2.sueno)[<span class="n">0</span>],     <span class="c"># ≈ -0.63</span>
-      stats.<span class="f">kendalltau</span>(d2.pantalla, d2.sueno)[<span class="n">0</span>])    <span class="c"># ≈ -0.56</span>
+<span class="f">print</span>([<span class="f">round</span>(d2.pantalla.<span class="f">corr</span>(d2.sueno, method=m), <span class="n">2</span>) <span class="k">for</span> m <span class="k">in</span> (<span class="s">"pearson"</span>, <span class="s">"spearman"</span>, <span class="s">"kendall"</span>)])
+<span class="c"># [-0.33, -0.63, -0.56]</span>
 
-<span class="c"># tabla de contingencia a partir de datos individuales</span>
-zona = np.<span class="f">repeat</span>([<span class="s">"Centro"</span>, <span class="s">"Periferia"</span>], [<span class="n">160</span>, <span class="n">240</span>])
-medio = np.<span class="f">concatenate</span>([np.<span class="f">repeat</span>([<span class="s">"Auto"</span>, <span class="s">"Público"</span>, <span class="s">"Bici"</span>], [<span class="n">30</span>, <span class="n">80</span>, <span class="n">50</span>]),
-                        np.<span class="f">repeat</span>([<span class="s">"Auto"</span>, <span class="s">"Público"</span>, <span class="s">"Bici"</span>], [<span class="n">120</span>, <span class="n">90</span>, <span class="n">30</span>])])
-tabla = pd.<span class="f">crosstab</span>(zona, medio, margins=<span class="k">True</span>)
-<span class="f">print</span>(tabla)
-<span class="f">print</span>(pd.<span class="f">crosstab</span>(zona, medio, normalize=<span class="s">"index"</span>).<span class="f">round</span>(<span class="n">3</span>))   <span class="c"># % por fila</span>
+<span class="c"># 5. tabla de contingencia: transporte según zona</span>
+tab = pd.<span class="f">DataFrame</span>([[<span class="n">30</span>, <span class="n">80</span>, <span class="n">50</span>], [<span class="n">120</span>, <span class="n">90</span>, <span class="n">30</span>]],
+                   index=[<span class="s">"Centro"</span>, <span class="s">"Periferia"</span>], columns=[<span class="s">"Auto"</span>, <span class="s">"Público"</span>, <span class="s">"Bici"</span>])
+<span class="f">print</span>((tab.<span class="f">div</span>(tab.<span class="f">sum</span>(axis=<span class="n">1</span>), axis=<span class="n">0</span>) * <span class="n">100</span>).<span class="f">round</span>(<span class="n">1</span>))   <span class="c"># % por fila</span>
+chi2, p, gl, esp = stats.<span class="f">chi2_contingency</span>(tab, correction=<span class="k">False</span>)
+V = np.<span class="f">sqrt</span>(chi2 / (tab.values.<span class="f">sum</span>() * (<span class="f">min</span>(tab.shape) - <span class="n">1</span>)))
+<span class="f">print</span>(<span class="f">round</span>(chi2, <span class="n">1</span>), gl, p, <span class="f">round</span>(V, <span class="n">3</span>))               <span class="c"># 45.4  2  ≈ 1.4e-10  0.337</span>
+<span class="f">print</span>(esp)                                              <span class="c"># Centro: 60, 68, 32</span>
 
-chi2, p, gl, esperados = stats.<span class="f">chi2_contingency</span>(pd.<span class="f">crosstab</span>(zona, medio), correction=<span class="k">False</span>)
-V = np.<span class="f">sqrt</span>(chi2 / (<span class="f">len</span>(zona) * (<span class="f">min</span>(<span class="n">2</span>, <span class="n">3</span>) - <span class="n">1</span>)))
-<span class="f">print</span>(chi2, gl, p, V)          <span class="c"># ≈ 45.4, 2, ≈ 1.4e-10, ≈ 0.337</span>
-<span class="f">print</span>(esperados)               <span class="c"># Centro: 60, 32, 68 (orden alfabético: Auto, Bici, Público)</span></code></pre>
+<span class="c"># 6. tabla 2x2 (desayuno y aprobación): phi y razón de odds</span>
+t2 = np.<span class="f">array</span>([[<span class="n">90</span>, <span class="n">30</span>], [<span class="n">40</span>, <span class="n">40</span>]])
+a, b_, c, d = t2.<span class="f">ravel</span>()
+phi = (a * d - b_ * c) / np.<span class="f">sqrt</span>(t2.<span class="f">sum</span>(<span class="n">1</span>).<span class="f">prod</span>() * t2.<span class="f">sum</span>(<span class="n">0</span>).<span class="f">prod</span>())
+<span class="f">print</span>(<span class="f">round</span>(phi, <span class="n">3</span>), a * d / (b_ * c))                  <span class="c"># 0.257  3.0</span></code></pre>
 <pre class="code" data-lang="r" hidden><code>df &lt;- <span class="f">data.frame</span>(
   pantalla = <span class="f">c</span>(<span class="n">1.5</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">3.5</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">5.5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">8.5</span>),
   sueno    = <span class="f">c</span>(<span class="n">8.2</span>, <span class="n">7.9</span>, <span class="n">7.6</span>, <span class="n">7.8</span>, <span class="n">7.1</span>, <span class="n">6.9</span>, <span class="n">7.2</span>, <span class="n">6.4</span>, <span class="n">6.5</span>, <span class="n">5.8</span>)
 )
-<span class="f">cov</span>(df$pantalla, df$sueno)                         <span class="c"># ≈ -1.616</span>
-<span class="f">sapply</span>(<span class="f">c</span>(<span class="s">"pearson"</span>, <span class="s">"spearman"</span>, <span class="s">"kendall"</span>),
-       <span class="k">function</span>(m) <span class="f">cor</span>(df$pantalla, df$sueno, method = m))
-<span class="c"># pearson -0.960, spearman -0.939, kendall -0.822</span>
-<span class="f">cor.test</span>(df$pantalla, df$sueno, method = <span class="s">"spearman"</span>)
+x &lt;- df$pantalla; y &lt;- df$sueno
 
-<span class="c"># una persona atípica</span>
+<span class="c"># 1. covarianza y las tres correlaciones</span>
+<span class="f">cov</span>(x, y)                                            <span class="c"># ≈ -1.616</span>
+<span class="f">sapply</span>(<span class="f">c</span>(<span class="s">"pearson"</span>, <span class="s">"spearman"</span>, <span class="s">"kendall"</span>), <span class="k">function</span>(m) <span class="f">cor</span>(x, y, method = m))
+<span class="c"># -0.960 -0.939 -0.822</span>
+
+<span class="c"># 2. intervalo de confianza para r (cor.test usa la z de Fisher)</span>
+<span class="f">cor.test</span>(x, y)$conf.int                              <span class="c"># ≈ -0.991 -0.836</span>
+
+<span class="c"># 3. r² y la recta de regresión</span>
+r &lt;- <span class="f">cor</span>(x, y)
+<span class="f">c</span>(r2 = r^<span class="n">2</span>, pendiente = r * <span class="f">sd</span>(y) / <span class="f">sd</span>(x))           <span class="c"># 0.922 -0.327</span>
+<span class="f">coef</span>(<span class="f">lm</span>(sueno ~ pantalla, df))                       <span class="c"># 8.65 -0.327</span>
+
+<span class="c"># 4. una persona atípica</span>
 d2 &lt;- <span class="f">rbind</span>(df, <span class="f">data.frame</span>(pantalla = <span class="n">2.5</span>, sueno = <span class="n">4.0</span>))
 <span class="f">sapply</span>(<span class="f">c</span>(<span class="s">"pearson"</span>, <span class="s">"spearman"</span>, <span class="s">"kendall"</span>),
        <span class="k">function</span>(m) <span class="f">cor</span>(d2$pantalla, d2$sueno, method = m))   <span class="c"># ≈ -0.33 -0.63 -0.56</span>
 
-<span class="c"># tabla de contingencia</span>
+<span class="c"># 5. tabla de contingencia</span>
 tab &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">30</span>, <span class="n">80</span>, <span class="n">50</span>, <span class="n">120</span>, <span class="n">90</span>, <span class="n">30</span>), nrow = <span class="n">2</span>, byrow = <span class="k">TRUE</span>,
               dimnames = <span class="f">list</span>(zona = <span class="f">c</span>(<span class="s">"Centro"</span>, <span class="s">"Periferia"</span>),
                               medio = <span class="f">c</span>(<span class="s">"Auto"</span>, <span class="s">"Público"</span>, <span class="s">"Bici"</span>)))
 <span class="f">addmargins</span>(tab)
-<span class="f">round</span>(<span class="f">prop.table</span>(tab, margin = <span class="n">1</span>), <span class="n">3</span>)               <span class="c"># % por fila</span>
+<span class="f">round</span>(<span class="n">100</span> * <span class="f">prop.table</span>(tab, margin = <span class="n">1</span>), <span class="n">1</span>)          <span class="c"># % por fila</span>
 prueba &lt;- <span class="f">chisq.test</span>(tab, correct = <span class="k">FALSE</span>)
-prueba$expected                                    <span class="c"># Centro: 60 68 32</span>
-prueba                                             <span class="c"># X-squared ≈ 45.4, df = 2, p ≈ 1.4e-10</span>
+prueba$expected                                      <span class="c"># Centro: 60 68 32</span>
+prueba                                               <span class="c"># X-squared ≈ 45.4, df = 2, p ≈ 1.4e-10</span>
 <span class="f">sqrt</span>(prueba$statistic / (<span class="f">sum</span>(tab) * (<span class="f">min</span>(<span class="f">dim</span>(tab)) - <span class="n">1</span>)))   <span class="c"># V ≈ 0.337</span>
-<span class="f">mosaicplot</span>(tab, main = <span class="s">"Transporte según zona"</span>)</code></pre>
+<span class="f">mosaicplot</span>(tab, main = <span class="s">"Transporte según zona"</span>)
+
+<span class="c"># 6. tabla 2x2: phi y razón de odds</span>
+t2 &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">90</span>, <span class="n">30</span>, <span class="n">40</span>, <span class="n">40</span>), nrow = <span class="n">2</span>, byrow = <span class="k">TRUE</span>)
+phi &lt;- (t2[<span class="n">1</span>, <span class="n">1</span>] * t2[<span class="n">2</span>, <span class="n">2</span>] - t2[<span class="n">1</span>, <span class="n">2</span>] * t2[<span class="n">2</span>, <span class="n">1</span>]) /
+  <span class="f">sqrt</span>(<span class="f">prod</span>(<span class="f">rowSums</span>(t2)) * <span class="f">prod</span>(<span class="f">colSums</span>(t2)))
+<span class="f">c</span>(phi = phi, OR = t2[<span class="n">1</span>, <span class="n">1</span>] * t2[<span class="n">2</span>, <span class="n">2</span>] / (t2[<span class="n">1</span>, <span class="n">2</span>] * t2[<span class="n">2</span>, <span class="n">1</span>]))   <span class="c"># 0.257 3</span></code></pre>
       </div>
 
-      <h2 id="bivar-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <h2 id="bivar-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="La correlación de Pearson no cambia con cambios de unidad que conservan el sentido (multiplicar por un número positivo y sumar una constante). Pasar de kilos a libras o de cm a pulgadas deja r exactamente igual." data-wrong="Recuerda que r es la covarianza dividida por las dos desviaciones típicas. Si multiplicas x por 2,2046, ¿qué les pasa a sₓᵧ y a sₓ?">
-        <h3>La correlación entre peso (kg) y estatura (cm) es 0,62. Si pasas el peso a libras y la estatura a pulgadas, la correlación…</h3>
+        <h3>1. La correlación entre peso (kg) y estatura (cm) es 0,62. Si pasas el peso a libras y la estatura a pulgadas, la correlación…</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="1"><span class="letter">A</span>sigue siendo 0,62</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>aumenta, porque las libras son números más grandes</button>
@@ -228,7 +335,7 @@ prueba                                             <span class="c"># X-squared �
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Una relación en U es fuerte pero no monótona: la mitad izquierda baja y la derecha sube, y sus contribuciones se cancelan. Pearson, Spearman y Kendall dan valores cercanos a 0. La lección: r = 0 no significa que no haya relación." data-wrong="Piensa en los cuadrantes alrededor del punto de medias en una parábola: ¿los productos de desvíos tienen todos el mismo signo o se compensan?">
-        <h3>El rendimiento de un atleta sube con la temperatura hasta 18 °C y luego baja simétricamente. ¿Qué correlación de Pearson esperas entre temperatura y rendimiento?</h3>
+        <h3>2. El rendimiento de un atleta sube con la temperatura hasta 18 °C y luego baja simétricamente. ¿Qué correlación de Pearson esperas entre temperatura y rendimiento?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cercana a 1</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Cercana a −1</button>
@@ -238,7 +345,7 @@ prueba                                             <span class="c"># X-squared �
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Con 10 veces más personas y los mismos porcentajes, cada (n − e)²/e se multiplica por 10, así que χ² se multiplica por 10. La V de Cramér divide por n y queda igual: la fuerza de la asociación no cambió." data-wrong="Escribe χ² con las frecuencias multiplicadas por 10: tanto n − e como e se multiplican por 10. ¿Qué le pasa al cociente? Y luego recuerda que V divide χ² por n.">
-        <h3>Repites la encuesta de transporte con 4 000 personas y obtienes exactamente los mismos porcentajes. ¿Qué pasa con χ² y con la V de Cramér?</h3>
+        <h3>3. Repites la encuesta de transporte con 4 000 personas y obtienes exactamente los mismos porcentajes. ¿Qué pasa con χ² y con la V de Cramér?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Ambos quedan iguales</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Ambos se multiplican por 10</button>
@@ -247,68 +354,149 @@ prueba                                             <span class="c"># X-squared �
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="La pendiente de la recta de mínimos cuadrados es r·s_y/s_x = 0,6 · 10/4 = 1,5 puntos por hora. Y r² = 0,36: la recta explica el 36 % de la varianza de la nota." data-wrong="Usa b₁ = r · s_y / s_x. Fíjate en cuál desviación va en el numerador: la de la variable que quieres predecir.">
+        <h3>4. Horas de estudio (sₓ = 4 h) y nota (s_y = 10 puntos) tienen r = 0,6. ¿Cuál es la pendiente de la recta de regresión de la nota sobre las horas?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,24 puntos por hora</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>1,5 puntos por hora</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>0,6 puntos por hora</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>6,7 puntos por hora</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Es la paradoja de Simpson: la tasa global mezcla grupos de distinta dificultad. Si B se aplicó sobre todo a casos leves, su tasa total sube aunque sea peor en cada grupo. Hay que comparar dentro de cada estrato." data-wrong="Piensa en cómo se repartieron los casos leves y graves entre los dos tratamientos. ¿Puede la mezcla de grupos cambiar la comparación?">
+        <h3>5. El tratamiento A tiene mayor tasa de éxito que B en casos leves y también en casos graves, pero menor tasa en el total. ¿Cuál es la explicación más probable?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Un error de cálculo: eso es imposible</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>B es mejor y los estratos no importan</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>A se aplicó más a casos graves: la gravedad es una variable de confusión</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La muestra es demasiado chica para concluir algo</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="bivar-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <h2 id="bivar-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Para 5 tiendas se registra la superficie \(x\) (cientos de m²) y las ventas \(y\) (millones): (1, 3), (2, 5), (3, 4), (4, 7), (5, 6). Calcula la covarianza y la correlación de Pearson.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra \(|\operatorname{Cov}(X, Y)| \le \sigma_X\sigma_Y\) usando que \(g(t) = \operatorname{Var}(Y - tX) \ge 0\) para todo \(t\) (piensa en el discriminante de una cuadrática). (b) Muestra que el valor de \(t\) que minimiza \(g\) es la pendiente de regresión poblacional \(\beta = \operatorname{Cov}(X,Y)/\sigma_X^2\) y que \(g(\beta) = \sigma_Y^2(1 - \rho^2)\). Interpreta \(1 - \rho^2\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>\(\bar x = 3\), \(\bar y = 5\). Desvíos de \(x\): −2, −1, 0, 1, 2; de \(y\): −2, 0, −1, 2, 1. Productos: 4, 0, 0, 2, 2, que suman 8. \(s_{xy} = 8/4 = 2\).</p>
-            <p>\(\sum (x-\bar x)^2 = 10\) y \(\sum (y - \bar y)^2 = 10\), así que \(s_x = s_y = \sqrt{10/4} = 1{,}58\) y \(r = 2/(1{,}58 \cdot 1{,}58) = 2/2{,}5 = 0{,}8\). Una asociación positiva fuerte: las tiendas más grandes tienden a vender más.</p>
+            <p>(a) \(g(t) = \sigma_Y^2 - 2t\operatorname{Cov}(X,Y) + t^2\sigma_X^2\) es una cuadrática en \(t\) que nunca es negativa, así que su discriminante es \(\le 0\): \(4\operatorname{Cov}^2 - 4\sigma_X^2\sigma_Y^2 \le 0\), es decir, \(|\operatorname{Cov}| \le \sigma_X\sigma_Y\) y \(|\rho| \le 1\). La igualdad ocurre si existe \(t\) con \(\operatorname{Var}(Y - tX) = 0\): \(Y = c + tX\) casi seguramente.</p>
+            <p>(b) \(g'(t) = -2\operatorname{Cov} + 2t\sigma_X^2 = 0 \Rightarrow t = \beta\). Sustituyendo: \(g(\beta) = \sigma_Y^2 - \operatorname{Cov}^2/\sigma_X^2 = \sigma_Y^2(1 - \rho^2)\). Es la varianza del error de la mejor predicción lineal de \(Y\) con \(X\): \(1 - \rho^2\) es la fracción de la varianza de \(Y\) que la recta no explica, y \(\rho^2\) la que sí.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Dos catadores ordenan 6 vinos del 1 (mejor) al 6. Catador A: 1, 2, 3, 4, 5, 6. Catador B, en el mismo orden de vinos: 2, 1, 4, 3, 6, 5. Calcula la correlación de Spearman y la tau de Kendall.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Sea \(X \sim \mathcal N(0, 1)\) e \(Y = X^2\). (a) Demuestra que \(\operatorname{Cov}(X, Y) = 0\). (b) Demuestra que \(X\) e \(Y\) no son independientes calculando \(P(Y &gt; 1 \mid |X| &gt; 1)\) y \(P(Y &gt; 1)\). (c) Calcula \(\operatorname{Corr}(|X|, Y)\) sabiendo que \(\mathbb E|X| = \sqrt{2/\pi}\), \(\mathbb E|X|^3 = 2\sqrt{2/\pi}\) y \(\mathbb E X^4 = 3\). ¿Qué enseña el ejemplo?</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Diferencias de rangos: −1, 1, −1, 1, −1, 1; \(\sum d_i^2 = 6\). \(\rho_s = 1 - 6 \cdot 6/(6 \cdot 35) = 1 - 36/210 = 0{,}829\).</p>
-            <p>De los \(\binom{6}{2} = 15\) pares, solo son discordantes los tres pares que B invirtió: (vino 1, 2), (3, 4) y (5, 6). \(C = 12\), \(D = 3\) y \(\tau = (12 - 3)/15 = 0{,}6\). Ambos catadores coinciden bastante; Kendall da un valor menor, como es habitual.</p>
+            <p>(a) \(\operatorname{Cov}(X, X^2) = \mathbb E[X^3] - \mathbb E[X]\mathbb E[X^2] = 0 - 0 = 0\), porque la normal estándar es simétrica y sus momentos impares son 0.</p>
+            <p>(b) \(P(Y &gt; 1 \mid |X| &gt; 1) = 1\), mientras que \(P(Y &gt; 1) = P(|X| &gt; 1) = 0{,}317\). Las condicionales difieren de la marginal: no son independientes.</p>
+            <p>(c) \(\operatorname{Cov}(|X|, X^2) = \mathbb E|X|^3 - \mathbb E|X|\cdot 1 = \sqrt{2/\pi} = 0{,}798\). \(\operatorname{Var}|X| = 1 - 2/\pi = 0{,}363\) y \(\operatorname{Var}(X^2) = 3 - 1 = 2\). Entonces \(\operatorname{Corr} = 0{,}798/\sqrt{0{,}363 \cdot 2} = 0{,}94\). Enseña que \(r\) detecta solo asociación lineal: la misma dependencia, mirada con la variable adecuada (\(|X|\)), da una correlación altísima. Para detectar dependencias generales existen medidas como la correlación de distancias.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>En 200 estudiantes se cruzó si desayunan (sí/no) con si aprobaron el examen: desayunan y aprueban 90, desayunan y reprueban 30, no desayunan y aprueban 40, no desayunan y reprueban 40. Calcula los porcentajes de aprobación por grupo, las frecuencias esperadas bajo independencia, χ² y la V de Cramér. ¿Prueba esto que desayunar mejora las notas?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simula 20 000 muestras de tamaño \(n = 20\) de una normal bivariada con \(\rho = 0{,}5\). (a) Describe la distribución muestral de \(r\): media, mediana y percentiles 2,5 y 97,5. (b) Verifica que \(\operatorname{arctanh}(r)\) tiene desviación cercana a \(1/\sqrt{n-3}\). (c) Estima la cobertura del intervalo de Fisher al 95 %. ¿Por qué no se usa directamente \(r \pm 1{,}96\,SE(r)\)?</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Aprobación: 90/120 = 75 % entre quienes desayunan, 40/80 = 50 % entre quienes no. Marginales: 120 y 80 por fila; 130 aprueban y 70 reprueban. Esperados: 78, 42, 52, 28.</p>
-            <p>\(\chi^2 = \tfrac{12^2}{78} + \tfrac{12^2}{42} + \tfrac{12^2}{52} + \tfrac{12^2}{28} = 1{,}85 + 3{,}43 + 2{,}77 + 5{,}14 = 13{,}19\) con 1 grado de libertad. \(V = \sqrt{13{,}19/200} = 0{,}26\): asociación de débil a moderada.</p>
-            <p>No prueba causalidad: quienes desayunan pueden dormir más, tener horarios más ordenados o más apoyo en casa. Haría falta un experimento o controlar esas variables.</p>
+            <p>(a) Media ≈ 0,49 y mediana ≈ 0,51 (sesgo leve hacia 0); percentiles ≈ 0,09 y 0,78: la distribución es asimétrica, con cola hacia los valores bajos, porque \(r\) no puede pasar de 1. (b) La desviación de \(z\) es ≈ 0,238, muy cerca de \(1/\sqrt{17} = 0{,}243\). (c) La cobertura es ≈ 0,95. Un intervalo simétrico en la escala de \(r\) ignora la asimetría y puede incluso pasar de 1 cuando \(r\) es grande; la transformación de Fisher estabiliza la varianza (no depende de \(\rho\)) y hace la distribución casi normal.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">11</span>)
+rho, n, R = <span class="n">0.5</span>, <span class="n">20</span>, 20_000
+cov = [[<span class="n">1</span>, rho], [rho, <span class="n">1</span>]]
+r = np.<span class="f">empty</span>(R); cubre = <span class="n">0</span>
+<span class="k">for</span> k <span class="k">in</span> <span class="f">range</span>(R):
+    x, y = rng.<span class="f">multivariate_normal</span>([<span class="n">0</span>, <span class="n">0</span>], cov, size=n).T
+    r[k] = np.<span class="f">corrcoef</span>(x, y)[<span class="n">0</span>, <span class="n">1</span>]
+    z, se = np.<span class="f">arctanh</span>(r[k]), <span class="n">1</span> / np.<span class="f">sqrt</span>(n - <span class="n">3</span>)
+    lo, hi = np.<span class="f">tanh</span>(z - <span class="n">1.96</span> * se), np.<span class="f">tanh</span>(z + <span class="n">1.96</span> * se)
+    cubre += lo &lt;= rho &lt;= hi
+<span class="f">print</span>(r.<span class="f">mean</span>(), np.<span class="f">median</span>(r))                        <span class="c"># ≈ 0.49 y 0.51: sesgo leve hacia 0</span>
+<span class="f">print</span>(np.<span class="f">percentile</span>(r, [<span class="n">2.5</span>, <span class="n">97.5</span>]))                 <span class="c"># ≈ [0.09, 0.78]: muy asimétrica</span>
+<span class="f">print</span>(np.<span class="f">arctanh</span>(r).<span class="f">std</span>(), <span class="n">1</span> / np.<span class="f">sqrt</span>(n - <span class="n">3</span>))      <span class="c"># ≈ 0.238 frente a 0.243</span>
+<span class="f">print</span>(cubre / R)                                     <span class="c"># ≈ 0.95</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">11</span>)
+rho &lt;- <span class="n">0.5</span>; n &lt;- <span class="n">20</span>; R &lt;- <span class="n">20000</span>
+sim &lt;- <span class="f">replicate</span>(R, {
+  x &lt;- <span class="f">rnorm</span>(n); y &lt;- rho * x + <span class="f">sqrt</span>(<span class="n">1</span> - rho^<span class="n">2</span>) * <span class="f">rnorm</span>(n)
+  r &lt;- <span class="f">cor</span>(x, y); z &lt;- <span class="f">atanh</span>(r); se &lt;- <span class="n">1</span> / <span class="f">sqrt</span>(n - <span class="n">3</span>)
+  <span class="f">c</span>(r = r, cubre = <span class="f">tanh</span>(z - <span class="n">1.96</span> * se) &lt;= rho &amp; rho &lt;= <span class="f">tanh</span>(z + <span class="n">1.96</span> * se))
+})
+<span class="f">c</span>(media = <span class="f">mean</span>(sim[<span class="s">"r"</span>, ]), mediana = <span class="f">median</span>(sim[<span class="s">"r"</span>, ]))   <span class="c"># ≈ 0.49  0.51</span>
+<span class="f">quantile</span>(sim[<span class="s">"r"</span>, ], <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))                       <span class="c"># ≈ 0.09  0.78</span>
+<span class="f">c</span>(sd_z = <span class="f">sd</span>(<span class="f">atanh</span>(sim[<span class="s">"r"</span>, ])), teorico = <span class="n">1</span> / <span class="f">sqrt</span>(n - <span class="n">3</span>))   <span class="c"># ≈ 0.24  0.243</span>
+<span class="f">mean</span>(sim[<span class="s">"cubre"</span>, ])                                        <span class="c"># ≈ 0.95</span></code></pre>
+            </div>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Simula 200 valores de \(x \sim \mathcal{N}(0, 1)\) y define \(y = e^{2x}\). Calcula las tres correlaciones. Después agrega 5 % de puntos atípicos con \(x = 3\) e \(y = 0\) y vuelve a calcular. Explica qué medida describe mejor la relación en cada caso, y comprueba que Spearman es la correlación de Pearson entre los rangos.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con los datos de cálculos renales: (a) calcula la tasa de éxito y la razón de odds de A frente a B en cada estrato y en el total. (b) Calcula la razón de odds común de Mantel-Haenszel \(OR_{MH} = \frac{\sum_k a_k d_k/n_k}{\sum_k b_k c_k/n_k}\). (c) Explica algebraicamente cómo puede invertirse la comparación: escribe la tasa total de cada tratamiento como promedio ponderado de sus tasas por estrato.</p>
           <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Pequeños: 93,1 % frente a 86,7 %, \(OR = 2{,}08\). Grandes: 73,0 % frente a 68,8 %, \(OR = 1{,}23\). Total: 78,0 % frente a 82,6 %, \(OR = 0{,}75\): la dirección se invierte.</p>
+            <p>(b) \(OR_{MH} \approx 1{,}45\): combinando dentro de los estratos, A tiene un 45 % más de chances de éxito.</p>
+            <p>(c) Tasa total de A \(= w_A \cdot 0{,}931 + (1 - w_A)\cdot 0{,}730\) con \(w_A = 87/350 = 0{,}25\) (proporción de pequeños en A); tasa de B \(= w_B \cdot 0{,}867 + (1 - w_B)\cdot 0{,}688\) con \(w_B = 270/350 = 0{,}77\). A gana en ambos estratos, pero B pone casi todo su peso en el estrato fácil. Si los pesos fueran iguales (\(w_A = w_B\)), A ganaría siempre: la inversión la produce la diferencia de pesos, que es la asociación entre el confusor y el tratamiento.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="c"># cálculos renales (Charig y colaboradores, 1986): éxitos y totales por tratamiento</span>
+<span class="c">#                 cirugía abierta (A)   nefrolitotomía percutánea (B)</span>
+datos = {<span class="s">"pequeños"</span>: ((<span class="n">81</span>, <span class="n">87</span>), (<span class="n">234</span>, <span class="n">270</span>)),
+         <span class="s">"grandes"</span>:  ((<span class="n">192</span>, <span class="n">263</span>), (<span class="n">55</span>, <span class="n">80</span>))}
+num = den = <span class="n">0</span>
+<span class="k">for</span> estrato, ((sa, na), (sb, nb)) <span class="k">in</span> datos.<span class="f">items</span>():
+    a, b, c, d = sa, na - sa, sb, nb - sb
+    <span class="f">print</span>(estrato, <span class="f">round</span>(sa / na, <span class="n">3</span>), <span class="f">round</span>(sb / nb, <span class="n">3</span>), <span class="f">round</span>(a * d / (b * c), <span class="n">2</span>))
+    n = na + nb
+    num += a * d / n; den += b * c / n
+<span class="f">print</span>(<span class="s">"total"</span>, <span class="f">round</span>(<span class="n">273</span> / <span class="n">350</span>, <span class="n">3</span>), <span class="f">round</span>(<span class="n">289</span> / <span class="n">350</span>, <span class="n">3</span>), <span class="f">round</span>(<span class="n">273</span> * <span class="n">61</span> / (<span class="n">77</span> * <span class="n">289</span>), <span class="n">2</span>))
+<span class="f">print</span>(<span class="s">"OR de Mantel-Haenszel"</span>, <span class="f">round</span>(num / den, <span class="n">2</span>))
+<span class="c"># pequeños 0.931 0.867 2.08 · grandes 0.73 0.688 1.23</span>
+<span class="c"># total 0.78 0.826 0.75 · OR de Mantel-Haenszel 1.45</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># tabla 2 x 2 x 2: tratamiento x resultado x tamaño del cálculo</span>
+t3 &lt;- <span class="f">array</span>(<span class="f">c</span>(<span class="n">81</span>, <span class="n">6</span>, <span class="n">234</span>, <span class="n">36</span>,     <span class="c"># pequeños: A éxito, A fracaso, B éxito, B fracaso</span>
+              <span class="n">192</span>, <span class="n">71</span>, <span class="n">55</span>, <span class="n">25</span>),   <span class="c"># grandes</span>
+            dim = <span class="f">c</span>(<span class="n">2</span>, <span class="n">2</span>, <span class="n">2</span>),
+            dimnames = <span class="f">list</span>(resultado = <span class="f">c</span>(<span class="s">"éxito"</span>, <span class="s">"fracaso"</span>),
+                            tratamiento = <span class="f">c</span>(<span class="s">"A"</span>, <span class="s">"B"</span>),
+                            tamano = <span class="f">c</span>(<span class="s">"pequeños"</span>, <span class="s">"grandes"</span>)))
+<span class="f">apply</span>(t3, <span class="n">3</span>, <span class="k">function</span>(t) t[<span class="s">"éxito"</span>, ] / <span class="f">colSums</span>(t))   <span class="c"># A gana en ambos estratos</span>
+total &lt;- <span class="f">apply</span>(t3, <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>), sum)
+total[<span class="s">"éxito"</span>, ] / <span class="f">colSums</span>(total)                      <span class="c"># pero B gana en el total: 0.78 frente a 0.83</span>
+<span class="f">mantelhaen.test</span>(t3)$estimate                           <span class="c"># OR común ≈ 1.45 (A mejor)</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simula 200 valores de \(x \sim \mathcal{N}(0, 1)\) y define \(y = e^{2x}\). Calcula las tres correlaciones. Después agrega 10 puntos atípicos con \(x = 3\) e \(y = 0\) y vuelve a calcular. Explica qué medida describe mejor la relación en cada caso, comprueba que Spearman es la correlación de Pearson entre los rangos y discute qué reportarías en un informe.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Sin atípicos la relación es perfectamente monótona: Spearman y Kendall valen exactamente 1, mientras Pearson ronda 0,6 porque la curva exponencial está lejos de ser una recta (y unos pocos valores enormes de \(y\) dominan la covarianza). Con los 10 atípicos los tres bajan: con la semilla del código, Pearson ≈ 0,41, Spearman ≈ 0,73 y Kendall ≈ 0,82. Spearman coincide con la correlación de Pearson entre los rangos (0,728 en ambos casos).</p>
+            <p>En un informe: mostrar el diagrama de dispersión (idealmente también en escala logarítmica de \(y\), donde la relación se vuelve lineal y Pearson sería casi 1), reportar Spearman o Kendall como medida principal, e investigar los 10 puntos anómalos antes de decidir si son errores o un subgrupo real.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> scipy <span class="k">import</span> stats
-
 rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
 x = rng.<span class="f">normal</span>(size=<span class="n">200</span>); y = np.<span class="f">exp</span>(<span class="n">2</span> * x)
 <span class="k">def</span> <span class="f">tres</span>(a, b):
-    <span class="k">return</span> [<span class="f">round</span>(f(a, b)[<span class="n">0</span>], <span class="n">3</span>) <span class="k">for</span> f <span class="k">in</span> (stats.pearsonr, stats.spearmanr, stats.kendalltau)]
-<span class="f">print</span>(<span class="f">tres</span>(x, y))             <span class="c"># Pearson ≈ 0.6, Spearman = 1, Kendall = 1</span>
-
-xa = np.<span class="f">r_</span>[x, np.<span class="f">full</span>(<span class="n">10</span>, <span class="n">3.0</span>)]; ya = np.<span class="f">r_</span>[y, np.<span class="f">zeros</span>(<span class="n">10</span>)]
-<span class="f">print</span>(<span class="f">tres</span>(xa, ya))           <span class="c"># Pearson cae mucho; Spearman y Kendall bajan menos</span>
-
+    <span class="k">return</span> [<span class="f">round</span>(<span class="f">f</span>(a, b)[<span class="n">0</span>], <span class="n">3</span>) <span class="k">for</span> f <span class="k">in</span> (stats.pearsonr, stats.spearmanr, stats.kendalltau)]
+<span class="f">print</span>(<span class="f">tres</span>(x, y))             <span class="c"># ≈ [0.59, 1.0, 1.0]</span>
+xa = np.r_[x, np.<span class="f">full</span>(<span class="n">10</span>, <span class="n">3.0</span>)]; ya = np.r_[y, np.<span class="f">zeros</span>(<span class="n">10</span>)]
+<span class="f">print</span>(<span class="f">tres</span>(xa, ya))           <span class="c"># ≈ [0.41, 0.73, 0.82]</span>
 <span class="c"># Spearman = Pearson de los rangos</span>
-<span class="f">print</span>(stats.<span class="f">pearsonr</span>(stats.<span class="f">rankdata</span>(xa), stats.<span class="f">rankdata</span>(ya))[<span class="n">0</span>],
+<span class="f">print</span>(stats.<span class="f">pearsonr</span>(stats.<span class="f">rankdata</span>(xa), stats.<span class="f">rankdata</span>(ya))[<span class="n">0</span>],   <span class="c"># 0.728 y 0.728</span>
       stats.<span class="f">spearmanr</span>(xa, ya)[<span class="n">0</span>])</code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">7</span>)
 x &lt;- <span class="f">rnorm</span>(<span class="n">200</span>); y &lt;- <span class="f">exp</span>(<span class="n">2</span> * x)
 tres &lt;- <span class="k">function</span>(a, b) <span class="f">sapply</span>(<span class="f">c</span>(<span class="s">"pearson"</span>, <span class="s">"spearman"</span>, <span class="s">"kendall"</span>),
                               <span class="k">function</span>(m) <span class="f">cor</span>(a, b, method = m))
 <span class="f">tres</span>(x, y)                      <span class="c"># Pearson ≈ 0.6, Spearman = 1, Kendall = 1</span>
-
 xa &lt;- <span class="f">c</span>(x, <span class="f">rep</span>(<span class="n">3</span>, <span class="n">10</span>)); ya &lt;- <span class="f">c</span>(y, <span class="f">rep</span>(<span class="n">0</span>, <span class="n">10</span>))
-<span class="f">tres</span>(xa, ya)                    <span class="c"># Pearson cae mucho; Spearman y Kendall bajan menos</span>
-
+<span class="f">tres</span>(xa, ya)                    <span class="c"># Pearson baja mucho más que las de rango</span>
 <span class="f">c</span>(<span class="f">cor</span>(<span class="f">rank</span>(xa), <span class="f">rank</span>(ya)), <span class="f">cor</span>(xa, ya, method = <span class="s">"spearman"</span>))   <span class="c"># iguales</span></code></pre>
             </div>
-            <p>Sin atípicos la relación es perfectamente monótona: Spearman y Kendall valen exactamente 1, mientras Pearson ronda 0,6 (el valor exacto depende de la muestra) porque la curva exponencial está lejos de ser una recta. Pearson describe mal esta relación; las de rango la describen perfecto.</p>
-            <p>Con los 10 atípicos (y = 0, el valor mínimo, en x = 3, el máximo), los tres coeficientes bajan, pero Pearson sufre más porque esos puntos quedan lejísimos de la nube en una escala donde \(y\) llega a valores de cientos. Spearman coincide exactamente con la correlación de Pearson entre los rangos, que es su definición.</p>
           </div></details>
         </div>
       </div>
