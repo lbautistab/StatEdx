@@ -5,59 +5,54 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Regresión logística</h1>
-      <p>¿Este cliente va a comprar? ¿Este estudiante va a aprobar? Cuando la respuesta es sí o no, necesitas un modelo que entregue probabilidades entre 0 y 1. Aquí aprendes a construirlo, a leer sus coeficientes como razones de momios y a evaluar sus predicciones con la matriz de confusión y la curva ROC.</p>
-      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
+      <p>¿Va a comprar este cliente? ¿Tiene esta persona la enfermedad? Cuando la respuesta es sí o no, la regresión logística modela la probabilidad de que ocurra, interpreta cada variable con razones de momios y, con un umbral, se convierte en un clasificador que evaluamos con la matriz de confusión y la curva ROC. Aquí derivas su verosimilitud, el algoritmo que la maximiza y las pruebas para hacer inferencia.</p>
+      <div class="lmeta"><span>100 min</span><span>Nivel avanzado</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#logit-idea" data-sec="logit-idea">La idea</a></li>
-        <li><a href="#logit-lineal" data-sec="logit-lineal">¿Por qué no una recta?</a></li>
+        <li><a href="#logit-idea" data-sec="logit-idea">Introducción</a></li>
+        <li><a href="#logit-def" data-sec="logit-def">Definición</a></li>
         <li><a href="#logit-modelo" data-sec="logit-modelo">Sigmoide y log-odds</a></li>
         <li><a href="#logit-coef" data-sec="logit-coef">Razones de momios</a></li>
         <li><a href="#logit-mv" data-sec="logit-mv">Máxima verosimilitud</a></li>
-        <li><a href="#logit-lab" data-sec="logit-lab">Laboratorio: ajusta la curva</a></li>
-        <li><a href="#logit-umbral" data-sec="logit-umbral">Umbral y matriz de confusión</a></li>
-        <li><a href="#logit-roc" data-sec="logit-roc">Curva ROC y AUC</a></li>
-        <li><a href="#logit-desbalance" data-sec="logit-desbalance">Clases desbalanceadas</a></li>
+        <li><a href="#logit-umbral" data-sec="logit-umbral">Clasificar: umbral y ROC</a></li>
+        <li><a href="#logit-prop" data-sec="logit-prop">Propiedades</a></li>
+        <li><a href="#logit-lab" data-sec="logit-lab">Ejercicios de simulación</a></li>
+        <li><a href="#logit-apps" data-sec="logit-apps">Aplicaciones reales</a></li>
         <li><a href="#logit-code" data-sec="logit-code">En R y Python</a></li>
-        <li><a href="#logit-quiz" data-sec="logit-quiz">Comprueba</a></li>
-        <li><a href="#logit-ej" data-sec="logit-ej">Ejercicios</a></li>
+        <li><a href="#logit-quiz" data-sec="logit-quiz">Quiz</a></li>
+        <li><a href="#logit-ej" data-sec="logit-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="logit-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="logit-idea"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una tienda en línea registra cuántos minutos pasa cada visitante en el sitio y si terminó comprando o no. La respuesta es binaria: \(Y = 1\) si compra y \(Y = 0\) si no. Lo que interesa no es un número de minutos, sino una <b>probabilidad</b>: ¿qué tan probable es que alguien que lleva 15 minutos navegando compre?</p>
       <p>Intuitivamente, quien pasa 2 minutos casi nunca compra y quien pasa 25 casi siempre lo hace. Entre ambos extremos la probabilidad sube, pero no en línea recta: sube lento al principio, rápido en la zona media y se aplana cerca del 100 %. Esa forma de “S” es justo lo que modela la regresión logística.</p>
-      <div class="callout"><b>Qué vas a aprender:</b> el modelo no predice \(Y\) directamente, predice \(p(x) = P(Y = 1 \mid x)\). Después, si necesitas una decisión de sí o no, eliges un <b>umbral</b> y comparas \(p(x)\) con él.</div>
-
-      <h2 id="logit-lineal"><span class="sec">§ 2</span>¿Por qué no una recta?</h2>
-      <p>Podrías ajustar una regresión lineal común con \(Y \in \{0, 1\}\) como respuesta. Se llama <b>modelo lineal de probabilidad</b> y tiene problemas serios:</p>
-      <ul>
-        <li><b>Predicciones imposibles.</b> Una recta no tiene techo ni piso: con 40 minutos puede predecir una “probabilidad” de 1,3, y con 0 minutos una de −0,2.</li>
-        <li><b>Varianza no constante.</b> Si \(Y\) es Bernoulli, \(\operatorname{Var}(Y \mid x) = p(x)\,[1 - p(x)]\), que cambia con \(x\). Se rompe el supuesto de homocedasticidad, y los errores estándar habituales dejan de ser válidos.</li>
-        <li><b>Errores que no son normales.</b> Para cada \(x\) el residuo solo puede tomar dos valores, así que los intervalos y pruebas basados en la normal no aplican.</li>
-        <li><b>Efecto constante poco realista.</b> La recta dice que pasar de 1 a 2 minutos sube la probabilidad lo mismo que pasar de 15 a 16. En la práctica el efecto es mayor en la zona media.</li>
-      </ul>
-      <p>La solución es transformar la combinación lineal \(\beta_0 + \beta_1 x\), que puede valer cualquier número real, en algo que siempre quede entre 0 y 1.</p>
-
-      <h2 id="logit-modelo"><span class="sec">§ 3</span>La función sigmoide y los log-odds</h2>
-      <p>La <b>función logística</b> o <b>sigmoide</b> convierte cualquier número real \(z\) en un valor entre 0 y 1:</p>
-      <div class="eq">\[ \sigma(z) = \frac{1}{1 + e^{-z}} \qquad\Longrightarrow\qquad p(x) = P(Y = 1 \mid x) = \frac{1}{1 + e^{-(\beta_0 + \beta_1 x)}} \]
-        <div class="note">El modelo completo es \(Y_i \sim \text{Bernoulli}\big(p(x_i)\big)\), con observaciones independientes. No hay un término de error \(\varepsilon\) sumado: la aleatoriedad está en la Bernoulli.</div>
+      <p>Un poco de historia. La curva logística la propuso Pierre-François Verhulst en 1838 para describir el crecimiento de poblaciones que se saturan. Joseph Berkson acuñó en 1944 la palabra <b>logit</b> y la defendió frente al probit, entonces dominante en toxicología. David Cox formalizó en 1958 la regresión logística para respuestas binarias, y en 1972 Nelder y Wedderburn la ubicaron dentro de los <a href="#glm">modelos lineales generalizados</a>. Hoy es el modelo estándar en epidemiología, en riesgo de crédito y la base de las redes neuronales de clasificación.</p>
+      <div class="callout"><b>La idea central:</b> el modelo no predice \(Y\) directamente, predice \(p(x) = P(Y = 1 \mid x)\). Después, si necesitas una decisión de sí o no, eliges un <b>umbral</b> y comparas \(p(x)\) con él.</div>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>Por qué una recta no sirve para probabilidades y cómo la sigmoide resuelve el problema.</li>
+          <li>A interpretar coeficientes como razones de momios y a traducirlos a probabilidades.</li>
+          <li>A derivar la log-verosimilitud, su gradiente y su hessiana, y el algoritmo de Newton (IRLS).</li>
+          <li>A hacer inferencia con pruebas de Wald y de razón de verosimilitudes, devianza y AIC.</li>
+          <li>A convertir probabilidades en decisiones con un umbral y a evaluarlas con la matriz de confusión, la curva ROC y el AUC.</li>
+          <li>A manejar clases desbalanceadas y separación perfecta.</li>
+        </ul>
       </div>
-      <p>Propiedades útiles de \(\sigma\):</p>
+
+      <h2 id="logit-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> Dadas observaciones independientes \((\mathbf x_i, y_i)\) con \(y_i \in \{0,1\}\), el <b>modelo de regresión logística</b> postula \[ Y_i \mid \mathbf x_i \sim \text{Bernoulli}(p_i), \qquad \operatorname{logit}(p_i) = \ln\frac{p_i}{1-p_i} = \beta_0 + \beta_1x_{i1} + \cdots + \beta_px_{ip} = \mathbf x_i^\top\boldsymbol\beta, \] o, de forma equivalente, \(p_i = \sigma(\mathbf x_i^\top\boldsymbol\beta)\) con \(\sigma(z) = 1/(1 + e^{-z})\).</div>
       <ul>
-        <li>\(\sigma(0) = 0{,}5\), así que \(p(x) = 0{,}5\) justo cuando \(\beta_0 + \beta_1 x = 0\), es decir, en \(x^\ast = -\beta_0 / \beta_1\).</li>
-        <li>Es simétrica: \(\sigma(-z) = 1 - \sigma(z)\).</li>
-        <li>Su derivada es \(\sigma'(z) = \sigma(z)\,[1 - \sigma(z)]\). La pendiente máxima de \(p(x)\) es \(\beta_1/4\) y ocurre en \(x^\ast\). Por eso, dividir \(\beta_1\) entre 4 da una cota del cambio máximo en probabilidad por unidad de \(x\).</li>
+        <li>\(p_i = P(Y_i = 1 \mid \mathbf x_i)\): probabilidad de “éxito” (comprar, enfermar, incumplir).</li>
+        <li><b>Momios</b> (<i>odds</i>): \(p/(1-p)\), cuántas veces más probable es que ocurra a que no ocurra. Van de 0 a \(\infty\).</li>
+        <li><b>Logit</b> o <b>log-odds</b>: \(\ln[p/(1-p)]\), que va de \(-\infty\) a \(\infty\); es la escala en la que el modelo es lineal.</li>
+        <li>\(\eta_i = \mathbf x_i^\top\boldsymbol\beta\): <b>predictor lineal</b>. No hay un término de error \(\varepsilon\) sumado: la aleatoriedad está en la Bernoulli, y \(\operatorname{Var}(Y_i) = p_i(1-p_i)\).</li>
       </ul>
-      <p>Ahora despejamos. Los <b>momios</b> (en inglés <i>odds</i>) comparan la probabilidad de que ocurra algo con la de que no ocurra: si \(p = 0{,}8\), los momios son \(0{,}8 / 0{,}2 = 4\), “4 a 1”. Su logaritmo se llama <b>logit</b> o <b>log-odds</b>:</p>
-      <div class="eq">\[ \operatorname{logit}(p) = \ln\!\left(\frac{p}{1 - p}\right) = \beta_0 + \beta_1 x \]
-        <div class="note">La regresión logística es lineal, pero en la escala de los log-odds, no en la de la probabilidad. Es un modelo lineal generalizado (GLM) con distribución binomial y función de enlace logit.</div>
-      </div>
+      <p><b>Ejemplo numérico pequeño.</b> Con \(\beta_0 = -4\) y \(\beta_1 = 0{,}3\) por minuto: a los 10 minutos, \(\eta = -1\), los momios son \(e^{-1} = 0{,}368\) y \(p = 0{,}368/1{,}368 = 0{,}269\). A los 11 minutos, \(\eta = -0{,}7\), momios \(0{,}497\), \(p = 0{,}332\). El cociente de momios es \(0{,}497/0{,}368 = 1{,}35 = e^{0{,}3}\), mientras que la probabilidad sube 6,3 puntos.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Probabilidad p</th><th>Momios p/(1−p)</th><th>Log-odds</th></tr></thead>
         <tbody>
@@ -68,6 +63,26 @@
           <tr><td>0,90</td><td>9</td><td>2,20</td></tr>
         </tbody>
       </table></div>
+
+      <h2 id="logit-modelo"><span class="sec">§ 3</span>Por qué no una recta: la sigmoide y los log-odds</h2>
+      <p>Podrías ajustar una regresión lineal común con \(Y \in \{0, 1\}\) como respuesta. Se llama <b>modelo lineal de probabilidad</b> y tiene problemas serios:</p>
+      <ul>
+        <li><b>Predicciones imposibles.</b> Una recta no tiene techo ni piso: con 40 minutos puede predecir una “probabilidad” de 1,3, y con 0 minutos una de −0,2.</li>
+        <li><b>Varianza no constante.</b> Si \(Y\) es Bernoulli, \(\operatorname{Var}(Y \mid x) = p(x)\,[1 - p(x)]\), que cambia con \(x\). Se rompe el supuesto de homocedasticidad (ver <a href="#diag">diagnóstico</a>), y los errores estándar habituales dejan de ser válidos.</li>
+        <li><b>Errores que no son normales.</b> Para cada \(x\) el residuo solo puede tomar dos valores, así que los intervalos y pruebas basados en la normal no aplican.</li>
+        <li><b>Efecto constante poco realista.</b> La recta dice que pasar de 1 a 2 minutos sube la probabilidad lo mismo que pasar de 15 a 16. En la práctica el efecto es mayor en la zona media.</li>
+      </ul>
+      <p>La solución es transformar la combinación lineal \(\beta_0 + \beta_1 x\), que puede valer cualquier número real, en algo que siempre quede entre 0 y 1. La <b>función logística</b> o <b>sigmoide</b> lo hace:</p>
+      <div class="eq">\[ \sigma(z) = \frac{1}{1 + e^{-z}} \qquad\Longrightarrow\qquad p(x) = P(Y = 1 \mid x) = \frac{1}{1 + e^{-(\beta_0 + \beta_1 x)}} \]
+        <div class="note">Despejando \(z\) de \(p = 1/(1+e^{-z})\): \(1/p - 1 = e^{-z}\), es decir \((1-p)/p = e^{-z}\) y \(z = \ln[p/(1-p)]\). La sigmoide es la inversa del logit.</div>
+      </div>
+      <p>Propiedades útiles de \(\sigma\):</p>
+      <ul>
+        <li>\(\sigma(0) = 0{,}5\), así que \(p(x) = 0{,}5\) justo cuando \(\beta_0 + \beta_1 x = 0\), es decir, en \(x^\ast = -\beta_0 / \beta_1\).</li>
+        <li>Es simétrica: \(\sigma(-z) = 1 - \sigma(z)\), porque \(\frac{1}{1+e^{z}} = \frac{e^{-z}}{e^{-z}+1}\).</li>
+        <li>Su derivada es \(\sigma'(z) = \frac{e^{-z}}{(1+e^{-z})^2} = \sigma(z)\,[1 - \sigma(z)]\). Por la regla de la cadena, \(dp/dx = \beta_1 p(1-p)\), con máximo \(\beta_1/4\) en \(x^\ast\). Por eso, dividir \(\beta_1\) entre 4 da una cota del cambio máximo en probabilidad por unidad de \(x\) (la “regla de dividir entre 4”).</li>
+      </ul>
+      <p><b>Dos justificaciones del logit.</b> (1) <i>Variable latente:</i> supón una propensión no observada \(y^\ast = \beta_0 + \beta_1x + \varepsilon\), y que observas \(y = 1\) si \(y^\ast &gt; 0\). Si \(\varepsilon\) sigue la distribución logística estándar, \(P(y = 1) = P(\varepsilon &gt; -\eta) = \sigma(\eta)\). Si \(\varepsilon\) fuera normal, saldría el modelo <b>probit</b>, \(\Phi(\eta)\), casi idéntico en la práctica (\(\beta_{logit} \approx 1{,}6\,\beta_{probit}\)). (2) <i>Familia exponencial:</i> la Bernoulli se escribe \(p^y(1-p)^{1-y} = \exp\{y\ln\frac{p}{1-p} + \ln(1-p)\}\): el logit es su parámetro natural, el <b>enlace canónico</b> del GLM binomial.</p>
 
       <h2 id="logit-coef"><span class="sec">§ 4</span>Interpretar coeficientes: razones de momios</h2>
       <p>Como el modelo es lineal en log-odds, \(\beta_1\) es el cambio en los log-odds cuando \(x\) aumenta en una unidad. Esa escala es difícil de imaginar, así que se exponencia:</p>
@@ -83,28 +98,78 @@
           <tr><td>β₁ &lt; 0</td><td>OR &lt; 1</td><td>x más alto, momios más bajos</td></tr>
         </tbody>
       </table></div>
-      <p>El intercepto \(\beta_0\) son los log-odds cuando \(x = 0\); \(\sigma(\beta_0)\) es la probabilidad en ese punto. Solo tiene sentido práctico si \(x = 0\) es un valor razonable. Con varias variables, cada \(e^{\beta_j}\) es la razón de momios manteniendo las demás constantes.</p>
-      <p>Para la inferencia, el estimador \(\hat\beta_1\) es aproximadamente normal en muestras grandes. La prueba de Wald usa \(z = \hat\beta_1 / \operatorname{EE}(\hat\beta_1)\) y el intervalo al 95 % para la razón de momios es \(\exp\big(\hat\beta_1 \pm 1{,}96\,\operatorname{EE}\big)\). Si ese intervalo contiene al 1, no hay evidencia de efecto al 5 %.</p>
-      <div class="callout"><b>Error común:</b> decir que “cada minuto aumenta la probabilidad de compra en 35 %”. Lo que aumenta en 35 % son los <b>momios</b>. El cambio en probabilidad depende de dónde estés en la curva: es grande cerca de \(p = 0{,}5\) y pequeño en los extremos.</div>
+      <p>El intercepto \(\beta_0\) son los log-odds cuando \(x = 0\); \(\sigma(\beta_0)\) es la probabilidad en ese punto. Solo tiene sentido práctico si \(x = 0\) es un valor razonable. Con varias variables, cada \(e^{\beta_j}\) es la razón de momios manteniendo las demás constantes, igual que en <a href="#regmult">regresión múltiple</a>. Con una indicadora \(D\) (por ejemplo, fumador), \(e^{\beta_D}\) compara los momios de los dos grupos; en una tabla de 2 × 2 con celdas \(a, b, c, d\), el modelo reproduce exactamente \(OR = ad/(bc)\).</p>
+      <p><b>OR frente a riesgo relativo.</b> El riesgo relativo es \(RR = p_1/p_0\). Como \(OR = RR\cdot\frac{1-p_0}{1-p_1}\), los dos se parecen cuando el evento es raro (\(p\) pequeños) y se separan cuando es frecuente: con \(p_0 = 0{,}4\) y \(p_1 = 0{,}6\), \(RR = 1{,}5\) pero \(OR = 2{,}25\). Reportar un OR como si fuera “veces más probable” exagera el efecto en eventos comunes.</p>
+      <div class="callout"><b>Error común:</b> decir que “cada minuto aumenta la probabilidad de compra en 35 %”. Lo que aumenta en 35 % son los <b>momios</b>. El cambio en probabilidad depende de dónde estés en la curva: es grande cerca de \(p = 0{,}5\) y pequeño en los extremos. Para comunicar en probabilidades, usa efectos marginales promedio, \(\frac1n\sum\hat\beta_1\hat p_i(1-\hat p_i)\), o compara \(\hat p\) en valores concretos de \(x\).</div>
 
-      <h2 id="logit-mv"><span class="sec">§ 5</span>Estimación por máxima verosimilitud</h2>
-      <p>En regresión lineal minimizas la suma de cuadrados. Aquí se eligen los \(\beta\) que hacen <b>más probables los datos observados</b>. Cada observación aporta \(p_i\) si \(y_i = 1\) y \(1 - p_i\) si \(y_i = 0\), y la verosimilitud es el producto de esos aportes:</p>
-      <div class="eq">\[ L(\beta) = \prod_{i=1}^{n} p_i^{\,y_i}\,(1 - p_i)^{1 - y_i}, \qquad \ell(\beta) = \sum_{i=1}^{n} \Big[ y_i \ln p_i + (1 - y_i) \ln(1 - p_i) \Big] \]
-        <div class="note">Con \(p_i = \sigma(\beta_0 + \beta_1 x_i)\). Trabajamos con el logaritmo \(\ell\) porque convierte el producto en suma y es numéricamente estable.</div>
+      <h2 id="logit-mv"><span class="sec">§ 5</span>Estimación por máxima verosimilitud e inferencia</h2>
+      <p>En regresión lineal minimizas la suma de cuadrados. Aquí se eligen los \(\boldsymbol\beta\) que hacen <b>más probables los datos observados</b>. Cada observación aporta \(p_i\) si \(y_i = 1\) y \(1 - p_i\) si \(y_i = 0\), y la verosimilitud es el producto de esos aportes:</p>
+      <div class="eq">\[ L(\boldsymbol\beta) = \prod_{i=1}^{n} p_i^{\,y_i}\,(1 - p_i)^{1 - y_i}, \qquad \ell(\boldsymbol\beta) = \sum_{i=1}^{n} \Big[ y_i \ln p_i + (1 - y_i) \ln(1 - p_i) \Big] = \sum_{i=1}^n\Big[y_i\eta_i - \ln(1 + e^{\eta_i})\Big] \]
+        <div class="note">La última forma sale de \(\ln p_i - \ln(1-p_i) = \eta_i\) y \(\ln(1-p_i) = -\ln(1+e^{\eta_i})\). En aprendizaje automático se usa la versión con signo cambiado y promediada, la <b>log-loss</b> o entropía cruzada binaria: \(-\ell/n\). Castiga mucho las predicciones seguras y equivocadas: si \(y_i = 1\) y el modelo dice \(p_i = 0{,}01\), esa observación aporta \(-\ln 0{,}01 \approx 4{,}6\). Un modelo que siempre dice 0,5 tiene log-loss \(\ln 2 \approx 0{,}693\).</div>
       </div>
-      <p>En aprendizaje automático se usa la versión con signo cambiado y promediada, la <b>pérdida logarítmica</b> o <b>log-loss</b> (también llamada entropía cruzada binaria):</p>
-      <div class="eq">\[ \text{log-loss} = -\frac{1}{n}\,\ell(\beta) = -\frac{1}{n} \sum_{i=1}^{n} \Big[ y_i \ln p_i + (1 - y_i) \ln(1 - p_i) \Big] \]
-        <div class="note">Castiga mucho las predicciones seguras y equivocadas: si \(y_i = 1\) y el modelo dice \(p_i = 0{,}01\), esa observación aporta \(-\ln 0{,}01 \approx 4{,}6\). Un modelo que siempre dice 0,5 tiene log-loss \(\ln 2 \approx 0{,}693\).</div>
+      <p><b>Gradiente y hessiana.</b> Derivando la última forma, con \(\partial\ln(1+e^{\eta})/\partial\eta = p\):</p>
+      <div class="eq">\[ \nabla\ell = \sum_{i=1}^n (y_i - p_i)\,\mathbf x_i = X^\top(\mathbf y - \mathbf p), \qquad \nabla^2\ell = -\sum_{i=1}^n p_i(1-p_i)\,\mathbf x_i\mathbf x_i^\top = -X^\top WX \]
+        <div class="note">\(W = \operatorname{diag}\big(p_i(1-p_i)\big)\). La hessiana es definida negativa (si \(X\) tiene rango completo), así que \(\ell\) es <b>estrictamente cóncava</b>: si el máximo existe, es único y no hay máximos locales que te engañen. La primera ecuación \(\sum(y_i - \hat p_i) = 0\) dice que, con intercepto, las probabilidades ajustadas suman exactamente el número de éxitos observados.</div>
       </div>
-      <p>No hay fórmula cerrada para el máximo. Se resuelve numéricamente usando el gradiente, que tiene una forma muy limpia:</p>
-      <div class="eq">\[ \frac{\partial \ell}{\partial \beta_0} = \sum_{i=1}^{n} (y_i - p_i), \qquad \frac{\partial \ell}{\partial \beta_1} = \sum_{i=1}^{n} (y_i - p_i)\,x_i \]
-        <div class="note">El descenso de gradiente da pasos en esa dirección. El método de Newton-Raphson (en estadística, mínimos cuadrados reponderados o IRLS) usa además la curvatura y converge en pocas iteraciones. <code>glm</code> y <code>statsmodels</code> usan esta segunda opción.</div>
-      </div>
-      <p>Dos hechos importantes: la log-verosimilitud es <b>cóncava</b>, así que el máximo, si existe, es único y no hay mínimos locales que te engañen. Y si los datos están <b>perfectamente separados</b> (todos los que compran pasaron más de 12 minutos y todos los que no, menos), el máximo no existe: \(\hat\beta_1\) crece sin límite y el software avisa con mensajes de convergencia o probabilidades ajustadas de 0 y 1.</p>
-      <p>Para comparar modelos se usa la <b>devianza</b> \(D = -2\ell\) (menor es mejor) y el AIC. Una medida de ajuste análoga al \(R^2\) es el pseudo-\(R^2\) de McFadden, \(1 - \ell_{\text{modelo}} / \ell_{\text{nulo}}\), donde el modelo nulo solo tiene intercepto.</p>
+      <p>No hay fórmula cerrada para \(X^\top(\mathbf y - \mathbf p) = \mathbf 0\). El método de <b>Newton-Raphson</b> itera \(\boldsymbol\beta^{(t+1)} = \boldsymbol\beta^{(t)} + (X^\top WX)^{-1}X^\top(\mathbf y - \mathbf p)\). Reordenando, \(\boldsymbol\beta^{(t+1)} = (X^\top WX)^{-1}X^\top W\mathbf z\) con la respuesta de trabajo \(\mathbf z = X\boldsymbol\beta^{(t)} + W^{-1}(\mathbf y - \mathbf p)\): cada paso es una regresión por mínimos cuadrados ponderados. Por eso se llama <b>IRLS</b> (mínimos cuadrados reponderados iterativamente), y es lo que usan <code>glm</code> y <code>statsmodels</code>. Converge en 4 a 8 iteraciones.</p>
+      <p><b>Inferencia.</b> Por la teoría asintótica de máxima verosimilitud, \(\hat{\boldsymbol\beta} \approx \mathcal N\big(\boldsymbol\beta, (X^\top\hat WX)^{-1}\big)\): la inversa de la información de Fisher da los errores estándar.</p>
+      <ul>
+        <li><b>Wald:</b> \(z = \hat\beta_j/\operatorname{EE}(\hat\beta_j)\). El intervalo al 95 % para la razón de momios es \(\exp\big(\hat\beta_j \pm 1{,}96\,\operatorname{EE}\big)\); si contiene al 1, no hay evidencia de efecto al 5 %.</li>
+        <li><b>Razón de verosimilitudes:</b> para modelos anidados, \(G^2 = 2(\ell_{\text{grande}} - \ell_{\text{chico}}) \sim \chi^2_q\) bajo \(H_0\), con \(q\) parámetros de diferencia. Es más confiable que Wald con muestras chicas o efectos grandes.</li>
+        <li><b>Devianza</b> \(D = -2\ell\) (con datos binarios individuales) y <b>AIC</b> \(= D + 2(p+1)\) para comparar modelos; menor es mejor. El pseudo-\(R^2\) de McFadden es \(1 - \ell_{\text{modelo}}/\ell_{\text{nulo}}\), donde el modelo nulo solo tiene intercepto.</li>
+      </ul>
+      <p><b>Separación perfecta.</b> Si los datos están perfectamente separados (todos los que compran pasaron más de 12 minutos y todos los que no, menos), \(\ell\) crece sin límite al aumentar \(\beta_1\): el máximo no existe. El software avisa con mensajes de convergencia o probabilidades ajustadas de 0 y 1. Remedios: regularización (penalizar \(\lVert\boldsymbol\beta\rVert^2\)), el método de Firth o, en enfoque <a href="#bayesreg">bayesiano</a>, una distribución a priori sobre \(\boldsymbol\beta\).</p>
 
-      <h2 id="logit-lab"><span class="sec">§ 6</span>Laboratorio: ajusta la curva</h2>
-      <p>Cada punto es un visitante: arriba los que compraron, abajo los que no. Mueve \(\beta_0\) y \(\beta_1\) para bajar la log-loss tanto como puedas. Luego pulsa el botón y mira cómo el método de Newton llega al mínimo en pocos pasos. Los puntos resaltados son los que la curva clasifica mal con umbral 0,5.</p>
+      <h2 id="logit-umbral"><span class="sec">§ 6</span>Clasificar: umbral, matriz de confusión y ROC</h2>
+      <p>El modelo entrega probabilidades. Para decidir, por ejemplo, a quién enviarle un cupón, eliges un <b>umbral</b> \(c\) y predices \(\hat y = 1\) si \(p(x) \ge c\). El valor 0,5 es solo una convención: el umbral correcto depende del costo de cada tipo de error. Si un falso positivo cuesta \(C_{FP}\) y un falso negativo \(C_{FN}\), predecir 1 conviene cuando \(p\,C_{FN} &gt; (1-p)\,C_{FP}\), es decir, con \(c^\ast = C_{FP}/(C_{FP} + C_{FN})\). Si perder un caso cuesta 9 veces más que una falsa alarma, \(c^\ast = 0{,}1\).</p>
+      <p>Al comparar predicciones con la realidad aparecen cuatro casos, que se ordenan en la <b>matriz de confusión</b>:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th></th><th>Real: sí (1)</th><th>Real: no (0)</th></tr></thead>
+        <tbody>
+          <tr><td><b>Predicho: sí</b></td><td>VP · verdadero positivo</td><td>FP · falso positivo</td></tr>
+          <tr><td><b>Predicho: no</b></td><td>FN · falso negativo</td><td>VN · verdadero negativo</td></tr>
+        </tbody>
+      </table></div>
+      <div class="eq">\[ \text{Exactitud} = \frac{VP + VN}{n} \qquad \text{Sensibilidad} = \frac{VP}{VP + FN} \qquad \text{Especificidad} = \frac{VN}{VN + FP} \qquad \text{Precisión} = \frac{VP}{VP + FP} \]
+        <div class="note">La sensibilidad (o <i>recall</i>, tasa de verdaderos positivos) mide qué parte de los positivos reales detectas. La especificidad mide qué parte de los negativos reales reconoces. La precisión mide qué parte de tus alarmas eran correctas. El F1 combina precisión y sensibilidad: \(F_1 = 2\,\frac{\text{prec}\cdot\text{sens}}{\text{prec} + \text{sens}}\).</div>
+      </div>
+      <p>Bajar el umbral hace que el modelo diga “sí” más seguido: sube la sensibilidad y baja la especificidad. Subirlo hace lo contrario. No existe un umbral que mejore ambas a la vez con el mismo modelo. En una prueba médica de detección conviene un umbral bajo (perderse un caso es grave); en un filtro de spam, uno alto (borrar un correo legítimo molesta mucho). La precisión, a diferencia de las otras dos, depende de la prevalencia \(\pi\): por el <a href="#condicional">teorema de Bayes</a>, \(\text{prec} = \frac{\text{sens}\cdot\pi}{\text{sens}\cdot\pi + (1 - \text{espec})(1-\pi)}\).</p>
+      <p>La <b>curva ROC</b> muestra todos los umbrales a la vez: para cada \(c\) grafica la sensibilidad (tasa de verdaderos positivos) contra \(1 - \text{especificidad}\) (tasa de falsos positivos). Un clasificador al azar queda sobre la diagonal; uno perfecto sube pegado al eje vertical hasta la esquina superior izquierda.</p>
+      <div class="eq">\[ \text{AUC} = \int_0^1 \text{TVP}\; d(\text{TFP}) = P\big(\,p(x_{+}) &gt; p(x_{-})\,\big) \]
+        <div class="note">El área bajo la curva (AUC) es la probabilidad de que un positivo elegido al azar reciba una probabilidad mayor que un negativo elegido al azar; coincide con el estadístico U de Mann y Whitney dividido entre \(n_+n_-\). AUC = 0,5 es azar; AUC = 1 es separación perfecta. No depende del umbral ni de la prevalencia.</div>
+      </div>
+      <p><b>Clases desbalanceadas.</b> Si solo el 2 % de las transacciones son fraude, un modelo que siempre responde “no es fraude” tiene 98 % de exactitud y no sirve para nada: es la <b>paradoja de la exactitud</b>. Qué hacer:</p>
+      <ul>
+        <li><b>Mira otras métricas.</b> Sensibilidad, precisión, F1 y AUC. Cuando la clase positiva es rara, la curva de precisión-sensibilidad (PR) es más informativa que la ROC, porque la precisión sí refleja la prevalencia.</li>
+        <li><b>Mueve el umbral.</b> El modelo logístico puede estar bien estimado; lo que falla es usar 0,5. Elige \(c\) con datos de validación según el costo de cada error.</li>
+        <li><b>Pondera las clases.</b> En scikit-learn, <code>class_weight="balanced"</code> da más peso en la log-loss a los errores en la clase rara. En R, el argumento <code>weights</code> de <code>glm</code>.</li>
+        <li><b>Remuestrea</b> la clase mayoritaria o la minoritaria (con técnicas como SMOTE), solo dentro del conjunto de entrenamiento, y divide de forma estratificada.</li>
+      </ul>
+      <div class="callout"><b>Ojo con la calibración:</b> ponderar o remuestrear cambia el intercepto (en \(\ln\) de la razón entre las fracciones de muestreo de cada clase), pero no las pendientes. Las probabilidades predichas dejan de ser frecuencias reales. Si necesitas riesgos bien calibrados, corrige el intercepto o recalibra después. Esta misma propiedad es la que permite usar la regresión logística en estudios de casos y controles.</div>
+
+      <h2 id="logit-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Inversa y derivada.</b> \(\sigma^{-1} = \operatorname{logit}\) y \(\sigma' = \sigma(1-\sigma)\); el efecto marginal \(dp/dx_j = \beta_jp(1-p)\) es como mucho \(\beta_j/4\).</li>
+        <li><b>Razón de momios constante.</b> \(\text{momios}(x+1)/\text{momios}(x) = e^{\beta_1}\) para todo \(x\), porque el modelo es lineal en log-odds.</li>
+        <li><b>Concavidad.</b> \(\nabla^2\ell = -X^\top WX\) es definida negativa: el estimador de máxima verosimilitud, si existe, es único.</li>
+        <li><b>Calibración en el total.</b> Con intercepto, \(\sum_i\hat p_i = \sum_iy_i\), por la ecuación de verosimilitud del intercepto.</li>
+        <li><b>IRLS.</b> Newton-Raphson equivale a mínimos cuadrados ponderados con pesos \(p_i(1-p_i)\) y respuesta de trabajo \(z_i = \eta_i + (y_i - p_i)/[p_i(1-p_i)]\).</li>
+        <li><b>Normalidad asintótica.</b> \(\hat{\boldsymbol\beta} \approx \mathcal N(\boldsymbol\beta, (X^\top WX)^{-1})\), de donde salen Wald y los intervalos de las OR.</li>
+        <li><b>Invarianza de pendientes al muestreo por resultado.</b> Si se muestrean casos y controles con fracciones \(f_1\) y \(f_0\), solo el intercepto cambia, en \(\ln(f_1/f_0)\).</li>
+        <li><b>AUC y Mann y Whitney.</b> \(\text{AUC} = P(\hat p_+ &gt; \hat p_-)\), invariante a cualquier transformación creciente de las probabilidades.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Leer una razón de momios como un cambio en la probabilidad, o como un riesgo relativo en eventos frecuentes.</li>
+          <li>Evaluar un clasificador con exactitud cuando las clases están desbalanceadas.</li>
+          <li>Usar el umbral 0,5 por costumbre, sin mirar los costos de cada error.</li>
+          <li>Ignorar los avisos de separación perfecta y reportar coeficientes enormes.</li>
+          <li>Evaluar métricas en los mismos datos con que se ajustó el modelo.</li>
+        </ul>
+      </div>
+
+      <h2 id="logit-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>Primer laboratorio. Cada punto es un visitante: arriba los que compraron, abajo los que no. Mueve \(\beta_0\) y \(\beta_1\) para bajar la log-loss tanto como puedas. Luego pulsa el botón y mira cómo el método de Newton llega al mínimo en pocos pasos. Los puntos resaltados son los que la curva clasifica mal con umbral 0,5.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · curva logística y log-loss</span><span class="num" id="logit-lg-head">–</span></div>
         <div class="lab-body">
@@ -129,28 +194,18 @@
         </div>
         <figcaption>Pon β₁ en 0: la curva es plana y la log-loss se queda cerca de 0,69, la de no saber nada. Con β₁ negativa la curva baja y la log-loss se dispara, porque el modelo apuesta con seguridad al revés.</figcaption>
       </figure>
-
-      <h2 id="logit-umbral"><span class="sec">§ 7</span>Umbral de decisión y matriz de confusión</h2>
-      <p>El modelo entrega probabilidades. Para decidir, por ejemplo, a quién enviarle un cupón, eliges un <b>umbral</b> \(c\) y predices \(\hat y = 1\) si \(p(x) \ge c\). El valor 0,5 es solo una convención: el umbral correcto depende del costo de cada tipo de error.</p>
-      <p>Al comparar predicciones con la realidad aparecen cuatro casos, que se ordenan en la <b>matriz de confusión</b>:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th></th><th>Real: sí (1)</th><th>Real: no (0)</th></tr></thead>
-        <tbody>
-          <tr><td><b>Predicho: sí</b></td><td>VP · verdadero positivo</td><td>FP · falso positivo</td></tr>
-          <tr><td><b>Predicho: no</b></td><td>FN · falso negativo</td><td>VN · verdadero negativo</td></tr>
-        </tbody>
-      </table></div>
-      <div class="eq">\[ \text{Exactitud} = \frac{VP + VN}{n} \qquad \text{Sensibilidad} = \frac{VP}{VP + FN} \qquad \text{Especificidad} = \frac{VN}{VN + FP} \qquad \text{Precisión} = \frac{VP}{VP + FP} \]
-        <div class="note">La sensibilidad (o <i>recall</i>, tasa de verdaderos positivos) mide qué parte de los positivos reales detectas. La especificidad mide qué parte de los negativos reales reconoces. La precisión mide qué parte de tus alarmas eran correctas. El F1 combina precisión y sensibilidad: \(F_1 = 2\,\frac{\text{prec}\cdot\text{sens}}{\text{prec} + \text{sens}}\).</div>
-      </div>
-      <p>Bajar el umbral hace que el modelo diga “sí” más seguido: sube la sensibilidad y baja la especificidad. Subirlo hace lo contrario. No existe un umbral que mejore ambas a la vez con el mismo modelo. En una prueba médica de detección conviene un umbral bajo (perderse un caso es grave); en un filtro de spam, uno alto (borrar un correo legítimo molesta mucho).</p>
-
-      <h2 id="logit-roc"><span class="sec">§ 8</span>Curva ROC y AUC</h2>
-      <p>La <b>curva ROC</b> muestra todos los umbrales a la vez: para cada \(c\) grafica la sensibilidad (tasa de verdaderos positivos) contra \(1 - \text{especificidad}\) (tasa de falsos positivos). Un clasificador al azar queda sobre la diagonal; uno perfecto sube pegado al eje vertical hasta la esquina superior izquierda.</p>
-      <div class="eq">\[ \text{AUC} = \int_0^1 \text{TVP}\; d(\text{TFP}) = P\big(\,p(x_{+}) &gt; p(x_{-})\,\big) \]
-        <div class="note">El área bajo la curva (AUC) es la probabilidad de que un positivo elegido al azar reciba una probabilidad mayor que un negativo elegido al azar. AUC = 0,5 es azar; AUC = 1 es separación perfecta. No depende del umbral.</div>
-      </div>
-      <p>En el simulador, 200 visitantes ya tienen una probabilidad asignada por un modelo logístico. Mueve el umbral: la línea vertical recorre las probabilidades, la matriz de confusión se actualiza y el punto sobre la curva ROC se desplaza.</p>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Pon β₁ = 0 y mueve β₀ hasta minimizar la log-loss.
+          <details><summary>Qué deberías observar</summary><p>La curva es plana, y la mejor log-loss se logra cuando \(\sigma(\beta_0)\) es la proporción de compradores. Si es cercana a 0,5, la log-loss queda cerca de 0,69, la de no saber nada: es el modelo nulo.</p></details></li>
+        <li>Pulsa “Ajustar por máxima verosimilitud” y anota β₁ y la razón de momios. Después pulsa “Nuevos visitantes” y repite.
+          <details><summary>Qué deberías observar</summary><p>β₁ sale cerca de 0,3 y la razón de momios cerca de 1,35, con variaciones de muestra a muestra. El punto donde p = 50 % queda cerca de \(-\beta_0/\beta_1\).</p></details></li>
+        <li>Desde el ajuste óptimo, duplica β₁ a mano y luego déjalo en la mitad.
+          <details><summary>Qué deberías observar</summary><p>Con β₁ grande la curva se vuelve casi un escalón: los puntos mal clasificados reciben probabilidades extremas y la log-loss sube. Con β₁ chico la curva es demasiado tendida. La log-loss premia probabilidades bien calibradas, no solo clasificar bien.</p></details></li>
+        <li>Pon β₁ negativo.
+          <details><summary>Qué deberías observar</summary><p>La curva baja con los minutos y la log-loss se dispara por encima de 1: el modelo apuesta con seguridad al revés, y cada error seguro cuesta mucho.</p></details></li>
+      </ol>
+      <p>Segundo laboratorio. 200 visitantes ya tienen una probabilidad asignada por un modelo logístico. Mueve el umbral: la línea vertical recorre las probabilidades, la matriz de confusión se actualiza y el punto sobre la curva ROC se desplaza.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · umbral, matriz de confusión y ROC</span><span class="num" id="logit-rc-head">–</span></div>
         <div class="lab-body">
@@ -188,19 +243,29 @@
         </div>
         <figcaption>Cambia a 10 % de compradores: con umbral 0,5 la exactitud sube, pero detectas a menos de la mitad de los compradores. Baja el umbral a 0,2 para recuperar sensibilidad y mira cómo cae la precisión: con pocos compradores, cada falso positivo pesa más. El AUC casi no cambia.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con 50 % de compradores, mueve el umbral de 0,1 a 0,9.
+          <details><summary>Qué deberías observar</summary><p>La sensibilidad baja y la especificidad sube de forma continua; el punto recorre la curva ROC de la esquina superior derecha a la inferior izquierda. No hay umbral que mejore ambas.</p></details></li>
+        <li>Cambia a 10 % de compradores con umbral 0,5.
+          <details><summary>Qué deberías observar</summary><p>La exactitud sube, porque casi todos son no compradores, pero la sensibilidad cae: detectas a menos de la mitad. El AUC casi no cambia, porque no depende de la prevalencia.</p></details></li>
+        <li>Con 10 % de compradores, baja el umbral a 0,2.
+          <details><summary>Qué deberías observar</summary><p>Recuperas sensibilidad, pero la precisión cae: con pocos compradores, cada falso positivo pesa más en las alarmas. Es la fórmula de Bayes de la precisión en acción.</p></details></li>
+        <li>Pulsa “Nueva muestra” varias veces con el umbral fijo.
+          <details><summary>Qué deberías observar</summary><p>Las métricas cambian unos puntos de muestra a muestra: también son estimaciones con error. Con conjuntos de prueba chicos, diferencias de 2 o 3 puntos entre modelos pueden ser puro ruido.</p></details></li>
+      </ol>
 
-      <h2 id="logit-desbalance"><span class="sec">§ 9</span>Clases desbalanceadas</h2>
-      <p>Si solo el 2 % de las transacciones son fraude, un modelo que siempre responde “no es fraude” tiene 98 % de exactitud y no sirve para nada. Es la <b>paradoja de la exactitud</b>: con clases desbalanceadas la exactitud está dominada por la clase mayoritaria. Qué hacer:</p>
-      <ul>
-        <li><b>Mira otras métricas.</b> Sensibilidad, precisión, F1 y AUC. Cuando la clase positiva es rara, la curva de precisión-sensibilidad (PR) es más informativa que la ROC, porque la precisión sí refleja la prevalencia.</li>
-        <li><b>Mueve el umbral.</b> El modelo logístico puede estar bien estimado; lo que falla es usar 0,5. Elige \(c\) con datos de validación según el costo de cada error.</li>
-        <li><b>Pondera las clases.</b> En scikit-learn, <code>class_weight="balanced"</code> da más peso en la log-loss a los errores en la clase rara. En R, el argumento <code>weights</code> de <code>glm</code>.</li>
-        <li><b>Remuestrea.</b> Submuestrear la clase mayoritaria o sobremuestrear la minoritaria (con técnicas como SMOTE). Hazlo solo dentro del conjunto de entrenamiento.</li>
-        <li><b>Divide de forma estratificada.</b> Asegura que entrenamiento y prueba tengan la misma proporción de positivos.</li>
-      </ul>
-      <div class="callout"><b>Ojo con la calibración:</b> ponderar o remuestrear cambia el intercepto, así que las probabilidades predichas dejan de ser frecuencias reales. Si necesitas probabilidades bien calibradas (por ejemplo, para calcular un riesgo), corrige el intercepto o recalibra después.</div>
+      <h2 id="logit-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: el estudio del corazón de Framingham</h3>
+      <p>El estudio de Framingham, iniciado en 1948 en Massachusetts, siguió durante décadas a miles de adultos. Truett, Cornfield y Kannel (1967) usaron una función logística multivariada con colesterol, presión arterial, tabaquismo, edad y otros factores para estimar el riesgo de enfermedad coronaria. De ese trabajo descienden las calculadoras de riesgo cardiovascular a 10 años que se usan en consulta. La decisión: a quién indicar estatinas o cambios de estilo de vida.</p>
+      <h3>Ingeniería: el transbordador Challenger</h3>
+      <p>Antes del lanzamiento del 28 de enero de 1986 había datos de 23 vuelos con la temperatura al despegar y si hubo daño en las juntas tóricas. Una regresión logística de “hubo incidente” sobre la temperatura da una pendiente cercana a −0,23 por °F: cada grado menos multiplica los momios de incidente por cerca de 1,26. El lanzamiento se hizo a unos 31 °F, muy por debajo de cualquier vuelo previo (el más frío fue a 53 °F), y el modelo extrapola una probabilidad de incidente superior al 99 %. Dalal, Fowlkes y Hoadley (1989) analizaron estos datos y mostraron que la evidencia estaba disponible. La decisión: no lanzar fuera del rango de experiencia.</p>
+      <h3>Finanzas: puntaje de crédito</h3>
+      <p>Los modelos de <i>credit scoring</i> estiman la probabilidad de incumplimiento con variables como historial de pagos, ingreso y endeudamiento. El conjunto público German Credit (UCI) tiene 1 000 solicitantes, 30 % clasificados como malos pagadores, y es el ejemplo clásico de clases desbalanceadas con costos asimétricos: su documentación propone que clasificar como bueno a un mal pagador cuesta 5 veces más que lo contrario, lo que da \(c^\ast = 1/6 \approx 0{,}17\). Los bancos prefieren la logística porque sus coeficientes se explican a reguladores y clientes. La decisión: aprobar, rechazar o fijar la tasa de un préstamo.</p>
+      <h3>Ciencias sociales: supervivencia en el Titanic</h3>
+      <p>La tabla <code>Titanic</code> de R registra a 2 201 personas a bordo. Sobrevivió el 73 % de las mujeres (344 de 470) y el 21 % de los hombres (367 de 1 731). Una logística con sexo da una razón de momios de 10,1 (IC 95 %: 8,0 a 12,8): la norma de “mujeres y niños primero” se ve en los datos. Al agregar la clase del pasaje, aparece además un gradiente social fuerte. La decisión, en historia y sociología: cuantificar cómo las normas y la clase social determinaron quién sobrevivió.</p>
 
-      <h2 id="logit-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <h2 id="logit-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>Simulamos 500 visitantes cuya probabilidad real de compra es \(\sigma(-4 + 0{,}3\,x)\), ajustamos el modelo, interpretamos los coeficientes y evaluamos predicciones. En Python usamos <code>statsmodels</code> para la inferencia y <code>scikit-learn</code> para la predicción; en R basta <code>glm</code>.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
@@ -272,10 +337,10 @@ curva &lt;- <span class="f">roc</span>(real, prob)
 <span class="f">auc</span>(curva)
 <span class="f">plot</span>(curva)</code></pre>
       </div>
-      <p>Cómo leer la salida: \(\hat\beta_1\) sale cerca del valor real 0,3 (con esta semilla, alrededor de 0,27) y con un valor p muy pequeño, así que los minutos en el sitio se asocian con la compra. La razón de momios, cerca de 1,3, dice que cada minuto extra multiplica los momios de compra por 1,3, y su intervalo de confianza queda lejos de 1. La tabla de umbrales muestra el intercambio: con \(c = 0{,}3\) la sensibilidad es mayor y la especificidad menor que con \(c = 0{,}7\).</p>
+      <p>Cómo leer la salida: \(\hat\beta_1\) sale cerca del valor real 0,3 (con esta semilla en Python, 0,273 con EE 0,023) y con un valor p muy pequeño, así que los minutos en el sitio se asocian con la compra. La razón de momios, 1,31 (IC 95 %: 1,26 a 1,37), dice que cada minuto extra multiplica los momios de compra por 1,3, y su intervalo queda lejos de 1. El pseudo-\(R^2\) de McFadden es de 0,45. En el conjunto de prueba, el AUC es de 0,87, y la tabla de umbrales muestra el intercambio: con \(c = 0{,}3\) la sensibilidad es 0,93 y la especificidad 0,56; con \(c = 0{,}7\), ambas 0,82. En R los números son parecidos pero no idénticos, porque el generador aleatorio es otro.</p>
       <div class="callout"><b>Detalle de scikit-learn:</b> <code>LogisticRegression</code> aplica regularización L2 por defecto (<code>C=1.0</code>), que encoge los coeficientes. Para obtener los mismos valores que <code>statsmodels</code> o <code>glm</code> desactívala con <code>C=np.inf</code>.</div>
 
-      <h2 id="logit-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <h2 id="logit-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="La razón de momios es e^β₁ = e^0,7 ≈ 2,01. Cada hora extra multiplica los momios de aprobar por 2, no la probabilidad." data-wrong="β₁ está en la escala de los log-odds. Exponencia el coeficiente y recuerda que el resultado multiplica los momios, no la probabilidad.">
         <h3>Un modelo de aprobación da β₁ = 0,7 por cada hora de estudio. ¿Qué significa?</h3>
         <div class="opts">
@@ -306,39 +371,76 @@ curva &lt;- <span class="f">roc</span>(real, prob)
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="La derivada es β₁·p(1 − p) = 0,8 · 0,5 · 0,5 = 0,2: en la zona media, una unidad más de x sube la probabilidad unos 20 puntos. Es la regla de dividir entre 4." data-wrong="Usa dp/dx = β₁·p·(1 − p) y evalúa en p = 0,5.">
+        <h3>Con β₁ = 0,8, ¿cuánto cambia aproximadamente la probabilidad por unidad de x cerca de p = 0,5?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,8 puntos de probabilidad</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Unos 0,2, es decir 20 puntos porcentuales</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Un 122 %, porque e^0,8 ≈ 2,22</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Lo mismo en cualquier punto de la curva</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Si el máximo de la verosimilitud está en el infinito, el algoritmo hace crecer β₁ sin límite. Es separación perfecta: hace falta regularizar o usar el método de Firth." data-wrong="Piensa qué valor de β₁ hace que la curva sea un escalón exacto en el punto que separa a los dos grupos, y qué pasa con la verosimilitud ahí.">
+        <h3>Ajustas una logística y el coeficiente sale en 38 con un error estándar de 4 000, y el software avisa de probabilidades 0 o 1. ¿Qué ocurre?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El efecto es enorme y muy significativo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Hay multicolinealidad entre el intercepto y x</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Faltan datos de la clase positiva</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Los datos están perfectamente separados y el estimador de máxima verosimilitud no existe</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="logit-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
+      <h2 id="logit-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un modelo estima \(\hat\beta_0 = -4\) y \(\hat\beta_1 = 0{,}3\) para la compra según minutos en el sitio. Calcula la probabilidad de compra de un visitante con 10 minutos y de otro con 20 minutos. ¿En cuántos minutos la probabilidad llega al 50 %?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Con 10 minutos: \(z = -4 + 0{,}3 \cdot 10 = -1\), así que \(p = 1/(1 + e^{1}) \approx 0{,}269\), cerca del 27 %.</p>
-            <p>Con 20 minutos: \(z = -4 + 6 = 2\), así que \(p = 1/(1 + e^{-2}) \approx 0{,}881\), cerca del 88 %.</p>
-            <p>La probabilidad es 50 % cuando \(z = 0\): \(x^\ast = 4 / 0{,}3 \approx 13{,}3\) minutos. Fíjate en que 10 minutos más no suman una cantidad fija de probabilidad: de 10 a 20 minutos el salto es de 61 puntos porque cruzas la zona media de la curva.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) A partir de \(\ell(\boldsymbol\beta) = \sum[y_i\eta_i - \ln(1 + e^{\eta_i})]\), deriva el gradiente y la hessiana. (b) Demuestra que \(\ell\) es cóncava. (c) Demuestra que el paso de Newton es una regresión por mínimos cuadrados ponderados con respuesta de trabajo \(z_i = \eta_i + (y_i - p_i)/[p_i(1-p_i)]\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\partial\eta_i/\partial\boldsymbol\beta = \mathbf x_i\) y \(\frac{d}{d\eta}\ln(1+e^\eta) = \frac{e^\eta}{1+e^\eta} = p\). Entonces \(\nabla\ell = \sum(y_i - p_i)\mathbf x_i\). Como \(dp/d\eta = p(1-p)\), \(\nabla^2\ell = -\sum p_i(1-p_i)\mathbf x_i\mathbf x_i^\top = -X^\top WX\).</p><p>(b) Para cualquier \(\mathbf v \ne \mathbf 0\), \(\mathbf v^\top X^\top WX\mathbf v = \sum p_i(1-p_i)(\mathbf x_i^\top\mathbf v)^2 \ge 0\), y es \(&gt; 0\) si \(X\) tiene rango completo y \(0 &lt; p_i &lt; 1\). La hessiana es definida negativa: \(\ell\) es estrictamente cóncava.</p><p>(c) Newton: \(\boldsymbol\beta^{new} = \boldsymbol\beta + (X^\top WX)^{-1}X^\top(\mathbf y - \mathbf p) = (X^\top WX)^{-1}\big[X^\top WX\boldsymbol\beta + X^\top WW^{-1}(\mathbf y - \mathbf p)\big] = (X^\top WX)^{-1}X^\top W\mathbf z\), con \(\mathbf z = X\boldsymbol\beta + W^{-1}(\mathbf y - \mathbf p)\). Es la fórmula de mínimos cuadrados ponderados de \(\mathbf z\) sobre \(X\) con pesos \(W\).</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Con el mismo modelo, ¿cuál es la razón de momios por minuto? ¿Y por cada 10 minutos? Si un visitante tiene momios de compra de 0,5, ¿cuáles serán sus momios con 5 minutos más?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Por minuto: \(e^{0{,}3} \approx 1{,}35\). Por 10 minutos: \(e^{10 \cdot 0{,}3} = e^{3} \approx 20{,}1\); las razones de momios se multiplican, no se suman (\(1{,}35^{10} \approx 20{,}1\)).</p>
-            <p>Con 5 minutos más: \(0{,}5 \cdot e^{1{,}5} \approx 0{,}5 \cdot 4{,}48 = 2{,}24\). En probabilidad, pasa de \(0{,}5/1{,}5 \approx 0{,}33\) a \(2{,}24/3{,}24 \approx 0{,}69\).</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que si \(y^\ast = \eta + \varepsilon\), con \(\varepsilon\) de distribución logística estándar (\(F(t) = \sigma(t)\)), y \(y = 1\{y^\ast &gt; 0\}\), entonces \(P(y = 1) = \sigma(\eta)\). (b) Demuestra que con intercepto \(\sum\hat p_i = \sum y_i\). (c) Con una sola indicadora \(D\) y una tabla de 2 × 2 de celdas \(a\) (D = 1, y = 1), \(b\) (D = 1, y = 0), \(c\) (D = 0, y = 1), \(d\) (D = 0, y = 0), demuestra que \(e^{\hat\beta_D} = ad/(bc)\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(P(y = 1) = P(\varepsilon &gt; -\eta) = 1 - \sigma(-\eta) = \sigma(\eta)\), por la simetría de la logística.</p><p>(b) La ecuación de verosimilitud para \(\beta_0\) es \(\partial\ell/\partial\beta_0 = \sum(y_i - \hat p_i) = 0\).</p><p>(c) El modelo tiene dos parámetros y dos grupos, así que es saturado: las ecuaciones de verosimilitud para \(\beta_0\) y \(\beta_D\) obligan a \(\hat p\) a igualar la proporción observada en cada grupo, \(\hat p_1 = a/(a+b)\) y \(\hat p_0 = c/(c+d)\). Entonces los momios son \(a/b\) y \(c/d\), y \(e^{\hat\beta_D} = \frac{a/b}{c/d} = \frac{ad}{bc}\). Además \(\operatorname{EE}(\hat\beta_D) = \sqrt{1/a + 1/b + 1/c + 1/d}\) (fórmula de Woolf).</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Un modelo evaluado en 200 clientes (50 compraron, 150 no) con umbral 0,5 obtiene VP = 40, FN = 10, FP = 30 y VN = 120. Calcula exactitud, sensibilidad, especificidad, precisión y F1. Si el umbral sube a 0,7, ¿qué esperas que pase con FP y FN?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Exactitud = (40 + 120)/200 = 0,80. Sensibilidad = 40/50 = 0,80. Especificidad = 120/150 = 0,80. Precisión = 40/70 ≈ 0,571. F1 = 2·0,571·0,80/(0,571 + 0,80) ≈ 0,667.</p>
-            <p>Aunque tres métricas valen 0,80, la precisión es baja: de cada 7 clientes que el modelo marca como compradores, solo 4 lo son, porque hay tres veces más no compradores. Con umbral 0,7 el modelo dice “sí” menos veces: los FP bajan (sube la especificidad y suele subir la precisión) y los FN suben (baja la sensibilidad).</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudio de casos y controles. En la población, \(\operatorname{logit}P(Y=1\mid x) = \beta_0 + \beta_1x\). Se muestrea a los casos (\(Y = 1\)) con probabilidad \(f_1\) y a los controles con probabilidad \(f_0\), sin depender de \(x\). (a) Demuestra con el teorema de Bayes que en la muestra \(\operatorname{logit}P(Y = 1 \mid x, S = 1) = \beta_0 + \ln(f_1/f_0) + \beta_1x\). (b) ¿Qué se puede estimar en un estudio de casos y controles y qué no? (c) Si en un estudio de cáncer de pulmón con 1 000 casos y 1 000 controles la prevalencia poblacional es 0,1 %, ¿cómo corregirías el intercepto?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(P(Y=1\mid x, S=1) = \frac{f_1p(x)}{f_1p(x) + f_0(1-p(x))}\). Sus momios son \(\frac{f_1}{f_0}\cdot\frac{p(x)}{1-p(x)}\), y su logaritmo es \(\ln(f_1/f_0) + \beta_0 + \beta_1x\).</p><p>(b) Las pendientes (y por lo tanto las razones de momios) se estiman sin sesgo. El intercepto y las probabilidades absolutas, no, salvo que conozcas las fracciones de muestreo o la prevalencia. Por eso la logística es el modelo natural de la epidemiología de casos y controles (Prentice y Pyke, 1979).</p><p>(c) En la muestra la proporción de casos es 0,5; en la población 0,001. Los momios de base en la muestra son 1 y en la población \(0{,}001/0{,}999\), así que \(\ln(f_1/f_0) \approx \ln(1) - \ln(0{,}001/0{,}999) \approx 6{,}91\). Resta 6,91 al intercepto estimado para obtener riesgos poblacionales.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Escribe tu propia función que estime \(\beta_0\) y \(\beta_1\) por el método de Newton-Raphson usando el gradiente \(X^\top (y - p)\) y la matriz \(H = X^\top W X\), con \(W = \operatorname{diag}\big(p_i(1 - p_i)\big)\). Compárala con <code>glm</code> o <code>statsmodels</code> en los datos simulados del § 10. ¿Qué pasa si los datos están perfectamente separados?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con la tabla <code>Titanic</code> (mujeres: 344 sobrevivientes de 470; hombres: 367 de 1 731): (a) calcula a mano la razón de momios de sobrevivir de mujeres frente a hombres, su error estándar en escala log y su IC 95 %. (b) Compara con el riesgo relativo. (c) Ajusta la logística con una fila por persona, verifica los resultados y calcula la prueba de razón de verosimilitudes contra el modelo nulo.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(OR = \frac{344\cdot 1\,364}{126\cdot 367} = \frac{469\,216}{46\,242} \approx 10{,}15\); \(\ln OR = 2{,}317\). \(\operatorname{EE} = \sqrt{1/344 + 1/126 + 1/367 + 1/1\,364} = \sqrt{0{,}0143} \approx 0{,}120\). IC: \(\exp(2{,}317 \pm 1{,}96\cdot 0{,}120) = [8{,}0;\ 12{,}8]\).</p><p>(b) \(RR = 0{,}732/0{,}212 = 3{,}45\). El OR es casi tres veces mayor porque sobrevivir no es un evento raro: “10 veces más momios” no es “10 veces más probable”.</p><p>(c) La razón de verosimilitudes es \(G^2 \approx 434{,}5\) con 1 gl, \(p \approx 10^{-96}\). Y \(\sum\hat p_i = 711\), el número de sobrevivientes, como predice la calibración en el total.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
+<span class="c"># 2 201 personas de la tabla Titanic de R, una fila por persona</span>
+mujer = np.r_[np.<span class="f">ones</span>(<span class="n">470</span>), np.<span class="f">zeros</span>(<span class="n">1731</span>)]
+vive = np.r_[np.<span class="f">ones</span>(<span class="n">344</span>), np.<span class="f">zeros</span>(<span class="n">126</span>), np.<span class="f">ones</span>(<span class="n">367</span>), np.<span class="f">zeros</span>(<span class="n">1364</span>)]
+df = pd.<span class="f">DataFrame</span>({<span class="s">"mujer"</span>: mujer, <span class="s">"vive"</span>: vive})
+m = smf.<span class="f">logit</span>(<span class="s">"vive ~ mujer"</span>, data=df).<span class="f">fit</span>(disp=<span class="n">0</span>)
+<span class="f">print</span>(m.params)                                   <span class="c"># Intercept −1.313, mujer 2.317</span>
+<span class="f">print</span>(np.<span class="f">exp</span>(m.params[<span class="s">"mujer"</span>]), np.<span class="f">exp</span>(m.<span class="f">conf_int</span>().loc[<span class="s">"mujer"</span>]).values)   <span class="c"># 10.15 [8.03 12.83]</span>
+<span class="f">print</span>(m.llr, m.llr_pvalue)                         <span class="c"># G² ≈ 434.5, p ≈ 1.7e-96</span>
+<span class="f">print</span>(df.vive.<span class="f">sum</span>(), m.<span class="f">predict</span>(df).<span class="f">sum</span>())          <span class="c"># 711 = 711</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>t &lt;- <span class="f">as.data.frame</span>(<span class="f">margin.table</span>(Titanic, <span class="f">c</span>(<span class="n">2</span>, <span class="n">4</span>)))   <span class="c"># Sex × Survived</span>
+m &lt;- <span class="f">glm</span>(Survived == <span class="s">"Yes"</span> ~ Sex, family = binomial, weights = Freq, data = t)
+<span class="f">coef</span>(m)                                        <span class="c"># SexFemale ≈ 2.317</span>
+<span class="f">exp</span>(<span class="f">confint.default</span>(m))[<span class="n">2</span>, ]                  <span class="c"># ≈ 8.03 12.83</span>
+<span class="f">anova</span>(m, test = <span class="s">"LRT"</span>)                         <span class="c"># desvianza ≈ 434.5 con 1 gl</span>
+<span class="c"># ojo: Sex tiene niveles Male, Female; R toma Male como referencia</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Escribe tu propia función que estime \(\beta_0\) y \(\beta_1\) por el método de Newton-Raphson usando el gradiente \(X^\top (y - p)\) y la matriz \(X^\top W X\), con \(W = \operatorname{diag}\big(p_i(1 - p_i)\big)\). Compárala con <code>glm</code> o <code>statsmodels</code> en los datos simulados del § 10, obtén los errores estándar de \((X^\top\hat WX)^{-1}\) y explica qué pasa si los datos están perfectamente separados.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Cada paso actualiza \(\beta \leftarrow \beta + H^{-1} X^\top (y - p)\). Partiendo de \(\beta = 0\), converge en 5 a 8 iteraciones y coincide con <code>glm</code> hasta varios decimales.</p>
+            <p>Cada paso actualiza \(\beta \leftarrow \beta + (X^\top WX)^{-1} X^\top (y - p)\). Partiendo de \(\beta = 0\), converge en 5 a 8 iteraciones y coincide con <code>glm</code> hasta varios decimales. Los errores estándar son las raíces de la diagonal de \((X^\top\hat WX)^{-1}\) evaluada en el óptimo: 0,316 y 0,023 con los datos de Python.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
@@ -368,7 +470,7 @@ curva &lt;- <span class="f">roc</span>(real, prob)
 
 <span class="f">ajustar_logit</span>(minutos, compra)   <span class="c"># igual a coef(modelo)</span></code></pre>
             </div>
-            <p>Con separación perfecta, por ejemplo <code>y = (x &gt; 12)</code>, las probabilidades ajustadas se acercan a 0 y 1, la matriz \(H\) se vuelve casi singular y \(\hat\beta_1\) crece en cada iteración sin converger. <code>glm</code> avisa con “fitted probabilities numerically 0 or 1 occurred”. Una solución es la regularización (penalizar \(\beta\)) o el método de Firth.</p>
+            <p>Con separación perfecta, por ejemplo <code>y = (x &gt; 12)</code>, las probabilidades ajustadas se acercan a 0 y 1, la matriz \(X^\top WX\) se vuelve casi singular y \(\hat\beta_1\) crece en cada iteración sin converger. <code>glm</code> avisa con “fitted probabilities numerically 0 or 1 occurred”. Una solución es la regularización (penalizar \(\beta\)) o el método de Firth.</p>
           </div></details>
         </div>
       </div>

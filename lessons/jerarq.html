@@ -5,62 +5,164 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Modelos jerárquicos</h1>
-      <p>Escuelas, hospitales, sucursales, jugadores: cuando los datos vienen en grupos, ni tratarlos como iguales ni analizarlos por separado es buena idea. Aquí aprendes el agrupamiento parcial, por qué las estimaciones se encogen hacia la media y cuánto, cómo la propia variabilidad entre grupos se estima de los datos y cómo funciona todo esto en el ejemplo clásico de las ocho escuelas.</p>
-      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: MCMC y priors conjugados</span><span>R · Python</span></div>
+      <p>Cuando tienes muchos grupos parecidos (escuelas, hospitales, sucursales), cada uno con pocos datos, no conviene tratarlos como iguales ni como mundos aparte. Aquí aprendes el agrupamiento parcial, derivas el encogimiento hacia la media, entiendes la paradoja de Stein, trabajas el ejemplo clásico de las ocho escuelas y ves cómo ajustar estos modelos sin tropezar con el embudo de la posterior.</p>
+      <div class="lmeta"><span>95 min</span><span>Nivel avanzado</span><span>Requiere: métodos MCMC</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#jerarq-idea" data-sec="jerarq-idea">La idea</a></li>
+        <li><a href="#jerarq-intro" data-sec="jerarq-intro">Introducción</a></li>
+        <li><a href="#jerarq-def" data-sec="jerarq-def">Definición</a></li>
         <li><a href="#jerarq-pool" data-sec="jerarq-pool">Tres formas de agrupar</a></li>
         <li><a href="#jerarq-modelo" data-sec="jerarq-modelo">El modelo jerárquico normal</a></li>
-        <li><a href="#jerarq-lab" data-sec="jerarq-lab">Laboratorio: las ocho escuelas</a></li>
-        <li><a href="#jerarq-ocho" data-sec="jerarq-ocho">Resultados de las ocho escuelas</a></li>
-        <li><a href="#jerarq-encog" data-sec="jerarq-encog">Encogimiento y tamaño del grupo</a></li>
-        <li><a href="#jerarq-param" data-sec="jerarq-param">Parametrización no centrada</a></li>
-        <li><a href="#jerarq-code" data-sec="jerarq-code">Ejemplo en R y Python</a></li>
-        <li><a href="#jerarq-quiz" data-sec="jerarq-quiz">Comprueba</a></li>
-        <li><a href="#jerarq-ej" data-sec="jerarq-ej">Ejercicios</a></li>
+        <li><a href="#jerarq-ocho" data-sec="jerarq-ocho">Ocho escuelas y Stein</a></li>
+        <li><a href="#jerarq-param" data-sec="jerarq-param">Parametrización y multinivel</a></li>
+        <li><a href="#jerarq-prop" data-sec="jerarq-prop">Propiedades</a></li>
+        <li><a href="#jerarq-lab" data-sec="jerarq-lab">Ejercicios de simulación</a></li>
+        <li><a href="#jerarq-apps" data-sec="jerarq-apps">Aplicaciones reales</a></li>
+        <li><a href="#jerarq-code" data-sec="jerarq-code">En R y Python</a></li>
+        <li><a href="#jerarq-quiz" data-sec="jerarq-quiz">Quiz</a></li>
+        <li><a href="#jerarq-ej" data-sec="jerarq-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="jerarq-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="jerarq-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una aplicación de reseñas muestra dos restaurantes nuevos: uno tiene 5 estrellas con 3 opiniones; el otro, 4,6 con 800 opiniones. ¿Cuál es mejor? Casi nadie apostaría por el primero. Intuitivamente “bajas” su 5 hacia el promedio típico de los restaurantes, porque 3 opiniones dicen poco. Y no lo bajarías igual si tuviera 30 opiniones.</p>
       <p>Esa intuición tiene una formulación precisa. Si los grupos (restaurantes, escuelas, hospitales) son parecidos entre sí, lo que aprendes de unos te informa sobre los otros. Un <b>modelo jerárquico</b> (o multinivel) trata los parámetros de cada grupo como extraídos de una distribución común cuyos parámetros también se estiman. El resultado es que cada estimación se <b>encoge</b> hacia la media global, más cuanto menos datos tiene el grupo y más parecidos son los grupos entre sí.</p>
+      <p><b>Un poco de historia.</b> En 1956 Charles Stein demostró un resultado que desconcertó a los estadísticos: si estimas tres o más medias normales a la vez, usar cada media muestral por separado es <i>inadmisible</i>; siempre existe un estimador con menor error cuadrático total. En 1961 James y Stein dieron uno explícito, que encoge todas las medias hacia un punto común. Bradley Efron y Carl Morris (1975) lo hicieron famoso con los promedios de bateo de 18 jugadores de béisbol: con los primeros 45 turnos al bate de la temporada de 1970, el estimador encogido predijo mejor el promedio del resto de la temporada que los promedios propios. Lindley y Smith (1972) dieron la lectura bayesiana: el encogimiento sale de un prior común para los grupos. Donald Rubin analizó en 1981 el experimento de las ocho escuelas que usaremos, y en educación y ciencias sociales los modelos multinivel (Goldstein, Raudenbush y Bryk) se volvieron estándar. Hoy el libro de Gelman y Hill (2007) y paquetes como <code>lme4</code> y <code>brms</code> los hacen accesibles a todos.</p>
       <div class="callout"><b>La idea central:</b> los grupos se ayudan entre sí a través de la distribución poblacional. Los datos deciden cuánto se parecen los grupos (el parámetro \(\tau\)) y, con ello, cuánto se encoge cada estimación. Es el punto medio, aprendido de los datos, entre tratar todo como un solo grupo y tratar cada grupo como un mundo aparte.</div>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Plantear un modelo jerárquico de tres niveles y explicar el supuesto de intercambiabilidad.</li>
+          <li>Comparar agrupamiento completo, nulo y parcial, y ver los dos primeros como casos límite.</li>
+          <li>Derivar el factor de encogimiento y la posterior marginal de la desviación entre grupos \(\tau\).</li>
+          <li>Entender el fenómeno de Stein y por qué encoger reduce el error total.</li>
+          <li>Ajustar el modelo de las ocho escuelas en una rejilla y con Stan, usando la parametrización no centrada.</li>
+          <li>Extender la idea a modelos multinivel con predictores, pendientes variables y respuestas no normales.</li>
+        </ul>
+      </div>
 
-      <h2 id="jerarq-pool"><span class="sec">§ 2</span>Tres formas de agrupar</h2>
-      <p>Supón \(J\) grupos y en cada uno una estimación \(y_j\) del efecto \(\theta_j\) con error estándar conocido \(\sigma_j\): \(y_j \mid \theta_j \sim \mathcal{N}(\theta_j, \sigma_j^2)\). Hay tres estrategias:</p>
+      <h2 id="jerarq-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición (modelo jerárquico).</b> Sean \(J\) grupos con datos \(y_j\) y parámetros de grupo \(\theta_j\). Un modelo jerárquico de tres niveles especifica
+        <div class="eq">\[ \underbrace{y_j \mid \theta_j \sim p(y_j \mid \theta_j)}_{\text{nivel 1: datos}}, \qquad \underbrace{\theta_j \mid \phi \overset{\text{iid}}{\sim} p(\theta \mid \phi)}_{\text{nivel 2: población de grupos}}, \qquad \underbrace{\phi \sim p(\phi)}_{\text{nivel 3: hiperprior}} \]
+          <div class="note">La posterior conjunta es \(p(\theta, \phi \mid y) \propto p(\phi) \prod_j p(\theta_j \mid \phi)\,p(y_j \mid \theta_j)\). Los \(\phi\) son los <b>hiperparámetros</b> y \(p(\phi)\) el <b>hiperprior</b>.</div>
+        </div>
+      </div>
+      <ul>
+        <li><b>Intercambiabilidad</b>: la distribución conjunta de \((\theta_1, \dots, \theta_J)\) no cambia si permutas los índices. Antes de ver los datos, no tienes razones para pensar que un grupo concreto tendrá un efecto mayor que otro. Por el teorema de de Finetti, eso equivale (para muchos grupos) a que los \(\theta_j\) sean independientes dado algún \(\phi\): justifica el nivel 2.</li>
+        <li><b>Agrupamiento parcial</b>: el resultado de estimar a la vez \(\theta_j\) y \(\phi\); cada \(\theta_j\) usa sus datos y, a través de \(\phi\), los de los demás grupos.</li>
+        <li><b>Encogimiento</b>: el desplazamiento de la estimación de cada grupo hacia la media poblacional.</li>
+        <li><b>Efectos aleatorios</b>: el nombre frecuentista de los \(\theta_j\) del nivel 2 (en <code>lme4</code>, <code>(1 | grupo)</code>).</li>
+      </ul>
+      <p>En la versión normal que usaremos, \(y_j \mid \theta_j \sim \mathcal{N}(\theta_j, \sigma_j^2)\) con \(\sigma_j\) conocido (por ejemplo, \(s/ \sqrt{n_j}\)) y \(\theta_j \sim \mathcal{N}(\mu, \tau^2)\), con \(\phi = (\mu, \tau)\).</p>
+      <p><b>Ejemplo numérico.</b> Supón \(\mu = 8\) y \(\tau = 10\) conocidos. Un grupo con \(y_j = 20\) y \(\sigma_j = 10\) tiene factor de encogimiento \(B_j = \sigma_j^2/(\sigma_j^2 + \tau^2) = 100/200 = 0{,}5\): su estimación es \(0{,}5 \times 20 + 0{,}5 \times 8 = 14\), a medio camino. Si en cambio tuviera \(\sigma_j = 20\) (cuatro veces menos datos), \(B_j = 400/500 = 0{,}8\) y su estimación sería \(0{,}2 \times 20 + 0{,}8 \times 8 = 10{,}4\). Y si \(\sigma_j = 2\) (muchos datos), \(B_j = 4/104 = 0{,}04\): se queda casi en 20.</p>
+
+      <h2 id="jerarq-pool"><span class="sec">§ 3</span>Tres formas de agrupar</h2>
+      <p>Con \(J\) grupos y estimaciones \(y_j\) con error estándar \(\sigma_j\), hay tres estrategias:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Estrategia</th><th>Supuesto</th><th>Estimación de \(\theta_j\)</th><th>Problema</th></tr></thead>
         <tbody>
-          <tr><td><b>Agrupamiento completo</b></td><td>Todos los grupos son iguales: \(\theta_j = \mu\)</td><td>\(\hat\mu = \dfrac{\sum_j y_j/\sigma_j^2}{\sum_j 1/\sigma_j^2}\) para todos</td><td>Ignora diferencias reales; subestima la incertidumbre de cada grupo.</td></tr>
-          <tr><td><b>Sin agrupar</b></td><td>Los grupos no tienen nada en común</td><td>\(\hat\theta_j = y_j\)</td><td>Estimaciones ruidosas en grupos chicos; los extremos son sobre todo ruido.</td></tr>
-          <tr><td><b>Agrupamiento parcial</b></td><td>\(\theta_j \sim \mathcal{N}(\mu, \tau^2)\), con \(\mu\) y \(\tau\) desconocidos</td><td>Promedio ponderado entre \(y_j\) y \(\mu\)</td><td>Requiere el supuesto de intercambiabilidad (ver abajo).</td></tr>
+          <tr><td><b>Agrupamiento completo</b></td><td>Todos los grupos son iguales: \(\theta_j = \mu\)</td><td>\(\hat \mu = \dfrac{\sum_j y_j/ \sigma_j^2}{\sum_j 1/ \sigma_j^2}\) para todos</td><td>Ignora diferencias reales; subestima la incertidumbre de cada grupo.</td></tr>
+          <tr><td><b>Sin agrupar</b></td><td>Los grupos no tienen nada en común</td><td>\(\hat \theta_j = y_j\)</td><td>Estimaciones ruidosas en grupos chicos; los extremos son sobre todo ruido.</td></tr>
+          <tr><td><b>Agrupamiento parcial</b></td><td>\(\theta_j \sim \mathcal{N}(\mu, \tau^2)\), con \(\mu\) y \(\tau\) desconocidos</td><td>Promedio ponderado entre \(y_j\) y \(\mu\)</td><td>Requiere el supuesto de intercambiabilidad.</td></tr>
         </tbody>
       </table></div>
       <p>Los dos extremos son casos límite del tercero: con \(\tau = 0\) se obtiene el agrupamiento completo, y con \(\tau \to \infty\), el no agrupado. El modelo jerárquico no elige entre ellos de antemano: estima \(\tau\).</p>
-      <p>El supuesto clave es la <b>intercambiabilidad</b>: antes de ver los datos, no tienes razones para pensar que un grupo concreto tendrá un efecto mayor que otro. Si sabes algo que distingue a los grupos (escuelas públicas y privadas, hospitales grandes y chicos), inclúyelo como predictor del nivel superior, \(\theta_j \sim \mathcal{N}(\mathbf{z}_j^\top\boldsymbol\gamma, \tau^2)\), y la intercambiabilidad se vuelve condicional a esos predictores.</p>
+      <p><b>Ejemplo resuelto a mano: tres hospitales.</b> Tres hospitales estiman una tasa de reingreso (por cada 100 pacientes) de 10, 20 y 30, con errores estándar 5, 10 y 10.</p>
+      <ul>
+        <li><b>Agrupamiento completo:</b> pesos \(1/ \sigma_j^2 = 0{,}04;\ 0{,}01;\ 0{,}01\), que suman 0,06. \(\hat \mu = (0{,}4 + 0{,}2 + 0{,}3)/0{,}06 = 15\), con error estándar \(1/ \sqrt{0{,}06} = 4{,}08\). El hospital más preciso domina.</li>
+        <li><b>Sin agrupar:</b> 10, 20 y 30, con intervalos de \(\pm 9{,}8\), \(\pm 19{,}6\) y \(\pm 19{,}6\).</li>
+        <li><b>Parcial con \(\tau = 5\):</b> la media ponderada con varianzas \(\sigma_j^2 + \tau^2 = 50, 125, 125\) es \(\hat \mu_ \tau\) \(= (10/50 + 20/125 + 30/125)/(1/50 + 2/125)\) \(= 0{,}6/0{,}036 = 16{,}7\). Factores: \(B_1 = 25/50 = 0{,}5\), \(B_2 = B_3 = 100/125 = 0{,}8\). Estimaciones: \(0{,}5(10) + 0{,}5(16{,}7) = 13{,}3\); \(0{,}2(20) + 0{,}8(16{,}7) = 17{,}3\); \(0{,}2(30) + 0{,}8(16{,}7) = 19{,}3\).</li>
+      </ul>
+      <p>El hospital con 30 bajó 10,7 puntos: con un error estándar de 10, su valor extremo es sobre todo ruido. El de 10, con más datos, se movió menos en proporción. Ese es el patrón general.</p>
+      <p>Si sabes algo que distingue a los grupos (escuelas públicas y privadas, hospitales grandes y chicos), inclúyelo como predictor del nivel superior, \(\theta_j \sim \mathcal{N}(\mathbf{z}_j^ \top \boldsymbol \gamma, \tau^2)\), y la intercambiabilidad se vuelve condicional a esos predictores: el encogimiento es hacia la recta de regresión, no hacia una media única.</p>
 
-      <h2 id="jerarq-modelo"><span class="sec">§ 3</span>El modelo jerárquico normal</h2>
-      <p>El modelo completo tiene tres niveles: datos, parámetros de grupo e hiperparámetros.</p>
+      <h2 id="jerarq-modelo"><span class="sec">§ 4</span>El modelo jerárquico normal: encogimiento y posterior de τ</h2>
       <div class="eq">\[ y_j \mid \theta_j \sim \mathcal{N}(\theta_j, \sigma_j^2), \qquad \theta_j \mid \mu, \tau \sim \mathcal{N}(\mu, \tau^2), \qquad (\mu, \tau) \sim p(\mu, \tau) \]
-        <div class="note">\(\mu\) es el efecto medio de la población de grupos y \(\tau\) la desviación típica <b>entre</b> grupos. \(\sigma_j\) es la incertidumbre <b>dentro</b> de cada grupo (por ejemplo, \(s/\sqrt{n_j}\)). Para \(\tau\) se recomienda un prior débil como una media normal o media Cauchy, o un uniforme en un rango amplio.</div>
+        <div class="note">\(\mu\) es el efecto medio de la población de grupos y \(\tau\) la desviación típica <b>entre</b> grupos. \(\sigma_j\) es la incertidumbre <b>dentro</b> de cada grupo. Para \(\tau\) se recomienda un prior débil como una media normal o media Cauchy, o un uniforme en un rango amplio.</div>
       </div>
-      <p>Si \(\mu\) y \(\tau\) fueran conocidos, cada \(\theta_j\) tendría una actualización Normal-Normal como la de la clase de priors, donde el prior es la distribución poblacional:</p>
+      <p><b>Paso 1: los grupos dados los hiperparámetros.</b> Con \(\mu\) y \(\tau\) fijos, cada \(\theta_j\) tiene una actualización Normal-Normal como la de la sesión de <a href="#priors">priors</a>, donde el prior es la distribución poblacional. Las precisiones se suman: \(1/ \sigma_j^2 + 1/ \tau^2\). Resulta</p>
       <div class="eq">\[ \theta_j \mid y, \mu, \tau \sim \mathcal{N}\!\left( (1 - B_j)\,y_j + B_j\,\mu,\ \ (1 - B_j)\,\sigma_j^2 \right), \qquad B_j = \frac{\sigma_j^2}{\sigma_j^2 + \tau^2} \]
-        <div class="note">\(B_j \in [0, 1]\) es el <b>factor de encogimiento</b>: la fracción del camino que \(y_j\) recorre hacia \(\mu\). Es grande cuando el grupo es ruidoso (\(\sigma_j\) grande) o los grupos son parecidos (\(\tau\) chico). Además, la varianza posterior \((1-B_j)\sigma_j^2\) es menor que \(\sigma_j^2\): cada grupo gana precisión prestada de los demás.</div>
+        <div class="note">\(B_j \in [0, 1]\) es el <b>factor de encogimiento</b>: la fracción del camino que \(y_j\) recorre hacia \(\mu\). Es grande cuando el grupo es ruidoso (\(\sigma_j\) grande) o los grupos son parecidos (\(\tau\) chico). La varianza posterior es \(\big(1/ \sigma_j^2 + 1/ \tau^2 \big)^{-1} = \frac{\sigma_j^2 \tau^2}{\sigma_j^2 + \tau^2} = (1-B_j) \sigma_j^2\), menor que \(\sigma_j^2\): cada grupo gana precisión prestada de los demás.</div>
       </div>
-      <p>¿Y cómo se aprenden \(\mu\) y \(\tau\)? Integrando los \(\theta_j\), las observaciones son normales con varianza total \(\sigma_j^2 + \tau^2\): \(y_j \mid \mu, \tau \sim \mathcal{N}(\mu, \sigma_j^2 + \tau^2)\). Si las \(y_j\) están más dispersas de lo que explican los \(\sigma_j\), los datos favorecen un \(\tau\) grande; si no, uno chico. Con un prior plano para \(\mu\), la posterior marginal de \(\tau\) es:</p>
-      <div class="eq">\[ p(\tau \mid y) \;\propto\; p(\tau)\; V_\mu^{1/2} \prod_{j=1}^{J} (\sigma_j^2 + \tau^2)^{-1/2} \exp\!\left( -\frac{(y_j - \hat\mu_\tau)^2}{2(\sigma_j^2 + \tau^2)} \right), \quad \hat\mu_\tau = \frac{\sum_j y_j/(\sigma_j^2+\tau^2)}{\sum_j 1/(\sigma_j^2+\tau^2)},\quad V_\mu^{-1} = \sum_j \frac{1}{\sigma_j^2+\tau^2} \]
-        <div class="note">Con un solo parámetro, esta posterior se calcula en una rejilla, como en el ejemplo resuelto. En modelos más grandes (varios niveles, predictores, respuestas binarias o de conteo) se usa MCMC, típicamente Stan.</div>
+      <p><b>Paso 2: la marginal de los datos.</b> Como \(y_j = \theta_j + e_j\) con \(\theta_j \sim \mathcal{N}(\mu, \tau^2)\) y \(e_j \sim \mathcal{N}(0, \sigma_j^2)\) independientes, integrar \(\theta_j\) da \(y_j \mid \mu, \tau \sim \mathcal{N}(\mu, \sigma_j^2 + \tau^2)\). La varianza observada de las \(y_j\) se descompone en varianza de medición más varianza real entre grupos, la misma idea que la <a href="#anova">ANOVA</a> con efectos aleatorios. Si las \(y_j\) están más dispersas de lo que explican los \(\sigma_j\), los datos favorecen un \(\tau\) grande; si no, uno chico.</p>
+      <p><b>Paso 3: integrar \(\mu\).</b> Con prior plano para \(\mu\), \(p(\mu \mid \tau, y)\) es normal con media \(\hat \mu_ \tau\) (promedio de las \(y_j\) ponderado por \(1/(\sigma_j^2 + \tau^2)\)) y varianza \(V_ \mu\). Usando \(p(\tau \mid y) = p(\mu, \tau \mid y)/p(\mu \mid \tau, y)\) evaluado en \(\mu = \hat \mu_ \tau\):</p>
+      <div class="eq">\[ p(\tau \mid y) \;\propto\; p(\tau)\; V_\mu^{1/2} \prod_{j=1}^{J} (\sigma_j^2 + \tau^2)^{-1/2} \exp\!\left( -\frac{(y_j - \hat\mu_\tau)^2}{2(\sigma_j^2 + \tau^2)} \right) \]
+        <div class="note">\(\hat \mu_ \tau = \frac{\sum_j y_j/(\sigma_j^2+ \tau^2)}{\sum_j 1/(\sigma_j^2+ \tau^2)}\) y \(V_ \mu^{-1} = \sum_j \frac{1}{\sigma_j^2+ \tau^2}\). Con un solo parámetro, esta posterior se calcula en una rejilla. Luego se simula en cascada: \(\tau\) de la rejilla, \(\mu \mid \tau\) normal y \(\theta_j \mid \mu, \tau\) normal. En modelos más grandes se usa <a href="#mcmc">MCMC</a>, típicamente Stan.</div>
       </div>
+      <p><b>El prior de \(\tau\) importa.</b> Cuando \(\tau \to 0\), la verosimilitud de \(\tau\) tiende a una constante positiva (los datos nunca pueden descartar que los grupos sean idénticos). Por eso un prior como Gamma-Inv(\(\varepsilon, \varepsilon\)) para \(\tau^2\), que pone muchísimo peso cerca de 0, arrastra la posterior hacia el agrupamiento completo; y \(p(\tau) \propto 1/ \tau\) da una posterior impropia. Gelman (2006) recomienda un uniforme en \(\tau\) o una media Cauchy cuando hay pocos grupos.</p>
       <div class="callout"><b>Error común:</b> estimar \(\tau\) por máxima verosimilitud y luego tratarlo como conocido (Bayes empírico). Con pocos grupos, el estimador puede salir exactamente 0 aunque los grupos difieran, y la incertidumbre sobre \(\tau\) desaparece del análisis. El enfoque bayesiano completo promedia sobre todos los valores plausibles de \(\tau\).</div>
 
-      <h2 id="jerarq-lab"><span class="sec">§ 4</span>Laboratorio: las ocho escuelas</h2>
-      <p>En un estudio clásico (Rubin, 1981), ocho escuelas de Estados Unidos probaron un programa de preparación para el examen de admisión SAT. Cada una reporta el efecto estimado del programa en puntos y su error estándar. Mueve \(\tau\) para ver cómo pasa el modelo del agrupamiento completo al no agrupado. El panel derecho muestra cuánto apoyan los datos cada valor de \(\tau\).</p>
+      <h2 id="jerarq-ocho"><span class="sec">§ 5</span>Las ocho escuelas y el fenómeno de Stein</h2>
+      <p>En un estudio clásico (Rubin, 1981), ocho escuelas de Estados Unidos probaron un programa de preparación para el examen de admisión SAT. Cada una reporta el efecto estimado del programa en puntos y su error estándar. La escuela A reportó un efecto de 28 puntos, pero con un error estándar de 15: un intervalo de 95 % sin agrupar iría de −1 a 57. ¿Hay que creer que el programa funciona mucho mejor allí? Una prueba de homogeneidad no encuentra evidencia de diferencias entre escuelas (\(Q = \sum_j (y_j - \hat \mu)^2/ \sigma_j^2 = 4{,}7\) con 7 grados de libertad, \(p = 0{,}70\)), pero eso no prueba que sean iguales. El modelo jerárquico con priors planos para \(\mu\) y \(\tau\) da:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Escuela</th><th>\(y_j\)</th><th>\(\sigma_j\)</th><th>Media posterior \(\theta_j\)</th><th>IC 95 %</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>28</td><td>15</td><td>11,3</td><td>[−2 ; 31]</td></tr>
+          <tr><td>B</td><td>8</td><td>10</td><td>7,8</td><td>[−5 ; 20]</td></tr>
+          <tr><td>C</td><td>−3</td><td>16</td><td>6,2</td><td>[−12 ; 21]</td></tr>
+          <tr><td>D</td><td>7</td><td>11</td><td>7,6</td><td>[−6 ; 21]</td></tr>
+          <tr><td>E</td><td>−1</td><td>9</td><td>5,1</td><td>[−9 ; 16]</td></tr>
+          <tr><td>F</td><td>1</td><td>11</td><td>6,1</td><td>[−9 ; 19]</td></tr>
+          <tr><td>G</td><td>18</td><td>10</td><td>10,6</td><td>[−1 ; 26]</td></tr>
+          <tr><td>H</td><td>12</td><td>18</td><td>8,3</td><td>[−7 ; 25]</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li>La media poblacional es \(E[\mu \mid y] \approx 7{,}9\) puntos y \(E[\tau \mid y] \approx 6{,}5\) (mediana 5,2, percentil 95 cerca de 17).</li>
+        <li>Los efectos extremos se encogen mucho: A baja de 28 a 11,3 y C sube de −3 a 6,2. C se mueve proporcionalmente más que E, aunque están cerca, porque su error estándar (16) es mayor.</li>
+        <li>La probabilidad de que A tenga un efecto mayor que C es solo de 0,68, y la de que el efecto en A supere los 28 puntos observados es de 0,04.</li>
+        <li>Los intervalos son más angostos que los no agrupados (A: de 58 a 33 puntos de ancho), pero más anchos que los del agrupamiento completo, que finge que todas las escuelas son idénticas.</li>
+        <li>Para una <b>escuela nueva</b>, \(\theta_{\text{nueva}} \sim \mathcal{N}(\mu, \tau^2)\): el intervalo predictivo va de −12 a 29 puntos, mucho más ancho que el de \(\mu\) (de −2 a 18). El efecto medio y el efecto en una escuela concreta son preguntas distintas.</li>
+      </ul>
+      <p><b>El fenómeno de Stein.</b> Supón \(y_j \sim \mathcal{N}(\theta_j, \sigma^2)\), \(j = 1, \dots, J\), con \(\sigma\) común y conocido. El estimador de James-Stein que encoge hacia la media general \(\bar y\) es</p>
+      <div class="eq">\[ \hat\theta_j^{JS} = \bar y + \left(1 - \frac{(J-3)\,\sigma^2}{\sum_k (y_k - \bar y)^2}\right)(y_j - \bar y), \qquad J \ge 4 \]
+        <div class="note">Para cualquier valor de los \(\theta_j\), \(E \sum_j(\hat \theta_j^{JS} - \theta_j)^2 &lt; E \sum_j(y_j - \theta_j)^2 = J \sigma^2\). El factor \((J-3) \sigma^2/ \sum(y_k - \bar y)^2\) es una estimación de \(B = \sigma^2/(\sigma^2 + \tau^2)\): James-Stein es Bayes empírico. La mejora es mayor cuanto más parecidos son los \(\theta_j\), y nunca empeora el total, aunque algún grupo individual pueda salir peor.</div>
+      </div>
+      <div class="callout"><b>Para recordar:</b> el encogimiento no es un sesgo arbitrario. En promedio sobre todos los grupos, las estimaciones encogidas están más cerca de la verdad que las no agrupadas. Lo comprobarás en el segundo laboratorio y en la pregunta 2.</div>
+
+      <h2 id="jerarq-param"><span class="sec">§ 6</span>Parametrización y modelos multinivel generales</h2>
+      <p>Cuando se ajusta un modelo jerárquico con MCMC aparece una dificultad geométrica. En la forma <b>centrada</b>, \(\theta_j \sim \mathcal{N}(\mu, \tau)\), la posterior conjunta de \((\theta_j, \tau)\) tiene forma de <b>embudo</b> (el “embudo de Neal”): cuando \(\tau\) es chico, todos los \(\theta_j\) deben estar pegados a \(\mu\) (el cuello estrecho); cuando es grande, se dispersan (la boca ancha). Ningún tamaño de paso sirve en ambas zonas, y HMC reporta <b>transiciones divergentes</b>.</p>
+      <div class="eq">\[ \text{centrada: } \theta_j \sim \mathcal{N}(\mu, \tau^2) \qquad\Longleftrightarrow\qquad \text{no centrada: } \eta_j \sim \mathcal{N}(0, 1),\ \ \theta_j = \mu + \tau\,\eta_j \]
+        <div class="note">Ambas definen exactamente el mismo modelo (si \(\eta_j \sim \mathcal{N}(0,1)\), entonces \(\mu + \tau \eta_j \sim \mathcal{N}(\mu, \tau^2)\)). En la no centrada el muestreador explora \(\eta_j\) y \(\tau\), que a priori son independientes, y el embudo desaparece. Es la forma recomendada cuando los grupos tienen pocos datos (como en las ocho escuelas); la centrada funciona mejor cuando cada grupo tiene muchos datos, porque entonces la verosimilitud fija cada \(\theta_j\) y es \(\eta_j\) el que queda acoplado a \(\tau\).</div>
+      </div>
+      <ul>
+        <li><code>brms</code> y <code>rstanarm</code> usan la forma no centrada por defecto para los efectos aleatorios.</li>
+        <li>Si Stan avisa de divergencias, no las ignores: sube <code>adapt_delta</code> (por ejemplo a 0,95 o 0,99) y, si persisten, reparametriza.</li>
+      </ul>
+      <p><b>Más allá de la normal.</b> La misma lógica se aplica a cualquier modelo:</p>
+      <ul>
+        <li><b>Interceptos variables con predictores</b>: \(y_{ij} = \alpha_{j} + \beta x_{ij} + \varepsilon_{ij}\), \(\alpha_j \sim \mathcal{N}(\gamma_0 + \gamma_1 u_j, \tau_ \alpha^2)\), donde \(u_j\) es un predictor del grupo. En <code>brms</code>: <code>y ~ x + u + (1 | grupo)</code>.</li>
+        <li><b>Pendientes variables</b>: \((\alpha_j, \beta_j) \sim \mathcal{N}_2(\boldsymbol \mu, \boldsymbol \Sigma)\), con un prior LKJ para la correlación. En <code>brms</code>: <code>y ~ x + (1 + x | grupo)</code>.</li>
+        <li><b>Respuestas no normales</b>: un GLM con efectos aleatorios, por ejemplo una <a href="#glm">regresión de Poisson</a> con \(\log \mu_{ij} = \alpha_j + \mathbf{x}_{ij}^ \top \boldsymbol \beta\) y \(\alpha_j \sim \mathcal{N}(\mu_ \alpha, \tau^2)\), que además modela la sobredispersión entre grupos; o una binomial con logit variable por hospital.</li>
+        <li><b>Relación con la regresión</b>: el encogimiento de los \(\alpha_j\) es una <a href="#bayesreg">regresión bayesiana</a> con un prior normal común sobre esos coeficientes, es decir, ridge con una penalización que se aprende de los datos.</li>
+      </ul>
+      <div class="callout"><b>Buenas prácticas:</b> en un modelo jerárquico revisa siempre la posterior de \(\tau\). Si se concentra cerca de 0, los grupos son casi intercambiables y el agrupamiento es fuerte; si es amplia, reporta cómo cambian las conclusiones de cada grupo en ese rango. Con menos de 5 grupos \(\tau\) se estima muy mal: el prior de \(\tau\) importa mucho.</div>
+
+      <h2 id="jerarq-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Encogimiento lineal.</b> \(E[\theta_j \mid y, \mu, \tau] = (1 - B_j)y_j + B_j \mu\) con \(B_j = \sigma_j^2/(\sigma_j^2+ \tau^2)\). <i>Justificación:</i> actualización Normal-Normal con prior \(\mathcal{N}(\mu, \tau^2)\).</li>
+        <li><b>Ganancia de precisión.</b> \(\operatorname{Var}(\theta_j \mid y, \mu, \tau) = (1 - B_j) \sigma_j^2 \le \sigma_j^2\). <i>Justificación:</i> las precisiones se suman.</li>
+        <li><b>Casos límite.</b> \(\tau \to 0 \Rightarrow B_j \to 1\) (agrupamiento completo); \(\tau \to \infty \Rightarrow B_j \to 0\) (sin agrupar). <i>Justificación:</i> límites de \(B_j\).</li>
+        <li><b>Marginal.</b> \(y_j \mid \mu, \tau \sim \mathcal{N}(\mu, \sigma_j^2 + \tau^2)\): la varianza observada es medición más heterogeneidad real. <i>Justificación:</i> suma de normales independientes.</li>
+        <li><b>Dominancia de Stein.</b> Con \(J \ge 4\) y \(\sigma\) común, el estimador de James-Stein tiene menor error cuadrático total que \(y\), para todo \(\boldsymbol \theta\). <i>Justificación:</i> lema de Stein, \(E[(y - \theta)g(y)] = \sigma^2E[g'(y)]\), aplicado al riesgo.</li>
+        <li><b>Correlación entre grupos.</b> A posteriori los \(\theta_j\) están correlacionados aunque a priori sean independientes dado \(\phi\), porque comparten la incertidumbre de \(\mu\) y \(\tau\). <i>Justificación:</i> \(\operatorname{Cov}(\theta_j, \theta_k \mid y) = \operatorname{Cov}(E[\theta_j \mid \phi,y], E[\theta_k \mid \phi,y])\), por la ley de la covarianza total.</li>
+        <li><b>Verosimilitud plana en \(\tau = 0\).</b> \(p(y \mid \tau) \to\) una constante positiva cuando \(\tau \to 0\); por eso la posterior de \(\tau\) depende del prior cerca de 0 y el MV puede ser 0. <i>Justificación:</i> la marginal en \(\tau = 0\) es el modelo de agrupamiento completo, con densidad positiva.</li>
+        <li><b>Equivalencia de parametrizaciones.</b> \(\theta_j = \mu + \tau \eta_j\) con \(\eta_j \sim \mathcal{N}(0,1)\) define la misma distribución conjunta que la forma centrada. <i>Justificación:</i> transformación afín de una normal; el jacobiano \(\tau\) se cancela con la densidad.</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li>Interpretar la estimación cruda de un grupo pequeño y extremo como si fuera la verdad (el “restaurante de 5 estrellas con 3 reseñas”).</li>
+        <li>Fijar \(\tau\) en su estimador de máxima verosimilitud con pocos grupos y reportar intervalos demasiado angostos.</li>
+        <li>Usar Gamma-Inv(0,001; 0,001) para \(\tau^2\) creyendo que es “no informativo”.</li>
+        <li>Agrupar grupos que no son intercambiables (mezclar escuelas primarias con universidades) sin un predictor de nivel 2.</li>
+        <li>Ignorar las divergencias de HMC en la forma centrada.</li>
+      </ul>
+
+      <h2 id="jerarq-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: las ocho escuelas.</b> Mueve \(\tau\) para ver cómo pasa el modelo del agrupamiento completo al no agrupado. El panel derecho muestra cuánto apoyan los datos cada valor de \(\tau\).</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · encogimiento según τ</span><span class="num" id="jerarq-head">–</span></div>
         <div class="lab-body">
@@ -94,32 +196,19 @@
         </div>
         <figcaption>Con τ = 0 todas las escuelas reciben el promedio ponderado 7,7. Con τ muy grande cada una conserva su propio efecto. La posterior de τ pone mucha probabilidad en valores chicos, pero no descarta valores de 15 o 20: los datos son compatibles con escuelas casi iguales y también con diferencias moderadas.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Pulsa “Agrupado τ = 0” y luego “Casi sin agrupar”. Observa dónde quedan los puntos de cada escuela.
+          <details><summary>Qué deberías observar</summary><p>Con \(\tau = 0\) todas las escuelas reciben 7,7, el promedio ponderado. Con \(\tau = 40\) cada una vuelve casi a su \(y_j\) (A cerca de 26). El modelo jerárquico vive entre ambos extremos.</p></details></li>
+        <li>Fija \(\tau = 10\) y compara el desplazamiento de A (\(\sigma = 15\)) con el de B (\(\sigma = 10\)).
+          <details><summary>Qué deberías observar</summary><p>A pasa de 28 a cerca de 14 (factor \(B = 225/325 = 0{,}69\)); B, que ya estaba cerca de la media, casi no se mueve. El encogimiento depende tanto de la distancia a \(\mu\) como del error estándar.</p></details></li>
+        <li>Mira la posterior de \(\tau\) y mueve el control hasta que \(P(\tau \le \text{valor}) \approx 0{,}5\) y luego 0,95.
+          <details><summary>Qué deberías observar</summary><p>La mediana está cerca de 5 y el percentil 95 cerca de 17. Los datos son compatibles con escuelas casi idénticas y también con diferencias moderadas: esa incertidumbre es la que el análisis completo propaga a cada \(\theta_j\).</p></details></li>
+        <li>Con \(\tau = 5\), anota el encogimiento medio \(B\). Luego súbelo a 20.
+          <details><summary>Qué deberías observar</summary><p>Con \(\tau = 5\) el encogimiento medio ronda 0,85: las escuelas toman cerca del 85 % de la media común. Con \(\tau = 20\) baja a cerca de 0,3. Como los \(\sigma_j\) (de 9 a 18) son grandes comparados con un \(\tau\) plausible, en este problema domina el agrupamiento.</p></details></li>
+      </ol>
 
-      <h2 id="jerarq-ocho"><span class="sec">§ 5</span>Resultados de las ocho escuelas</h2>
-      <p>La escuela A reportó un efecto de 28 puntos, pero con un error estándar de 15: un intervalo de 95 % sin agrupar iría de −1 a 57. ¿Hay que creer que el programa funciona mucho mejor allí? Una prueba de homogeneidad no encuentra evidencia de diferencias entre escuelas (\(Q = 4{,}7\) con 7 grados de libertad, \(p = 0{,}70\)), pero eso no prueba que sean iguales. El modelo jerárquico con priors planos para \(\mu\) y \(\tau\) da:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Escuela</th><th>\(y_j\)</th><th>\(\sigma_j\)</th><th>Media posterior \(\theta_j\)</th><th>IC 95 %</th></tr></thead>
-        <tbody>
-          <tr><td>A</td><td>28</td><td>15</td><td>11,3</td><td>[−2 ; 31]</td></tr>
-          <tr><td>B</td><td>8</td><td>10</td><td>7,8</td><td>[−5 ; 20]</td></tr>
-          <tr><td>C</td><td>−3</td><td>16</td><td>6,2</td><td>[−12 ; 21]</td></tr>
-          <tr><td>D</td><td>7</td><td>11</td><td>7,6</td><td>[−6 ; 21]</td></tr>
-          <tr><td>E</td><td>−1</td><td>9</td><td>5,1</td><td>[−9 ; 16]</td></tr>
-          <tr><td>F</td><td>1</td><td>11</td><td>6,1</td><td>[−9 ; 19]</td></tr>
-          <tr><td>G</td><td>18</td><td>10</td><td>10,6</td><td>[−1 ; 26]</td></tr>
-          <tr><td>H</td><td>12</td><td>18</td><td>8,3</td><td>[−7 ; 25]</td></tr>
-        </tbody>
-      </table></div>
-      <ul>
-        <li>La media poblacional es \(E[\mu \mid y] \approx 7{,}9\) puntos y \(E[\tau \mid y] \approx 6{,}5\) (mediana 5,2, percentil 95 cerca de 17).</li>
-        <li>Los efectos extremos se encogen mucho: A baja de 28 a 11,3 y C sube de −3 a 6,2. C se mueve proporcionalmente más que E, aunque están cerca, porque su error estándar (16) es mayor.</li>
-        <li>La probabilidad de que A tenga un efecto mayor que C es solo de 0,68, y la de que el efecto en A supere los 28 puntos observados es de 0,04.</li>
-        <li>Los intervalos son más angostos que los no agrupados (A: de 58 a 33 puntos de ancho), pero más anchos que los del agrupamiento completo, que finge que todas las escuelas son idénticas.</li>
-      </ul>
-      <div class="callout"><b>Para recordar:</b> el encogimiento no es un sesgo arbitrario. En promedio sobre todos los grupos, las estimaciones encogidas están más cerca de la verdad que las no agrupadas (es el fenómeno de Stein: con tres o más grupos, promediar con el resto siempre reduce el error cuadrático total). Lo comprobarás en el siguiente simulador.</div>
-
-      <h2 id="jerarq-encog"><span class="sec">§ 6</span>Encogimiento y tamaño del grupo</h2>
-      <p>Ahora los datos son simulados y conoces la verdad. Hay 12 sucursales con tamaños de muestra muy distintos (de 2 a 80 clientes); el puntaje real de cada una sale de \(\mathcal{N}(50, \tau^2)\) y cada cliente da una calificación con ruido \(\sigma\). Comparamos la media cruda de cada sucursal con la estimación de agrupamiento parcial (con \(\mu\) y \(\tau\) estimados de los datos). Las sucursales están ordenadas por tamaño de muestra.</p>
+      <p><b>Laboratorio 2: encogimiento en acción.</b> Ahora los datos son simulados y conoces la verdad. Hay 12 sucursales con tamaños de muestra muy distintos (de 2 a 80 clientes); el puntaje real de cada una sale de \(\mathcal{N}(50, \tau^2)\) y cada cliente da una calificación con ruido \(\sigma\). Comparamos la media cruda de cada sucursal con la estimación de agrupamiento parcial (con \(\mu\) y \(\tau\) estimados de los datos). Las sucursales están ordenadas por tamaño de muestra.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · encogimiento en acción</span><span class="num" id="jerarq-s-head">–</span></div>
         <div class="lab-body">
@@ -139,28 +228,43 @@
         </div>
         <figcaption>Pulsa varias veces “Nuevas sucursales”: el ECM del agrupamiento parcial casi siempre es menor. Las sucursales con 2 o 3 clientes se encogen mucho y las de 80 casi nada. Si subes τ a 25 (sucursales muy distintas), el encogimiento casi desaparece y ambos métodos se parecen.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con \(\tau = 6\) y \(\sigma = 20\), pulsa “Nuevas sucursales” diez veces y anota cuántas veces gana el agrupamiento parcial en ECM.
+          <details><summary>Qué deberías observar</summary><p>Gana casi siempre, a menudo con un ECM de la mitad o menos. Las sucursales con 2 o 3 clientes se encogen mucho (\(B\) cerca de 0,9) y las de 80 casi nada (\(B\) cerca de 0,1).</p></details></li>
+        <li>Sube \(\tau\) a 25 manteniendo \(\sigma = 20\).
+          <details><summary>Qué deberías observar</summary><p>Las sucursales son realmente muy distintas, \(\hat \tau\) sale grande y el encogimiento casi desaparece: ambos métodos dan ECM parecidos. El modelo jerárquico se adapta: no encoge cuando no hace falta.</p></details></li>
+        <li>Baja \(\tau\) a 1 y sube \(\sigma\) a 40.
+          <details><summary>Qué deberías observar</summary><p>Casi toda la variación entre medias crudas es ruido. El agrupamiento parcial lleva casi todas las sucursales a \(\hat \mu\), y su ECM es varias veces menor. A veces \(\hat \tau\) sale prácticamente 0: con pocos grupos y mucho ruido, no se puede distinguir \(\tau = 1\) de \(\tau = 0\).</p></details></li>
+        <li>Con \(\tau = 6\) y \(\sigma = 5\), compara los dos valores de \(B\) del readout.
+          <details><summary>Qué deberías observar</summary><p>Con poco ruido por cliente, incluso la sucursal de 2 clientes tiene un error estándar de \(5/ \sqrt 2 \approx 3{,}5\), menor que \(\tau\): su \(B\) baja a cerca de 0,25 y la de 80 a casi 0. Cuando los datos de cada grupo son buenos, cada grupo habla por sí mismo.</p></details></li>
+      </ol>
 
-      <h2 id="jerarq-param"><span class="sec">§ 7</span>Parametrización centrada y no centrada</h2>
-      <p>Cuando se ajusta un modelo jerárquico con MCMC aparece una dificultad geométrica. En la forma <b>centrada</b>, \(\theta_j \sim \mathcal{N}(\mu, \tau)\), la posterior conjunta de \((\theta_j, \tau)\) tiene forma de <b>embudo</b>: cuando \(\tau\) es chico, todos los \(\theta_j\) deben estar pegados a \(\mu\) (el cuello estrecho); cuando es grande, se dispersan (la boca ancha). Ningún tamaño de paso sirve en ambas zonas, y HMC reporta <b>transiciones divergentes</b>.</p>
-      <div class="eq">\[ \text{centrada: } \theta_j \sim \mathcal{N}(\mu, \tau^2) \qquad\Longleftrightarrow\qquad \text{no centrada: } \eta_j \sim \mathcal{N}(0, 1),\ \ \theta_j = \mu + \tau\,\eta_j \]
-        <div class="note">Ambas definen exactamente el mismo modelo. En la no centrada el muestreador explora \(\eta_j\) y \(\tau\), que a priori son independientes, y el embudo desaparece. Es la forma recomendada cuando los grupos tienen pocos datos (como en las ocho escuelas); la centrada funciona mejor cuando cada grupo tiene muchos datos.</div>
-      </div>
-      <ul>
-        <li><code>brms</code> y <code>rstanarm</code> usan la forma no centrada por defecto para los efectos aleatorios.</li>
-        <li>Si Stan avisa de divergencias, no las ignores: sube <code>adapt_delta</code> (por ejemplo a 0,95 o 0,99) y, si persisten, reparametriza.</li>
-        <li>La sintaxis de efectos aleatorios de <code>lme4</code> también sirve en <code>brms</code>: <code>y ~ 1 + (1 | grupo)</code> es un modelo jerárquico con intercepto por grupo.</li>
-      </ul>
-      <div class="callout"><b>Buenas prácticas:</b> en un modelo jerárquico revisa siempre la posterior de \(\tau\). Si se concentra cerca de 0, los grupos son casi intercambiables y el agrupamiento es fuerte; si es amplia, reporta cómo cambian las conclusiones de cada grupo en ese rango. Y ten presente que con menos de 5 grupos \(\tau\) se estima muy mal: el prior de \(\tau\) importa mucho.</div>
+      <h2 id="jerarq-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Deportes: los promedios de bateo de Efron y Morris</h3>
+      <p>Efron y Morris (1975, <i>Journal of the American Statistical Association</i>) tomaron a 18 jugadores de las Grandes Ligas con 45 turnos al bate al inicio de la temporada de 1970. Roberto Clemente bateaba 0,400 en ese momento y otros jugadores apenas 0,156. Con una transformación para estabilizar la varianza y el estimador de James-Stein, encogieron todos los promedios hacia la media del grupo (cerca de 0,265). Comparados con el promedio de cada jugador en el resto de la temporada, los estimadores encogidos tuvieron un error cuadrático total unas tres veces menor que los promedios iniciales. La decisión que ilustra: no pagar por un jugador por un arranque espectacular con pocos turnos.</p>
+      <h3>Ambiente y salud: radón en las casas de Minnesota</h3>
+      <p>El ejemplo central del libro de Gelman y Hill usa mediciones de radón (un gas radiactivo asociado al cáncer de pulmón) en 919 casas de 85 condados de Minnesota. Algunos condados tienen una o dos casas medidas; otros, más de cien. El modelo multinivel \(\log(\text{radón})_{ij} = \alpha_j + \beta\, \text{piso}_{ij}\), con \(\alpha_j\) normal alrededor de una recta en el nivel de uranio del suelo del condado, da estimaciones estables para los condados pequeños y muestra que medir en el sótano da niveles mucho mayores (\(\hat \beta\) cercano a −0,7 en escala log para la planta baja). Permite decidir en qué condados priorizar campañas de medición y mitigación.</p>
+      <h3>Medicina: metaanálisis de efectos aleatorios</h3>
+      <p>Un metaanálisis combina estudios que miden el mismo efecto con distinto tamaño y contexto: es exactamente el modelo de las ocho escuelas, con \(y_j\) la estimación de cada estudio y \(\sigma_j\) su error estándar. El conjunto <code>dat.bcg</code> del paquete metafor reúne 13 ensayos de la vacuna BCG contra la tuberculosis (Colditz y colaboradores, 1994), con log razones de riesgo muy heterogéneas. El modelo de efectos aleatorios estima un efecto medio protector y una \(\tau\) claramente mayor que 0; agregar la latitud de cada ensayo como predictor de nivel 2 explica buena parte de esa heterogeneidad (la vacuna protege más lejos del ecuador). La decisión: recomendar la vacuna según la región.</p>
+      <h3>Estadística oficial: estimación en áreas pequeñas</h3>
+      <p>Las encuestas nacionales tienen pocas observaciones en cada municipio, así que la estimación directa del ingreso o la pobreza municipal es muy ruidosa. El modelo de Fay y Herriot (1979), desarrollado para estimar el ingreso per cápita de lugares pequeños en Estados Unidos, combina la estimación directa con una regresión sobre datos administrativos (censos, registros tributarios): \(\theta_j \sim \mathcal{N}(\mathbf{z}_j^ \top \boldsymbol \gamma, \tau^2)\). Los municipios con muestra grande conservan su estimación directa y los pequeños se apoyan en la regresión. Muchas oficinas de estadística lo usan para asignar fondos a municipios según su nivel de pobreza.</p>
 
-      <h2 id="jerarq-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
-      <p>Las ocho escuelas con priors planos para \(\mu\) y \(\tau\). Como solo \(\tau\) no tiene forma cerrada, calculamos su posterior en una rejilla y luego simulamos en cascada \(\tau \to \mu \mid \tau \to \theta_j \mid \mu, \tau\): son muestras exactas de la posterior, sin MCMC. En R se muestra además el mismo modelo con <code>brms</code>.</p>
-      <div class="codetabs">
-        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+      <h2 id="jerarq-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>Las ocho escuelas con priors planos para \(\mu\) y \(\tau\). Como solo \(\tau\) no tiene forma cerrada, calculamos su posterior en una rejilla y luego simulamos en cascada \(\tau \to \mu \mid \tau \to \theta_j \mid \mu, \tau\): son muestras exactas de la posterior, sin MCMC. Agregamos la predictiva para una escuela nueva. En R se muestra además el mismo modelo con <code>brms</code>.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 
-y     = np.<span class="f">array</span>([<span class="n">28</span>, <span class="n">8</span>, -<span class="n">3</span>, <span class="n">7</span>, -<span class="n">1</span>, <span class="n">1</span>, <span class="n">18</span>, <span class="n">12.</span>])   <span class="c"># efecto estimado en cada escuela</span>
-sigma = np.<span class="f">array</span>([<span class="n">15</span>, <span class="n">10</span>, <span class="n">16</span>, <span class="n">11</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">10</span>, <span class="n">18.</span>])  <span class="c"># su error estándar</span>
+y     = np.<span class="f">array</span>([<span class="n">28</span>, <span class="n">8</span>, -<span class="n">3</span>, <span class="n">7</span>, -<span class="n">1</span>, <span class="n">1</span>, <span class="n">18</span>, <span class="n">12</span>.])   <span class="c"># efecto estimado en cada escuela</span>
+sigma = np.<span class="f">array</span>([<span class="n">15</span>, <span class="n">10</span>, <span class="n">16</span>, <span class="n">11</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">10</span>, <span class="n">18</span>.])  <span class="c"># su error estándar</span>
 escuelas = <span class="f">list</span>(<span class="s">'ABCDEFGH'</span>)
+
+<span class="c"># 0. Agrupamiento completo y prueba de homogeneidad</span>
+w = <span class="n">1</span> / sigma**<span class="n">2</span>
+mu_pool = np.<span class="f">sum</span>(w * y) / np.<span class="f">sum</span>(w)
+Q = np.<span class="f">sum</span>(w * (y - mu_pool)**<span class="n">2</span>)
+<span class="f">print</span>(mu_pool, <span class="n">1</span> / np.<span class="f">sqrt</span>(w.<span class="f">sum</span>()), Q)          <span class="c"># 7.69  4.07  4.71 (7 gl)</span>
 
 <span class="c"># 1. Posterior marginal de τ en una rejilla (priors planos para μ y τ)</span>
 tau = np.<span class="f">linspace</span>(<span class="n">0.01</span>, <span class="n">40</span>, <span class="n">4000</span>)
@@ -179,21 +283,31 @@ p_tau = np.<span class="f">exp</span>(np.<span class="f">array</span>(log_p) - <
 rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
 S = <span class="n">20_000</span>
 t_s = rng.<span class="f">choice</span>(tau, size=S, p=p_tau)
-theta = np.<span class="f">empty</span>((S, <span class="n">8</span>))
+mu_s = np.<span class="f">empty</span>(S); theta = np.<span class="f">empty</span>((S, <span class="n">8</span>))
 <span class="k">for</span> s, t <span class="k">in</span> <span class="f">enumerate</span>(t_s):
     m, V = <span class="f">mu_hat</span>(t)
-    mu = rng.<span class="f">normal</span>(m, np.<span class="f">sqrt</span>(V))
+    mu_s[s] = rng.<span class="f">normal</span>(m, np.<span class="f">sqrt</span>(V))
     prec = <span class="n">1</span> / sigma**<span class="n">2</span> + <span class="n">1</span> / t**<span class="n">2</span>
-    theta[s] = rng.<span class="f">normal</span>((y / sigma**<span class="n">2</span> + mu / t**<span class="n">2</span>) / prec, np.<span class="f">sqrt</span>(<span class="n">1</span> / prec))
+    theta[s] = rng.<span class="f">normal</span>((y / sigma**<span class="n">2</span> + mu_s[s] / t**<span class="n">2</span>) / prec, np.<span class="f">sqrt</span>(<span class="n">1</span> / prec))
 
 media = theta.<span class="f">mean</span>(axis=<span class="n">0</span>)
 lo, hi = np.<span class="f">percentile</span>(theta, [<span class="n">2.5</span>, <span class="n">97.5</span>], axis=<span class="n">0</span>)
 <span class="k">for</span> e, yy, m, a, b <span class="k">in</span> <span class="f">zip</span>(escuelas, y, media, lo, hi):
-    <span class="f">print</span>(<span class="s">f'{e}: y = {yy:5.1f}   posterior {m:5.1f}  [{a:6.1f}, {b:5.1f}]'</span>)
+    <span class="f">print</span>(f<span class="s">'{e}: y = {yy:5.1f}   posterior {m:5.1f}  [{a:6.1f}, {b:5.1f}]'</span>)
 <span class="c"># A: y =  28.0   posterior  11.3  [  -2.0,  31.3]   ...   E: y = -1.0   posterior   5.1</span>
-<span class="f">print</span>(np.<span class="f">mean</span>(theta[:, <span class="n">0</span>] &gt; theta[:, <span class="n">2</span>]))   <span class="c"># P(θA &gt; θC) ≈ 0.68</span></code></pre>
+<span class="f">print</span>(np.<span class="f">mean</span>(theta[:, <span class="n">0</span>] &gt; theta[:, <span class="n">2</span>]))   <span class="c"># P(θA &gt; θC) ≈ 0.68</span>
+<span class="f">print</span>(np.<span class="f">mean</span>(theta[:, <span class="n">0</span>] &gt; <span class="n">28</span>))            <span class="c"># P(θA &gt; 28) ≈ 0.04</span>
+
+<span class="c"># 3. Predictiva para una escuela nueva: θ_nueva ~ N(μ, τ²)</span>
+nueva = rng.<span class="f">normal</span>(mu_s, t_s)
+<span class="f">print</span>(np.<span class="f">percentile</span>(mu_s, [<span class="n">2.5</span>, <span class="n">97.5</span>]))     <span class="c"># ≈ [-2, 18]: efecto medio</span>
+<span class="f">print</span>(np.<span class="f">percentile</span>(nueva, [<span class="n">2.5</span>, <span class="n">97.5</span>]))    <span class="c"># ≈ [-12, 29]: efecto en una escuela nueva</span></code></pre>
 <pre class="code" data-lang="r" hidden><code>y     &lt;- <span class="f">c</span>(<span class="n">28</span>, <span class="n">8</span>, -<span class="n">3</span>, <span class="n">7</span>, -<span class="n">1</span>, <span class="n">1</span>, <span class="n">18</span>, <span class="n">12</span>)
 sigma &lt;- <span class="f">c</span>(<span class="n">15</span>, <span class="n">10</span>, <span class="n">16</span>, <span class="n">11</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">10</span>, <span class="n">18</span>)
+
+<span class="c"># 0. Agrupamiento completo y prueba de homogeneidad</span>
+w &lt;- <span class="n">1</span> / sigma^<span class="n">2</span>; mu_pool &lt;- <span class="f">sum</span>(w * y) / <span class="f">sum</span>(w)
+<span class="f">c</span>(mu_pool, <span class="n">1</span> / <span class="f">sqrt</span>(<span class="f">sum</span>(w)), <span class="f">sum</span>(w * (y - mu_pool)^<span class="n">2</span>))   <span class="c"># 7.69 4.07 4.71</span>
 
 <span class="c"># 1. Posterior marginal de τ en una rejilla</span>
 tau &lt;- <span class="f">seq</span>(<span class="n">0.01</span>, <span class="n">40</span>, length.out = <span class="n">4000</span>)
@@ -208,15 +322,20 @@ p_tau &lt;- <span class="f">exp</span>(log_p - <span class="f">max</span>(log_p)
 <span class="c"># 2. Simulación en cascada τ → μ → θ</span>
 <span class="f">set.seed</span>(<span class="n">1</span>)
 t_s &lt;- <span class="f">sample</span>(tau, <span class="n">20000</span>, replace = <span class="k">TRUE</span>, prob = p_tau)
-theta &lt;- <span class="f">t</span>(<span class="f">sapply</span>(t_s, <span class="k">function</span>(t) {
+sims &lt;- <span class="f">t</span>(<span class="f">sapply</span>(t_s, <span class="k">function</span>(t) {
   mv &lt;- <span class="f">mu_hat</span>(t); mu &lt;- <span class="f">rnorm</span>(<span class="n">1</span>, mv[<span class="s">"m"</span>], <span class="f">sqrt</span>(mv[<span class="s">"V"</span>]))
   prec &lt;- <span class="n">1</span> / sigma^<span class="n">2</span> + <span class="n">1</span> / t^<span class="n">2</span>
-  <span class="f">rnorm</span>(<span class="n">8</span>, (y / sigma^<span class="n">2</span> + mu / t^<span class="n">2</span>) / prec, <span class="f">sqrt</span>(<span class="n">1</span> / prec))
+  <span class="f">c</span>(mu, <span class="f">rnorm</span>(<span class="n">8</span>, (y / sigma^<span class="n">2</span> + mu / t^<span class="n">2</span>) / prec, <span class="f">sqrt</span>(<span class="n">1</span> / prec)))
 }))
+mu_s &lt;- sims[, <span class="n">1</span>]; theta &lt;- sims[, -<span class="n">1</span>]
 <span class="f">round</span>(<span class="f">colMeans</span>(theta), <span class="n">1</span>)               <span class="c"># ≈ 11.3  7.8  6.2  7.6  5.1  6.1  10.6  8.3</span>
 <span class="f">mean</span>(theta[, <span class="n">1</span>] &gt; theta[, <span class="n">3</span>])           <span class="c"># P(θA &gt; θC) ≈ 0.68</span>
 
-<span class="c"># 3. El mismo modelo con Stan vía brms (forma no centrada por defecto)</span>
+<span class="c"># 3. Escuela nueva</span>
+nueva &lt;- <span class="f">rnorm</span>(<span class="n">20000</span>, mu_s, t_s)
+<span class="f">quantile</span>(mu_s, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>)); <span class="f">quantile</span>(nueva, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))   <span class="c"># ≈ [-2, 18] y [-12, 29]</span>
+
+<span class="c"># 4. El mismo modelo con Stan vía brms (forma no centrada por defecto)</span>
 <span class="f">library</span>(brms)
 d &lt;- <span class="f">data.frame</span>(escuela = LETTERS[<span class="n">1</span>:<span class="n">8</span>], y, sigma)
 fit &lt;- <span class="f">brm</span>(y | <span class="f">se</span>(sigma) ~ <span class="n">1</span> + (<span class="n">1</span> | escuela), data = d,
@@ -224,12 +343,12 @@ fit &lt;- <span class="f">brm</span>(y | <span class="f">se</span>(sigma) ~ <spa
            control = <span class="f">list</span>(adapt_delta = <span class="n">0.95</span>), seed = <span class="n">1</span>)
 <span class="f">summary</span>(fit)                 <span class="c"># revisa Rhat, ESS y divergencias</span>
 <span class="f">coef</span>(fit)$escuela            <span class="c"># efectos por escuela, parecidos a los de la rejilla</span></code></pre>
-      </div>
-      <p><b>Cómo leerlo.</b> La rejilla da la posterior exacta (salvo error de Monte Carlo): A pasa de 28 a 11,3 puntos y todas las escuelas quedan entre 5 y 12. Con <code>brms</code> el prior media Cauchy(0, 10) para \(\tau\) es algo distinto del plano, así que los números cambian un poco, pero la historia es la misma. Si el ajuste reporta divergencias, sube <code>adapt_delta</code>.</p>
+</div>
+      <p><b>Cómo leerlo.</b> La prueba de homogeneidad (\(Q = 4{,}7\) con 7 gl) no detecta diferencias, pero la rejilla muestra que \(\tau\) podría ser 0 o 15. La posterior exacta (salvo error de Monte Carlo) lleva A de 28 a 11,3 puntos y deja todas las escuelas entre 5 y 12. El efecto medio del programa está entre −2 y 18 puntos, pero en una escuela nueva podría ir de −12 a 29: si una escuela decide adoptar el programa, la cifra relevante es la segunda. Con <code>brms</code> el prior media Cauchy(0, 10) para \(\tau\) es algo distinto del plano, así que los números cambian un poco, pero la historia es la misma.</p>
 
-      <h2 id="jerarq-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <h2 id="jerarq-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="El factor de encogimiento B = σ²/(σ² + τ²) crece con σ: el grupo con error estándar mayor, es decir con menos datos, se mueve más hacia la media global." data-wrong="Mira el factor B = σⱼ²/(σⱼ² + τ²). ¿Para qué grupo es más grande, el de σ chico o el de σ grande?">
-        <h3>Dos sucursales tienen la misma media cruda, muy por encima del promedio. Una tiene 5 clientes y la otra 500. En un modelo jerárquico, ¿cuál se encoge más hacia la media global?</h3>
+        <h3>1. Dos sucursales tienen la misma media cruda, muy por encima del promedio. Una tiene 5 clientes y la otra 500. En un modelo jerárquico, ¿cuál se encoge más hacia la media global?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La de 500 clientes, porque está más lejos de la media</button>
           <button class="opt" type="button" data-ok="1"><span class="letter">B</span>La de 5 clientes, porque su estimación es más ruidosa</button>
@@ -239,7 +358,7 @@ fit &lt;- <span class="f">brm</span>(y | <span class="f">se</span>(sigma) ~ <spa
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Con τ = 0 todas las θⱼ son iguales a μ: es el agrupamiento completo. Cuando τ crece sin límite, B tiende a 0 y cada grupo conserva su propia estimación." data-wrong="τ es la desviación típica de los efectos verdaderos entre grupos. ¿Qué significa que esa desviación sea cero?">
-        <h3>En el modelo θⱼ ~ N(μ, τ²), ¿a qué corresponde τ = 0?</h3>
+        <h3>2. En el modelo θⱼ ~ N(μ, τ²), ¿a qué corresponde τ = 0?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>A analizar cada grupo por separado</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>A un prior no informativo</button>
@@ -249,7 +368,7 @@ fit &lt;- <span class="f">brm</span>(y | <span class="f">se</span>(sigma) ~ <spa
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Ambas formas definen el mismo modelo. La no centrada, θⱼ = μ + τ·ηⱼ con ηⱼ ~ N(0, 1), elimina el embudo entre τ y θⱼ, y por eso el muestreador deja de producir divergencias." data-wrong="Las divergencias vienen de la geometría de embudo entre τ y los θⱼ. ¿Cuál de las opciones cambia esa geometría sin cambiar el modelo?">
-        <h3>Ajustas las ocho escuelas en Stan con la forma centrada y obtienes muchas transiciones divergentes. ¿Qué es lo más recomendable?</h3>
+        <h3>3. Ajustas las ocho escuelas en Stan con la forma centrada y obtienes muchas transiciones divergentes. ¿Qué es lo más recomendable?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Reparametrizar en forma no centrada, θⱼ = μ + τ·ηⱼ</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Ignorarlas si R̂ es menor que 1,01</button>
@@ -258,46 +377,170 @@ fit &lt;- <span class="f">brm</span>(y | <span class="f">se</span>(sigma) ~ <spa
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="B = σ²/(σ² + τ²) = 64/(64 + 36) = 0,64, así que la estimación es 0,36·30 + 0,64·10 = 10,8 + 6,4 = 17,2." data-wrong="Calcula primero B = σⱼ²/(σⱼ² + τ²) con σⱼ = 8 y τ = 6, y luego el promedio ponderado (1 − B)·yⱼ + B·μ.">
+        <h3>4. Con μ = 10 y τ = 6, un grupo tiene yⱼ = 30 y σⱼ = 8. ¿Cuál es E[θⱼ | y, μ, τ]?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>22,8</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>20,0</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>12,4</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>17,2</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El intervalo de μ describe el efecto medio de la población de escuelas; el de una escuela nueva suma la variación real entre escuelas, τ², y por eso es mucho más ancho." data-wrong="Piensa en θ_nueva ~ N(μ, τ²). ¿Qué fuente de variación agrega respecto a la incertidumbre de μ?">
+        <h3>5. En las ocho escuelas, el IC 95 % de μ es [−2 ; 18] y el predictivo de una escuela nueva es [−12 ; 29]. ¿Por qué el segundo es más ancho?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque usa menos datos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Porque suma a la incertidumbre de μ la variación real entre escuelas τ</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque el prior de τ es plano</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Por error de Monte Carlo</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="jerarq-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. Puedes comprobar el ejercicio 3 con el primer laboratorio.</p>
+      <h2 id="jerarq-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Demostraciones, derivaciones y estudios de simulación. Intenta cada uno antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>En un modelo jerárquico con \(\mu = 8\) y \(\tau = 10\), un grupo tiene \(y_j = 20\) y \(\sigma_j = 10\). (a) Calcula el factor de encogimiento y la media posterior de \(\theta_j\). (b) Repite con \(\sigma_j = 20\).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(B = 100/(100 + 100) = 0{,}5\), así que \(E[\theta_j] = 0{,}5 \cdot 20 + 0{,}5 \cdot 8 =\) <b>14</b>. (b) \(B = 400/(400 + 100) = 0{,}8\), así que \(E[\theta_j] = 0{,}2 \cdot 20 + 0{,}8 \cdot 8 =\) <b>10,4</b>. Con más ruido, el grupo confía menos en su propio dato.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>En el modelo jerárquico normal con prior plano para \(\mu\): (a) deriva \(p(\mu \mid \tau, y)\); (b) usa la identidad \(p(\tau \mid y) = \frac{p(\mu, \tau \mid y)}{p(\mu \mid \tau, y)}\) para obtener la fórmula de \(p(\tau \mid y)\) de la sección 4; (c) muestra que cuando \(\tau \to 0\) la expresión tiende a una constante positiva y explica qué implica para el prior de \(\tau\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Con \(y_j \mid \mu, \tau \sim \mathcal{N}(\mu, v_j)\), \(v_j = \sigma_j^2 + \tau^2\), y prior plano, \(p(\mu \mid \tau, y) \propto \exp\{- \sum_j (y_j - \mu)^2/(2v_j)\}\). Completando el cuadrado: normal con precisión \(\sum_j 1/v_j = V_ \mu^{-1}\) y media \(\hat \mu_ \tau = V_ \mu \sum_j y_j/v_j\).</p>
+            <p>(b) \(p(\mu, \tau \mid y) \propto p(\tau) \prod_j v_j^{-1/2} \exp\{-(y_j - \mu)^2/(2v_j)\}\). Dividiendo entre \(p(\mu \mid \tau,y) = (2 \pi V_ \mu)^{-1/2} \exp\{-(\mu - \hat \mu_ \tau)^2/(2V_ \mu)\}\) y evaluando en \(\mu = \hat \mu_ \tau\) (la identidad vale para todo \(\mu\)), se obtiene \(p(\tau \mid y) \propto p(\tau)V_ \mu^{1/2} \prod_j v_j^{-1/2} \exp\{-(y_j - \hat \mu_ \tau)^2/(2v_j)\}\).</p>
+            <p>(c) Con \(\tau = 0\), \(v_j = \sigma_j^2\) y todos los factores son finitos y positivos: la verosimilitud marginal de \(\tau\) no se anula en 0. Por eso los datos nunca descartan el agrupamiento completo, el MV puede ser 0 y un prior con mucha masa cerca de 0 (como Gamma-Inv(\(\varepsilon, \varepsilon\)) en \(\tau^2\)) domina la posterior; y \(p(\tau) \propto 1/ \tau\) da una posterior no integrable cerca de 0.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Tres hospitales estiman una tasa de reingreso (por cada 100 pacientes) de 10, 20 y 30, con errores estándar 5, 10 y 10. Calcula la estimación del agrupamiento completo y su error estándar.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Pesos \(1/\sigma_j^2\): 0,04; 0,01 y 0,01, que suman 0,06. \(\hat\mu = (0{,}04 \cdot 10 + 0{,}01 \cdot 20 + 0{,}01 \cdot 30)/0{,}06 = 0{,}9/0{,}06 =\) <b>15</b>. Error estándar: \(1/\sqrt{0{,}06} \approx\) <b>4,08</b>. El hospital más preciso domina el promedio.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>En las ocho escuelas, con \(\tau = 10\) se obtiene \(\hat\mu_\tau = 8{,}13\). Calcula \(E[\theta_j \mid \tau, y]\) para la escuela A (\(y = 28,\ \sigma = 15\)) y para la C (\(y = -3,\ \sigma = 16\)). ¿Cuál se encoge una fracción mayor de su distancia a \(\mu\)?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>A: \(B_A = 225/325 = 0{,}692\), \(E[\theta_A] = 0{,}692 \cdot 8{,}13 + 0{,}308 \cdot 28 \approx\) <b>14,2</b>. C: \(B_C = 256/356 = 0{,}719\), \(E[\theta_C] = 0{,}719 \cdot 8{,}13 + 0{,}281 \cdot (-3) \approx\) <b>5,0</b>. C se encoge una fracción mayor (72 % frente a 69 %) porque su error estándar es más grande; A se mueve más puntos en total (13,8) solo porque partía más lejos.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Bayes empírico: estima \(\tau\) maximizando la verosimilitud marginal \(y_j \sim \mathcal{N}(\hat\mu_\tau, \sigma_j^2 + \tau^2)\) para las ocho escuelas. ¿Qué valor obtienes y qué implicaría para la escuela A? ¿Por qué el análisis bayesiano completo es preferible aquí?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>La verosimilitud marginal es máxima en <b>\(\hat\tau = 0\)</b>: las \(y_j\) no están más dispersas de lo que explican sus errores estándar (\(Q = 4{,}7\) con 7 gl). Tratando \(\tau = 0\) como conocido, todas las escuelas reciben 7,7 con error estándar 4,1, y A tendría un IC de 95 % de cerca de −0,3 a 15,7: demasiado seguro, porque ignora que \(\tau\) podría valer 10 o 15. El análisis completo promedia sobre \(p(\tau \mid y)\) y da para A una media de 11,3 con un intervalo de −2 a 31.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudio de Stein. Con \(J = 10\) grupos, \(\theta_j \sim \mathcal{N}(0, \tau^2)\) y \(y_j \sim \mathcal{N}(\theta_j, 1)\), simula 5 000 réplicas para \(\tau \in \{0{,}5;\ 1;\ 3\}\) y compara el error cuadrático total de (i) \(y_j\), (ii) James-Stein hacia \(\bar y\) y (iii) su versión “positiva” que trunca el factor en 0. Repite con \(\theta_j\) fijos y muy dispersos, \(\theta = (-10, -8, \dots, 8)\). ¿Se cumple siempre la dominancia?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>El error de \(y\) es siempre cercano a \(J = 10\). James-Stein lo reduce mucho cuando \(\tau\) es chico (a cerca de 4,5 con \(\tau = 0{,}5\), y 3,9 con la versión positiva), menos con \(\tau = 1\) (cerca de 6,5) y casi nada con \(\tau = 3\) (cerca de 9,3). La versión positiva es igual o mejor. Con \(\theta\) fijos muy dispersos, el factor de encogimiento es casi 0 y James-Stein empata con \(y\), pero no pierde: la dominancia vale para cualquier \(\boldsymbol \theta\), no solo en promedio sobre un prior.</p>
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-y = np.<span class="f">array</span>([<span class="n">28</span>, <span class="n">8</span>, -<span class="n">3</span>, <span class="n">7</span>, -<span class="n">1</span>, <span class="n">1</span>, <span class="n">18</span>, <span class="n">12.</span>]); s = np.<span class="f">array</span>([<span class="n">15</span>, <span class="n">10</span>, <span class="n">16</span>, <span class="n">11</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">10</span>, <span class="n">18.</span>])
-
-<span class="k">def</span> <span class="f">loglik</span>(t):
-    v = s**<span class="n">2</span> + t**<span class="n">2</span>; w = <span class="n">1</span> / v; m = np.<span class="f">sum</span>(w * y) / np.<span class="f">sum</span>(w)
-    <span class="k">return</span> -<span class="n">0.5</span> * np.<span class="f">sum</span>(np.<span class="f">log</span>(v)) - <span class="n">0.5</span> * np.<span class="f">sum</span>((y - m)**<span class="n">2</span> / v)
-
-ts = np.<span class="f">linspace</span>(<span class="n">0</span>, <span class="n">30</span>, <span class="n">3001</span>)
-<span class="f">print</span>(ts[np.<span class="f">argmax</span>([<span class="f">loglik</span>(t) <span class="k">for</span> t <span class="k">in</span> ts])])   <span class="c"># 0.0</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>y &lt;- <span class="f">c</span>(<span class="n">28</span>, <span class="n">8</span>, -<span class="n">3</span>, <span class="n">7</span>, -<span class="n">1</span>, <span class="n">1</span>, <span class="n">18</span>, <span class="n">12</span>); s &lt;- <span class="f">c</span>(<span class="n">15</span>, <span class="n">10</span>, <span class="n">16</span>, <span class="n">11</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">10</span>, <span class="n">18</span>)
-loglik &lt;- <span class="k">function</span>(t) {
-  v &lt;- s^<span class="n">2</span> + t^<span class="n">2</span>; w &lt;- <span class="n">1</span> / v; m &lt;- <span class="f">sum</span>(w * y) / <span class="f">sum</span>(w)
-  -<span class="n">0.5</span> * <span class="f">sum</span>(<span class="f">log</span>(v)) - <span class="n">0.5</span> * <span class="f">sum</span>((y - m)^<span class="n">2</span> / v)
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+J, R = <span class="n">10</span>, <span class="n">5000</span>
+<span class="k">def</span> <span class="f">riesgo</span>(gen_theta):
+    e = np.<span class="f">zeros</span>(<span class="n">3</span>)
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(R):
+        th = <span class="f">gen_theta</span>(); y = th + rng.<span class="f">normal</span>(size=J); yb = y.<span class="f">mean</span>()
+        f = <span class="n">1</span> - (J - <span class="n">3</span>) / np.<span class="f">sum</span>((y - yb) ** <span class="n">2</span>)
+        js = yb + f * (y - yb); jsp = yb + <span class="f">max</span>(f, <span class="n">0</span>) * (y - yb)
+        e += [np.<span class="f">sum</span>((y - th) ** <span class="n">2</span>), np.<span class="f">sum</span>((js - th) ** <span class="n">2</span>), np.<span class="f">sum</span>((jsp - th) ** <span class="n">2</span>)]
+    <span class="k">return</span> np.<span class="f">round</span>(e / R, <span class="n">2</span>)
+<span class="k">for</span> tau <span class="k">in</span> [<span class="n">0.5</span>, <span class="n">1</span>, <span class="n">3</span>]:
+    <span class="f">print</span>(tau, <span class="f">riesgo</span>(<span class="k">lambda</span>: rng.<span class="f">normal</span>(<span class="n">0</span>, tau, J)))   <span class="c"># [y, JS, JS+]</span>
+<span class="f">print</span>(<span class="s">'fijos'</span>, <span class="f">riesgo</span>(<span class="k">lambda</span>: np.<span class="f">arange</span>(-<span class="n">10</span>, <span class="n">10</span>, <span class="n">2.0</span>)))</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>); J &lt;- <span class="n">10</span>; R &lt;- <span class="n">5000</span>
+riesgo &lt;- <span class="k">function</span>(gen) {
+  e &lt;- <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>)
+  <span class="k">for</span> (r <span class="k">in</span> <span class="n">1</span>:R) {
+    th &lt;- <span class="f">gen</span>(); y &lt;- th + <span class="f">rnorm</span>(J); yb &lt;- <span class="f">mean</span>(y)
+    f &lt;- <span class="n">1</span> - (J - <span class="n">3</span>) / <span class="f">sum</span>((y - yb)^<span class="n">2</span>)
+    js &lt;- yb + f * (y - yb); jsp &lt;- yb + <span class="f">max</span>(f, <span class="n">0</span>) * (y - yb)
+    e &lt;- e + <span class="f">c</span>(<span class="f">sum</span>((y - th)^<span class="n">2</span>), <span class="f">sum</span>((js - th)^<span class="n">2</span>), <span class="f">sum</span>((jsp - th)^<span class="n">2</span>))
+  }
+  <span class="f">round</span>(e / R, <span class="n">2</span>)
 }
-<span class="f">optimize</span>(loglik, <span class="f">c</span>(<span class="n">0</span>, <span class="n">30</span>), maximum = <span class="k">TRUE</span>)$maximum   <span class="c"># ≈ 0</span></code></pre>
-</div></div></details>
+<span class="k">for</span> (tau <span class="k">in</span> <span class="f">c</span>(<span class="n">0.5</span>, <span class="n">1</span>, <span class="n">3</span>)) <span class="f">print</span>(<span class="f">c</span>(tau, <span class="f">riesgo</span>(<span class="k">function</span>() <span class="f">rnorm</span>(J, <span class="n">0</span>, tau))))
+<span class="f">riesgo</span>(<span class="k">function</span>() <span class="f">seq</span>(-<span class="n">10</span>, <span class="n">8</span>, by = <span class="n">2</span>))</code></pre>
+</div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Modelo jerárquico Beta-Binomial para la mortalidad quirúrgica de 15 hospitales. Simula \(n_j\) entre 20 y 400 cirugías, \(\theta_j \sim \text{Beta}(4, 76)\) (mortalidad media 5 %) y \(y_j \sim \text{Bin}(n_j, \theta_j)\). (a) Estima \(\alpha\) y \(\beta\) por momentos a partir de las tasas observadas (Bayes empírico). (b) Calcula las medias posteriores \((\alpha + y_j)/(\alpha + \beta + n_j)\). (c) Compara el ECM con el de las tasas crudas en 2 000 réplicas. (d) ¿Qué riesgo tiene publicar una clasificación de hospitales con las tasas crudas?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Por momentos: con \(\bar p\) la media de las tasas y \(s^2\) su varianza, \(\alpha + \beta \approx \bar p(1- \bar p)/(s^2 - \bar p(1- \bar p) \overline{1/n}) - 1\) (se resta la varianza binomial esperada), y \(\alpha = \bar p(\alpha+ \beta)\). Si el denominador sale negativo (toda la variación parece ruido) se usa un valor grande. Las medias posteriores encogen los hospitales chicos hacia el 5 %, y el ECM baja cerca de un 40 % respecto al de las tasas crudas (en la simulación, de 0,00038 a 0,00023). (d) Con tasas crudas, los primeros y últimos lugares de la tabla los ocupan casi siempre hospitales chicos, por puro azar: un hospital con 20 cirugías y 0 muertes parece el mejor y uno con 3 el peor. Eso es lo que corrigen los modelos jerárquicos y los “funnel plots” de Spiegelhalter.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+J, R = <span class="n">15</span>, <span class="n">2000</span>
+ecm = np.<span class="f">zeros</span>(<span class="n">2</span>)
+<span class="k">for</span> r <span class="k">in</span> <span class="f">range</span>(R):
+    n = rng.<span class="f">integers</span>(<span class="n">20</span>, <span class="n">401</span>, J)
+    th = rng.<span class="f">beta</span>(<span class="n">4</span>, <span class="n">76</span>, J); y = rng.<span class="f">binomial</span>(n, th); p = y / n
+    pb, s2 = p.<span class="f">mean</span>(), p.<span class="f">var</span>(ddof=<span class="n">1</span>)
+    ruido = pb * (<span class="n">1</span> - pb) * np.<span class="f">mean</span>(<span class="n">1</span> / n)
+    ab = pb * (<span class="n">1</span> - pb) / (s2 - ruido) - <span class="n">1</span> <span class="k">if</span> s2 &gt; ruido <span class="k">else</span> <span class="n">1000</span>
+    a, b = pb * ab, (<span class="n">1</span> - pb) * ab
+    post = (a + y) / (a + b + n)
+    ecm += [np.<span class="f">mean</span>((p - th) ** <span class="n">2</span>), np.<span class="f">mean</span>((post - th) ** <span class="n">2</span>)]
+<span class="f">print</span>(ecm / R)      <span class="c"># ECM crudo vs Bayes empírico: el segundo es claramente menor</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">3</span>); J &lt;- <span class="n">15</span>; R &lt;- <span class="n">2000</span>; ecm &lt;- <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>)
+<span class="k">for</span> (r <span class="k">in</span> <span class="n">1</span>:R) {
+  n &lt;- <span class="f">sample</span>(<span class="n">20</span>:<span class="n">400</span>, J, replace = <span class="k">TRUE</span>)
+  th &lt;- <span class="f">rbeta</span>(J, <span class="n">4</span>, <span class="n">76</span>); y &lt;- <span class="f">rbinom</span>(J, n, th); p &lt;- y / n
+  pb &lt;- <span class="f">mean</span>(p); s2 &lt;- <span class="f">var</span>(p); ruido &lt;- pb * (<span class="n">1</span> - pb) * <span class="f">mean</span>(<span class="n">1</span> / n)
+  ab &lt;- <span class="k">if</span> (s2 &gt; ruido) pb * (<span class="n">1</span> - pb) / (s2 - ruido) - <span class="n">1</span> <span class="k">else</span> <span class="n">1000</span>
+  post &lt;- (pb * ab + y) / (ab + n)
+  ecm &lt;- ecm + <span class="f">c</span>(<span class="f">mean</span>((p - th)^<span class="n">2</span>), <span class="f">mean</span>((post - th)^<span class="n">2</span>))
+}
+ecm / R</code></pre>
+</div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Gibbs centrado para las ocho escuelas con prior \(\mu\) plano y \(\tau^2 \sim \text{Gamma-Inv}(1;\ 1)\). (a) Deriva las condicionales completas de \(\theta_j\), \(\mu\) y \(\tau^2\). (b) Programa el Gibbs (20 000 iteraciones) y calcula la autocorrelación de \(\log \tau\) y su ESS. (c) Compara la posterior de \(\tau\) con la de la rejilla con prior plano. ¿Qué dos problemas ilustra?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\theta_j \mid \cdot \sim \mathcal{N} \big(\frac{y_j/ \sigma_j^2 + \mu/ \tau^2}{1/ \sigma_j^2 + 1/ \tau^2},\ \frac{1}{1/ \sigma_j^2 + 1/ \tau^2} \big)\); \(\mu \mid \cdot \sim \mathcal{N}(\bar \theta, \tau^2/J)\); \(\tau^2 \mid \cdot \sim \text{Gamma-Inv} \big(1 + J/2,\ 1 + \frac12 \sum_j(\theta_j - \mu)^2 \big)\).</p>
+            <p>(b) La autocorrelación de retardo 1 de \(\log \tau\) es alta (cerca de 0,8) y el ESS ronda 1 700 sobre 18 000 iteraciones útiles, menos del 10 %, mientras que los \(\theta_j\) mezclan mucho mejor: cuando \(\tau\) es chico, los \(\theta_j\) quedan pegados a \(\mu\), lo que mantiene chico a \(\tau\) en el siguiente paso. Es el embudo en versión Gibbs.</p>
+            <p>(c) La posterior de \(\tau\) se concentra en valores mucho más chicos que con el prior plano (mediana cerca de 1 o 2 en lugar de 5), porque Gamma-Inv(1, 1) en \(\tau^2\) pone mucho peso cerca de 0. Ilustra (1) la mala mezcla de la parametrización centrada y (2) la sensibilidad al prior de \(\tau\) con pocos grupos.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">9</span>)
+y = np.<span class="f">array</span>([<span class="n">28</span>, <span class="n">8</span>, -<span class="n">3</span>, <span class="n">7</span>, -<span class="n">1</span>, <span class="n">1</span>, <span class="n">18</span>, <span class="n">12</span>.]); s = np.<span class="f">array</span>([<span class="n">15</span>, <span class="n">10</span>, <span class="n">16</span>, <span class="n">11</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">10</span>, <span class="n">18</span>.])
+J, S = <span class="n">8</span>, <span class="n">20_000</span>
+th, mu, t2 = y.<span class="f">copy</span>(), y.<span class="f">mean</span>(), <span class="n">25.0</span>
+lt = np.<span class="f">empty</span>(S)
+<span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(S):
+    prec = <span class="n">1</span> / s**<span class="n">2</span> + <span class="n">1</span> / t2
+    th = rng.<span class="f">normal</span>((y / s**<span class="n">2</span> + mu / t2) / prec, np.<span class="f">sqrt</span>(<span class="n">1</span> / prec))
+    mu = rng.<span class="f">normal</span>(th.<span class="f">mean</span>(), np.<span class="f">sqrt</span>(t2 / J))
+    t2 = <span class="n">1</span> / rng.<span class="f">gamma</span>(<span class="n">1</span> + J / <span class="n">2</span>, <span class="n">1</span> / (<span class="n">1</span> + <span class="n">0.5</span> * np.<span class="f">sum</span>((th - mu) ** <span class="n">2</span>)))
+    lt[i] = <span class="n">0.5</span> * np.<span class="f">log</span>(t2)
+x = lt[<span class="n">2000</span>:] - lt[<span class="n">2000</span>:].<span class="f">mean</span>()
+r = [x[:-k] @ x[k:] / (x @ x) <span class="k">for</span> k <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, <span class="n">400</span>)]
+corte = <span class="f">next</span>(k <span class="k">for</span> k, v <span class="k">in</span> <span class="f">enumerate</span>(r) <span class="k">if</span> v &lt; <span class="n">0.05</span>)
+<span class="f">print</span>(r[<span class="n">0</span>], <span class="f">len</span>(x) / (<span class="n">1</span> + <span class="n">2</span> * <span class="f">sum</span>(r[:corte])))      <span class="c"># autocorrelación alta, ESS bajo</span>
+<span class="f">print</span>(np.<span class="f">median</span>(np.<span class="f">exp</span>(lt[<span class="n">2000</span>:])))                  <span class="c"># mediana de τ ≈ 1-2</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">9</span>)
+y &lt;- <span class="f">c</span>(<span class="n">28</span>, <span class="n">8</span>, -<span class="n">3</span>, <span class="n">7</span>, -<span class="n">1</span>, <span class="n">1</span>, <span class="n">18</span>, <span class="n">12</span>); s &lt;- <span class="f">c</span>(<span class="n">15</span>, <span class="n">10</span>, <span class="n">16</span>, <span class="n">11</span>, <span class="n">9</span>, <span class="n">11</span>, <span class="n">10</span>, <span class="n">18</span>)
+J &lt;- <span class="n">8</span>; S &lt;- <span class="n">20000</span>; th &lt;- y; mu &lt;- <span class="f">mean</span>(y); t2 &lt;- <span class="n">25</span>; lt &lt;- <span class="f">numeric</span>(S)
+<span class="k">for</span> (i <span class="k">in</span> <span class="n">1</span>:S) {
+  prec &lt;- <span class="n">1</span> / s^<span class="n">2</span> + <span class="n">1</span> / t2
+  th &lt;- <span class="f">rnorm</span>(J, (y / s^<span class="n">2</span> + mu / t2) / prec, <span class="f">sqrt</span>(<span class="n">1</span> / prec))
+  mu &lt;- <span class="f">rnorm</span>(<span class="n">1</span>, <span class="f">mean</span>(th), <span class="f">sqrt</span>(t2 / J))
+  t2 &lt;- <span class="n">1</span> / <span class="f">rgamma</span>(<span class="n">1</span>, <span class="n">1</span> + J / <span class="n">2</span>, rate = <span class="n">1</span> + <span class="n">0.5</span> * <span class="f">sum</span>((th - mu)^<span class="n">2</span>))
+  lt[i] &lt;- <span class="n">0.5</span> * <span class="f">log</span>(t2)
+}
+<span class="f">acf</span>(lt[-(<span class="n">1</span>:<span class="n">2000</span>)], plot = <span class="k">FALSE</span>)$acf[<span class="n">2</span>]
+coda::<span class="f">effectiveSize</span>(lt[-(<span class="n">1</span>:<span class="n">2000</span>)]); <span class="f">median</span>(<span class="f">exp</span>(lt[-(<span class="n">1</span>:<span class="n">2000</span>)]))</code></pre>
+</div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Un ministerio quiere premiar a la escuela con mayor efecto del programa usando las ocho escuelas. (a) Con las muestras de la posterior (sección 10), calcula para cada escuela la probabilidad de ser la mejor. (b) Calcula el rango posterior esperado de cada una. (c) Compara con la clasificación por \(y_j\). ¿Recomendarías premiar a A? ¿Qué cambia si se toma en cuenta que una escuela nueva podría tener un efecto de −12 a 29?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) A tiene la mayor probabilidad de ser la mejor, pero solo cerca del 25 %; G sigue con alrededor de 21 %, y las demás tienen entre 5 % y 13 %. (b) Los rangos esperados están todos comprimidos entre 3,5 y 5,4 (sobre 8): ninguna escuela se distingue con claridad. (c) Por \(y_j\), A sería la mejor “sin discusión” (28 frente a 18). El análisis jerárquico dice que hay cerca de 75 % de probabilidad de que otra escuela sea la mejor. Premiar a A sería premiar sobre todo al ruido. Además, la variación predictiva entre escuelas (de −12 a 29) muestra que el efecto depende del contexto: lo útil es investigar qué hace distinta a cada escuela (un predictor de nivel 2), no ordenarlas.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="c"># usa theta (20 000 × 8) de la sección 10</span>
+rangos = (-theta).<span class="f">argsort</span>(axis=<span class="n">1</span>).<span class="f">argsort</span>(axis=<span class="n">1</span>) + <span class="n">1</span>     <span class="c"># 1 = mejor</span>
+p_mejor = (rangos == <span class="n">1</span>).<span class="f">mean</span>(axis=<span class="n">0</span>)
+<span class="f">print</span>(<span class="f">dict</span>(<span class="f">zip</span>(<span class="s">'ABCDEFGH'</span>, np.<span class="f">round</span>(p_mejor, <span class="n">2</span>))))
+<span class="f">print</span>(<span class="f">dict</span>(<span class="f">zip</span>(<span class="s">'ABCDEFGH'</span>, np.<span class="f">round</span>(rangos.<span class="f">mean</span>(axis=<span class="n">0</span>), <span class="n">1</span>))))</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># usa theta (20 000 × 8) de la sección 10</span>
+rangos &lt;- <span class="f">t</span>(<span class="f">apply</span>(-theta, <span class="n">1</span>, rank))                        <span class="c"># 1 = mejor</span>
+<span class="f">round</span>(<span class="f">colMeans</span>(rangos == <span class="n">1</span>), <span class="n">2</span>)
+<span class="f">round</span>(<span class="f">colMeans</span>(rangos), <span class="n">1</span>)</code></pre>
+</div>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

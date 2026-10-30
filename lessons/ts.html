@@ -4,37 +4,60 @@
   <section class="lesson-head paper">
     <div class="wrap">
       <div class="crumbs"></div>
-      <h1>Series de tiempo</h1>
-      <p>Las ventas de este mes se parecen a las del mes pasado y a las del mismo mes del año anterior. Cuando el orden de los datos importa, necesitas herramientas propias: descomponer la serie, medir su autocorrelación, elegir un modelo y pronosticar sin hacer trampa con el futuro.</p>
-      <div class="lmeta"><span>60 min</span><span>Nivel avanzado</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
+      <h1>Introducción a las series de tiempo</h1>
+      <p>Ventas mensuales, temperatura diaria, pasajeros por año: cuando los datos vienen ordenados en el tiempo, cada observación depende de las anteriores. Aquí defines con precisión qué es un proceso estacionario, descompones una serie en tendencia, estacionalidad y ruido, derivas la autocorrelación de los procesos AR y MA, construyes un primer ARIMA, aprendes a validar sin mirar el futuro y lo aplicas a la serie clásica de pasajeros aéreos.</p>
+      <div class="lmeta"><span>100 min</span><span>Nivel intermedio</span><span>Requiere: regresión lineal y correlación</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#ts-idea" data-sec="ts-idea">La idea</a></li>
-        <li><a href="#ts-comp" data-sec="ts-comp">Componentes de una serie</a></li>
-        <li><a href="#ts-mm" data-sec="ts-mm">Medias móviles y descomposición</a></li>
-        <li><a href="#ts-lab" data-sec="ts-lab">Laboratorio: arma una serie</a></li>
-        <li><a href="#ts-estac" data-sec="ts-estac">Estacionariedad</a></li>
-        <li><a href="#ts-acf" data-sec="ts-acf">Autocorrelación: ACF y PACF</a></li>
+        <li><a href="#ts-intro" data-sec="ts-intro">Introducción</a></li>
+        <li><a href="#ts-def" data-sec="ts-def">Definición</a></li>
+        <li><a href="#ts-comp" data-sec="ts-comp">Componentes y descomposición</a></li>
+        <li><a href="#ts-estac" data-sec="ts-estac">Estacionariedad y ACF</a></li>
         <li><a href="#ts-arima" data-sec="ts-arima">Modelos AR, MA y ARIMA</a></li>
-        <li><a href="#ts-lab2" data-sec="ts-lab2">Laboratorio: AR(1)</a></li>
-        <li><a href="#ts-suav" data-sec="ts-suav">Suavizamiento exponencial</a></li>
-        <li><a href="#ts-valid" data-sec="ts-valid">Validación y pronóstico</a></li>
+        <li><a href="#ts-valid" data-sec="ts-valid">Suavizamiento y validación</a></li>
+        <li><a href="#ts-prop" data-sec="ts-prop">Propiedades</a></li>
+        <li><a href="#ts-lab" data-sec="ts-lab">Ejercicios de simulación</a></li>
+        <li><a href="#ts-apps" data-sec="ts-apps">Aplicaciones reales</a></li>
         <li><a href="#ts-code" data-sec="ts-code">En R y Python</a></li>
-        <li><a href="#ts-quiz" data-sec="ts-quiz">Comprueba</a></li>
-        <li><a href="#ts-ej" data-sec="ts-ej">Ejercicios</a></li>
+        <li><a href="#ts-quiz" data-sec="ts-quiz">Quiz</a></li>
+        <li><a href="#ts-ej" data-sec="ts-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="ts-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="ts-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una tienda de artículos deportivos tiene sus ventas mensuales de los últimos ocho años. Al graficarlas ves tres cosas: las ventas crecen año tras año, cada diciembre hay un pico y cada febrero un bajón, y encima de todo hay vaivenes que no siguen ningún patrón. La gerente quiere saber cuánto venderá en los próximos 12 meses y con qué margen de error.</p>
       <p>Una <b>serie de tiempo</b> es una sucesión de observaciones \(y_1, y_2, \dots, y_n\) tomadas en instantes ordenados y, casi siempre, equiespaciados (días, meses, trimestres). Lo que la hace especial es que las observaciones <b>no son independientes</b>: el valor de hoy depende de los anteriores. Eso rompe un supuesto clave de la regresión que ya conoces y, a la vez, es lo que permite pronosticar.</p>
       <div class="callout"><b>Regla de oro:</b> en una serie de tiempo el orden es información. Nunca mezcles las filas al azar, ni para ajustar un modelo ni para evaluarlo.</div>
+      <p>Un poco de historia. Las series de tiempo son tan antiguas como la astronomía, pero su análisis estadístico moderno empieza a principios del siglo XX. En 1927, George Udny Yule ajustó el primer modelo autorregresivo a las manchas solares, y Eugen Slutsky mostró que promediar ruido puro produce ciclos aparentes, el origen de los modelos de media móvil. Herman Wold (1938) probó que todo proceso estacionario se puede escribir como una media móvil infinita. En los años cincuenta y sesenta, Robert G. Brown y Charles Holt desarrollaron el suavizamiento exponencial para controlar inventarios, y en 1970 George Box y Gwilym Jenkins publicaron <i>Time Series Analysis: Forecasting and Control</i>, que convirtió la identificación, estimación y diagnóstico de modelos ARIMA en un método sistemático. Su ejemplo más famoso, la serie de pasajeros aéreos, la usarás al final de esta sesión.</p>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Definir proceso estocástico, ruido blanco, estacionariedad y función de autocovarianza.</li>
+          <li>Descomponer una serie en tendencia, estacionalidad y ruido, de forma aditiva o multiplicativa.</li>
+          <li>Diagnosticar estacionariedad y volverla estacionaria con logaritmos y diferencias.</li>
+          <li>Leer la ACF y la PACF y derivar las de los procesos AR(1) y MA(1).</li>
+          <li>Plantear un ARIMA y su pronóstico con intervalos que crecen con el horizonte.</li>
+          <li>Validar un pronóstico sin fugas de información y compararlo con referencias simples.</li>
+        </ul>
+      </div>
 
-      <h2 id="ts-comp"><span class="sec">§ 2</span>Componentes de una serie</h2>
+      <h2 id="ts-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Una <b>serie de tiempo</b> \(y_1, \dots, y_n\) se modela como una realización de un <b>proceso estocástico</b> \(\{Y_t\}_{t \in \mathbb{Z}}\), una familia de variables aleatorias indexadas por el tiempo. Solo ves una trayectoria; para aprender algo de ella necesitas que el proceso tenga cierta regularidad en el tiempo.</p>
+      <div class="callout"><b>Definiciones centrales.</b>
+        <ul>
+          <li><b>Función de autocovarianza:</b> \(\gamma(s, t) = \operatorname{Cov}(Y_s, Y_t)\); <b>autocorrelación</b>: \(\rho(s, t) = \gamma(s, t)/\sqrt{\gamma(s,s)\gamma(t,t)}\).</li>
+          <li><b>Estacionariedad débil:</b> \(E[Y_t] = \mu\) constante y \(\gamma(t, t-k) = \gamma_k\) depende solo del rezago \(k\). Entonces \(\rho_k = \gamma_k/\gamma_0\).</li>
+          <li><b>Estacionariedad estricta:</b> la distribución conjunta de \((Y_{t_1}, \dots, Y_{t_m})\) es igual a la de \((Y_{t_1 + h}, \dots, Y_{t_m + h})\) para todo desplazamiento \(h\).</li>
+          <li><b>Ruido blanco</b> \(\varepsilon_t \sim \text{RB}(0, \sigma^2)\): \(E[\varepsilon_t] = 0\), \(\operatorname{Var}(\varepsilon_t) = \sigma^2\) y \(\gamma_k = 0\) para \(k \ne 0\).</li>
+        </ul>
+      </div>
+      <p>La estacionariedad estricta con segundo momento finito implica la débil; para procesos gaussianos son equivalentes. La función \(\gamma_k\) es par (\(\gamma_{-k} = \gamma_k\)) y semidefinida positiva: \(\operatorname{Var}(\sum a_t Y_t) = \sum\sum a_s a_t\gamma_{s-t} \ge 0\).</p>
+      <p><b>Ejemplo numérico.</b> Para la serie corta 2, 4, 6, 5, 8, 7, la media es \(\bar y = 5{,}33\) y las desviaciones son −3,33; −1,33; 0,67; −0,33; 2,67; 1,67. La suma de cuadrados es 23,33 y la suma de productos consecutivos \(\sum (y_t - \bar y)(y_{t-1} - \bar y) = 4{,}44 - 0{,}89 - 0{,}22 - 0{,}89 + 4{,}44 = 6{,}89\). La autocorrelación muestral de rezago 1 es \(r_1 = 6{,}89/23{,}33 = 0{,}30\): los valores altos tienden a seguir a valores altos.</p>
+
+      <h2 id="ts-comp"><span class="sec">§ 3</span>Componentes de una serie y descomposición</h2>
       <p>La forma clásica de pensar una serie es como la suma (o el producto) de piezas con significado:</p>
       <ul>
         <li><b>Tendencia</b> \(T_t\): el movimiento de largo plazo. Las ventas crecen porque la tienda abrió sucursales.</li>
@@ -55,8 +78,7 @@
         </tbody>
       </table></div>
       <p>Para elegir, mira el gráfico: si los picos de diciembre se hacen más altos a medida que la serie sube, la estacionalidad es multiplicativa. El ejemplo clásico es la serie de pasajeros aéreos internacionales de 1949 a 1960, cuya oscilación anual se triplica junto con el nivel.</p>
-
-      <h2 id="ts-mm"><span class="sec">§ 3</span>Medias móviles y descomposición</h2>
+      <h3>Medias móviles y descomposición clásica</h3>
       <p>Una <b>media móvil</b> centrada de orden \(k\) (impar) reemplaza cada valor por el promedio de los \(k\) valores que lo rodean. Suaviza el ruido y, si \(k\) coincide con el período estacional, también borra la estacionalidad, dejando la tendencia-ciclo:</p>
       <div class="eq">\[ \hat T_t = \frac{1}{k} \sum_{j=-h}^{h} y_{t+j}, \qquad k = 2h + 1 \]
         <div class="note">Para un período par como \(m = 12\) se usa la media <b>2×12</b>: un promedio de 13 valores donde los extremos pesan la mitad, \(\hat T_t = \tfrac{1}{24}\,y_{t-6} + \tfrac{1}{12}\,(y_{t-5} + \dots + y_{t+5}) + \tfrac{1}{24}\,y_{t+6}\). Así queda centrada en un mes concreto.</div>
@@ -69,10 +91,113 @@
         <li>El residuo es \(\hat\varepsilon_t = y_t - \hat T_t - \hat S_t\). En la versión multiplicativa se divide en lugar de restar.</li>
       </ol>
       <p>Tiene limitaciones: pierde los primeros y últimos 6 meses (la media centrada necesita valores a ambos lados), supone que el patrón estacional es idéntico todos los años y es sensible a valores atípicos. Métodos más modernos como <b>STL</b> permiten que la estacionalidad cambie lentamente y son robustos.</p>
+      <p><b>Por qué la media móvil de orden \(m\) borra la estacionalidad.</b> Si \(S_t\) tiene período \(m\) y suma cero en un período, \(\sum_{j=0}^{m-1} S_{t+j} = 0\) para todo \(t\). Un promedio de \(m\) valores consecutivos contiene exactamente un valor de cada estación, así que la parte estacional se anula y queda \(\frac1m\sum T_{t+j} + \frac1m\sum\varepsilon_{t+j}\): la tendencia (casi intacta si es suave) y un ruido con varianza \(\sigma^2/m\). La media 2×12 hace lo mismo con pesos que suman 1 y cubren cada mes con peso total \(1/12\).</p>
 
-      <h2 id="ts-lab"><span class="sec">§ 4</span>Laboratorio: arma una serie</h2>
-      <p>Construye ocho años de ventas mensuales. Ajusta la tendencia, la amplitud de la estacionalidad y el ruido, y superpone una media móvil. Debajo verás la autocorrelación de la serie (la explicamos en el § 6): fíjate en cómo cambia su forma con cada componente.</p>
-      <figure class="instrument lab">
+      <h2 id="ts-estac"><span class="sec">§ 4</span>Estacionariedad, diferencias y autocorrelación</h2>
+      <p>Casi todos los modelos clásicos (AR, MA, ARMA) suponen que la serie es <b>estacionaria</b>: que su comportamiento estadístico no cambia con el tiempo. Formalmente, una serie es <b>débilmente estacionaria</b> si:</p>
+      <div class="eq">\[ E[y_t] = \mu, \qquad \operatorname{Var}(y_t) = \sigma^2, \qquad \operatorname{Cov}(y_t,\, y_{t-k}) = \gamma_k \ \text{ para todo } t \]
+        <div class="note">La media y la varianza son constantes, y la covarianza entre dos instantes solo depende de la distancia \(k\) entre ellos (el <b>rezago</b>), no del momento en que estás.</div>
+      </div>
+      <p>Una serie con tendencia no es estacionaria (su media cambia), y una con estacionalidad tampoco (su media depende del mes). El ejemplo más importante de serie no estacionaria es el <b>paseo aleatorio</b> \(y_t = y_{t-1} + \varepsilon_t\): su varianza crece sin límite, \(\operatorname{Var}(y_t) = t\,\sigma^2\), y parece tener tendencias que en realidad son puro azar.</p>
+      <p>La herramienta para volver estacionaria una serie es la <b>diferenciación</b>:</p>
+      <div class="eq">\[ \nabla y_t = y_t - y_{t-1}, \qquad \nabla_{12}\, y_t = y_t - y_{t-12} \]
+        <div class="note">La primera diferencia elimina una tendencia lineal (y convierte el paseo aleatorio en ruido). La diferencia estacional \(\nabla_{12}\) compara cada mes con el mismo mes del año anterior y elimina la estacionalidad. Si la varianza crece con el nivel, toma logaritmos antes de diferenciar.</div>
+      </div>
+      <p>Para decidir con datos, y no solo a ojo, existen pruebas formales. La prueba de <b>Dickey-Fuller aumentada</b> (ADF) tiene como \(H_0\) que hay una raíz unitaria (la serie no es estacionaria); un valor p pequeño apoya la estacionariedad. La prueba <b>KPSS</b> hace lo contrario: su \(H_0\) es que la serie sí es estacionaria. Usarlas juntas da una lectura más confiable.</p>
+      <div class="callout"><b>No sobrediferencies:</b> cada diferencia extra agrega correlación negativa artificial y más varianza al pronóstico. En la práctica rara vez se necesita más de una diferencia normal y una estacional.</div>
+      <p><b>Derivación: el paseo aleatorio no es estacionario.</b> Con \(y_0 = 0\), \(y_t = \sum_{s=1}^t \varepsilon_s\). Entonces \(E[y_t] = 0\), pero \(\operatorname{Var}(y_t) = t\sigma^2\) y \(\operatorname{Cov}(y_t, y_{t-k}) = (t-k)\sigma^2\): ambas dependen de \(t\). La correlación entre \(y_t\) y \(y_{t-k}\) es \(\sqrt{(t-k)/t}\), cercana a 1 para \(t\) grande. Su primera diferencia \(\nabla y_t = \varepsilon_t\) es ruido blanco.</p>
+      <h3>Autocorrelación: ACF y PACF</h3>
+      <p>La <b>autocorrelación</b> de rezago \(k\) mide qué tan parecido es \(y_t\) a \(y_{t-k}\). Es la correlación de Pearson de la serie consigo misma, desplazada \(k\) pasos. Su versión muestral es:</p>
+      <div class="eq">\[ r_k = \frac{\sum_{t=k+1}^{n} (y_t - \bar y)(y_{t-k} - \bar y)}{\sum_{t=1}^{n} (y_t - \bar y)^2} \]
+        <div class="note">La gráfica de \(r_k\) contra \(k\) es la <b>función de autocorrelación</b> (ACF) o correlograma.</div>
+      </div>
+      <p>El punto de referencia es el <b>ruido blanco</b>: una serie de valores con media cero, varianza constante y sin correlación entre sí. Es lo más impredecible que existe. Si una serie es ruido blanco, cada \(r_k\) se distribuye aproximadamente como \(\mathcal{N}(0, 1/n)\), así que el 95 % de ellos debería caer dentro de las bandas \(\pm 1{,}96/\sqrt{n}\). Con 96 meses, las bandas están en \(\pm 0{,}20\).</p>
+      <p>Cómo leer una ACF:</p>
+      <ul>
+        <li><b>Decae muy lento</b> desde valores cercanos a 1: hay tendencia o la serie no es estacionaria. Diferencia.</li>
+        <li><b>Picos en 12, 24, 36</b> en datos mensuales: hay estacionalidad anual.</li>
+        <li><b>Todo dentro de las bandas</b>: compatible con ruido blanco. Esto es lo que quieres ver en los <b>residuos</b> de un buen modelo.</li>
+      </ul>
+      <p>La <b>autocorrelación parcial</b> (PACF) de rezago \(k\) es la correlación entre \(y_t\) y \(y_{t-k}\) después de quitar el efecto de los rezagos intermedios \(1, \dots, k-1\). Si \(y_t\) solo depende directamente de \(y_{t-1}\), la ACF de rezago 2 será alta (por el efecto en cadena), pero la PACF de rezago 2 será casi cero.</p>
+      <p>Mirar muchas barras multiplica las falsas alarmas: con 24 rezagos esperas que alguno salga de las bandas solo por azar. La prueba de <b>Ljung-Box</b> evalúa varios rezagos a la vez, con \(H_0\): los primeros \(h\) rezagos tienen autocorrelación cero.</p>
+      <p><b>De dónde salen las bandas \(\pm 1{,}96/\sqrt n\).</b> Bartlett (1946) mostró que para un proceso lineal, \(\operatorname{Var}(r_k) \approx \frac1n\sum_{j}(\rho_{j+k}^2 + \rho_{j-k}\rho_{j+k} - 4\rho_k\rho_j\rho_{j+k} + 2\rho_j^2\rho_k^2)\). Si el proceso es ruido blanco, todos los \(\rho_j\) con \(j \ne 0\) valen cero y la fórmula se reduce a \(1/n\). Si es un MA(\(q\)), para \(k &gt; q\) queda \(\operatorname{Var}(r_k) \approx \frac1n(1 + 2\sum_{j=1}^q\rho_j^2)\): bandas más anchas, que es lo que dibujan algunos programas.</p>
+
+      <h2 id="ts-arima"><span class="sec">§ 5</span>Modelos AR, MA y ARIMA</h2>
+      <p>Un modelo <b>autorregresivo</b> de orden \(p\), AR(\(p\)), es una regresión de la serie sobre sus propios valores pasados:</p>
+      <div class="eq">\[ \text{AR}(p):\quad y_t = c + \phi_1\, y_{t-1} + \phi_2\, y_{t-2} + \dots + \phi_p\, y_{t-p} + \varepsilon_t \]
+        <div class="note">El caso más simple, AR(1), es estacionario solo si \(|\phi_1| &lt; 1\). Entonces su media es \(c/(1 - \phi_1)\), su varianza \(\sigma^2/(1 - \phi_1^2)\) y su ACF decae geométricamente: \(\rho_k = \phi_1^{\,k}\). Con \(\phi_1 = 1\) es un paseo aleatorio.</div>
+      </div>
+      <p>Un modelo de <b>media móvil</b> de orden \(q\), MA(\(q\)), explica la serie con los errores (choques) pasados. No confundas este nombre con la media móvil que suaviza del § 3: son ideas distintas.</p>
+      <div class="eq">\[ \text{MA}(q):\quad y_t = \mu + \varepsilon_t + \theta_1\, \varepsilon_{t-1} + \dots + \theta_q\, \varepsilon_{t-q} \]
+        <div class="note">Un choque afecta a la serie durante exactamente \(q\) períodos y luego se olvida. Por eso la ACF de un MA(\(q\)) se corta: es cero después del rezago \(q\).</div>
+      </div>
+      <p>Un <b>ARIMA</b>(\(p, d, q\)) diferencia la serie \(d\) veces y luego ajusta un ARMA(\(p, q\)), que combina ambas partes. Con el operador de rezago \(B\), definido por \(B\,y_t = y_{t-1}\), se escribe de forma compacta:</p>
+      <div class="eq">\[ \underbrace{(1 - \phi_1 B - \dots - \phi_p B^p)}_{\text{parte AR}}\;\underbrace{(1 - B)^d}_{\text{diferencias}}\; y_t = c + \underbrace{(1 + \theta_1 B + \dots + \theta_q B^q)}_{\text{parte MA}}\;\varepsilon_t \]
+        <div class="note">Con estacionalidad se usa SARIMA\((p,d,q)(P,D,Q)_m\), que agrega términos AR, de diferencia y MA en los rezagos \(m, 2m, \dots\). El “modelo de aerolínea” SARIMA\((0,1,1)(0,1,1)_{12}\) funciona sorprendentemente bien en muchas series mensuales.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Modelo</th><th>ACF</th><th>PACF</th></tr></thead>
+        <tbody>
+          <tr><td>AR(p)</td><td>Decae gradualmente</td><td>Se corta después del rezago p</td></tr>
+          <tr><td>MA(q)</td><td>Se corta después del rezago q</td><td>Decae gradualmente</td></tr>
+          <tr><td>ARMA(p, q)</td><td>Decae gradualmente</td><td>Decae gradualmente</td></tr>
+          <tr><td>Ruido blanco</td><td>Todo dentro de las bandas</td><td>Todo dentro de las bandas</td></tr>
+        </tbody>
+      </table></div>
+      <p>El flujo de trabajo de Box-Jenkins es: (1) transforma y diferencia hasta tener una serie estacionaria, (2) usa ACF y PACF para proponer órdenes, (3) estima por máxima verosimilitud y compara candidatos con el AIC, (4) revisa que los residuos sean ruido blanco (ACF y Ljung-Box). Funciones como <code>auto.arima</code> en R automatizan la búsqueda, pero el paso 4 sigue siendo tu responsabilidad.</p>
+      <p><b>Derivación de los momentos del AR(1).</b> Con \(y_t = c + \phi y_{t-1} + \varepsilon_t\) estacionario, toma esperanzas: \(\mu = c + \phi\mu\), así que \(\mu = c/(1-\phi)\). Centrando, \(\tilde y_t = \phi\tilde y_{t-1} + \varepsilon_t\); tomando varianzas, \(\gamma_0 = \phi^2\gamma_0 + \sigma^2\), de donde \(\gamma_0 = \sigma^2/(1-\phi^2)\), que solo es positiva si \(|\phi| &lt; 1\). Multiplicando por \(\tilde y_{t-k}\) y tomando esperanzas (\(\varepsilon_t\) no está correlacionado con el pasado): \(\gamma_k = \phi\gamma_{k-1}\), así que \(\rho_k = \phi^k\). Estas son las <b>ecuaciones de Yule-Walker</b> para \(p = 1\); para un AR(\(p\)) son \(\rho_k = \phi_1\rho_{k-1} + \dots + \phi_p\rho_{k-p}\) y permiten estimar los \(\phi\) a partir de las autocorrelaciones.</p>
+      <p><b>Derivación de la ACF del MA(1).</b> Con \(y_t = \mu + \varepsilon_t + \theta\varepsilon_{t-1}\): \(\gamma_0 = \sigma^2(1 + \theta^2)\), \(\gamma_1 = E[(\varepsilon_t + \theta\varepsilon_{t-1})(\varepsilon_{t-1} + \theta\varepsilon_{t-2})] = \theta\sigma^2\) y \(\gamma_k = 0\) para \(k \ge 2\). Por tanto \(\rho_1 = \theta/(1+\theta^2)\), que nunca supera 0,5 en valor absoluto. Como \(\theta\) y \(1/\theta\) dan la misma \(\rho_1\), se elige la versión <b>invertible</b> \(|\theta| &lt; 1\), la que permite escribir \(\varepsilon_t\) como función del pasado de la serie.</p>
+      <p><b>Ejemplo resuelto a mano.</b> Un AR(1) para la demanda semanal es \(y_t = 10 + 0{,}6\,y_{t-1} + \varepsilon_t\) con \(\sigma^2 = 4\). Su media es \(10/0{,}4 = 25\), su varianza \(4/(1 - 0{,}36) = 6{,}25\) y \(\rho_1 = 0{,}6\), \(\rho_2 = 0{,}36\), \(\rho_3 = 0{,}216\). La PACF vale 0,6 en el rezago 1 y 0 después. Si la última semana fue \(y_T = 30\), el pronóstico es \(\hat y_{T+1} = 28\), \(\hat y_{T+2} = 26{,}8\), \(\hat y_{T+3} = 26{,}08\): se acerca geométricamente a la media, con \(\hat y_{T+h} - 25 = 0{,}6^h(30 - 25)\). Las sesiones de <a href="#arima">ARIMA</a> y <a href="#sarima">SARIMA</a> profundizan en identificación y estimación.</p>
+
+      <h2 id="ts-valid"><span class="sec">§ 6</span>Suavizamiento, validación temporal y pronóstico</h2>
+      <h3>Suavizamiento exponencial</h3>
+      <p>Otra familia de métodos, muy usada en la industria por su sencillez, pronostica con un <b>promedio ponderado de las observaciones pasadas</b> donde el peso cae exponencialmente con la antigüedad. El suavizamiento exponencial simple (SES), para series sin tendencia ni estacionalidad, es:</p>
+      <div class="eq">\[ \hat y_{t+1} = \alpha\, y_t + (1 - \alpha)\, \hat y_t = \alpha\, y_t + \alpha(1-\alpha)\, y_{t-1} + \alpha(1-\alpha)^2\, y_{t-2} + \cdots \]
+        <div class="note">Con \(0 &lt; \alpha \le 1\). Un \(\alpha\) cercano a 1 reacciona rápido y se parece al pronóstico ingenuo \(\hat y_{t+1} = y_t\); uno cercano a 0 suaviza mucho y se parece a la media histórica. \(\alpha\) se estima minimizando el error de pronóstico a un paso.</div>
+      </div>
+      <ul>
+        <li><b>Holt</b> agrega una ecuación para la pendiente: sirve para series con tendencia.</li>
+        <li><b>Holt-Winters</b> agrega además un componente estacional, aditivo o multiplicativo, con su propio parámetro de suavizado.</li>
+        <li>El marco <b>ETS</b> (error, tendencia, estacionalidad) los formaliza como modelos estadísticos con verosimilitud, lo que permite elegir entre ellos con el AIC y obtener intervalos de pronóstico.</li>
+      </ul>
+      <h3>Validación temporal y pronóstico con intervalos</h3>
+      <p>Para saber si un modelo pronostica bien hay que medirlo en datos que <b>no vio</b>, y en series de tiempo eso significa datos del <b>futuro</b>. La validación cruzada aleatoria con K particiones hace trampa: entrena con marzo de 2023 para “predecir” enero de 2023, usando información que en la realidad no tendrías.</p>
+      <ul>
+        <li><b>Partición temporal simple:</b> entrena con todo hasta cierto mes y evalúa en los meses siguientes, por ejemplo los últimos 12.</li>
+        <li><b>Origen móvil</b> (validación cruzada para series): repite la partición con varios puntos de corte, siempre entrenando con el pasado y evaluando el futuro inmediato. En scikit-learn, <code>TimeSeriesSplit</code>.</li>
+        <li><b>Compara con referencias simples.</b> El pronóstico ingenuo (\(\hat y_{t+h} = y_t\)) y el ingenuo estacional (\(\hat y_{t+h} = y_{t+h-12}\)) son difíciles de superar más seguido de lo que parece. Si tu modelo no les gana, no sirve.</li>
+        <li><b>Métricas:</b> MAE (error absoluto medio), RMSE (castiga más los errores grandes) y MAPE (error porcentual, útil para comparar series de distinta escala, pero indefinido si hay ceros).</li>
+      </ul>
+      <div class="callout"><b>Fugas de información sutiles:</b> una media móvil centrada usa valores futuros, así que no puede ser una variable predictora. Lo mismo pasa con normalizar usando la media de toda la serie o con imputar faltantes interpolando hacia adelante. Todo se calcula solo con el pasado de cada punto de corte.</div>
+      <p>Un pronóstico útil es un rango, no solo un número. El intervalo al 95 % es aproximadamente \(\hat y_{T+h} \pm 1{,}96\, \hat\sigma_h\), donde \(\hat\sigma_h\) es la desviación del error de pronóstico a \(h\) pasos, que <b>crece con el horizonte</b>:</p>
+      <div class="eq">\[ \text{Paseo aleatorio: } \sigma_h = \sigma\sqrt{h} \qquad\qquad \text{AR(1): } \sigma_h^2 = \sigma^2\, \frac{1 - \phi^{2h}}{1 - \phi^2} \]
+        <div class="note">En el paseo aleatorio la incertidumbre crece sin límite. En un AR(1) estacionario se estabiliza en la varianza de la serie: a largo plazo, lo mejor que puedes decir es “volverá a su media”. Estos intervalos suponen que el modelo es correcto, así que en la práctica suelen quedarse cortos.</div>
+      </div>
+      <p><b>Derivación de la varianza del error del AR(1).</b> Iterando \(\tilde y_{T+h} = \phi^h\tilde y_T + \sum_{j=0}^{h-1}\phi^j\varepsilon_{T+h-j}\). El pronóstico óptimo (esperanza condicional) es \(\phi^h\tilde y_T\) y el error es la suma de los choques futuros, con varianza \(\sigma^2\sum_{j=0}^{h-1}\phi^{2j} = \sigma^2\frac{1-\phi^{2h}}{1-\phi^2}\). Con \(\phi = 1\) cada término vale 1 y la suma es \(h\sigma^2\), la del paseo aleatorio. En el ejemplo anterior, a dos pasos: \(4(1 + 0{,}36) = 5{,}44\), desviación 2,33 e intervalo \(26{,}8 \pm 4{,}57\). El suavizamiento con tendencia y estacionalidad se desarrolla en <a href="#holt">Holt-Winters</a> y la evaluación de pronósticos en <a href="#pronost">pronóstico y validación</a>.</p>
+
+      <h2 id="ts-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Simetría y acotación de la ACF.</b> \(\rho_{-k} = \rho_k\), \(\rho_0 = 1\) y \(|\rho_k| \le 1\), por la desigualdad de Cauchy-Schwarz aplicada a \(\operatorname{Cov}(Y_t, Y_{t-k})\).</li>
+        <li><b>Condición de estacionariedad del AR(1).</b> Existe una solución estacionaria causal si y solo si \(|\phi| &lt; 1\); entonces \(y_t = \mu + \sum_{j \ge 0}\phi^j\varepsilon_{t-j}\) y \(\rho_k = \phi^k\). Para un AR(\(p\)), las raíces de \(1 - \phi_1 z - \dots - \phi_p z^p\) deben estar fuera del círculo unitario.</li>
+        <li><b>Corte de la ACF en un MA(q).</b> \(\gamma_k = \sigma^2\sum_{j=0}^{q-k}\theta_j\theta_{j+k}\) para \(k \le q\) y \(\gamma_k = 0\) para \(k &gt; q\), porque \(y_t\) y \(y_{t-k}\) no comparten choques. Para el MA(1), \(|\rho_1| \le 1/2\).</li>
+        <li><b>Corte de la PACF en un AR(p).</b> La PACF de rezago \(k\) es el último coeficiente de la regresión de \(y_t\) sobre \(y_{t-1}, \dots, y_{t-k}\); para \(k &gt; p\) ese coeficiente es cero.</li>
+        <li><b>La diferencia elimina tendencias polinómicas.</b> Si \(T_t = a + bt\), \(\nabla T_t = b\); en general \(\nabla^d\) convierte un polinomio de grado \(d\) en una constante. \(\nabla_m\) elimina cualquier patrón de período \(m\).</li>
+        <li><b>Teorema de Wold.</b> Todo proceso débilmente estacionario sin componente determinista se escribe como \(y_t = \mu + \sum_{j\ge 0}\psi_j\varepsilon_{t-j}\) con \(\sum\psi_j^2 &lt; \infty\): un MA infinito. Los ARMA son aproximaciones parsimoniosas de esa representación.</li>
+        <li><b>Varianza del pronóstico.</b> Para un proceso lineal, \(\operatorname{Var}(e_{T+h}) = \sigma^2\sum_{j=0}^{h-1}\psi_j^2\): no decrece con \(h\); converge a \(\gamma_0\) si es estacionario y crece sin límite si tiene raíz unitaria.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Mezclar las filas al azar para entrenar o evaluar (validación cruzada aleatoria): el modelo ve el futuro.</li>
+          <li>Usar como predictor una media móvil centrada, que contiene valores futuros.</li>
+          <li>Regresar una serie con tendencia sobre otra y creer en el \(R^2\): con paseos aleatorios independientes aparecen “relaciones” espurias.</li>
+          <li>Sobrediferenciar: una ACF con \(r_1\) cercano a −0,5 tras diferenciar suele indicar una diferencia de más.</li>
+          <li>Reportar el pronóstico sin intervalo, o con un intervalo que no crece con el horizonte.</li>
+        </ul>
+      </div>
+
+      <h2 id="ts-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: arma una serie.</b> Construye ocho años de ventas mensuales. Ajusta la tendencia, la amplitud de la estacionalidad y el ruido, y superpone una media móvil. Debajo verás la autocorrelación de la serie: fíjate en cómo cambia su forma con cada componente.</p>
+<figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · componentes y media móvil</span><span class="num" id="ts-a-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
@@ -108,62 +233,19 @@
         </div>
         <figcaption>Con ventana de 12 meses la media móvil borra la estacionalidad y sigue la tendencia. Prueba con 6: la ola anual reaparece a medias. Apaga tendencia y ruido: la ACF dibuja una onda con picos en 12 y 24. Apaga la estacionalidad y sube la tendencia: la ACF decae lentamente, la firma de una serie no estacionaria.</figcaption>
       </figure>
-
-      <h2 id="ts-estac"><span class="sec">§ 5</span>Estacionariedad y diferenciación</h2>
-      <p>Casi todos los modelos clásicos (AR, MA, ARMA) suponen que la serie es <b>estacionaria</b>: que su comportamiento estadístico no cambia con el tiempo. Formalmente, una serie es <b>débilmente estacionaria</b> si:</p>
-      <div class="eq">\[ E[y_t] = \mu, \qquad \operatorname{Var}(y_t) = \sigma^2, \qquad \operatorname{Cov}(y_t,\, y_{t-k}) = \gamma_k \ \text{ para todo } t \]
-        <div class="note">La media y la varianza son constantes, y la covarianza entre dos instantes solo depende de la distancia \(k\) entre ellos (el <b>rezago</b>), no del momento en que estás.</div>
-      </div>
-      <p>Una serie con tendencia no es estacionaria (su media cambia), y una con estacionalidad tampoco (su media depende del mes). El ejemplo más importante de serie no estacionaria es el <b>paseo aleatorio</b> \(y_t = y_{t-1} + \varepsilon_t\): su varianza crece sin límite, \(\operatorname{Var}(y_t) = t\,\sigma^2\), y parece tener tendencias que en realidad son puro azar.</p>
-      <p>La herramienta para volver estacionaria una serie es la <b>diferenciación</b>:</p>
-      <div class="eq">\[ \nabla y_t = y_t - y_{t-1}, \qquad \nabla_{12}\, y_t = y_t - y_{t-12} \]
-        <div class="note">La primera diferencia elimina una tendencia lineal (y convierte el paseo aleatorio en ruido). La diferencia estacional \(\nabla_{12}\) compara cada mes con el mismo mes del año anterior y elimina la estacionalidad. Si la varianza crece con el nivel, toma logaritmos antes de diferenciar.</div>
-      </div>
-      <p>Para decidir con datos, y no solo a ojo, existen pruebas formales. La prueba de <b>Dickey-Fuller aumentada</b> (ADF) tiene como \(H_0\) que hay una raíz unitaria (la serie no es estacionaria); un valor p pequeño apoya la estacionariedad. La prueba <b>KPSS</b> hace lo contrario: su \(H_0\) es que la serie sí es estacionaria. Usarlas juntas da una lectura más confiable.</p>
-      <div class="callout"><b>No sobrediferencies:</b> cada diferencia extra agrega correlación negativa artificial y más varianza al pronóstico. En la práctica rara vez se necesita más de una diferencia normal y una estacional.</div>
-
-      <h2 id="ts-acf"><span class="sec">§ 6</span>Autocorrelación: ACF y PACF</h2>
-      <p>La <b>autocorrelación</b> de rezago \(k\) mide qué tan parecido es \(y_t\) a \(y_{t-k}\). Es la correlación de Pearson de la serie consigo misma, desplazada \(k\) pasos. Su versión muestral es:</p>
-      <div class="eq">\[ r_k = \frac{\sum_{t=k+1}^{n} (y_t - \bar y)(y_{t-k} - \bar y)}{\sum_{t=1}^{n} (y_t - \bar y)^2} \]
-        <div class="note">La gráfica de \(r_k\) contra \(k\) es la <b>función de autocorrelación</b> (ACF) o correlograma.</div>
-      </div>
-      <p>El punto de referencia es el <b>ruido blanco</b>: una serie de valores con media cero, varianza constante y sin correlación entre sí. Es lo más impredecible que existe. Si una serie es ruido blanco, cada \(r_k\) se distribuye aproximadamente como \(\mathcal{N}(0, 1/n)\), así que el 95 % de ellos debería caer dentro de las bandas \(\pm 1{,}96/\sqrt{n}\). Con 96 meses, las bandas están en \(\pm 0{,}20\).</p>
-      <p>Cómo leer una ACF:</p>
-      <ul>
-        <li><b>Decae muy lento</b> desde valores cercanos a 1: hay tendencia o la serie no es estacionaria. Diferencia.</li>
-        <li><b>Picos en 12, 24, 36</b> en datos mensuales: hay estacionalidad anual.</li>
-        <li><b>Todo dentro de las bandas</b>: compatible con ruido blanco. Esto es lo que quieres ver en los <b>residuos</b> de un buen modelo.</li>
-      </ul>
-      <p>La <b>autocorrelación parcial</b> (PACF) de rezago \(k\) es la correlación entre \(y_t\) y \(y_{t-k}\) después de quitar el efecto de los rezagos intermedios \(1, \dots, k-1\). Si \(y_t\) solo depende directamente de \(y_{t-1}\), la ACF de rezago 2 será alta (por el efecto en cadena), pero la PACF de rezago 2 será casi cero.</p>
-      <p>Mirar muchas barras multiplica las falsas alarmas: con 24 rezagos esperas que alguno salga de las bandas solo por azar. La prueba de <b>Ljung-Box</b> evalúa varios rezagos a la vez, con \(H_0\): los primeros \(h\) rezagos tienen autocorrelación cero.</p>
-
-      <h2 id="ts-arima"><span class="sec">§ 7</span>Modelos AR, MA y ARIMA</h2>
-      <p>Un modelo <b>autorregresivo</b> de orden \(p\), AR(\(p\)), es una regresión de la serie sobre sus propios valores pasados:</p>
-      <div class="eq">\[ \text{AR}(p):\quad y_t = c + \phi_1\, y_{t-1} + \phi_2\, y_{t-2} + \dots + \phi_p\, y_{t-p} + \varepsilon_t \]
-        <div class="note">El caso más simple, AR(1), es estacionario solo si \(|\phi_1| &lt; 1\). Entonces su media es \(c/(1 - \phi_1)\), su varianza \(\sigma^2/(1 - \phi_1^2)\) y su ACF decae geométricamente: \(\rho_k = \phi_1^{\,k}\). Con \(\phi_1 = 1\) es un paseo aleatorio.</div>
-      </div>
-      <p>Un modelo de <b>media móvil</b> de orden \(q\), MA(\(q\)), explica la serie con los errores (choques) pasados. No confundas este nombre con la media móvil que suaviza del § 3: son ideas distintas.</p>
-      <div class="eq">\[ \text{MA}(q):\quad y_t = \mu + \varepsilon_t + \theta_1\, \varepsilon_{t-1} + \dots + \theta_q\, \varepsilon_{t-q} \]
-        <div class="note">Un choque afecta a la serie durante exactamente \(q\) períodos y luego se olvida. Por eso la ACF de un MA(\(q\)) se corta: es cero después del rezago \(q\).</div>
-      </div>
-      <p>Un <b>ARIMA</b>(\(p, d, q\)) diferencia la serie \(d\) veces y luego ajusta un ARMA(\(p, q\)), que combina ambas partes. Con el operador de rezago \(B\), definido por \(B\,y_t = y_{t-1}\), se escribe de forma compacta:</p>
-      <div class="eq">\[ \underbrace{(1 - \phi_1 B - \dots - \phi_p B^p)}_{\text{parte AR}}\;\underbrace{(1 - B)^d}_{\text{diferencias}}\; y_t = c + \underbrace{(1 + \theta_1 B + \dots + \theta_q B^q)}_{\text{parte MA}}\;\varepsilon_t \]
-        <div class="note">Con estacionalidad se usa SARIMA\((p,d,q)(P,D,Q)_m\), que agrega términos AR, de diferencia y MA en los rezagos \(m, 2m, \dots\). El “modelo de aerolínea” SARIMA\((0,1,1)(0,1,1)_{12}\) funciona sorprendentemente bien en muchas series mensuales.</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Modelo</th><th>ACF</th><th>PACF</th></tr></thead>
-        <tbody>
-          <tr><td>AR(p)</td><td>Decae gradualmente</td><td>Se corta después del rezago p</td></tr>
-          <tr><td>MA(q)</td><td>Se corta después del rezago q</td><td>Decae gradualmente</td></tr>
-          <tr><td>ARMA(p, q)</td><td>Decae gradualmente</td><td>Decae gradualmente</td></tr>
-          <tr><td>Ruido blanco</td><td>Todo dentro de las bandas</td><td>Todo dentro de las bandas</td></tr>
-        </tbody>
-      </table></div>
-      <p>El flujo de trabajo de Box-Jenkins es: (1) transforma y diferencia hasta tener una serie estacionaria, (2) usa ACF y PACF para proponer órdenes, (3) estima por máxima verosimilitud y compara candidatos con el AIC, (4) revisa que los residuos sean ruido blanco (ACF y Ljung-Box). Funciones como <code>auto.arima</code> en R automatizan la búsqueda, pero el paso 4 sigue siendo tu responsabilidad.</p>
-
-      <h2 id="ts-lab2"><span class="sec">§ 8</span>Laboratorio: un proceso AR(1)</h2>
-      <p>El simulador genera \(y_t = \phi\, y_{t-1} + \varepsilon_t\) con choques normales de varianza 1. Mueve \(\phi\) y compara la ACF estimada (barras) con la teórica \(\phi^k\) (puntos). Cambia a PACF para ver la firma de un AR(1): una sola barra significativa.</p>
-      <figure class="instrument lab">
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Pon la tendencia y la amplitud en 0 y deja solo ruido. Mira la ACF y el readout de rezagos fuera de bandas.
+          <details><summary>Qué deberías observar</summary><p>Es ruido blanco: casi todas las barras quedan dentro de \(\pm 1{,}96/\sqrt{96} \approx \pm 0{,}20\). Pulsando “Nueva muestra” varias veces verás que de vez en cuando una o dos barras salen solo por azar, como predice el 5 %.</p></details></li>
+        <li>Sube la tendencia a 3 con amplitud 0.
+          <details><summary>Qué deberías observar</summary><p>La ACF empieza cerca de 1 y decae muy lentamente: la firma de una serie no estacionaria en media. \(r_1\) se acerca a 1 aunque los valores no dependan unos de otros más allá de la tendencia.</p></details></li>
+        <li>Con tendencia 0, sube la amplitud estacional a 40 y el ruido a 5. Después cambia la ventana de la media móvil entre 6, 12 y 13.
+          <details><summary>Qué deberías observar</summary><p>La ACF oscila con picos positivos en 12 y 24 y negativos en 6 y 18. Con ventana 12 la media móvil queda casi plana (borra la estacionalidad); con 6 conserva parte de la onda. La desviación de \(y\) menos la media móvil es mínima cuando la ventana es un múltiplo del período.</p></details></li>
+        <li>Con tendencia 3 y amplitud 30, alterna entre aditiva y multiplicativa.
+          <details><summary>Qué deberías observar</summary><p>En la multiplicativa la oscilación crece con el nivel: los picos del último año son mucho más altos que los del primero. Es la señal de que conviene tomar logaritmos antes de modelar.</p></details></li>
+      </ol>
+      <p><b>Laboratorio 2: un proceso AR(1).</b> El simulador genera \(y_t = \phi\, y_{t-1} + \varepsilon_t\) con choques normales de varianza 1. Mueve \(\phi\) y compara la ACF estimada (barras) con la teórica \(\phi^k\) (puntos). Cambia a PACF para ver la firma de un AR(1): una sola barra significativa.</p>
+<figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · AR(1), ACF y PACF</span><span class="num" id="ts-b-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
@@ -203,35 +285,31 @@
         </div>
         <figcaption>Con φ = 0 obtienes ruido blanco: todas las barras dentro de las bandas, salvo alguna por azar. Con φ negativo la serie zigzaguea y la ACF alterna de signo. Sube φ a 1: la serie se vuelve un paseo aleatorio, deambula sin volver a su media y la ACF decae muy lento.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con \(\phi = 0{,}7\) y \(n = 300\), compara la varianza observada con la teórica \(1/(1 - 0{,}49) = 1{,}96\).
+          <details><summary>Qué deberías observar</summary><p>La varianza observada oscila alrededor de 1,96 y la ACF estimada sigue a \(0{,}7^k\): 0,70; 0,49; 0,34… La PACF tiene una barra en 1 y el resto dentro de las bandas.</p></details></li>
+        <li>Pon \(\phi = -0{,}8\).
+          <details><summary>Qué deberías observar</summary><p>La serie zigzaguea: un valor alto tiende a ser seguido por uno bajo. La ACF alterna de signo, \((-0{,}8)^k\), y la PACF sigue teniendo una sola barra (negativa).</p></details></li>
+        <li>Sube \(\phi\) a 0,95 y después a 1, con \(n = 100\).
+          <details><summary>Qué deberías observar</summary><p>Con 0,95 la serie hace excursiones largas y la varianza teórica es 10,3, pero la observada suele quedar muy por debajo: con 100 datos no da tiempo a recorrer toda la variabilidad. Con \(\phi = 1\) (paseo aleatorio) la varianza teórica no existe y la ACF decae lentamente como en una serie con tendencia.</p></details></li>
+        <li>Con \(\phi = 0{,}3\), alterna entre \(n = 100\) y \(n = 300\) y pulsa “Nueva muestra” varias veces.
+          <details><summary>Qué deberías observar</summary><p>Con \(n = 100\), \(r_1\) varía bastante alrededor de 0,3 (su error estándar es cercano a \(\sqrt{(1-\phi^2)/n} \approx 0{,}095\)) y la barra de rezago 2 a veces sale de las bandas por azar. Con \(n = 300\) las estimaciones se estabilizan.</p></details></li>
+      </ol>
 
-      <h2 id="ts-suav"><span class="sec">§ 9</span>Suavizamiento exponencial</h2>
-      <p>Otra familia de métodos, muy usada en la industria por su sencillez, pronostica con un <b>promedio ponderado de las observaciones pasadas</b> donde el peso cae exponencialmente con la antigüedad. El suavizamiento exponencial simple (SES), para series sin tendencia ni estacionalidad, es:</p>
-      <div class="eq">\[ \hat y_{t+1} = \alpha\, y_t + (1 - \alpha)\, \hat y_t = \alpha\, y_t + \alpha(1-\alpha)\, y_{t-1} + \alpha(1-\alpha)^2\, y_{t-2} + \cdots \]
-        <div class="note">Con \(0 &lt; \alpha \le 1\). Un \(\alpha\) cercano a 1 reacciona rápido y se parece al pronóstico ingenuo \(\hat y_{t+1} = y_t\); uno cercano a 0 suaviza mucho y se parece a la media histórica. \(\alpha\) se estima minimizando el error de pronóstico a un paso.</div>
-      </div>
-      <ul>
-        <li><b>Holt</b> agrega una ecuación para la pendiente: sirve para series con tendencia.</li>
-        <li><b>Holt-Winters</b> agrega además un componente estacional, aditivo o multiplicativo, con su propio parámetro de suavizado.</li>
-        <li>El marco <b>ETS</b> (error, tendencia, estacionalidad) los formaliza como modelos estadísticos con verosimilitud, lo que permite elegir entre ellos con el AIC y obtener intervalos de pronóstico.</li>
-      </ul>
+      <h2 id="ts-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Transporte: pasajeros aéreos internacionales (AirPassengers)</h3>
+      <p>La serie de Box y Jenkins tiene 144 meses (1949 a 1960) con totales mensuales de pasajeros internacionales en miles, de 104 a 622. La oscilación anual pasa de unos 44 mil en 1949 a 232 mil en 1960: estacionalidad multiplicativa. Con \(\ln y_t\) y las diferencias \(\nabla\nabla_{12}\), la ACF muestra solo dos barras importantes, \(r_1 = -0{,}34\) y \(r_{12} = -0{,}39\), la firma del modelo de aerolínea SARIMA\((0,1,1)(0,1,1)_{12}\). Reservando 1960, ese modelo pronostica con un error porcentual medio del 2,9 %, frente al 10 % del ingenuo estacional. Las aerolíneas usan pronósticos así para planificar flota y tripulaciones.</p>
+      <h3>Ambiente: temperatura mensual en Nottingham</h3>
+      <p>La serie <code>nottem</code> de R tiene 20 años (1920 a 1939) de temperatura media mensual en grados Fahrenheit. El patrón anual va de unos 39 °F en enero y febrero a 62 °F en julio, con amplitud casi constante: estacionalidad aditiva sin tendencia apreciable. La ACF es casi una onda pura: \(r_1 = 0{,}81\), \(r_6 = -0{,}88\), \(r_{12} = 0{,}88\). Restando la media de cada mes se obtienen las anomalías, que son las que se estudian para detectar cambios climáticos.</p>
+      <h3>Hidrología: caudal del río Nilo</h3>
+      <p>La serie <code>Nile</code> registra el caudal anual en Asuán de 1871 a 1970 (en \(10^8\) m³). Hasta 1898 el promedio es de unos 1 098; después, de 850. Un ARIMA ajustado sin tener en cuenta el cambio interpreta ese salto como dependencia persistente (\(r_1 \approx 0{,}50\)). Es un caso clásico de cambio estructural, asociado al inicio de la construcción de la primera presa de Asuán: antes de modelar la autocorrelación hay que mirar la serie y preguntarse si su media cambió.</p>
+      <h3>Tecnología: tráfico diario de un sitio web</h3>
+      <p>Un sitio de comercio electrónico registra visitas diarias durante dos años: crecimiento sostenido, un patrón semanal (\(m = 7\), con caída los domingos) y picos en fechas comerciales. La descomposición STL separa tendencia, estacionalidad semanal y residuos; los residuos grandes señalan caídas del servicio o campañas. Con validación de origen móvil, el equipo comprueba que un modelo con estacionalidad semanal reduce el MAE frente al ingenuo estacional (“igual que hace 7 días”) y lo usa para dimensionar servidores.</p>
 
-      <h2 id="ts-valid"><span class="sec">§ 10</span>Validación temporal y pronóstico con intervalos</h2>
-      <p>Para saber si un modelo pronostica bien hay que medirlo en datos que <b>no vio</b>, y en series de tiempo eso significa datos del <b>futuro</b>. La validación cruzada aleatoria con K particiones hace trampa: entrena con marzo de 2023 para “predecir” enero de 2023, usando información que en la realidad no tendrías.</p>
-      <ul>
-        <li><b>Partición temporal simple:</b> entrena con todo hasta cierto mes y evalúa en los meses siguientes, por ejemplo los últimos 12.</li>
-        <li><b>Origen móvil</b> (validación cruzada para series): repite la partición con varios puntos de corte, siempre entrenando con el pasado y evaluando el futuro inmediato. En scikit-learn, <code>TimeSeriesSplit</code>.</li>
-        <li><b>Compara con referencias simples.</b> El pronóstico ingenuo (\(\hat y_{t+h} = y_t\)) y el ingenuo estacional (\(\hat y_{t+h} = y_{t+h-12}\)) son difíciles de superar más seguido de lo que parece. Si tu modelo no les gana, no sirve.</li>
-        <li><b>Métricas:</b> MAE (error absoluto medio), RMSE (castiga más los errores grandes) y MAPE (error porcentual, útil para comparar series de distinta escala, pero indefinido si hay ceros).</li>
-      </ul>
-      <div class="callout"><b>Fugas de información sutiles:</b> una media móvil centrada usa valores futuros, así que no puede ser una variable predictora. Lo mismo pasa con normalizar usando la media de toda la serie o con imputar faltantes interpolando hacia adelante. Todo se calcula solo con el pasado de cada punto de corte.</div>
-      <p>Un pronóstico útil es un rango, no solo un número. El intervalo al 95 % es aproximadamente \(\hat y_{T+h} \pm 1{,}96\, \hat\sigma_h\), donde \(\hat\sigma_h\) es la desviación del error de pronóstico a \(h\) pasos, que <b>crece con el horizonte</b>:</p>
-      <div class="eq">\[ \text{Paseo aleatorio: } \sigma_h = \sigma\sqrt{h} \qquad\qquad \text{AR(1): } \sigma_h^2 = \sigma^2\, \frac{1 - \phi^{2h}}{1 - \phi^2} \]
-        <div class="note">En el paseo aleatorio la incertidumbre crece sin límite. En un AR(1) estacionario se estabiliza en la varianza de la serie: a largo plazo, lo mejor que puedes decir es “volverá a su media”. Estos intervalos suponen que el modelo es correcto, así que en la práctica suelen quedarse cortos.</div>
-      </div>
-
-      <h2 id="ts-code"><span class="sec">§ 11</span>Ejemplo resuelto en R y Python</h2>
+      <h2 id="ts-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>Simulamos 96 meses de ventas con tendencia, estacionalidad anual y ruido; los descomponemos, revisamos la estacionariedad y la ACF, ajustamos un SARIMA con los primeros 84 meses y lo evaluamos contra el ingenuo estacional en los últimos 12.</p>
-      <div class="codetabs">
+<div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
@@ -312,9 +390,48 @@ auto &lt;- <span class="f">auto.arima</span>(train)
 <span class="f">plot</span>(<span class="f">forecast</span>(auto, h = <span class="n">12</span>))
 <span class="f">lines</span>(test, col = <span class="s">"red"</span>)</code></pre>
       </div>
-      <p>Qué deberías ver: la ACF de la serie original decae lentamente con ondas cada 12 meses; tras diferenciar, quedan pocas barras fuera de las bandas. En Python, el ADF de la serie original da un valor p alto (no se descarta la raíz unitaria) y el de la diferencia estacional uno pequeño. Si el modelo es adecuado, la prueba de Ljung-Box de los residuos da un valor p grande (no hay autocorrelación sin explicar) y el SARIMA debería ganarle al ingenuo estacional, porque este último ignora el crecimiento de un año a otro.</p>
+      <p>Qué deberías ver: la ACF de la serie original decae lentamente con ondas cada 12 meses; tras diferenciar, quedan pocas barras fuera de las bandas. En Python, el ADF de la serie original da un valor p alto (0,77, no se descarta la raíz unitaria) y el de la diferencia estacional uno pequeño (0,004). La prueba de Ljung-Box de los residuos da un valor p grande (0,44), y el SARIMA le gana al ingenuo estacional (MAE ≈ 6,2 frente a 13,2), porque este último ignora el crecimiento de un año a otro.</p>
+      <p><b>Caso aplicado completo: pasajeros aéreos.</b> Logaritmos, doble diferencia, modelo de aerolínea, diagnóstico de residuos y evaluación en 1960.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np, pandas <span class="k">as</span> pd
+<span class="k">from</span> statsmodels.tsa.stattools <span class="k">import</span> acf, adfuller
+<span class="k">from</span> statsmodels.tsa.statespace.sarimax <span class="k">import</span> SARIMAX
+<span class="k">from</span> statsmodels.stats.diagnostic <span class="k">import</span> acorr_ljungbox
 
-      <h2 id="ts-quiz"><span class="sec">§ 12</span>Comprueba</h2>
+url = <span class="s">"https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/datasets/AirPassengers.csv"</span>
+ap = pd.<span class="f">read_csv</span>(url).value.values.<span class="f">astype</span>(<span class="f">float</span>)            <span class="c"># 144 meses, 1949-1960</span>
+ly = np.<span class="f">log</span>(ap)
+d12 = ly[<span class="n">12</span>:] - ly[:-<span class="n">12</span>]                                     <span class="c"># diferencia estacional</span>
+dd = np.<span class="f">diff</span>(d12)                                            <span class="c"># y regular</span>
+<span class="f">print</span>(<span class="s">"ADF log:"</span>, <span class="f">round</span>(<span class="f">adfuller</span>(ly)[<span class="n">1</span>], <span class="n">3</span>), <span class="s">" ADF dd:"</span>, <span class="f">round</span>(<span class="f">adfuller</span>(dd)[<span class="n">1</span>], <span class="n">4</span>))   <span class="c"># 0.422 0.0002</span>
+<span class="f">print</span>(<span class="s">"ACF de dd en 1 y 12:"</span>, np.<span class="f">round</span>(<span class="f">acf</span>(dd, nlags=<span class="n">12</span>)[[<span class="n">1</span>, <span class="n">12</span>]], <span class="n">3</span>))          <span class="c"># -0.341 -0.387</span>
+
+train, test = ly[:<span class="n">132</span>], ap[<span class="n">132</span>:]                             <span class="c"># 1960 queda fuera</span>
+m = <span class="f">SARIMAX</span>(train, order=(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>), seasonal_order=(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">12</span>)).<span class="f">fit</span>(disp=<span class="k">False</span>)
+<span class="f">print</span>(<span class="s">"θ, Θ, σ²:"</span>, np.<span class="f">round</span>(m.params, <span class="n">3</span>))                       <span class="c"># -0.348 -0.562 0.001</span>
+<span class="f">print</span>(<span class="s">"Ljung-Box (24):"</span>, <span class="f">round</span>(<span class="f">acorr_ljungbox</span>(m.resid[<span class="n">13</span>:], lags=[<span class="n">24</span>]).lb_pvalue.iloc[<span class="n">0</span>], <span class="n">3</span>))  <span class="c"># 0.773</span>
+fc = m.<span class="f">get_forecast</span>(<span class="n">12</span>)
+pred = np.<span class="f">exp</span>(fc.predicted_mean); ic = np.<span class="f">exp</span>(fc.<span class="f">conf_int</span>(alpha=<span class="n">0.05</span>))
+naive = ap[<span class="n">120</span>:<span class="n">132</span>]                                          <span class="c"># ingenuo estacional: 1959</span>
+mape = <span class="k">lambda</span> p: np.<span class="f">mean</span>(np.<span class="f">abs</span>(p - test) / test) * <span class="n">100</span>
+<span class="f">print</span>(<span class="s">"MAPE airline:"</span>, <span class="f">round</span>(<span class="f">mape</span>(pred), <span class="n">2</span>), <span class="s">" ingenuo:"</span>, <span class="f">round</span>(<span class="f">mape</span>(naive), <span class="n">2</span>))   <span class="c"># 2.9 y 9.99</span>
+<span class="f">print</span>(<span class="s">"cobertura IC 95 %:"</span>, np.<span class="f">mean</span>((test &gt;= ic[:, <span class="n">0</span>]) &amp; (test &lt;= ic[:, <span class="n">1</span>])))        <span class="c"># 11 de 12</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(forecast)
+ly &lt;- <span class="f">log</span>(AirPassengers)
+<span class="f">ggtsdisplay</span>(<span class="f">diff</span>(<span class="f">diff</span>(ly, lag = <span class="n">12</span>)))         <span class="c"># ACF: r1 ≈ -0.34, r12 ≈ -0.39</span>
+train &lt;- <span class="f">window</span>(ly, end = <span class="f">c</span>(<span class="n">1959</span>, <span class="n">12</span>))
+test  &lt;- <span class="f">window</span>(AirPassengers, start = <span class="f">c</span>(<span class="n">1960</span>, <span class="n">1</span>))
+m &lt;- <span class="f">Arima</span>(train, order = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>), seasonal = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>))
+m                                                <span class="c"># ma1 ≈ -0.35, sma1 ≈ -0.56</span>
+<span class="f">checkresiduals</span>(m)                               <span class="c"># Ljung-Box con p grande</span>
+fc &lt;- <span class="f">forecast</span>(m, h = <span class="n">12</span>)
+pred &lt;- <span class="f">exp</span>(fc$mean)
+<span class="f">mean</span>(<span class="f">abs</span>(pred - test) / test) * <span class="n">100</span>              <span class="c"># MAPE ≈ 2.9 %</span>
+<span class="f">mean</span>(<span class="f">abs</span>(<span class="f">window</span>(AirPassengers, <span class="n">1959</span>, <span class="f">c</span>(<span class="n">1959</span>, <span class="n">12</span>)) - test) / test) * <span class="n">100</span>   <span class="c"># ingenuo ≈ 10 %</span></code></pre>
+      </div>
+
+      <h2 id="ts-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="En datos mensuales, picos en los rezagos 12, 24 y 36 indican que cada valor se parece al del mismo mes de años anteriores: estacionalidad anual." data-wrong="Piensa qué significa que y_t se parezca mucho a y_(t−12) en datos mensuales. ¿Qué patrón se repite cada 12 meses?">
         <h3>La ACF de una serie mensual muestra picos altos en los rezagos 12, 24 y 36. ¿Qué indica?</h3>
         <div class="opts">
@@ -345,44 +462,83 @@ auto &lt;- <span class="f">auto.arima</span>(train)
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Correcto. Para un MA(1), ρ₁ = θ/(1 + θ²) y ρₖ = 0 para k ≥ 2. Con θ = 0,5: 0,5/1,25 = 0,4." data-wrong="Calcula γ₀ = σ²(1 + θ²) y γ₁ = θσ². La autocorrelación es su cociente; y piensa si dos rezagos de distancia comparten algún choque.">
+        <h3>Un MA(1) tiene θ = 0,5. ¿Cuánto valen ρ₁ y ρ₂?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>ρ₁ = 0,4 y ρ₂ = 0</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>ρ₁ = 0,5 y ρ₂ = 0,25</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>ρ₁ = 0,5 y ρ₂ = 0</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>ρ₁ = 0,4 y ρ₂ = 0,16</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Bien. Dos paseos aleatorios independientes suelen dar una regresión significativa y un R² alto: es una regresión espuria. Hay que diferenciar o probar cointegración antes de interpretar." data-wrong="Piensa en qué pasa con dos series que tienen tendencias estocásticas independientes: ¿la regresión entre sus niveles cumple los supuestos habituales?">
+        <h3>Regresas el PIB de un país sobre el número de suscriptores de una red social, ambos con tendencia creciente, y obtienes R² = 0,93. ¿Qué es lo más prudente?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Concluir que la red social impulsa el PIB</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Aceptar la relación porque el valor p es muy pequeño</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Agregar más años para subir el R²</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Sospechar una regresión espuria: diferenciar las series o probar cointegración</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="ts-ej"><span class="sec">§ 13</span>Ejercicios propuestos</h2>
+      <h2 id="ts-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Derivaciones, simulación, validación y análisis de datos reales. Intenta cada una antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Las ventas de cinco semanas fueron 10, 12, 15, 11 y 14. (a) Calcula la media móvil centrada de orden 3 donde sea posible. (b) Con suavizamiento exponencial simple, \(\alpha = 0{,}3\) y pronóstico inicial \(\hat y_1 = 10\), calcula el pronóstico para la semana 6.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para el AR(1) \(y_t = c + \phi y_{t-1} + \varepsilon_t\): (a) demuestra que si \(|\phi| &lt; 1\) la solución \(y_t = \mu + \sum_{j\ge0}\phi^j\varepsilon_{t-j}\) es estacionaria y calcula \(\gamma_k\); (b) deriva el pronóstico óptimo a \(h\) pasos y la varianza de su error; (c) aplica al caso \(c = 10\), \(\phi = 0{,}6\), \(\sigma^2 = 4\), \(y_T = 30\) y da los intervalos al 95 % para \(h = 1, 2, 10\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) Semana 2: (10 + 12 + 15)/3 ≈ 12,33. Semana 3: (12 + 15 + 11)/3 ≈ 12,67. Semana 4: (15 + 11 + 14)/3 ≈ 13,33. Las semanas 1 y 5 no tienen vecinos a ambos lados.</p>
-            <p>(b) Aplicando \(\hat y_{t+1} = 0{,}3\,y_t + 0{,}7\,\hat y_t\):</p>
-            <ul>
-              <li>\(\hat y_2 = 0{,}3 \cdot 10 + 0{,}7 \cdot 10 = 10\)</li>
-              <li>\(\hat y_3 = 0{,}3 \cdot 12 + 0{,}7 \cdot 10 = 10{,}6\)</li>
-              <li>\(\hat y_4 = 0{,}3 \cdot 15 + 0{,}7 \cdot 10{,}6 = 11{,}92\)</li>
-              <li>\(\hat y_5 = 0{,}3 \cdot 11 + 0{,}7 \cdot 11{,}92 \approx 11{,}64\)</li>
-              <li>\(\hat y_6 = 0{,}3 \cdot 14 + 0{,}7 \cdot 11{,}644 \approx 12{,}35\)</li>
-            </ul>
+            <p><b>(a)</b> La serie \(\sum\phi^j\varepsilon_{t-j}\) converge en media cuadrática porque \(\sum\phi^{2j} = 1/(1-\phi^2) &lt; \infty\). Su media es \(\mu = c/(1-\phi)\) y \(\gamma_k = \operatorname{Cov}(\sum_j\phi^j\varepsilon_{t-j}, \sum_l\phi^l\varepsilon_{t-k-l}) = \sigma^2\sum_l\phi^{k+l}\phi^l = \sigma^2\phi^k/(1-\phi^2)\), que no depende de \(t\).</p>
+            <p><b>(b)</b> \(\hat y_{T+h} = \mu + \phi^h(y_T - \mu)\), y \(e_{T+h} = \sum_{j=0}^{h-1}\phi^j\varepsilon_{T+h-j}\) con varianza \(\sigma^2(1-\phi^{2h})/(1-\phi^2)\).</p>
+            <p><b>(c)</b> \(\mu = 25\). \(h = 1\): 28, desviación 2, IC [24,08; 31,92]. \(h = 2\): 26,8, varianza 5,44, IC [22,23; 31,37]. \(h = 10\): \(25 + 0{,}6^{10} \cdot 5 = 25{,}03\), varianza \(4(1 - 0{,}6^{20})/0{,}64 \approx 6{,}25\), desviación 2,5, IC [20,13; 29,93]. A diez semanas el pronóstico es la media y el intervalo es el de la distribución marginal.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Tienes 144 meses de datos (12 años). Las autocorrelaciones muestrales de los residuos de tu modelo son \(r_1 = 0{,}45\), \(r_2 = 0{,}12\), \(r_6 = -0{,}09\) y \(r_{12} = 0{,}30\). ¿Cuáles salen de las bandas al 95 %? ¿Qué te dicen sobre el modelo?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para el MA(1) \(y_t = \varepsilon_t + \theta\varepsilon_{t-1}\): (a) deriva \(\rho_1\) y demuestra que \(|\rho_1| \le 1/2\); (b) muestra que \(\theta\) y \(1/\theta\) generan la misma ACF y explica por qué se elige \(|\theta| &lt; 1\); (c) si una serie diferenciada tiene \(r_1 = -0{,}42\) y el resto de autocorrelaciones dentro de las bandas, estima \(\theta\) por el método de momentos.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Las bandas son \(\pm 1{,}96/\sqrt{144} = \pm 1{,}96/12 \approx \pm 0{,}163\). Salen \(r_1 = 0{,}45\) y \(r_{12} = 0{,}30\); \(r_2\) y \(r_6\) quedan dentro.</p>
-            <p>Los residuos no son ruido blanco: queda dependencia de corto plazo (rezago 1) y estacional (rezago 12) sin explicar. Conviene agregar un término AR o MA de orden 1 y un término estacional, por ejemplo pasar a un SARIMA con \((P\) o \(Q) = 1\) y \(m = 12\), y volver a revisar la ACF de los residuos.</p>
+            <p><b>(a)</b> \(\gamma_0 = \sigma^2(1+\theta^2)\), \(\gamma_1 = \theta\sigma^2\), \(\rho_1 = \theta/(1+\theta^2)\). Como \((1 - |\theta|)^2 \ge 0\), \(1 + \theta^2 \ge 2|\theta|\) y \(|\rho_1| \le 1/2\), con igualdad en \(\theta = \pm1\).</p>
+            <p><b>(b)</b> \(\frac{1/\theta}{1 + 1/\theta^2} = \frac{\theta}{\theta^2 + 1}\). Con \(|\theta| &lt; 1\), \(\varepsilon_t = \sum_{j\ge0}(-\theta)^j y_{t-j}\) converge: los choques se recuperan del pasado observado, lo que hace únicos el modelo y su pronóstico (invertibilidad).</p>
+            <p><b>(c)</b> Resolver \(\theta/(1+\theta^2) = -0{,}42\): \(0{,}42\theta^2 + \theta + 0{,}42 = 0\), \(\theta = \frac{-1 \pm \sqrt{1 - 0{,}7056}}{0{,}84} = \frac{-1 \pm 0{,}5426}{0{,}84}\). Las raíces son −0,545 y −1,836; la invertible es \(\hat\theta = -0{,}545\). Un \(r_1\) negativo cercano a −0,5 tras diferenciar también puede indicar sobrediferenciación: si \(\hat\theta\) se acerca a −1, quita una diferencia.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Un proceso AR(1) cumple \(y_t = 10 + 0{,}6\,y_{t-1} + \varepsilon_t\) con \(\operatorname{Var}(\varepsilon_t) = 4\). (a) Calcula su media, su varianza y \(\rho_2\). (b) Si el último valor observado es \(y_T = 30\), pronostica \(y_{T+1}\) y \(y_{T+2}\) con sus intervalos al 95 %.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Regresión espuria (Granger y Newbold, 1974). Simula 2 000 pares de paseos aleatorios independientes de longitud 100, regresa uno sobre otro por MCO y registra la proporción de valores p menores que 0,05 y el \(R^2\) mediano. Repite con las primeras diferencias. Explica el resultado.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) Media: \(\mu = 10/(1 - 0{,}6) = 25\). Varianza: \(4/(1 - 0{,}36) = 6{,}25\), o sea, desviación 2,5. \(\rho_2 = 0{,}6^2 = 0{,}36\).</p>
-            <p>(b) \(\hat y_{T+1} = 10 + 0{,}6 \cdot 30 = 28\). El error a un paso es solo \(\varepsilon_{T+1}\), con desviación 2: intervalo \(28 \pm 1{,}96 \cdot 2 = [24{,}08;\ 31{,}92]\).</p>
-            <p>\(\hat y_{T+2} = 10 + 0{,}6 \cdot 28 = 26{,}8\). La varianza del error a dos pasos es \(4\,(1 + 0{,}6^2) = 5{,}44\), desviación ≈ 2,33: intervalo \(26{,}8 \pm 4{,}57 = [22{,}23;\ 31{,}37]\). El pronóstico se acerca a la media 25 y el intervalo se ensancha hacia la desviación de la serie, 2,5.</p>
+            <p>Resultados de una corrida (semilla 42): en niveles se rechaza \(H_0\) en el 77 % de las réplicas con \(R^2\) mediano 0,17; en diferencias, en el 6 % (cerca del 5 % nominal) con \(R^2\) mediano 0,005. En niveles los residuos heredan la raíz unitaria: están fuertemente autocorrelacionados, el error estándar de MCO es muy pequeño y el estadístico \(t\) no sigue una \(t\) de Student; de hecho diverge con \(n\). Antes de regresar series con tendencia, revisa estacionariedad: diferencia o, si las series comparten una tendencia común, usa cointegración.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+n, reps = <span class="n">100</span>, <span class="n">2000</span>
+res = {<span class="s">"niveles"</span>: [<span class="n">0</span>, []], <span class="s">"diferencias"</span>: [<span class="n">0</span>, []]}
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps):
+    x = np.<span class="f">cumsum</span>(rng.<span class="f">normal</span>(size=n))           <span class="c"># dos paseos aleatorios</span>
+    y = np.<span class="f">cumsum</span>(rng.<span class="f">normal</span>(size=n))           <span class="c"># independientes entre sí</span>
+    <span class="k">for</span> nombre, (a, b) <span class="k">in</span> {<span class="s">"niveles"</span>: (x, y), <span class="s">"diferencias"</span>: (np.<span class="f">diff</span>(x), np.<span class="f">diff</span>(y))}.<span class="f">items</span>():
+        m = sm.<span class="f">OLS</span>(b, sm.<span class="f">add_constant</span>(a)).<span class="f">fit</span>()
+        res[nombre][<span class="n">0</span>] += m.pvalues[<span class="n">1</span>] &lt; <span class="n">0.05</span>
+        res[nombre][<span class="n">1</span>].<span class="f">append</span>(m.rsquared)
+<span class="k">for</span> nombre, (rech, r2) <span class="k">in</span> res.<span class="f">items</span>():
+    <span class="f">print</span>(nombre, rech / reps, <span class="f">round</span>(np.<span class="f">median</span>(r2), <span class="n">3</span>))
+<span class="c"># niveles 0.77 0.171 · diferencias 0.06 0.005</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">42</span>)
+r &lt;- <span class="f">replicate</span>(<span class="n">2000</span>, {
+  x &lt;- <span class="f">cumsum</span>(<span class="f">rnorm</span>(<span class="n">100</span>)); y &lt;- <span class="f">cumsum</span>(<span class="f">rnorm</span>(<span class="n">100</span>))
+  a &lt;- <span class="f">summary</span>(<span class="f">lm</span>(y ~ x)); b &lt;- <span class="f">summary</span>(<span class="f">lm</span>(<span class="f">diff</span>(y) ~ <span class="f">diff</span>(x)))
+  <span class="f">c</span>(a$coef[<span class="n">2</span>, <span class="n">4</span>] &lt; <span class="n">0.05</span>, a$r.squared, b$coef[<span class="n">2</span>, <span class="n">4</span>] &lt; <span class="n">0.05</span>, b$r.squared)
+})
+<span class="f">c</span>(<span class="f">mean</span>(r[<span class="n">1</span>, ]), <span class="f">median</span>(r[<span class="n">2</span>, ]), <span class="f">mean</span>(r[<span class="n">3</span>, ]), <span class="f">median</span>(r[<span class="n">4</span>, ]))   <span class="c"># ≈ 0.77 0.17 0.05 0.005</span></code></pre>
+            </div>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Con la serie simulada del § 11, implementa una validación con <b>origen móvil</b>: usa como puntos de corte los meses 60, 66, 72, 78 y 84; en cada uno entrena con todo lo anterior y pronostica los 12 meses siguientes con tres métodos: ingenuo estacional, Holt-Winters aditivo y SARIMA\((0,1,1)(0,1,1)_{12}\). Reporta el MAE promedio de cada uno. ¿Por qué este procedimiento es más confiable que una sola partición?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con la serie simulada de la sección “En R y Python”, implementa una validación con <b>origen móvil</b>: usa como puntos de corte los meses 60, 66, 72, 78 y 84; en cada uno entrena con todo lo anterior y pronostica los 12 meses siguientes con tres métodos: ingenuo estacional, Holt-Winters aditivo y SARIMA\((0,1,1)(0,1,1)_{12}\). Reporta el MAE promedio de cada uno. ¿Por qué este procedimiento es más confiable que una sola partición?</p>
           <details><summary>Ver solución</summary><div class="sol">
             <p>Cada corte simula un momento real en el que solo conoces el pasado. Promediar varios cortes reduce la dependencia de un año en particular, que pudo ser especialmente fácil o difícil.</p>
             <div class="codetabs">
@@ -423,8 +579,15 @@ mae &lt;- <span class="f">matrix</span>(<span class="k">NA</span>, <span class="
             <p>Con esta serie, Holt-Winters y SARIMA deberían tener un MAE claramente menor que el ingenuo estacional, porque capturan la tendencia: el ingenuo repite el año anterior y se queda siempre unas 18 unidades abajo (1,5 por mes × 12 meses). Si con tus datos reales el modelo complejo no le gana al ingenuo, quédate con el simple.</p>
           </div></details>
         </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Un equipo de analítica reporta un modelo de pronóstico de ventas diarias con MAPE del 1,2 %. Revisando el código encuentras: (i) validación cruzada aleatoria de 10 particiones; (ii) una variable “media móvil centrada de 7 días”; (iii) normalización con la media y desviación de toda la serie; (iv) no se compara con ningún método simple. Explica el problema de cada punto, estima su efecto probable y diseña una evaluación correcta.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(i)</b> Mezclar días hace que el modelo entrene con días posteriores a los que predice; con autocorrelación fuerte, cada día de prueba tiene a sus vecinos en el entrenamiento y el error sale artificialmente bajo. <b>(ii)</b> La media centrada de 7 días incluye los 3 días siguientes, que en producción no existen: es una fuga directa de la respuesta y por sí sola puede explicar un MAPE tan bajo. <b>(iii)</b> La normalización global usa estadísticos del futuro; el efecto suele ser menor, pero es otra fuga. <b>(iv)</b> Sin referencia no se sabe si 1,2 % es bueno: el ingenuo estacional (“igual que hace 7 días”) podría estar cerca.</p>
+            <p><b>Evaluación correcta:</b> validación de origen móvil (por ejemplo, 12 cortes semanales, entrenando con todo lo anterior y pronosticando los 7 o 28 días siguientes), variables construidas solo con información disponible en el momento del pronóstico (medias móviles hacia atrás, rezagos), escalado ajustado dentro de cada corte, y comparación del MAE, RMSE y MAPE con el ingenuo y el ingenuo estacional, reportando también la cobertura de los intervalos. Lo esperable es que el MAPE real sea varias veces mayor que 1,2 %.</p>
+          </div></details>
+        </div>
       </div>
-
       <div class="next"></div>
     </article>
   </div>

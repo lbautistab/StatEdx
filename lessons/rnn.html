@@ -5,38 +5,48 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Redes recurrentes y LSTM</h1>
-      <p>Para entender una frase, predecir la demanda eléctrica de mañana o reconocer una palabra hablada, el orden importa y lo que pasó antes condiciona lo que viene. Las redes recurrentes leen la secuencia paso a paso y llevan una memoria, el estado oculto. Aquí ves cómo funcionan, por qué olvidan tan rápido y cómo las celdas LSTM y GRU lo resuelven.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: descenso de gradiente y retropropagación</span><span>R · Python</span></div>
+      <p>Muchos datos llegan en orden: palabras de una frase, horas de una serie de tiempo, latidos de un electrocardiograma. Las redes recurrentes leen esas secuencias paso a paso con un estado que hace de memoria. Aquí aprendes la RNN simple, la retropropagación en el tiempo y por qué el gradiente se desvanece o explota (con su cota en términos del radio espectral), y cómo las celdas LSTM y GRU resuelven el problema con compuertas.</p>
+      <div class="lmeta"><span>90 min</span><span>Nivel avanzado</span><span>Requiere: descenso de gradiente y retropropagación</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#rnn-idea" data-sec="rnn-idea">La idea</a></li>
-        <li><a href="#rnn-simple" data-sec="rnn-simple">La red recurrente simple</a></li>
-        <li><a href="#rnn-bptt" data-sec="rnn-bptt">Gradientes en el tiempo</a></li>
-        <li><a href="#rnn-lab" data-sec="rnn-lab">Laboratorio: memoria</a></li>
+        <li><a href="#rnn-intro" data-sec="rnn-intro">Introducción</a></li>
+        <li><a href="#rnn-def" data-sec="rnn-def">Definición</a></li>
+        <li><a href="#rnn-bptt" data-sec="rnn-bptt">Retropropagación en el tiempo</a></li>
         <li><a href="#rnn-lstm" data-sec="rnn-lstm">La celda LSTM</a></li>
-        <li><a href="#rnn-gru" data-sec="rnn-gru">GRU y comparación</a></li>
-        <li><a href="#rnn-practica" data-sec="rnn-practica">En la práctica</a></li>
+        <li><a href="#rnn-gru" data-sec="rnn-gru">GRU y práctica</a></li>
+        <li><a href="#rnn-prop" data-sec="rnn-prop">Propiedades</a></li>
+        <li><a href="#rnn-sim" data-sec="rnn-sim">Ejercicios de simulación</a></li>
+        <li><a href="#rnn-apps" data-sec="rnn-apps">Aplicaciones reales</a></li>
         <li><a href="#rnn-code" data-sec="rnn-code">En R y Python</a></li>
-        <li><a href="#rnn-quiz" data-sec="rnn-quiz">Comprueba</a></li>
-        <li><a href="#rnn-ej" data-sec="rnn-ej">Ejercicios</a></li>
+        <li><a href="#rnn-quiz" data-sec="rnn-quiz">Quiz</a></li>
+        <li><a href="#rnn-ej" data-sec="rnn-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="rnn-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="rnn-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Lee esta frase: “Crecí en Brasil, así que hablo con fluidez…”. Para adivinar la palabra siguiente (“portugués”) necesitas recordar algo que apareció siete palabras atrás. Lo mismo ocurre con una serie de tiempo: la demanda eléctrica de las 8 de la mañana depende de la de las horas anteriores, del día de la semana y de lo que pasó ayer a la misma hora.</p>
       <p>Una red densa recibe un vector de tamaño fijo y no tiene noción de orden. Podrías darle una ventana con los últimos 10 valores, pero entonces no podría usar nada de lo ocurrido hace 11 pasos, necesitaría pesos distintos para cada posición de la ventana y no sabría qué hacer con frases de largo variable.</p>
       <p>Una <b>red neuronal recurrente</b> (RNN) lee la secuencia un elemento a la vez y mantiene un <b>estado oculto</b> \(h_t\): un vector que resume todo lo que ha visto hasta ahora. En cada paso combina el estado anterior con la entrada nueva usando <i>los mismos pesos</i>. Es como leer un libro con una libreta: en cada página actualizas tus notas, y tus notas son todo lo que recuerdas del libro.</p>
       <div class="callout"><b>Dónde aparecen:</b> pronóstico de series de tiempo, reconocimiento de voz, traducción, análisis de sentimiento, señales de sensores y electrocardiogramas, secuencias de clics de usuarios. Hoy, en texto largo, los transformers (siguiente sesión) las desplazaron casi por completo, pero las ideas de estado, memoria y compuertas siguen siendo centrales.</div>
-
-      <h2 id="rnn-simple"><span class="sec">§ 2</span>La red recurrente simple</h2>
-      <p>Con entradas \(x_1, \dots, x_T \in \mathbb{R}^d\) y estado inicial \(h_0 = 0\), la RNN de Elman calcula en cada paso</p>
-      <div class="eq">\[ h_t = \tanh\big(W_h\, h_{t-1} + W_x\, x_t + b\big), \qquad \hat y_t = W_y\, h_t + c \]
-        <div class="note">\(h_t \in \mathbb{R}^m\) es el estado oculto, \(W_h\) es \(m \times m\) (la matriz <b>recurrente</b>), \(W_x\) es \(m \times d\). Los mismos \(W_h, W_x, b\) se usan en todos los pasos: eso es el <b>compartir pesos en el tiempo</b>.</div>
+      <p><b>Un poco de historia.</b> Michael Jordan (1986) y Jeffrey Elman (1990) propusieron las redes recurrentes simples para modelar secuencias en ciencia cognitiva; Elman mostró que una red así descubría categorías gramaticales solo con predecir la palabra siguiente. Sepp Hochreiter (1991, en su tesis) y Bengio, Simard y Frasconi (1994) demostraron por qué estas redes no aprenden dependencias largas: el gradiente se desvanece o explota exponencialmente. La solución fue la LSTM de Hochreiter y Schmidhuber (1997), a la que Gers, Schmidhuber y Cummins (2000) agregaron la compuerta de olvido. Las LSTM dominaron el reconocimiento de voz (Graves y colaboradores, 2013) y la traducción automática (Sutskever, Vinyals y Le, 2014; el traductor de Google en 2016) hasta la llegada de los transformers. Cho y colaboradores (2014) propusieron la GRU, una versión más simple.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a definir una RNN, desenrollarla en el tiempo y contar sus parámetros;</li>
+          <li>a derivar la retropropagación en el tiempo y la cota del gradiente con el radio espectral de \(W_h\);</li>
+          <li>a calcular a mano un paso de una celda LSTM y entender por qué su camino aditivo conserva el gradiente;</li>
+          <li>a comparar RNN, LSTM y GRU, y a preparar series de tiempo en ventanas sin fugas de información;</li>
+          <li>a relacionar una RNN lineal con modelos clásicos de series como el suavizado exponencial y los AR.</li>
+        </ul>
       </div>
+
+      <h2 id="rnn-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición (red recurrente simple de Elman).</b> Con entradas \(x_1, \dots, x_T \in \mathbb R^d\), estado inicial \(h_0 = 0\) y parámetros \(\theta = (W_h, W_x, b, W_y, c)\):
+        \[ h_t = \tanh\big(W_h\, h_{t-1} + W_x\, x_t + b\big), \qquad \hat y_t = W_y\, h_t + c, \qquad t = 1, \dots, T . \]
+        \(h_t \in \mathbb R^m\) es el <b>estado oculto</b>, \(W_h \in \mathbb R^{m \times m}\) es la matriz <b>recurrente</b> y \(W_x \in \mathbb R^{m \times d}\) la de entrada. Los mismos pesos se usan en todos los pasos: <b>pesos compartidos en el tiempo</b>.</div>
       <p>Si “desenrollas” la red en el tiempo, obtienes una red profunda con \(T\) capas, una por paso, todas con los mismos pesos. Por eso el número de parámetros no depende del largo de la secuencia: \(m(m + d) + m\) en la parte recurrente.</p>
       <p>Según qué salidas uses, la misma estructura resuelve tareas distintas:</p>
       <div class="tablewrap"><table>
@@ -63,8 +73,94 @@
       <div class="eq">\[ g \;\leftarrow\; g \cdot \min\!\left(1,\; \frac{\tau}{\lVert g\rVert}\right) \]</div>
       <p>El desvanecimiento es más difícil: no basta con reescalar, porque la información del pasado lejano ya se perdió. Hace falta cambiar la arquitectura para que exista un camino por el que el gradiente fluya sin multiplicarse por factores chicos. Esa es la idea de la LSTM.</p>
       <div class="callout"><b>BPTT truncada:</b> con secuencias muy largas (miles de pasos), se desenrolla solo una ventana de, por ejemplo, 100 pasos para calcular el gradiente, mientras el estado se sigue pasando hacia adelante. Ahorra memoria y tiempo, a cambio de no aprender dependencias más largas que la ventana.</div>
+      <h3>Derivación del gradiente</h3>
+      <p>Con una pérdida total \(L = \sum_{t=1}^{T}\ell_t(\hat y_t, y_t)\), el peso \(W_h\) influye en \(L\) a través de todos los estados. Escribe \(z_t = W_hh_{t-1} + W_xx_t + b\) y \(\delta_t = \partial L/\partial z_t\). Como \(z_t\) afecta a \(\ell_t\) (vía \(h_t\)) y a \(z_{t+1}\):</p>
+      <div class="eq">\[ \delta_t = \operatorname{diag}(1 - h_t^2)\Big(W_y^\top\frac{\partial\ell_t}{\partial\hat y_t} + W_h^\top\delta_{t+1}\Big), \qquad \delta_{T+1} = 0, \qquad \frac{\partial L}{\partial W_h} = \sum_{t=1}^{T}\delta_t\,h_{t-1}^\top, \quad \frac{\partial L}{\partial W_x} = \sum_{t=1}^{T}\delta_t\,x_t^\top . \]
+        <div class="note">Es la misma recursión de la sesión de <a href="#backprop">retropropagación</a>, con dos diferencias: la señal de error se acumula desde todas las salidas posteriores, y los gradientes de los pesos compartidos se <b>suman</b> sobre los pasos.</div>
+      </div>
+      <h3>Cota del gradiente</h3>
+      <div class="callout"><b>Teorema (Pascanu, Mikolov y Bengio, 2013).</b> Sea \(\gamma \ge \sup|\tanh'| = 1\) una cota de la derivada de la activación y \(\sigma_{\max}(W_h)\) el mayor valor singular de \(W_h\). Entonces
+        \[ \Big\lVert \frac{\partial h_T}{\partial h_k} \Big\rVert \le \prod_{t=k+1}^{T} \big\lVert \operatorname{diag}(1 - h_t^2) \big\rVert \, \lVert W_h \rVert \le \big( \gamma \, \sigma_{\max}(W_h) \big)^{T-k} . \]
+        Si \(\sigma_{\max}(W_h) &lt; 1/\gamma\), el gradiente se desvanece exponencialmente: es una condición <b>suficiente</b>. Para que explote es <b>necesario</b> que el radio espectral de \(W_h\) sea mayor que \(1/\gamma\).</div>
+      <p><b>Demostración.</b> Por la regla de la cadena, \(\partial h_t/\partial h_{t-1} = \operatorname{diag}(1 - h_t^2)W_h\). La norma de un producto es a lo sumo el producto de las normas, \(\lVert\operatorname{diag}(1 - h_t^2)\rVert = \max_j(1 - h_{t,j}^2) \le 1\) y \(\lVert W_h\rVert_2 = \sigma_{\max}\). \(\square\) La saturación de tanh empeora el desvanecimiento (los factores \(1 - h^2\) se achican) pero también frena la explosión: por eso una RNN tanh con \(\rho(W_h) = 1{,}5\) no explota tanto como una lineal.</p>
 
-      <h2 id="rnn-lab"><span class="sec">§ 4</span>Laboratorio: memoria y gradientes</h2>
+      <h2 id="rnn-lstm"><span class="sec">§ 4</span>La celda LSTM</h2>
+      <p>La <b>LSTM</b> (<i>long short-term memory</i>, Hochreiter y Schmidhuber, 1997) agrega un segundo estado, la <b>celda</b> \(c_t\), que funciona como una cinta transportadora: la información viaja por ella con cambios solo aditivos, regulados por tres <b>compuertas</b>. Cada compuerta es una sigmoide con valores entre 0 (cerrada) y 1 (abierta), calculada a partir de la entrada y del estado anterior:</p>
+      <div class="eq">\[ \begin{aligned} f_t &amp;= \sigma(W_f [h_{t-1}, x_t] + b_f) &amp;&amp;\text{compuerta de olvido: cuánto conservar de } c_{t-1}\\ i_t &amp;= \sigma(W_i [h_{t-1}, x_t] + b_i) &amp;&amp;\text{compuerta de entrada: cuánto escribir}\\ \tilde c_t &amp;= \tanh(W_c [h_{t-1}, x_t] + b_c) &amp;&amp;\text{contenido candidato}\\ o_t &amp;= \sigma(W_o [h_{t-1}, x_t] + b_o) &amp;&amp;\text{compuerta de salida: cuánto mostrar}\\ c_t &amp;= f_t \odot c_{t-1} + i_t \odot \tilde c_t \\ h_t &amp;= o_t \odot \tanh(c_t) \end{aligned} \]
+        <div class="note">\([h_{t-1}, x_t]\) es la concatenación de los dos vectores. Hay cuatro bloques de pesos del mismo tamaño, así que una LSTM tiene 4 veces los parámetros de una RNN simple: \(4\,[m(m+d) + m]\).</div>
+      </div>
+      <p>La clave está en la ecuación de \(c_t\). Su derivada a lo largo de la celda es</p>
+      <div class="eq">\[ \frac{\partial c_t}{\partial c_{t-1}} = f_t \quad(\text{camino directo}), \qquad \frac{\partial c_T}{\partial c_k} \approx \prod_{t=k+1}^{T} f_t \]
+        <div class="note">No hay una matriz \(W_h\) ni una tanh multiplicando en cada paso por ese camino. Si la red aprende \(f_t \approx 1\) cuando necesita recordar, el gradiente fluye casi intacto por cientos de pasos: el “carrusel de error constante” de la LSTM original.</div>
+      </div>
+      <ul>
+        <li><b>Recordar:</b> \(f_t \approx 1\), \(i_t \approx 0\). La celda pasa sin cambios.</li>
+        <li><b>Olvidar:</b> \(f_t \approx 0\). Por ejemplo, al terminar una oración y empezar otra con un sujeto nuevo.</li>
+        <li><b>Escribir:</b> \(i_t \approx 1\). Se agrega \(\tilde c_t\) a la memoria.</li>
+        <li><b>Leer:</b> \(o_t\) decide qué parte de la memoria se expone en \(h_t\), que es lo que ven la capa siguiente y la compuerta del próximo paso.</li>
+      </ul>
+      <div class="callout"><b>Truco de inicialización:</b> se suele inicializar el sesgo de olvido \(b_f\) en 1 (o más), para que al principio la celda tienda a recordar y el gradiente fluya desde el primer paso de entrenamiento. Keras lo hace por defecto (<code>unit_forget_bias = TRUE</code>). En el laboratorio, ese es el efecto de subir \(b_f\).</div>
+      <h3>Ejemplo resuelto a mano</h3>
+      <p>Una LSTM escalar llega al paso \(t\) con \(c_{t-1} = 2\). Las preactivaciones resultan ser 2 (olvido), 0 (entrada), 1 (candidato) y 1 (salida).</p>
+      <ul>
+        <li>Compuertas: \(f_t = \sigma(2) = 0{,}881\), \(i_t = \sigma(0) = 0{,}5\), \(\tilde c_t = \tanh(1) = 0{,}762\), \(o_t = \sigma(1) = 0{,}731\).</li>
+        <li>Celda: \(c_t = 0{,}881 \cdot 2 + 0{,}5 \cdot 0{,}762 = 1{,}762 + 0{,}381 = 2{,}142\).</li>
+        <li>Salida: \(h_t = 0{,}731 \cdot \tanh(2{,}142) = 0{,}731 \cdot 0{,}973 = 0{,}711\).</li>
+        <li>Gradiente por el camino directo: \(\partial c_t/\partial c_{t-1} = f_t = 0{,}881\).</li>
+      </ul>
+      <p>Si la preactivación de olvido fuera −4, \(f_t = 0{,}018\): la celda casi borra lo que tenía (\(c_t \approx 0{,}036 + 0{,}381 = 0{,}417\)) y el gradiente hacia el pasado se corta. Olvidar a propósito está bien cuando el pasado ya no importa, por ejemplo al empezar un documento nuevo.</p>
+
+      <h2 id="rnn-gru"><span class="sec">§ 5</span>GRU, comparación y práctica</h2>
+      <p>La <b>GRU</b> (<i>gated recurrent unit</i>, Cho y coautores, 2014) simplifica la LSTM: fusiona celda y estado oculto en un solo vector y usa dos compuertas.</p>
+      <div class="eq">\[ \begin{aligned} z_t &amp;= \sigma(W_z [h_{t-1}, x_t] + b_z) &amp;&amp;\text{actualización}\\ r_t &amp;= \sigma(W_r [h_{t-1}, x_t] + b_r) &amp;&amp;\text{reinicio}\\ \tilde h_t &amp;= \tanh(W_h [r_t \odot h_{t-1}, x_t] + b_h) \\ h_t &amp;= (1 - z_t) \odot h_{t-1} + z_t \odot \tilde h_t \end{aligned} \]
+        <div class="note">La última línea es un promedio ponderado entre el estado viejo y el candidato: \(z_t\) cumple a la vez el papel de las compuertas de olvido y de entrada de la LSTM (con \(f = 1 - z\) e \(i = z\) atadas). Tiene 3 bloques de pesos en lugar de 4.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Aspecto</th><th>RNN simple</th><th>LSTM</th><th>GRU</th></tr></thead>
+        <tbody>
+          <tr><td>Estados</td><td>\(h_t\)</td><td>\(h_t\) y \(c_t\)</td><td>\(h_t\)</td></tr>
+          <tr><td>Compuertas</td><td>ninguna</td><td>olvido, entrada, salida</td><td>actualización, reinicio</td></tr>
+          <tr><td>Parámetros (relativos)</td><td>1×</td><td>4×</td><td>3×</td></tr>
+          <tr><td>Memoria a largo plazo</td><td>pobre (10-20 pasos)</td><td>buena (cientos de pasos)</td><td>buena, parecida a LSTM</td></tr>
+          <tr><td>Cuándo usarla</td><td>secuencias cortas, docencia</td><td>opción por defecto con muchos datos</td><td>menos datos o menos cómputo</td></tr>
+        </tbody>
+      </table></div>
+      <p>En la mayoría de las comparaciones empíricas, LSTM y GRU rinden parecido; la diferencia entre ellas suele ser menor que la que producen el tamaño del estado, la tasa de aprendizaje o la regularización.</p>
+      <h3>Relación con modelos clásicos de series</h3>
+      <p>Una RNN escalar <b>lineal</b> sin activación, \(h_t = w\,h_{t-1} + u\,x_t\), se desenrolla como \(h_t = u\sum_{j \ge 0}w^jx_{t-j}\): un promedio móvil con pesos geométricos. Con \(u = 1 - w\) es exactamente el <a href="#holt">suavizado exponencial simple</a> con \(\alpha = 1 - w\), y como predictor de \(x_{t+1}\) es un caso particular de los modelos <a href="#arima">ARIMA</a>. La RNN no lineal y la LSTM generalizan esa idea con pesos que dependen de la entrada (las compuertas deciden cuánto recordar en cada paso).</p>
+      <h3>En la práctica</h3>
+      <ul>
+        <li><b>Ventanas para series de tiempo:</b> convierte la serie en pares (últimos \(L\) valores, valor siguiente). Divide entrenamiento y prueba <i>por tiempo</i>, nunca al azar, y calcula la media y desviación de estandarización solo con el tramo de entrenamiento.</li>
+        <li><b>Compara con una línea base:</b> el pronóstico ingenuo (el último valor, o el de hace una temporada) y un modelo clásico como ARIMA o ETS. En series cortas y univariadas, los métodos clásicos ganan con frecuencia. Las RNN brillan con muchas series relacionadas, muchas variables o patrones no lineales.</li>
+        <li><b>Formas de los tensores:</b> las librerías esperan entradas \((\text{lote}, T, d)\): número de secuencias, largo, variables por paso.</li>
+        <li><b>Redes apiladas y bidireccionales:</b> se pueden apilar varias capas recurrentes (la salida \(h_t\) de una es la entrada de la siguiente). Una RNN <b>bidireccional</b> lee la secuencia hacia adelante y hacia atrás y concatena ambos estados: útil para clasificar texto completo, pero no para pronosticar, porque usaría el futuro.</li>
+        <li><b>Regularización:</b> dropout entre capas y, para las conexiones recurrentes, <i>dropout recurrente</i> con la misma máscara en todos los pasos. Siempre con recorte del gradiente.</li>
+        <li><b>Forzamiento del maestro</b> (<i>teacher forcing</i>): al entrenar un generador de secuencias, en cada paso se le da como entrada el valor real anterior en vez de su propia predicción. Acelera el entrenamiento, pero en predicción la red debe usar sus propias salidas, y los errores pueden acumularse.</li>
+      </ul>
+      <div class="callout"><b>Limitaciones:</b> una RNN procesa los pasos uno después de otro, así que no se puede paralelizar a lo largo de la secuencia; y aun la LSTM tiene que comprimir todo el pasado en un vector de tamaño fijo. Los transformers atacan ambos problemas dejando que cada posición mire directamente a todas las demás. Esa es la siguiente sesión.</div>
+
+      <h2 id="rnn-prop"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>Parámetros independientes de T.</b> RNN: \(m(m + d) + m\); LSTM: \(4[m(m + d) + m]\); GRU: \(3[m(m + d) + m]\). <i>Justificación:</i> pesos compartidos en el tiempo; LSTM y GRU tienen 4 y 3 bloques.</li>
+        <li><b>Jacobiano de un paso.</b> \(\partial h_t/\partial h_{t-1} = \operatorname{diag}(1 - h_t^2)W_h\). <i>Justificación:</i> regla de la cadena sobre \(\tanh(W_hh_{t-1} + \dots)\).</li>
+        <li><b>Cota del gradiente.</b> \(\lVert\partial h_T/\partial h_k\rVert \le \sigma_{\max}(W_h)^{T-k}\). <i>Justificación:</i> submultiplicatividad de la norma (sección 3).</li>
+        <li><b>Gradientes sumados en el tiempo.</b> \(\partial L/\partial W_h = \sum_t\delta_th_{t-1}^\top\). <i>Justificación:</i> el mismo parámetro aparece en cada paso.</li>
+        <li><b>Camino aditivo de la LSTM.</b> \(\partial c_t/\partial c_{t-1} = \operatorname{diag}(f_t)\) por el camino directo, y \(\prod_t f_t\) a través de muchos pasos. <i>Justificación:</i> \(c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t\).</li>
+        <li><b>Memoria de una compuerta constante.</b> Con \(f\) fijo, la sensibilidad baja de \(\varepsilon\) tras \(n = \ln\varepsilon/\ln f\) pasos; para \(f = \sigma(b_f)\), \(b_f = \ln\frac{f}{1 - f}\). <i>Justificación:</i> \(f^n &lt; \varepsilon\).</li>
+        <li><b>GRU como promedio convexo.</b> \(h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde h_t\), con \(\lVert h_t\rVert_\infty \le 1\) si \(\lVert h_0\rVert_\infty \le 1\). <i>Justificación:</i> combinación convexa de vectores en \([-1, 1]\).</li>
+        <li><b>RNN lineal y suavizado exponencial.</b> \(h_t = u\sum_j w^jx_{t-j}\), estable si \(|w| &lt; 1\). <i>Justificación:</i> desenrollar la recursión.</li>
+      </ol>
+      <h3>Errores comunes</h3>
+      <ul>
+        <li><b>Partir la serie al azar</b> en entrenamiento y prueba: las ventanas de prueba quedan rodeadas de ventanas de entrenamiento casi idénticas y el error se subestima.</li>
+        <li><b>Estandarizar con toda la serie</b>, incluyendo el tramo de prueba (fuga de información).</li>
+        <li><b>No comparar con un pronóstico ingenuo</b> ni con un modelo lineal o ARIMA.</li>
+        <li><b>Olvidar el recorte del gradiente</b>, y ver la pérdida explotar de vez en cuando.</li>
+        <li><b>Usar una RNN bidireccional para pronosticar</b>, lo que mira el futuro.</li>
+      </ul>
+
+      <h2 id="rnn-sim"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
+      <h3>Laboratorio: memoria y gradientes</h3>
       <p>Las dos redes reciben la misma secuencia: un pulso \(x_0 = 1\) al inicio seguido de ruido pequeño. Arriba ves cuánto del pulso sobrevive en el estado de cada red. Abajo, en escala logarítmica, la sensibilidad \(|\partial s_T/\partial s_k|\) del estado final respecto al estado en cada paso anterior \(k\): es la señal que recibe el gradiente desde el pasado. La RNN simple tiene peso recurrente \(w\); la LSTM conserva su celda con la compuerta de olvido \(f_t = \sigma(b_f + \dots)\).</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · desvanecimiento del gradiente</span><span class="num" id="rnn-head">–</span></div>
@@ -104,53 +200,30 @@
         </div>
         <figcaption>La “memoria” cuenta cuántos pasos hacia atrás la sensibilidad sigue por encima de 0,01. Con w = 0,9 la RNN recuerda entre 25 y 40 pasos, según el ruido. Sube w por encima de 1 con activación lineal: el gradiente explota. Con tanh no explota tanto, porque el estado se satura cerca de ±1 y la derivada 1 − h² se achica. En la LSTM, sube b<sub>f</sub> a 5: la compuerta de olvido queda cerca de 1 y la celda conserva el pulso durante toda la secuencia. Bájalo a 0 y la LSTM olvida tan rápido como la RNN.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con activación tanh y T = 50, baja w de 0,9 a 0,5 y anota la “memoria RNN”. ¿Cómo se compara con \(\ln(0{,}01)/\ln w\)?
+          <details><summary>Qué deberías observar</summary><p>Con w = 0,9 la memoria es de unos 25 a 40 pasos y con w = 0,5 cae a unos 6 o 7. La fórmula sin saturación da \(\ln 0{,}01/\ln 0{,}9 \approx 44\) y \(\ln 0{,}01/\ln 0{,}5 \approx 6{,}6\): la saturación de tanh acorta un poco la memoria respecto del caso lineal.</p></details></li>
+        <li>Cambia la activación a lineal y sube w a 1,2 y luego a 2. ¿Qué pasa con el gradiente RNN en k = 0?
+          <details><summary>Qué deberías observar</summary><p>El gradiente explota: crece como \(w^{T}\), por ejemplo \(1{,}2^{50} \approx 9\,100\). Con tanh, el mismo w da un gradiente mucho menor, porque el estado se satura y los factores \(1 - h^2\) frenan el crecimiento.</p></details></li>
+        <li>En la LSTM, mueve \(b_f\) de 0 a 5. Compara la memoria LSTM con \(\ln 0{,}01/\ln\sigma(b_f)\).
+          <details><summary>Qué deberías observar</summary><p>Con \(b_f = 0\), \(f = 0{,}5\) y la memoria es de unos 7 pasos, como una RNN con w = 0,5. Con \(b_f = 3\), \(f \approx 0{,}95\) y la memoria cubre toda la secuencia de 50 pasos (con T = 120 verás unos 95, lo que predice la fórmula); con \(b_f = 5\), \(f \approx 0{,}993\) y la celda conserva el pulso durante toda la secuencia.</p></details></li>
+        <li>Sube T a 120 con w = 0,9 y \(b_f = 3\). ¿Cuál de las dos redes conserva algo de señal desde k = 0?
+          <details><summary>Qué deberías observar</summary><p>El gradiente RNN en k = 0 cae a valores del orden de \(10^{-6}\) o menos, mientras que el de la LSTM sigue en torno a \(0{,}953^{120} \approx 0{,}003\). Para dependencias muy largas solo la celda con compuerta de olvido cercana a 1 transmite señal útil.</p></details></li>
+      </ol>
+      <p>Un experimento extra sin laboratorio: escribe tú una RNN escalar con \(w = 0{,}5\) y entrada \(x = (1, 0, -1)\), calcula \(h_1, h_2, h_3\) y \(\partial h_3/\partial h_1 = 0{,}5(1 - h_2^2)\cdot 0{,}5(1 - h_3^2) \approx 0{,}119\). Solo dos pasos atrás, la sensibilidad ya es del 12 %.</p>
 
-      <h2 id="rnn-lstm"><span class="sec">§ 5</span>La celda LSTM</h2>
-      <p>La <b>LSTM</b> (<i>long short-term memory</i>, Hochreiter y Schmidhuber, 1997) agrega un segundo estado, la <b>celda</b> \(c_t\), que funciona como una cinta transportadora: la información viaja por ella con cambios solo aditivos, regulados por tres <b>compuertas</b>. Cada compuerta es una sigmoide con valores entre 0 (cerrada) y 1 (abierta), calculada a partir de la entrada y del estado anterior:</p>
-      <div class="eq">\[ \begin{aligned} f_t &amp;= \sigma(W_f [h_{t-1}, x_t] + b_f) &amp;&amp;\text{compuerta de olvido: cuánto conservar de } c_{t-1}\\ i_t &amp;= \sigma(W_i [h_{t-1}, x_t] + b_i) &amp;&amp;\text{compuerta de entrada: cuánto escribir}\\ \tilde c_t &amp;= \tanh(W_c [h_{t-1}, x_t] + b_c) &amp;&amp;\text{contenido candidato}\\ o_t &amp;= \sigma(W_o [h_{t-1}, x_t] + b_o) &amp;&amp;\text{compuerta de salida: cuánto mostrar}\\ c_t &amp;= f_t \odot c_{t-1} + i_t \odot \tilde c_t \\ h_t &amp;= o_t \odot \tanh(c_t) \end{aligned} \]
-        <div class="note">\([h_{t-1}, x_t]\) es la concatenación de los dos vectores. Hay cuatro bloques de pesos del mismo tamaño, así que una LSTM tiene 4 veces los parámetros de una RNN simple: \(4\,[m(m+d) + m]\).</div>
-      </div>
-      <p>La clave está en la ecuación de \(c_t\). Su derivada a lo largo de la celda es</p>
-      <div class="eq">\[ \frac{\partial c_t}{\partial c_{t-1}} = f_t \quad(\text{camino directo}), \qquad \frac{\partial c_T}{\partial c_k} \approx \prod_{t=k+1}^{T} f_t \]
-        <div class="note">No hay una matriz \(W_h\) ni una tanh multiplicando en cada paso por ese camino. Si la red aprende \(f_t \approx 1\) cuando necesita recordar, el gradiente fluye casi intacto por cientos de pasos: el “carrusel de error constante” de la LSTM original.</div>
-      </div>
-      <ul>
-        <li><b>Recordar:</b> \(f_t \approx 1\), \(i_t \approx 0\). La celda pasa sin cambios.</li>
-        <li><b>Olvidar:</b> \(f_t \approx 0\). Por ejemplo, al terminar una oración y empezar otra con un sujeto nuevo.</li>
-        <li><b>Escribir:</b> \(i_t \approx 1\). Se agrega \(\tilde c_t\) a la memoria.</li>
-        <li><b>Leer:</b> \(o_t\) decide qué parte de la memoria se expone en \(h_t\), que es lo que ven la capa siguiente y la compuerta del próximo paso.</li>
-      </ul>
-      <div class="callout"><b>Truco de inicialización:</b> se suele inicializar el sesgo de olvido \(b_f\) en 1 (o más), para que al principio la celda tienda a recordar y el gradiente fluya desde el primer paso de entrenamiento. Keras lo hace por defecto (<code>unit_forget_bias = TRUE</code>). En el laboratorio, ese es el efecto de subir \(b_f\).</div>
+      <h2 id="rnn-apps"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Tecnología: reconocimiento de voz</h3>
+      <p>Graves, Mohamed y Hinton (2013) entrenaron LSTM bidireccionales profundas sobre el corpus TIMIT (grabaciones de 630 hablantes de inglés) y obtuvieron un error de reconocimiento de fonemas de 17,7 %, el mejor reportado entonces. La entrada es una secuencia de vectores acústicos cada 10 ms y la salida, una secuencia de fonemas; la función de pérdida CTC permite entrenar sin alinear a mano cada sonido con su fonema. Durante varios años, los asistentes de voz comerciales usaron modelos de esta familia.</p>
+      <h3>Ambiente: caudales de ríos</h3>
+      <p>Kratzert y colaboradores (2018) entrenaron una LSTM con series diarias de precipitación, temperatura y radiación de 241 cuencas del conjunto CAMELS de EE. UU. para predecir el caudal. Con 365 días de contexto, la LSTM igualó o superó al modelo hidrológico conceptual de referencia (SAC-SMA) en la mayoría de las cuencas, y su celda aprendió a comportarse como un almacén de nieve que se acumula en invierno y se libera en primavera. Sirve para alertas de crecidas y planificación del agua.</p>
+      <h3>Salud: diagnósticos en terapia intensiva</h3>
+      <p>Lipton, Kale, Elkan y Wetzel (2016) usaron una LSTM sobre series irregulares de 13 mediciones clínicas (frecuencia cardiaca, presión, saturación de oxígeno…) de unos 10 000 episodios de una unidad de cuidados intensivos pediátricos para predecir 128 diagnósticos. Superó a modelos basados en variables resumidas a mano. La decisión que apoya: alertar tempranamente al equipo clínico de diagnósticos probables, como complemento y no reemplazo del juicio médico.</p>
+      <h3>Economía y energía: pronóstico de demanda</h3>
+      <p>Las empresas eléctricas pronostican la demanda horaria para decidir qué centrales encender el día siguiente. Con cientos de series relacionadas (zonas, subestaciones) y variables externas (temperatura, feriados), una LSTM global entrenada con todas las series a la vez puede capturar patrones comunes y no lineales. En las competencias de pronóstico M4 (2018), el método ganador combinaba suavizado exponencial con una red LSTM, y en series aisladas los modelos clásicos siguieron siendo muy competitivos: la elección depende del volumen y la estructura de los datos.</p>
 
-      <h2 id="rnn-gru"><span class="sec">§ 6</span>GRU y comparación</h2>
-      <p>La <b>GRU</b> (<i>gated recurrent unit</i>, Cho y coautores, 2014) simplifica la LSTM: fusiona celda y estado oculto en un solo vector y usa dos compuertas.</p>
-      <div class="eq">\[ \begin{aligned} z_t &amp;= \sigma(W_z [h_{t-1}, x_t] + b_z) &amp;&amp;\text{actualización}\\ r_t &amp;= \sigma(W_r [h_{t-1}, x_t] + b_r) &amp;&amp;\text{reinicio}\\ \tilde h_t &amp;= \tanh(W_h [r_t \odot h_{t-1}, x_t] + b_h) \\ h_t &amp;= (1 - z_t) \odot h_{t-1} + z_t \odot \tilde h_t \end{aligned} \]
-        <div class="note">La última línea es un promedio ponderado entre el estado viejo y el candidato: \(z_t\) cumple a la vez el papel de las compuertas de olvido y de entrada de la LSTM (con \(f = 1 - z\) e \(i = z\) atadas). Tiene 3 bloques de pesos en lugar de 4.</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Aspecto</th><th>RNN simple</th><th>LSTM</th><th>GRU</th></tr></thead>
-        <tbody>
-          <tr><td>Estados</td><td>\(h_t\)</td><td>\(h_t\) y \(c_t\)</td><td>\(h_t\)</td></tr>
-          <tr><td>Compuertas</td><td>ninguna</td><td>olvido, entrada, salida</td><td>actualización, reinicio</td></tr>
-          <tr><td>Parámetros (relativos)</td><td>1×</td><td>4×</td><td>3×</td></tr>
-          <tr><td>Memoria a largo plazo</td><td>pobre (10-20 pasos)</td><td>buena (cientos de pasos)</td><td>buena, parecida a LSTM</td></tr>
-          <tr><td>Cuándo usarla</td><td>secuencias cortas, docencia</td><td>opción por defecto con muchos datos</td><td>menos datos o menos cómputo</td></tr>
-        </tbody>
-      </table></div>
-      <p>En la mayoría de las comparaciones empíricas, LSTM y GRU rinden parecido; la diferencia entre ellas suele ser menor que la que producen el tamaño del estado, la tasa de aprendizaje o la regularización.</p>
-
-      <h2 id="rnn-practica"><span class="sec">§ 7</span>En la práctica</h2>
-      <ul>
-        <li><b>Ventanas para series de tiempo:</b> convierte la serie en pares (últimos \(L\) valores, valor siguiente). Divide entrenamiento y prueba <i>por tiempo</i>, nunca al azar, y calcula la media y desviación de estandarización solo con el tramo de entrenamiento.</li>
-        <li><b>Compara con una línea base:</b> el pronóstico ingenuo (el último valor, o el de hace una temporada) y un modelo clásico como ARIMA o ETS. En series cortas y univariadas, los métodos clásicos ganan con frecuencia. Las RNN brillan con muchas series relacionadas, muchas variables o patrones no lineales.</li>
-        <li><b>Formas de los tensores:</b> las librerías esperan entradas \((\text{lote}, T, d)\): número de secuencias, largo, variables por paso.</li>
-        <li><b>Redes apiladas y bidireccionales:</b> se pueden apilar varias capas recurrentes (la salida \(h_t\) de una es la entrada de la siguiente). Una RNN <b>bidireccional</b> lee la secuencia hacia adelante y hacia atrás y concatena ambos estados: útil para clasificar texto completo, pero no para pronosticar, porque usaría el futuro.</li>
-        <li><b>Regularización:</b> dropout entre capas y, para las conexiones recurrentes, <i>dropout recurrente</i> con la misma máscara en todos los pasos. Siempre con recorte del gradiente.</li>
-        <li><b>Forzamiento del maestro</b> (<i>teacher forcing</i>): al entrenar un generador de secuencias, en cada paso se le da como entrada el valor real anterior en vez de su propia predicción. Acelera el entrenamiento, pero en predicción la red debe usar sus propias salidas, y los errores pueden acumularse.</li>
-      </ul>
-      <div class="callout"><b>Limitaciones:</b> una RNN procesa los pasos uno después de otro, así que no se puede paralelizar a lo largo de la secuencia; y aun la LSTM tiene que comprimir todo el pasado en un vector de tamaño fijo. Los transformers atacan ambos problemas dejando que cada posición mire directamente a todas las demás. Esa es la siguiente sesión.</div>
-
-      <h2 id="rnn-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
+      <h2 id="rnn-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
       <p>Simulamos 2 000 horas de demanda eléctrica con un ciclo diario, un ciclo semanal y ruido (\(\sigma = 0{,}5\)). Usamos las últimas 48 horas para predecir la siguiente con una LSTM de 32 unidades, entrenamos con las primeras 1 600 horas y evaluamos en las últimas 400, comparando con el pronóstico ingenuo estacional (el valor de hace 24 horas).</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
@@ -241,7 +314,7 @@ rmse &lt;- <span class="k">function</span>(a) <span class="f">sqrt</span>(<span 
       </div>
       <p>Qué esperar: el pronóstico ingenuo estacional tiene un RMSE cercano a 1,1, porque ignora el ciclo semanal y repite el ruido de ayer. La LSTM debería acercarse al nivel del ruido irreducible (0,5): con 48 horas de contexto aprende la forma del ciclo diario y la fase del semanal. Prueba con <code>L = 12</code>: sin ver un día completo, el error sube. Y cambia la LSTM por una RNN simple con \(L = 168\): le cuesta mucho más aprovechar una ventana tan larga.</p>
 
-      <h2 id="rnn-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <h2 id="rnn-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="El gradiente hacia atrás es un producto de T − k factores w·(1 − h²). Si cada uno es menor que 1, el producto cae de forma exponencial con la distancia en el tiempo." data-wrong="Mira la fórmula de ∂h_T/∂h_k: es un producto de muchos factores. ¿Qué le pasa a un producto de 50 números menores que 1?">
         <h3>¿Por qué a una RNN simple le cuesta aprender dependencias de 50 pasos o más?</h3>
         <div class="opts">
@@ -272,38 +345,137 @@ rmse &lt;- <span class="k">function</span>(a) <span class="f">sqrt</span>(<span 
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="LSTM: 4 bloques de m(m + d) + m. Con m = 32 y d = 1: 32 · 33 + 32 = 1 088 por bloque, y 4 352 en total. Más la capa de salida lineal (32 + 1 = 33) son 4 385; PyTorch agrega un segundo vector de sesgos por bloque (128 más) y llega a 4 513." data-wrong="Usa 4·[m(m + d) + m] con m = 32 y d = 1.">
+        <h3>¿Cuántos parámetros tiene la parte recurrente de una LSTM con estado de 32 y una variable de entrada (un vector de sesgo por bloque)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>1 088</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>3 264</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>4 352</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Depende del largo de la secuencia</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Por la cota ‖∂h_T/∂h_k‖ ≤ σ_max^(T − k), con σ_max = 0,8 y 30 pasos el gradiente es a lo sumo 0,8³⁰ ≈ 0,0012: se desvanece sí o sí." data-wrong="Aplica la cota del gradiente con el mayor valor singular de W_h y T − k = 30.">
+        <h3>El mayor valor singular de W_h es 0,8. ¿Qué puedes asegurar sobre la sensibilidad de h_T respecto de h_k con T − k = 30?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Es a lo sumo 0,8³⁰ ≈ 0,001</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Es al menos 0,8³⁰</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Puede explotar si la entrada es grande</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Nada, depende solo de la activación</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="rnn-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
-      <p>Usa el laboratorio para comprobar el ejercicio 3.</p>
+      <h2 id="rnn-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución. Combinan derivaciones, simulación e interpretación crítica.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una secuencia tiene 8 variables por paso y usas un estado oculto de 64. ¿Cuántos parámetros recurrentes tienen una RNN simple, una LSTM y una GRU (en su forma clásica, con un vector de sesgo por bloque)? ¿Cambia algo si las secuencias pasan de 50 a 500 pasos?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>RNN: \(m(m + d) + m = 64\cdot72 + 64 = 4\,672\). LSTM: \(4 \times 4\,672 = 18\,688\). GRU: \(3 \times 4\,672 = 14\,016\). El largo de la secuencia no cambia el número de parámetros, porque los pesos se comparten en el tiempo; sí aumentan el tiempo de cálculo y la memoria del entrenamiento, que crecen en proporción a \(T\).</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para una RNN de Elman con pérdida \(L = \ell_T(\hat y_T, y_T)\) (solo la última salida): (a) deriva \(\partial L/\partial W_h\) como una suma sobre los pasos; (b) muestra que la contribución del paso \(k\) está acotada por \(\lVert W_y\rVert\,\lVert\partial\ell_T/\partial\hat y_T\rVert\,\sigma_{\max}(W_h)^{T-k}\lVert h_{k-1}\rVert\); (c) explica por qué el recorte del gradiente arregla la explosión pero no el desvanecimiento.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Con \(z_k = W_hh_{k-1} + W_xx_k + b\), \(W_h\) aparece en cada \(z_k\). Por la regla de la cadena, \(\partial L/\partial W_h = \sum_{k=1}^{T}\delta_kh_{k-1}^\top\) con \(\delta_k = \big(\partial h_T/\partial z_k\big)^\top W_y^\top\,\partial\ell_T/\partial\hat y_T\) y \(\partial h_T/\partial z_k = \Big[\prod_{t=k+1}^{T}\operatorname{diag}(1 - h_t^2)W_h\Big]\operatorname{diag}(1 - h_k^2)\).</p>
+            <p>(b) Tomando normas y usando \(\lVert\operatorname{diag}(1 - h^2)\rVert \le 1\): \(\lVert\delta_kh_{k-1}^\top\rVert \le \lVert W_y\rVert\,\lVert\partial\ell_T/\partial\hat y_T\rVert\,\sigma_{\max}(W_h)^{T-k}\lVert h_{k-1}\rVert\). Con \(\sigma_{\max} &lt; 1\), los pasos lejanos aportan términos exponencialmente pequeños: el gradiente total está dominado por los últimos pasos.</p>
+            <p>(c) El recorte reescala el gradiente <i>total</i> si su norma supera \(\tau\). Cuando explota, evita un paso desastroso sin cambiar la dirección. Cuando se desvanece, la información de los pasos lejanos ya es una fracción ínfima <i>dentro</i> del gradiente: reescalarlo agranda también los términos recientes y no cambia sus proporciones. Hace falta otra arquitectura (LSTM, GRU, conexiones residuales o atención).</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Una RNN escalar tiene \(h_t = \tanh(0{,}5\, h_{t-1} + x_t)\) y \(h_0 = 0\). Calcula \(h_1, h_2, h_3\) para la entrada \(x = (1, 0, -1)\) y luego \(\partial h_3/\partial h_1\).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(h_1 = \tanh(1) = 0{,}762\); \(h_2 = \tanh(0{,}381) = 0{,}363\); \(h_3 = \tanh(0{,}182 - 1) = \tanh(-0{,}818) = -0{,}674\). La derivada es el producto de dos factores \(w(1 - h_t^2)\): \(\partial h_3/\partial h_1 = 0{,}5(1 - 0{,}363^2)\cdot 0{,}5(1 - 0{,}674^2) = 0{,}434 \times 0{,}273 \approx 0{,}119\). Solo dos pasos atrás, la sensibilidad ya es del 12 %.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Considera la RNN escalar lineal \(h_t = w\,h_{t-1} + (1 - w)x_t\) con \(h_0 = 0\). (a) Desenróllala y demuestra que es el suavizado exponencial simple con \(\alpha = 1 - w\). (b) Si \(x_t\) es ruido blanco de varianza \(\sigma^2\), calcula \(\operatorname{Var}(h_t)\) en estado estacionario y la condición de estabilidad. (c) Si \(\hat x_{t+1} = h_t\), ¿a qué modelo ARIMA corresponde este pronóstico?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Por inducción, \(h_t = (1 - w)\sum_{j=0}^{t-1}w^jx_{t-j}\). Con \(\alpha = 1 - w\): \(h_t = \alpha\sum_j(1 - \alpha)^jx_{t-j}\), es decir \(h_t = \alpha x_t + (1 - \alpha)h_{t-1}\), la fórmula del suavizado exponencial simple.</p>
+            <p>(b) Con \(x\) independientes: \(\operatorname{Var}(h_t) = (1 - w)^2\sigma^2\sum_{j=0}^{t-1}w^{2j} \to \frac{(1 - w)^2\sigma^2}{1 - w^2} = \frac{1 - w}{1 + w}\sigma^2\), finita si y solo si \(|w| &lt; 1\). Es la misma condición que evita que el gradiente explote en el caso lineal.</p>
+            <p>(c) El suavizado exponencial simple es el predictor óptimo de un ARIMA(0,1,1): \(x_t - x_{t-1} = \varepsilon_t - \theta\varepsilon_{t-1}\) con \(\theta = 1 - \alpha = w\). Una RNN no lineal con compuertas generaliza esto a pesos que cambian según la entrada.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Ignora la saturación de tanh. (a) Con peso recurrente \(w = 0{,}8\), ¿cuánto vale la sensibilidad 20 pasos atrás? ¿Cuántos pasos hacen falta para que baje de \(10^{-3}\)? (b) Una LSTM tiene compuerta de olvido constante \(f = 0{,}97\): responde lo mismo. (c) ¿Qué sesgo \(b_f\) produce \(f = 0{,}97\) si el resto de la preactivación es cero?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(0{,}8^{20} \approx 0{,}0115\). Para \(0{,}8^n &lt; 10^{-3}\): \(n &gt; \ln(10^{-3})/\ln(0{,}8) = 30{,}96\), o sea <b>31 pasos</b>. (b) \(0{,}97^{20} \approx 0{,}544\): más de la mitad de la señal sobrevive. \(n &gt; \ln(10^{-3})/\ln(0{,}97) = 226{,}8\): <b>227 pasos</b>, unas siete veces más memoria. (c) \(\sigma(b_f) = 0{,}97 \Rightarrow b_f = \ln(0{,}97/0{,}03) \approx 3{,}48\).</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Diseño de memoria. (a) Ignorando la saturación, con peso recurrente \(w = 0{,}8\), ¿cuántos pasos hacen falta para que la sensibilidad baje de \(10^{-3}\)? (b) Una LSTM tiene compuerta de olvido constante \(f\): ¿qué \(f\) y qué sesgo \(b_f\) (con el resto de la preactivación nulo) garantizan una sensibilidad de al menos \(10^{-3}\) a 500 pasos? (c) Demuestra que en una GRU con \(z_t = z\) constante, \(\partial h_t/\partial h_{t-1}\) por el camino directo vale \(1 - z\), y deduce qué \(z\) da la misma memoria que el \(f\) de (b).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(0{,}8^n &lt; 10^{-3} \iff n &gt; \ln 10^{-3}/\ln 0{,}8 = 30{,}96\): 31 pasos.</p>
+            <p>(b) \(f^{500} \ge 10^{-3} \iff f \ge 10^{-3/500} = e^{-6{,}908/500} \approx 0{,}98628\). Entonces \(b_f = \ln\frac{f}{1 - f} \approx \ln(0{,}98628/0{,}01372) \approx 4{,}28\). Por eso se inicializa \(b_f\) en valores positivos: con \(b_f = 0\) la memoria sería de unos 10 pasos.</p>
+            <p>(c) \(h_t = (1 - z)h_{t-1} + z\tilde h_t\); el camino directo aporta \(\partial h_t/\partial h_{t-1} = (1 - z)\) (más el término a través de \(\tilde h_t\)). Para igualar (b), \(1 - z = 0{,}98628\), o sea \(z \approx 0{,}0137\): la GRU recuerda cuando su compuerta de actualización está casi cerrada.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-<span class="f">print</span>(<span class="n">0.8</span> ** <span class="n">20</span>, np.<span class="f">ceil</span>(np.<span class="f">log</span>(<span class="n">1e-3</span>) / np.<span class="f">log</span>(<span class="n">0.8</span>)))     <span class="c"># 0.0115 31.0</span>
-<span class="f">print</span>(<span class="n">0.97</span> ** <span class="n">20</span>, np.<span class="f">ceil</span>(np.<span class="f">log</span>(<span class="n">1e-3</span>) / np.<span class="f">log</span>(<span class="n">0.97</span>)))   <span class="c"># 0.544 227.0</span>
-<span class="f">print</span>(np.<span class="f">log</span>(<span class="n">0.97</span> / <span class="n">0.03</span>))                                 <span class="c"># 3.476</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">c</span>(<span class="n">0.8</span>^<span class="n">20</span>, <span class="f">ceiling</span>(<span class="f">log</span>(<span class="n">1e-3</span>) / <span class="f">log</span>(<span class="n">0.8</span>)))     <span class="c"># 0.0115 31</span>
-<span class="f">c</span>(<span class="n">0.97</span>^<span class="n">20</span>, <span class="f">ceiling</span>(<span class="f">log</span>(<span class="n">1e-3</span>) / <span class="f">log</span>(<span class="n">0.97</span>)))   <span class="c"># 0.544 227</span>
-<span class="f">qlogis</span>(<span class="n">0.97</span>)                                    <span class="c"># 3.476</span></code></pre>
-</div></div></details>
+<span class="f">print</span>(np.<span class="f">ceil</span>(np.<span class="f">log</span>(<span class="n">1e-3</span>) / np.<span class="f">log</span>(<span class="n">0.8</span>)))      <span class="c"># 31</span>
+f = <span class="n">1e-3</span> ** (<span class="n">1</span> / <span class="n">500</span>)
+<span class="f">print</span>(f, np.<span class="f">log</span>(f / (<span class="n">1</span> - f)), <span class="n">1</span> - f)             <span class="c"># 0.98628 4.275 0.0137</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">ceiling</span>(<span class="f">log</span>(<span class="n">1e-3</span>) / <span class="f">log</span>(<span class="n">0.8</span>))                   <span class="c"># 31</span>
+f &lt;- (<span class="n">1e-3</span>)^(<span class="n">1</span> / <span class="n">500</span>)
+<span class="f">c</span>(f, <span class="f">qlogis</span>(f), <span class="n">1</span> - f)                          <span class="c"># 0.98628 4.275 0.0137</span></code></pre>
+            </div>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Una LSTM escalar llega al paso \(t\) con \(c_{t-1} = 2\). Las preactivaciones de las compuertas resultan ser 2 (olvido), 0 (entrada), 1 (candidato, antes de tanh) y 1 (salida). Calcula \(f_t, i_t, \tilde c_t, o_t\), luego \(c_t\) y \(h_t\). ¿Cuánto vale \(\partial c_t/\partial c_{t-1}\) por el camino directo? ¿Qué cambiaría si la preactivación de olvido fuera −4?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(f_t = \sigma(2) = 0{,}881\), \(i_t = \sigma(0) = 0{,}5\), \(\tilde c_t = \tanh(1) = 0{,}762\), \(o_t = \sigma(1) = 0{,}731\). Entonces \(c_t = 0{,}881 \cdot 2 + 0{,}5 \cdot 0{,}762 = 1{,}762 + 0{,}381 = 2{,}142\) y \(h_t = 0{,}731 \cdot \tanh(2{,}142) = 0{,}731 \cdot 0{,}973 = 0{,}711\). Por el camino directo, \(\partial c_t/\partial c_{t-1} = f_t = 0{,}881\).</p><p>Con preactivación −4, \(f_t = \sigma(-4) = 0{,}018\): la celda casi borra lo que tenía y \(c_t \approx 0{,}036 + 0{,}381 = 0{,}417\). El gradiente por la celda también cae a 0,018: olvidar a propósito corta el flujo de gradiente hacia el pasado, y eso está bien cuando el pasado ya no importa (por ejemplo, al empezar un documento nuevo).</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación del gradiente en matrices. Genera \(W_h\) de \(50 \times 50\) con entradas normales y reescálala para que su radio espectral sea \(\rho \in \{0{,}5;\ 0{,}9;\ 1;\ 1{,}5;\ 3\}\). Corre una RNN tanh 60 pasos con entradas aleatorias, acumula el jacobiano \(\prod\operatorname{diag}(1 - h_t^2)W_h\) hacia atrás y registra su norma a 10, 30 y 59 pasos de distancia. Interpreta los resultados con la cota del teorema.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">def</span> <span class="f">sens</span>(rho, T=<span class="n">60</span>, m=<span class="n">50</span>, seed=<span class="n">0</span>):
+    r = np.random.<span class="f">default_rng</span>(seed)
+    W = r.<span class="f">normal</span>(size=(m, m)); W *= rho / np.<span class="f">max</span>(np.<span class="f">abs</span>(np.linalg.<span class="f">eigvals</span>(W)))
+    U = r.<span class="f">normal</span>(scale=<span class="n">0.5</span>, size=m); h = np.<span class="f">zeros</span>(m); H = []
+    <span class="k">for</span> t <span class="k">in</span> <span class="f">range</span>(T):
+        h = np.<span class="f">tanh</span>(W @ h + U * r.<span class="f">normal</span>()); H.<span class="f">append</span>(h)
+    J, out = np.<span class="f">eye</span>(m), []
+    <span class="k">for</span> k <span class="k">in</span> <span class="f">range</span>(T - <span class="n">1</span>, <span class="n">0</span>, -<span class="n">1</span>):
+        J = J @ (np.<span class="f">diag</span>(<span class="n">1</span> - H[k]**<span class="n">2</span>) @ W); out.<span class="f">append</span>(np.linalg.<span class="f">norm</span>(J, <span class="n">2</span>))
+    <span class="k">return</span> out
+<span class="k">for</span> rho <span class="k">in</span> [<span class="n">0.5</span>, <span class="n">0.9</span>, <span class="n">1.0</span>, <span class="n">1.5</span>, <span class="n">3.0</span>]:
+    s = <span class="f">sens</span>(rho); <span class="f">print</span>(rho, s[<span class="n">9</span>], s[<span class="n">29</span>], s[-<span class="n">1</span>])
+<span class="c"># 0.5: 1e-03 1e-10 3e-21 · 0.9: 0.24 1e-03 9e-08 · 1.0: 0.61 0.018 9e-06</span>
+<span class="c"># 1.5: 6.1 6.4 7.9 · 3.0: 1e2 2e4 6e6</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>sens &lt;- <span class="k">function</span>(rho, T = <span class="n">60</span>, m = <span class="n">50</span>) {
+  <span class="f">set.seed</span>(<span class="n">0</span>)
+  W &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(m * m), m); W &lt;- W * rho / <span class="f">max</span>(<span class="f">Mod</span>(<span class="f">eigen</span>(W)$values))
+  U &lt;- <span class="f">rnorm</span>(m, sd = <span class="n">0.5</span>); h &lt;- <span class="f">rep</span>(<span class="n">0</span>, m); H &lt;- <span class="f">list</span>()
+  <span class="k">for</span> (t <span class="k">in</span> <span class="n">1</span>:T) { h &lt;- <span class="f">tanh</span>(<span class="f">drop</span>(W %*% h) + U * <span class="f">rnorm</span>(<span class="n">1</span>)); H[[t]] &lt;- h }
+  J &lt;- <span class="f">diag</span>(m); out &lt;- <span class="f">numeric</span>(<span class="n">0</span>)
+  <span class="k">for</span> (k <span class="k">in</span> T:<span class="n">2</span>) { J &lt;- J %*% (<span class="f">diag</span>(<span class="n">1</span> - H[[k]]^<span class="n">2</span>) %*% W); out &lt;- <span class="f">c</span>(out, <span class="f">norm</span>(J, <span class="s">"2"</span>)) }
+  out[<span class="f">c</span>(<span class="n">10</span>, <span class="n">30</span>, T - <span class="n">1</span>)]
+}
+<span class="f">sapply</span>(<span class="f">c</span>(<span class="n">0.5</span>, <span class="n">0.9</span>, <span class="n">1</span>, <span class="n">1.5</span>, <span class="n">3</span>), sens)</code></pre>
+            </div>
+            <p>Con \(\rho \le 1\) la norma cae exponencialmente (con \(\rho = 0{,}5\) llega a \(10^{-21}\) en 59 pasos); incluso con \(\rho = 1\) hay desvanecimiento, porque la saturación de tanh aporta factores \(1 - h^2 &lt; 1\). Con \(\rho = 1{,}5\) la norma se estabiliza en torno a 6 a 8: los estados se saturan y frenan el crecimiento. Con \(\rho = 3\) explota (millones). La cota del teorema usa \(\sigma_{\max} \ge \rho\), así que es una condición suficiente pero no ajustada: aquí \(\sigma_{\max}\) es bastante mayor que \(\rho\) y aun así hay desvanecimiento con \(\rho = 1\). La lección práctica: el régimen útil es estrecho, y por eso se inicializan las matrices recurrentes cerca de ortogonales y se usan celdas con compuertas.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Con la serie simulada del ejemplo (ciclo diario y semanal, ruido 0,5, corte en la hora 1 600), ajusta una regresión ridge lineal sobre ventanas de \(L = 12, 48, 168\) rezagos y compara su RMSE de prueba con el pronóstico ingenuo estacional y con el nivel de ruido. ¿Necesitabas una LSTM para esta serie? ¿En qué situación sí la necesitarías?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> Ridge
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+t = np.<span class="f">arange</span>(<span class="n">2000</span>)
+y = <span class="n">10</span> + <span class="n">3</span> * np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * t / <span class="n">24</span>) + <span class="n">1.5</span> * np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * t / <span class="n">168</span>) + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">0.5</span>, <span class="f">len</span>(t))
+<span class="k">def</span> <span class="f">ventanas</span>(s, L):
+    <span class="k">return</span> np.<span class="f">stack</span>([s[i:i + L] <span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="f">len</span>(s) - L)]), s[L:]
+corte = <span class="n">1600</span>
+<span class="k">for</span> L <span class="k">in</span> [<span class="n">12</span>, <span class="n">48</span>, <span class="n">168</span>]:
+    X, Y = <span class="f">ventanas</span>(y, L)
+    m = <span class="f">Ridge</span>(alpha=<span class="n">1.0</span>).<span class="f">fit</span>(X[:corte - L], Y[:corte - L])
+    e = m.<span class="f">predict</span>(X[corte - L:]) - Y[corte - L:]
+    <span class="f">print</span>(L, np.<span class="f">sqrt</span>(np.<span class="f">mean</span>(e**<span class="n">2</span>)).<span class="f">round</span>(<span class="n">3</span>))          <span class="c"># 12: 0.65 · 48: 0.533 · 168: 0.538</span>
+<span class="f">print</span>(np.<span class="f">sqrt</span>(np.<span class="f">mean</span>((y[corte:] - y[corte - <span class="n">24</span>:-<span class="n">24</span>])**<span class="n">2</span>)).<span class="f">round</span>(<span class="n">3</span>))   <span class="c"># ingenuo ≈ 1.12</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(glmnet)
+<span class="f">set.seed</span>(<span class="n">1</span>)
+t &lt;- <span class="n">0</span>:<span class="n">1999</span>
+y &lt;- <span class="n">10</span> + <span class="n">3</span> * <span class="f">sin</span>(<span class="n">2</span> * pi * t / <span class="n">24</span>) + <span class="n">1.5</span> * <span class="f">sin</span>(<span class="n">2</span> * pi * t / <span class="n">168</span>) + <span class="f">rnorm</span>(<span class="n">2000</span>, <span class="n">0</span>, <span class="n">0.5</span>)
+corte &lt;- <span class="n">1600</span>
+<span class="k">for</span> (L <span class="k">in</span> <span class="f">c</span>(<span class="n">12</span>, <span class="n">48</span>, <span class="n">168</span>)) {
+  X &lt;- <span class="f">embed</span>(y, L + <span class="n">1</span>); Y &lt;- X[, <span class="n">1</span>]; X &lt;- X[, -<span class="n">1</span>]
+  tr &lt;- <span class="n">1</span>:(corte - L)
+  m &lt;- <span class="f">glmnet</span>(X[tr, ], Y[tr], alpha = <span class="n">0</span>, lambda = <span class="n">0.001</span>)
+  e &lt;- <span class="f">predict</span>(m, X[-tr, ]) - Y[-tr]
+  <span class="f">cat</span>(L, <span class="f">sqrt</span>(<span class="f">mean</span>(e^<span class="n">2</span>)), <span class="s">"\n"</span>)            <span class="c"># ≈ 0.65, 0.53, 0.54</span>
+}</code></pre>
+            </div>
+            <p>El modelo lineal con 48 rezagos logra un RMSE ≈ 0,53, prácticamente el ruido irreducible (0,5), y el ingenuo estacional ≈ 1,12. Con 12 rezagos (menos de un día) sube a ≈ 0,65. La serie es una suma de senos más ruido, un proceso que un modelo autorregresivo lineal representa casi perfectamente: una LSTM no puede hacerlo mucho mejor, y tiene más parámetros, más hiperparámetros y más varianza. Una RNN se justifica cuando hay no linealidades fuertes (efectos de umbral de la temperatura en la demanda, interacciones con feriados), muchas series relacionadas para entrenar un modelo global, entradas multivariadas con retardos variables o secuencias de largo variable como texto o señales. Siempre conviene reportar una línea base lineal o un ARIMA junto al modelo neuronal.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

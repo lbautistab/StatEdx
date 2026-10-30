@@ -5,122 +5,309 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Intervalos de confianza</h1>
-      <p>Una media muestral sola no dice cuánto puedes confiar en ella. Un intervalo sí: da un rango de valores plausibles para la media real y su ancho te dice qué tan precisa es tu estimación.</p>
-      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: Teorema del Límite Central</span><span>Python · SciPy</span></div>
+      <p>Una media muestral sola no dice cuánto puedes confiar en ella. Un intervalo sí: da un rango de valores plausibles para el parámetro y su ancho te dice qué tan precisa es tu estimación. Aquí aprendes a construirlos con cantidades pivotales, la t de Student, proporciones, varianzas y bootstrap, a calcular el tamaño de muestra y, sobre todo, a interpretarlos bien.</p>
+      <div class="lmeta"><span>90 min</span><span>Nivel intermedio</span><span>Requiere: Teorema del Límite Central</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#ic-idea" data-sec="ic-idea">La idea</a></li>
-        <li><a href="#ic-lab" data-sec="ic-lab">Laboratorio</a></li>
-        <li><a href="#ic-formula" data-sec="ic-formula">La fórmula</a></li>
-        <li><a href="#ic-tamano" data-sec="ic-tamano">¿Cuántos datos necesito?</a></li>
+        <li><a href="#ic-intro" data-sec="ic-intro">Introducción</a></li>
+        <li><a href="#ic-def" data-sec="ic-def">Definición</a></li>
+        <li><a href="#ic-pivote" data-sec="ic-pivote">Pivotes: la media con z y con t</a></li>
+        <li><a href="#ic-otros" data-sec="ic-otros">Proporciones, varianzas y diferencias</a></li>
+        <li><a href="#ic-tamano" data-sec="ic-tamano">Precisión y tamaño de muestra</a></li>
+        <li><a href="#ic-boot" data-sec="ic-boot">Bootstrap e interpretación</a></li>
+        <li><a href="#ic-prop" data-sec="ic-prop">Propiedades</a></li>
+        <li><a href="#ic-lab" data-sec="ic-lab">Ejercicios de simulación</a></li>
+        <li><a href="#ic-apps" data-sec="ic-apps">Aplicaciones reales</a></li>
         <li><a href="#ic-code" data-sec="ic-code">En R y Python</a></li>
-        <li><a href="#ic-quiz" data-sec="ic-quiz">Comprueba</a></li>
-        <li><a href="#ic-ej" data-sec="ic-ej">Ejercicios</a></li>
+        <li><a href="#ic-quiz" data-sec="ic-quiz">Quiz</a></li>
+        <li><a href="#ic-ej" data-sec="ic-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="ic-idea"><span class="sec">§ 1</span>La idea</h2>
-      <p>Quieres saber cuántas horas al día pasan frente a una pantalla los estudiantes de una universidad. No puedes preguntarle a todos, así que encuestas a una muestra y obtienes una media \(\bar{x}\). Otra muestra daría otro número. El intervalo de confianza responde: <i>dado lo que vi, ¿entre qué valores está probablemente la media real?</i></p>
-      <p>En la clase del Teorema del Límite Central viste que el 95 % de los intervalos construidos así contiene a \(\mu\). Aquí nos enfocamos en lo práctico: qué hace que un intervalo sea ancho o angosto, y qué hacer cuando no conoces \(\sigma\).</p>
+      <h2 id="ic-intro"><span class="sec">§ 1</span>Introducción</h2>
+      <p>Quieres saber cuántas horas al día pasan frente a una pantalla los estudiantes de una universidad. No puedes preguntarle a todos, así que encuestas a una muestra y obtienes una media \(\bar{x} = 4{,}32\) horas. Otra muestra daría otro número. Reportar solo 4,32 esconde lo más importante: ¿podría la media real ser 3,5?, ¿o 5? El intervalo de confianza responde: <i>dado lo que vi, ¿entre qué valores está, de forma plausible, la media real?</i> Con esas 10 respuestas, el intervalo al 95 % es [3,56; 5,08] horas: bastante ancho, y eso es información.</p>
+      <p><b>Un poco de historia.</b> Laplace y Gauss ya acompañaban sus estimaciones de un “error probable”. La teoría moderna la formuló Jerzy Neyman en 1937, en un artículo de las <i>Philosophical Transactions of the Royal Society</i>, donde definió el intervalo de confianza como un procedimiento con una probabilidad de cobertura garantizada, sin asignar probabilidades al parámetro. Poco antes, en 1908, William Sealy Gosset (que firmaba “Student” porque trabajaba en la cervecería Guinness) había descubierto la distribución t para muestras pequeñas, y Ronald Fisher la generalizó. Clopper y Pearson (1934) dieron el intervalo exacto para proporciones, Edwin Wilson (1927) el intervalo score, y Bradley Efron (1979) el bootstrap, que permite construir intervalos sin fórmulas.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a definir formalmente un intervalo de confianza y su nivel de cobertura;</li>
+          <li>a construir intervalos con cantidades pivotales: la media con \(\sigma\) conocida (z) y desconocida (t);</li>
+          <li>a calcular intervalos para proporciones (Wald, Wilson, Clopper-Pearson), varianzas y diferencias de medias;</li>
+          <li>a planificar el tamaño de muestra para un margen de error dado;</li>
+          <li>a usar el bootstrap cuando no hay una fórmula confiable;</li>
+          <li>a interpretar correctamente la “confianza” y a evitar los errores de lectura más comunes.</li>
+        </ul>
+      </div>
 
-      <h2 id="ic-lab"><span class="sec">§ 2</span>Laboratorio</h2>
-      <p>El simulador encuesta a \(n\) estudiantes de una población donde la media real es 4,2 horas. En la vida real no conocerías ese valor; aquí lo mostramos para que veas si el intervalo lo atrapa.</p>
+      <h2 id="ic-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> Sea \(X_1, \dots, X_n\) una muestra de una distribución que depende de un parámetro desconocido \(\theta\). Un <b>intervalo de confianza</b> de nivel \(1 - \alpha\) para \(\theta\) es un par de estadísticos \(L = L(X_1, \dots, X_n)\) y \(U = U(X_1, \dots, X_n)\) tales que
+        \[ P_\theta\big(L \le \theta \le U\big) \ge 1 - \alpha \qquad \text{para todo valor posible de } \theta. \]
+        \(1 - \alpha\) es el <b>nivel de confianza</b> (0,90, 0,95, 0,99) y \(P_\theta(L \le \theta \le U)\) es la <b>probabilidad de cobertura</b>.</div>
+      <p>Cada término de la definición importa:</p>
+      <ul>
+        <li><b>\(L\) y \(U\) son aleatorios</b> (dependen de la muestra); \(\theta\) es fijo. La probabilidad se refiere al procedimiento antes de ver los datos.</li>
+        <li><b>“Para todo \(\theta\)”</b>: la garantía no puede depender del valor desconocido. Muchos intervalos aproximados (como el de Wald para proporciones) cumplen el nivel solo para algunos valores de \(\theta\).</li>
+        <li><b>Margen de error</b>: la mitad del ancho, \(E = (U - L)/2\), cuando el intervalo es simétrico alrededor del estimador: \(\hat\theta \pm E\).</li>
+        <li><b>Intervalo realizado</b>: con los datos observados, \([l, u]\) es un intervalo concreto de números. Ese intervalo contiene a \(\theta\) o no; la confianza es del método.</li>
+      </ul>
+      <p><b>Ejemplo numérico.</b> Una muestra de 49 piezas tiene media \(\bar x = 72\) mm y suponemos \(\sigma = 14\) mm conocida. El error estándar es \(14/\sqrt{49} = 2\), el margen al 95 % es \(1{,}96 \cdot 2 = 3{,}92\) y el intervalo es \([68{,}08;\ 75{,}92]\) mm. Al 99 %, el margen es \(2{,}576 \cdot 2 = 5{,}15\) y el intervalo, \([66{,}85;\ 77{,}15]\): un 31 % más ancho.</p>
+
+      <h2 id="ic-pivote"><span class="sec">§ 3</span>Pivotes: la media con z y con t</h2>
+      <p>La técnica general para construir intervalos exactos es la <b>cantidad pivotal</b>: una función \(Q(X_1, \dots, X_n; \theta)\) cuya distribución <i>no depende</i> de \(\theta\). Si conoces cuantiles \(a, b\) con \(P(a \le Q \le b) = 1 - \alpha\), despejas \(\theta\) dentro de la desigualdad y obtienes el intervalo.</p>
+      <p><b>Media con \(\sigma\) conocida.</b> Si la población es normal (o \(n\) es grande, por el <a href="#tlc">TLC</a>), \(Q = \frac{\bar X - \mu}{\sigma/\sqrt n} \sim \mathcal{N}(0,1)\). Entonces</p>
+      <div class="eq">\[ 1 - \alpha = P\Big(-z_{\alpha/2} \le \frac{\bar X - \mu}{\sigma/\sqrt n} \le z_{\alpha/2}\Big) = P\Big(\bar X - z_{\alpha/2}\frac{\sigma}{\sqrt n} \le \mu \le \bar X + z_{\alpha/2}\frac{\sigma}{\sqrt n}\Big) \]
+        <div class="note">El despeje es álgebra: multiplica por \(\sigma/\sqrt n\), resta \(\bar X\) y cambia el signo (lo que invierte las desigualdades). Aquí \(z_{\alpha/2}\) deja \(\alpha/2\) en la cola derecha: 1,645 (90 %), 1,960 (95 %), 2,576 (99 %).</div>
+      </div>
+      <p><b>Media con \(\sigma\) desconocida.</b> Casi nunca conoces \(\sigma\), así que la reemplazas por la desviación muestral \(S\). Esa estimación agrega incertidumbre, y el pivote cambia de distribución.</p>
+      <p><b>Teorema (Student-Fisher).</b> Si \(X_1, \dots, X_n\) son i.i.d. \(\mathcal{N}(\mu, \sigma^2)\), entonces (i) \(\bar X\) y \(S^2\) son independientes, (ii) \((n-1)S^2/\sigma^2 \sim \chi^2_{n-1}\) y (iii)</p>
+      <div class="eq">\[ T = \frac{\bar X - \mu}{S/\sqrt n} = \frac{\overbrace{(\bar X - \mu)/(\sigma/\sqrt n)}^{\mathcal{N}(0,1)}}{\sqrt{\underbrace{\tfrac{(n-1)S^2}{\sigma^2}}_{\chi^2_{n-1}}\big/(n-1)}} \;\sim\; t_{n-1}, \qquad \text{de donde} \qquad \bar x \pm t_{\alpha/2,\,n-1}\,\frac{s}{\sqrt n} \]
+        <div class="note">La distribución \(t_\nu\) se define justamente como \(Z/\sqrt{V/\nu}\) con \(Z\) normal y \(V \sim \chi^2_\nu\) independientes. Se cancela \(\sigma\): por eso \(T\) es un pivote. Sus colas son más pesadas que las de la normal porque el denominador también fluctúa.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>\(n\)</th><th>5</th><th>10</th><th>30</th><th>100</th><th>\(\infty\)</th></tr></thead>
+        <tbody><tr><td>\(t_{0{,}025;\,n-1}\)</td><td>2,776</td><td>2,262</td><td>2,045</td><td>1,984</td><td>1,960</td></tr></tbody>
+      </table></div>
+      <p><b>Ejemplo resuelto.</b> Horas frente a pantallas de 10 estudiantes: 3,1; 5,4; 4,0; 2,8; 6,2; 4,7; 3,9; 5,1; 4,4; 3,6. Suma 43,2, así que \(\bar x = 4{,}32\). La suma de cuadrados de las desviaciones es 10,056, \(s^2 = 10{,}056/9 = 1{,}117\) y \(s = 1{,}057\). El error estándar es \(1{,}057/\sqrt{10} = 0{,}334\). Con \(t_{0{,}025;\,9} = 2{,}262\), el margen es \(0{,}756\) y el intervalo al 95 % es \([3{,}56;\ 5{,}08]\) horas. Con la normal (1,96) habríamos obtenido \([3{,}67;\ 4{,}97]\): demasiado optimista para \(n = 10\).</p>
+      <p><b>Robustez.</b> El intervalo t es exacto con datos normales y aproximado en otros casos: por el TLC y el teorema de Slutsky, funciona bien con \(n\) moderado si la población no es muy asimétrica. Con datos muy sesgados (ingresos, tiempos) y \(n\) pequeño, su cobertura real cae bajo el nivel nominal (lo verás en la pregunta 4 de § 12). Es mucho más sensible a la dependencia entre observaciones que a la falta de normalidad.</p>
+
+      <h2 id="ic-otros"><span class="sec">§ 4</span>Proporciones, varianzas y diferencias</h2>
+      <p><b>Proporción: Wald.</b> Con \(\hat p = k/n\), el TLC da \(\hat p \approx \mathcal{N}(p, p(1-p)/n)\). Reemplazando \(p\) por \(\hat p\) en la varianza: \(\hat p \pm z_{\alpha/2}\sqrt{\hat p(1-\hat p)/n}\). Es el intervalo de los libros básicos y el peor de los razonables: cuando \(p\) es pequeña o \(n\) moderado, su cobertura real puede ser del 80 % aunque diga 95 %, y con \(k = 0\) colapsa en \([0, 0]\).</p>
+      <p><b>Proporción: Wilson (score).</b> En vez de reemplazar \(p\), se invierte la prueba: se buscan todos los \(p\) para los cuales \(|\hat p - p| \le z\sqrt{p(1-p)/n}\). Elevando al cuadrado sale una ecuación de segundo grado en \(p\), cuyas raíces son</p>
+      <div class="eq">\[ \frac{\hat p + \frac{z^2}{2n}}{1 + \frac{z^2}{n}} \;\pm\; \frac{z}{1 + \frac{z^2}{n}}\sqrt{\frac{\hat p(1-\hat p)}{n} + \frac{z^2}{4n^2}} \]
+        <div class="note">El centro se corre hacia 0,5 y el intervalo nunca sale de \([0, 1]\). Con \(z = 1{,}96\), equivale aproximadamente a sumar 2 éxitos y 2 fracasos (intervalo de Agresti-Coull). El intervalo <b>exacto de Clopper-Pearson</b> usa cuantiles beta, \(\big[B_{\alpha/2}(k,\ n-k+1);\ B_{1-\alpha/2}(k+1,\ n-k)\big]\), y garantiza cobertura \(\ge 1 - \alpha\) a costa de ser más ancho.</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> En una encuesta a 400 personas, 220 prefieren la marca A: \(\hat p = 0{,}55\), \(\operatorname{EE} = \sqrt{0{,}55 \cdot 0{,}45/400} = 0{,}0249\). Wald: \(0{,}55 \pm 0{,}049 = [0{,}501;\ 0{,}599]\). Wilson: \([0{,}501;\ 0{,}598]\). Con \(n\) grande y \(p\) central, coinciden. Pero con 0 eventos en 50 casos, Wald da \([0, 0]\) y Wilson \([0;\ 0{,}071]\), casi igual al exacto (0,071).</p>
+      <p><b>Varianza.</b> Con datos normales, \((n-1)S^2/\sigma^2 \sim \chi^2_{n-1}\) es un pivote, y</p>
+      <div class="eq">\[ \Bigg[\frac{(n-1)s^2}{\chi^2_{1-\alpha/2,\,n-1}};\ \frac{(n-1)s^2}{\chi^2_{\alpha/2,\,n-1}}\Bigg] \]
+        <div class="note">Aquí \(\chi^2_{q,\nu}\) es el cuantil que deja \(q\) a la izquierda, así que el cuantil grande va en el denominador del límite inferior. El intervalo no es simétrico alrededor de \(s^2\) porque la chi-cuadrado es asimétrica. Ojo: a diferencia del intervalo t, este es <b>muy sensible</b> a la falta de normalidad.</div>
+      </div>
+      <p><b>Diferencia de medias.</b> Para dos muestras independientes, el intervalo de <b>Welch</b> es \((\bar x_1 - \bar x_2) \pm t_{\alpha/2,\,\nu}\sqrt{s_1^2/n_1 + s_2^2/n_2}\), con grados de libertad de Welch-Satterthwaite \(\nu = \frac{(s_1^2/n_1 + s_2^2/n_2)^2}{\frac{(s_1^2/n_1)^2}{n_1-1} + \frac{(s_2^2/n_2)^2}{n_2-1}}\). No supone varianzas iguales y es el que conviene usar por defecto (ver <a href="#ttest">pruebas t</a>). Para datos <b>pareados</b> (antes y después en las mismas personas) se calcula el intervalo t de las diferencias. Para dos proporciones: \((\hat p_1 - \hat p_2) \pm z\sqrt{\hat p_1(1-\hat p_1)/n_1 + \hat p_2(1-\hat p_2)/n_2}\).</p>
+
+      <h2 id="ic-tamano"><span class="sec">§ 5</span>Precisión y tamaño de muestra</h2>
+      <p>El margen de error \(E = z_{\alpha/2}\,\sigma/\sqrt n\) depende de tres cosas: la confianza (\(z\)), la variabilidad de la población (\(\sigma\)) y el tamaño de muestra (\(n\)). Solo la última está bajo tu control al diseñar el estudio. Despejando \(n\):</p>
+      <div class="eq">\[ n = \left( \frac{z_{\alpha/2}\,\sigma}{E} \right)^{2}, \qquad n_{\text{prop}} = \frac{z_{\alpha/2}^2\,p(1-p)}{E^2} \le \frac{z_{\alpha/2}^2}{4E^2}, \qquad n_{\text{finita}} = \frac{n}{1 + (n-1)/N} \]
+        <div class="note">Para una proporción, el peor caso es \(p = 0{,}5\): con \(E = 0{,}03\) y 95 %, \(n = 1{,}96^2/(4 \cdot 0{,}0009) \approx 1\,067{,}1\), es decir 1 068 personas. Si la población es finita y pequeña (por ejemplo, \(N = 2\,000\) socios de una cooperativa), la corrección baja el tamaño a \(1\,068/(1 + 1\,067/2\,000) \approx 697\). La sesión <a href="#tamano">tamaño de muestra</a> desarrolla también el caso de la potencia.</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> Para estimar las horas frente a pantallas con un margen de ±0,25 horas al 95 %, y con \(\sigma \approx 1{,}5\) horas de un estudio piloto: \(n = (1{,}96 \cdot 1{,}5/0{,}25)^2 = 138{,}3\), así que 139 estudiantes. Para bajar el margen a ±0,125 (la mitad) necesitarías 554: <b>cuatro veces</b> más.</p>
+      <div class="callout"><b>Para recordar:</b> el margen de error solo mide el error <i>de muestreo</i>. No cubre los sesgos de cobertura, de no respuesta o de medición. Una encuesta enorme pero mal diseñada da un intervalo angosto alrededor de un número equivocado.</div>
+
+      <h2 id="ic-boot"><span class="sec">§ 6</span>Bootstrap e interpretación</h2>
+      <p>¿Y si quieres un intervalo para la mediana, un percentil o un coeficiente de correlación, y no tienes una fórmula confiable? El <b>bootstrap</b> de Efron reemplaza la población desconocida por la muestra misma:</p>
+      <ol>
+        <li>Toma \(B\) (por ejemplo 10 000) remuestras de tamaño \(n\) <b>con reemplazo</b> de tus datos.</li>
+        <li>Calcula el estadístico en cada una: \(\hat\theta^*_1, \dots, \hat\theta^*_B\).</li>
+        <li><b>Intervalo percentil</b>: los cuantiles 2,5 % y 97,5 % de los \(\hat\theta^*\). El <b>BCa</b> corrige sesgo y asimetría y suele cubrir mejor.</li>
+      </ol>
+      <p>La idea: la variación de \(\hat\theta^*\) alrededor de \(\hat\theta\) imita la variación de \(\hat\theta\) alrededor de \(\theta\). Funciona bien con \(n\) moderado para estadísticos suaves (medias, medianas, cuantiles centrales); falla con el máximo o con muestras muy pequeñas, y no corrige muestras sesgadas.</p>
+      <p><b>Dualidad con las pruebas.</b> Un intervalo de nivel \(1 - \alpha\) contiene exactamente los valores \(\theta_0\) que <b>no</b> se rechazan con una prueba bilateral de nivel \(\alpha\). Si el intervalo al 95 % para una diferencia de medias excluye el 0, el valor p de la prueba de igualdad es menor que 0,05 (ver <a href="#ph">pruebas de hipótesis</a>). El intervalo da más información: además de “sí o no”, muestra el tamaño plausible del efecto.</p>
+      <p><b>Confianza frente a credibilidad.</b> “Hay 95 % de probabilidad de que \(\mu\) esté en [3,56; 5,08]” es incorrecto en el marco frecuentista: \(\mu\) es fija y el intervalo concreto la contiene o no. La frase correcta es “este procedimiento atrapa a \(\mu\) en el 95 % de las muestras”. Si quieres una afirmación de probabilidad sobre el parámetro, necesitas un <b>intervalo de credibilidad</b> bayesiano, que requiere una distribución a priori (ver <a href="#bayes">estadística bayesiana</a>). Con priors poco informativos y \(n\) grande, ambos intervalos suelen coincidir numéricamente.</p>
+
+      <h2 id="ic-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Cobertura exacta con pivotes.</b> Si \(Q(\mathbf X; \theta)\) tiene distribución conocida independiente de \(\theta\), \(\{\theta : a \le Q \le b\}\) tiene cobertura exactamente \(P(a \le Q \le b)\) para todo \(\theta\). Es la propiedad que hace exactos al intervalo t y al de la varianza con datos normales.</li>
+        <li><b>Ley de la raíz de n.</b> El ancho es proporcional a \(1/\sqrt n\): para dividir el margen entre \(k\) se necesitan \(k^2\) veces más datos.</li>
+        <li><b>Monotonía en la confianza.</b> A mayor nivel, mayor ancho: \(E \propto z_{\alpha/2}\). El cociente de anchos 99 %/95 % es \(2{,}576/1{,}96 \approx 1{,}31\).</li>
+        <li><b>La t converge a la normal.</b> \(t_{\alpha/2,\,n-1} \to z_{\alpha/2}\) cuando \(n \to \infty\), porque \(S \xrightarrow{p} \sigma\) (Slutsky). Por eso con \(n \ge 100\) la diferencia es despreciable.</li>
+        <li><b>Invariancia por transformaciones monótonas.</b> Si \([L, U]\) es un IC para \(\theta\) y \(g\) es creciente, \([g(L), g(U)]\) es un IC del mismo nivel para \(g(\theta)\). Así se pasa de \(\ln\theta\) a \(\theta\) o de \(\sigma^2\) a \(\sigma\).</li>
+        <li><b>Dualidad con las pruebas.</b> \(\theta_0 \in \text{IC}_{1-\alpha} \iff\) la prueba de \(H_0: \theta = \theta_0\) no rechaza al nivel \(\alpha\). Se demuestra escribiendo la región de aceptación de la prueba y despejando.</li>
+        <li><b>Cobertura de varios intervalos.</b> Si construyes \(m\) intervalos independientes al 95 %, la probabilidad de que todos acierten es \(0{,}95^m\) (0,77 con \(m = 5\)). Bonferroni usa nivel \(1 - \alpha/m\) en cada uno para garantizar al menos \(1 - \alpha\) conjunto.</li>
+        <li><b>Intervalos discretos oscilan.</b> Con datos binomiales, la cobertura de cualquier intervalo cambia a saltos con \(p\) y \(n\). Ningún intervalo no aleatorizado tiene cobertura exactamente 95 % para todo \(p\): Wilson la tiene cerca en promedio, Clopper-Pearson siempre por encima.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes:</b>
+        <ul>
+          <li>Decir “hay 95 % de probabilidad de que μ esté en este intervalo” o “el 95 % de los datos está en este intervalo”. El intervalo es para el parámetro, no para los datos (para eso existen los intervalos de predicción, más anchos).</li>
+          <li>Concluir que dos grupos no difieren porque sus intervalos individuales se traslapan: pueden traslaparse y la diferencia ser significativa. Hay que construir el intervalo de la diferencia.</li>
+          <li>Usar 1,96 en vez de la t con muestras pequeñas, o el intervalo de Wald con proporciones pequeñas.</li>
+          <li>Ignorar la dependencia (conglomerados, mediciones repetidas): el intervalo sale demasiado angosto.</li>
+          <li>Creer que el margen de error cubre todos los errores de una encuesta.</li>
+        </ul>
+      </div>
+
+      <h2 id="ic-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>El primer simulador encuesta a \(n\) estudiantes de una población donde la media real es 4,2 horas y \(\sigma = 1{,}5\). En la vida real no conocerías ese valor; aquí lo mostramos para que veas si el intervalo t lo atrapa. A la derecha, la curva del margen de error según \(n\).</p>
       <figure class="instrument lab">
-        <div class="instrument-head"><span><span class="dot"></span>simulador · una encuesta, un intervalo</span><span class="num" id="ic2-head">–</span></div>
+        <div class="instrument-head"><span><span class="dot"></span>simulador · una encuesta, un intervalo</span><span class="num" id="ic-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
-            <div class="ctrl"><label for="ic2-n">PERSONAS ENCUESTADAS · n = <b id="ic2-n-v" class="num">20</b></label><input id="ic2-n" type="range" min="5" max="200" value="20"></div>
+            <div class="ctrl"><label for="ic-n">PERSONAS ENCUESTADAS · n = <b id="ic-n-v" class="num">20</b></label><input id="ic-n" type="range" min="5" max="200" value="20"></div>
             <div class="ctrl">
-              <label id="ic2-conf-label">CONFIANZA</label>
-              <div class="seg" id="ic2-conf" role="group" aria-labelledby="ic2-conf-label">
+              <label id="ic-conf-label">CONFIANZA</label>
+              <div class="seg" id="ic-conf" role="group" aria-labelledby="ic-conf-label">
                 <button data-c="0.90" aria-pressed="false">90 %</button>
                 <button data-c="0.95" aria-pressed="true">95 %</button>
                 <button data-c="0.99" aria-pressed="false">99 %</button>
               </div>
             </div>
-            <button class="btn btn-ghost btn-sm" id="ic2-again" type="button">Nueva encuesta</button>
+            <button class="btn btn-ghost btn-sm" id="ic-again" type="button">Nueva encuesta</button>
           </div>
           <div class="twin">
             <div>
-              <div class="plot-label"><span>Respuestas (horas al día)</span><span>— μ real = 4,2</span></div>
-              <canvas class="plot" id="c-ic2" height="220" aria-label="Respuestas de la muestra con su media y el intervalo de confianza"></canvas>
+              <div class="plot-label"><span>Respuestas (horas al día)</span><span>línea: μ real = 4,2</span></div>
+              <canvas class="plot" id="ic-c-strip" height="220" aria-label="Respuestas de la muestra con su media y el intervalo de confianza"></canvas>
             </div>
             <div>
-              <div class="plot-label"><span>Margen de error según n</span><span>● tu encuesta</span></div>
-              <canvas class="plot" id="c-ic2-e" height="220" aria-label="Curva del margen de error en función del tamaño de muestra"></canvas>
+              <div class="plot-label"><span>Margen de error según n</span><span>punto: tu encuesta</span></div>
+              <canvas class="plot" id="ic-c-margin" height="220" aria-label="Curva del margen de error en función del tamaño de muestra"></canvas>
             </div>
           </div>
           <div class="readout">
-            <div><span>media muestral x̄</span><b id="ic2-m">–</b></div>
-            <div><span>desviación muestral s</span><b id="ic2-s">–</b></div>
-            <div><span>margen de error</span><b id="ic2-e">–</b></div>
-            <div><span>intervalo</span><b id="ic2-int">–</b></div>
+            <div><span>media muestral x̄</span><b id="ic-m">–</b></div>
+            <div><span>desviación muestral s</span><b id="ic-s">–</b></div>
+            <div><span>margen de error</span><b id="ic-e">–</b></div>
+            <div><span>intervalo</span><b id="ic-int">–</b></div>
           </div>
         </div>
         <figcaption>Pasa de n = 20 a n = 80: el margen se reduce a la mitad, no a la cuarta parte. Sube la confianza al 99 % y verás que la seguridad extra se paga con un intervalo más ancho.</figcaption>
       </figure>
-
-      <h2 id="ic-formula"><span class="sec">§ 3</span>La fórmula</h2>
-      <p>Si conocieras \(\sigma\), usarías la normal:</p>
-      <div class="eq">\[ \bar{x} \;\pm\; z_{\alpha/2}\,\frac{\sigma}{\sqrt{n}} \]</div>
-      <p>Casi nunca conoces \(\sigma\), así que la estimas con la desviación de la muestra \(s\). Esa estimación agrega incertidumbre, y la compensamos usando la distribución <b>t de Student</b> con \(n-1\) grados de libertad, que tiene colas más pesadas:</p>
-      <div class="eq">\[ \bar{x} \;\pm\; t_{\alpha/2,\,n-1}\,\frac{s}{\sqrt{n}} \]
-        <div class="note">Con \(n = 10\) y 95 % de confianza, \(t \approx 2{,}26\) en lugar de 1,96. Con \(n \ge 100\) la diferencia casi desaparece. El simulador usa esta fórmula.</div>
-      </div>
-      <div class="callout"><b>Cuidado con la interpretación:</b> “el intervalo [3,8 ; 4,6] tiene 95 % de probabilidad de contener a μ” es incorrecto. La media real es fija; lo aleatorio es el intervalo. Lo correcto es: “este procedimiento atrapa a μ en el 95 % de las muestras”.</div>
-
-      <h2 id="ic-tamano"><span class="sec">§ 4</span>¿Cuántos datos necesito?</h2>
-      <p>Despejando \(n\) del margen de error \(E = z\,\sigma/\sqrt{n}\) obtienes cuántas personas encuestar para lograr la precisión que quieres:</p>
-      <div class="eq">\[ n = \left( \frac{z_{\alpha/2}\,\sigma}{E} \right)^{2} \]</div>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Fija n = 20 y 95 %, y pulsa “Nueva encuesta” 20 veces contando cuántas veces el intervalo no contiene a μ (el encabezado lo avisa).
+          <details><summary>Qué deberías observar</summary><p>En promedio 1 de cada 20, aunque en 20 intentos puedes ver 0, 1, 2 o 3 fallos. Fíjate además que el margen cambia de encuesta en encuesta: con σ desconocida, el ancho depende de s, que también es aleatoria.</p></details></li>
+        <li>Con la misma encuesta, pasa de n = 20 a n = 80 y luego a n = 180.
+          <details><summary>Qué deberías observar</summary><p>El margen pasa de ≈ 0,70 a ≈ 0,33 y a ≈ 0,22 horas: cada vez que n se multiplica por 4, el margen se divide aproximadamente por 2. El punto se desplaza por la curva 1/√n del panel derecho.</p></details></li>
+        <li>Pon n = 5 y compara 90 %, 95 % y 99 %.
+          <details><summary>Qué deberías observar</summary><p>Con n = 5 los cuantiles t son 2,13, 2,78 y 4,60: el intervalo al 99 % es más del doble de ancho que el de 90 %. Con muestras tan pequeñas, pedir mucha confianza produce intervalos casi inútiles.</p></details></li>
+      </ol>
+      <p>El segundo simulador calcula, sin simular, la <b>cobertura exacta</b> de los intervalos de Wald y de Wilson al 95 % para una proporción: suma las probabilidades binomiales de todos los resultados \(k\) cuyo intervalo contiene a la \(p\) real. La curva recorre todos los valores de \(p\); el punto marca el que elijas.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cobertura real de intervalos para proporciones</span><span class="num" id="ic-pr-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="ic-pr-n">TAMAÑO · n = <b id="ic-pr-n-v" class="num">30</b></label><input id="ic-pr-n" type="range" min="10" max="200" value="30"></div>
+            <div class="ctrl"><label for="ic-pr-p">PROPORCIÓN REAL · p = <b id="ic-pr-p-v" class="num">0,10</b></label><input id="ic-pr-p" type="range" min="1" max="99" value="10"></div>
+          </div>
+          <canvas class="plot" id="ic-c-prop" height="250" aria-label="Cobertura exacta de los intervalos de Wald y Wilson en función de la proporción real"></canvas>
+          <div class="legend"><span><i style="background:var(--hot)"></i>Wald</span><span><i style="background:var(--accent)"></i>Wilson</span><span><i style="background:var(--ink)"></i>nivel nominal 95 %</span></div>
+          <div class="readout">
+            <div><span>cobertura Wald</span><b id="ic-pr-cw">–</b></div>
+            <div><span>cobertura Wilson</span><b id="ic-pr-cs">–</b></div>
+            <div><span>ancho medio Wald</span><b id="ic-pr-ww">–</b></div>
+            <div><span>ancho medio Wilson</span><b id="ic-pr-ws">–</b></div>
+          </div>
+        </div>
+        <figcaption>La curva de Wald se hunde cerca de los extremos: con n = 30 y p = 0,10 cubre solo el 81 %. La de Wilson oscila alrededor de 95 % para casi todo p.</figcaption>
+      </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con n = 30, mueve p de 0,50 a 0,05.
+          <details><summary>Qué deberías observar</summary><p>Con p = 0,50 ambos cubren ≈ 95 %. Al acercarte a 0,05 la cobertura de Wald cae por debajo del 80 %, mientras Wilson se mantiene cerca de 95 %. Wald falla porque con p pequeña es frecuente observar k = 0 o 1, y entonces su intervalo es casi de largo cero.</p></details></li>
+        <li>Fija p = 0,05 y sube n de 30 a 200.
+          <details><summary>Qué deberías observar</summary><p>La cobertura de Wald mejora (≈ 0,88 con n = 100), pero sigue por debajo del nominal incluso con n = 200 (≈ 0,93). La regla “n grande basta” no es suficiente: Wald necesita np y n(1 − p) grandes.</p></details></li>
+        <li>Observa las curvas con n = 50: ¿son suaves?
+          <details><summary>Qué deberías observar</summary><p>Ambas tienen dientes de sierra: la cobertura cambia a saltos porque k es discreto. Es la propiedad 8 de § 7. Wilson oscila alrededor del 95 %, Wald casi siempre por debajo.</p></details></li>
+      </ol>
+      <p>Por último, la calculadora de tamaño de muestra aplica \(n = (z\,\sigma/E)^2\) y redondea hacia arriba.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>calculadora · tamaño de muestra</span></div>
         <div class="lab-body">
           <div class="controls">
-            <div class="ctrl"><label for="ss-sd">σ ESTIMADA</label><input class="numin" id="ss-sd" type="number" min="0.01" step="0.1" value="1.5"></div>
-            <div class="ctrl"><label for="ss-e">MARGEN DESEADO E</label><input class="numin" id="ss-e" type="number" min="0.01" step="0.05" value="0.25"></div>
+            <div class="ctrl"><label for="ic-ss-sd">σ ESTIMADA</label><input class="numin" id="ic-ss-sd" type="number" min="0.01" step="0.1" value="1.5"></div>
+            <div class="ctrl"><label for="ic-ss-e">MARGEN DESEADO E</label><input class="numin" id="ic-ss-e" type="number" min="0.01" step="0.05" value="0.25"></div>
             <div class="ctrl">
-              <label id="ss-conf-label">CONFIANZA</label>
-              <div class="seg" id="ss-conf" role="group" aria-labelledby="ss-conf-label">
+              <label id="ic-ss-conf-label">CONFIANZA</label>
+              <div class="seg" id="ic-ss-conf" role="group" aria-labelledby="ic-ss-conf-label">
                 <button data-z="1.6449" aria-pressed="false">90 %</button>
                 <button data-z="1.96" aria-pressed="true">95 %</button>
                 <button data-z="2.5758" aria-pressed="false">99 %</button>
               </div>
             </div>
           </div>
-          <div class="bigresult"><span>Necesitas encuestar al menos</span><b class="num" id="ss-n">–</b><span id="ss-note"></span></div>
+          <div class="bigresult"><span>Necesitas encuestar al menos</span><b class="num" id="ic-ss-n">–</b><span id="ic-ss-note"></span></div>
         </div>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con σ = 1,5 y E = 0,25 al 95 %, anota n. Luego pon E = 0,125.
+          <details><summary>Qué deberías observar</summary><p>Pasa de 139 a 554 personas: reducir el margen a la mitad cuadruplica el costo del estudio.</p></details></li>
+        <li>Para una proporción en el peor caso, usa σ = 0,5 (porque √(0,5 · 0,5) = 0,5) y E = 0,03.
+          <details><summary>Qué deberías observar</summary><p>Obtienes 1 068 personas al 95 % y 1 844 al 99 %. Es el tamaño típico de las encuestas nacionales con “margen de ±3 puntos”.</p></details></li>
+      </ol>
 
-      <h2 id="ic-code"><span class="sec">§ 5</span>En R y Python</h2>
+      <h2 id="ic-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: la eficacia de una vacuna</h3>
+      <p>En el ensayo de fase 3 de la vacuna de Pfizer-BioNTech contra la COVID-19 (Polack y colaboradores, <i>New England Journal of Medicine</i>, 2020), con unos 36 000 participantes repartidos en partes iguales, hubo 8 casos en el grupo vacunado y 162 en el grupo placebo. La eficacia estimada fue \(1 - 8/162 \approx 95\,\%\), y el intervalo reportado fue de 90,3 % a 97,6 % (calculado con un enfoque bayesiano, un intervalo de credibilidad). La decisión que permitió: el límite inferior quedaba muy por encima del 50 % mínimo que exigían las agencias reguladoras, así que la eficacia no solo era alta, sino que lo era con poca incertidumbre. Un intervalo de 20 % a 98 % habría dado la misma estimación puntual y una decisión muy distinta.</p>
+      <h3>Ciencias sociales: encuestas de opinión</h3>
+      <p>Una encuesta a 1 200 personas elegidas al azar encuentra 46 % de aprobación del gobierno. Con Wilson, el intervalo al 95 % es aproximadamente \([43{,}2\,\%;\ 48{,}8\,\%]\): el margen de error es de ±2,8 puntos. La decisión: no titular “la aprobación cayó” si el mes anterior fue 47 %, porque la diferencia es menor que el error de muestreo (y la diferencia de dos encuestas tiene un margen todavía mayor, \(\sqrt2\) veces). Las encuestas reales usan diseños complejos (estratos, conglomerados, ponderaciones) y su margen efectivo es mayor que el de una muestra aleatoria simple; ver <a href="#muestreo">muestreo estadístico</a>.</p>
+      <h3>Industria: calibración de instrumentos</h3>
+      <p>Un laboratorio de metrología pesa 12 veces una masa patrón de 100 g y obtiene \(\bar x = 100{,}0032\) g con \(s = 0{,}0041\) g. El intervalo t al 95 % es \(100{,}0032 \pm 2{,}201 \cdot 0{,}0041/\sqrt{12} = [100{,}0006;\ 100{,}0058]\) g. Como el intervalo excluye el valor nominal 100, la balanza tiene un sesgo de entre 0,6 y 5,8 mg y debe corregirse. La “incertidumbre expandida” que reportan los certificados de calibración (según la Guía GUM) es esencialmente este margen de error, combinado con otras fuentes de incertidumbre.</p>
+      <h3>Tecnología: tiempos de carga de una aplicación</h3>
+      <p>Un equipo mide 150 tiempos de carga de su aplicación, con distribución muy asimétrica (la mayoría cerca de 1 s, algunos de 3 o 4 s). Reporta la mediana con un intervalo bootstrap, la proporción de cargas lentas con Wilson y compara la versión nueva con la actual mediante un intervalo para el cociente de medias geométricas. El caso completo está en § 10: la diferencia de medias aritméticas no es concluyente, pero en escala logarítmica, la adecuada para tiempos, la versión actual tarda entre 1 % y 30 % más. La decisión: lanzar la versión nueva, sabiendo que la mejora es real pero de tamaño incierto.</p>
+
+      <h2 id="ic-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <p>Primero el intervalo t de las horas frente a pantallas. Después el caso de los tiempos de carga: intervalo t, bootstrap BCa para la media y la mediana, intervalos de Wald y Wilson para la proporción de cargas lentas, Welch para la diferencia de medias y un intervalo en escala logarítmica.</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">from</span> statsmodels.stats.proportion <span class="k">import</span> proportion_confint
 
+<span class="c"># --- 1) El ejemplo pequeño: horas frente a pantallas (n = 10) ---</span>
 horas = np.<span class="f">array</span>([<span class="n">3.1</span>, <span class="n">5.4</span>, <span class="n">4.0</span>, <span class="n">2.8</span>, <span class="n">6.2</span>, <span class="n">4.7</span>, <span class="n">3.9</span>, <span class="n">5.1</span>, <span class="n">4.4</span>, <span class="n">3.6</span>])
+m, ee = horas.<span class="f">mean</span>(), stats.<span class="f">sem</span>(horas)                    <span class="c"># s / √n</span>
+<span class="f">print</span>(stats.t.<span class="f">interval</span>(<span class="n">0.95</span>, df=<span class="f">len</span>(horas) - <span class="n">1</span>, loc=m, scale=ee))   <span class="c"># (3.56, 5.08)</span>
 
-media = horas.<span class="f">mean</span>()
-ee = stats.<span class="f">sem</span>(horas)                         <span class="c"># s / √n</span>
-bajo, alto = stats.t.<span class="f">interval</span>(<span class="n">0.95</span>, df=<span class="f">len</span>(horas) - <span class="n">1</span>, loc=media, scale=ee)
+<span class="c"># --- 2) Caso aplicado: tiempos de carga de una app (segundos), muy asimétricos ---</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+t_a = rng.<span class="f">lognormal</span>(mean=<span class="n">0.0</span>, sigma=<span class="n">0.6</span>, size=<span class="n">150</span>)        <span class="c"># versión actual</span>
+t_b = rng.<span class="f">lognormal</span>(mean=-<span class="n">0.15</span>, sigma=<span class="n">0.6</span>, size=<span class="n">150</span>)      <span class="c"># versión nueva</span>
 
-<span class="f">print</span>(<span class="s">f"x̄ = {media:.2f} h, IC 95 % = [{bajo:.2f}, {alto:.2f}]"</span>)</code></pre>
-<pre class="code" data-lang="r" hidden><code>horas &lt;- <span class="f">c</span>(<span class="n">3.1</span>, <span class="n">5.4</span>, <span class="n">4.0</span>, <span class="n">2.8</span>, <span class="n">6.2</span>, <span class="n">4.7</span>, <span class="n">3.9</span>, <span class="n">5.1</span>, <span class="n">4.4</span>, <span class="n">3.6</span>)
+<span class="c"># (a) IC t para la media</span>
+<span class="f">print</span>(np.<span class="f">round</span>(stats.t.<span class="f">interval</span>(<span class="n">0.95</span>, <span class="f">len</span>(t_a) - <span class="n">1</span>, t_a.<span class="f">mean</span>(), stats.<span class="f">sem</span>(t_a)), <span class="n">3</span>))   <span class="c"># ≈ [1.00 1.22]</span>
 
-<span class="c"># la forma rápida: t.test calcula el intervalo con la t de Student</span>
-<span class="f">t.test</span>(horas, conf.level = <span class="n">0.95</span>)$conf.int      <span class="c"># 3.56  5.08</span>
+<span class="c"># (b) IC bootstrap BCa para la media y para la mediana (10 000 remuestras)</span>
+<span class="k">for</span> f <span class="k">in</span> (np.mean, np.median):
+    r = stats.<span class="f">bootstrap</span>((t_a,), f, n_resamples=<span class="n">10_000</span>, method=<span class="s">"BCa"</span>, random_state=<span class="n">1</span>)
+    <span class="f">print</span>(f.__name__, np.<span class="f">round</span>([r.confidence_interval.low, r.confidence_interval.high], <span class="n">3</span>))
+<span class="c"># mean ≈ [1.02 1.24] · median ≈ [0.84 1.11]</span>
 
-<span class="c"># paso a paso</span>
-media &lt;- <span class="f">mean</span>(horas)
-ee &lt;- <span class="f">sd</span>(horas) / <span class="f">sqrt</span>(<span class="f">length</span>(horas))           <span class="c"># s / √n</span>
-t_crit &lt;- <span class="f">qt</span>(<span class="n">0.975</span>, df = <span class="f">length</span>(horas) - <span class="n">1</span>)
-media + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * t_crit * ee</code></pre>
+<span class="c"># (c) proporción de cargas lentas (&gt; 2 s): Wald frente a Wilson</span>
+k, n = <span class="f">int</span>((t_a &gt; <span class="n">2</span>).<span class="f">sum</span>()), <span class="f">len</span>(t_a)
+<span class="f">print</span>(k, np.<span class="f">round</span>(<span class="f">proportion_confint</span>(k, n, method=<span class="s">"normal"</span>), <span class="n">3</span>),
+      np.<span class="f">round</span>(<span class="f">proportion_confint</span>(k, n, method=<span class="s">"wilson"</span>), <span class="n">3</span>))   <span class="c"># 9 de 150 · Wald ≈ [0.022 0.098] · Wilson ≈ [0.032 0.110]</span>
+
+<span class="c"># (d) diferencia de medias A − B con Welch (varianzas distintas)</span>
+d = t_a.<span class="f">mean</span>() - t_b.<span class="f">mean</span>()
+va, vb = t_a.<span class="f">var</span>(ddof=<span class="n">1</span>) / <span class="f">len</span>(t_a), t_b.<span class="f">var</span>(ddof=<span class="n">1</span>) / <span class="f">len</span>(t_b)
+gl = (va + vb) ** <span class="n">2</span> / (va**<span class="n">2</span> / (<span class="f">len</span>(t_a) - <span class="n">1</span>) + vb**<span class="n">2</span> / (<span class="f">len</span>(t_b) - <span class="n">1</span>))
+e = stats.t.<span class="f">ppf</span>(<span class="n">0.975</span>, gl) * np.<span class="f">sqrt</span>(va + vb)
+<span class="f">print</span>(<span class="f">round</span>(d, <span class="n">3</span>), np.<span class="f">round</span>([d - e, d + e], <span class="n">3</span>))          <span class="c"># ≈ 0.09  [-0.07 0.25]: incluye el 0</span>
+
+<span class="c"># (e) en escala log: cociente de medianas geométricas</span>
+la, lb = np.<span class="f">log</span>(t_a), np.<span class="f">log</span>(t_b)
+r = stats.<span class="f">ttest_ind</span>(la, lb, equal_var=<span class="k">False</span>).<span class="f">confidence_interval</span>(<span class="n">0.95</span>)
+<span class="f">print</span>(np.<span class="f">round</span>(np.<span class="f">exp</span>([r.low, r.high]), <span class="n">3</span>))              <span class="c"># ≈ [1.01 1.30]: A tarda entre 1 % y 30 % más</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># --- 1) El ejemplo pequeño: horas frente a pantallas (n = 10) ---</span>
+horas &lt;- <span class="f">c</span>(<span class="n">3.1</span>, <span class="n">5.4</span>, <span class="n">4.0</span>, <span class="n">2.8</span>, <span class="n">6.2</span>, <span class="n">4.7</span>, <span class="n">3.9</span>, <span class="n">5.1</span>, <span class="n">4.4</span>, <span class="n">3.6</span>)
+<span class="f">t.test</span>(horas, conf.level = <span class="n">0.95</span>)$conf.int        <span class="c"># 3.56  5.08</span>
+media &lt;- <span class="f">mean</span>(horas); ee &lt;- <span class="f">sd</span>(horas) / <span class="f">sqrt</span>(<span class="f">length</span>(horas))
+media + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * <span class="f">qt</span>(<span class="n">0.975</span>, df = <span class="n">9</span>) * ee        <span class="c"># lo mismo, paso a paso</span>
+
+<span class="c"># --- 2) Caso aplicado: tiempos de carga de una app (segundos) ---</span>
+<span class="f">set.seed</span>(<span class="n">42</span>)
+t_a &lt;- <span class="f">rlnorm</span>(<span class="n">150</span>, meanlog = <span class="n">0</span>, sdlog = <span class="n">0.6</span>)      <span class="c"># versión actual</span>
+t_b &lt;- <span class="f">rlnorm</span>(<span class="n">150</span>, meanlog = -<span class="n">0.15</span>, sdlog = <span class="n">0.6</span>)  <span class="c"># versión nueva</span>
+
+<span class="f">t.test</span>(t_a)$conf.int                              <span class="c"># (a) IC t para la media ≈ [1.0 1.3]</span>
+
+<span class="f">library</span>(boot)                                     <span class="c"># (b) bootstrap BCa</span>
+b_media   &lt;- <span class="f">boot</span>(t_a, <span class="k">function</span>(x, i) <span class="f">mean</span>(x[i]), R = <span class="n">10000</span>)
+b_mediana &lt;- <span class="f">boot</span>(t_a, <span class="k">function</span>(x, i) <span class="f">median</span>(x[i]), R = <span class="n">10000</span>)
+<span class="f">boot.ci</span>(b_media, type = <span class="s">"bca"</span>)
+<span class="f">boot.ci</span>(b_mediana, type = <span class="s">"bca"</span>)
+
+k &lt;- <span class="f">sum</span>(t_a &gt; <span class="n">2</span>); n &lt;- <span class="f">length</span>(t_a)               <span class="c"># (c) proporción de cargas lentas</span>
+<span class="f">prop.test</span>(k, n, correct = <span class="k">FALSE</span>)$conf.int         <span class="c"># Wilson (score)</span>
+<span class="f">binom.test</span>(k, n)$conf.int                         <span class="c"># Clopper-Pearson (exacto)</span>
+
+<span class="f">t.test</span>(t_a, t_b)$conf.int                         <span class="c"># (d) Welch: diferencia de medias</span>
+<span class="f">exp</span>(<span class="f">t.test</span>(<span class="f">log</span>(t_a), <span class="f">log</span>(t_b))$conf.int)          <span class="c"># (e) cociente de medias geométricas</span></code></pre>
 </div>
+      <p>Fíjate en la lección de (d) y (e): con datos asimétricos, la escala importa. La media aritmética está dominada por unos pocos tiempos largos y su intervalo es ancho; en escala logarítmica la variabilidad es más homogénea y el intervalo es más informativo. Los dos intervalos responden preguntas distintas (diferencia de medias frente a cociente de medias geométricas), y conviene reportar el que corresponde a la decisión.</p>
 
-      <h2 id="ic-quiz"><span class="sec">§ 6</span>Comprueba</h2>
+      <h2 id="ic-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="El margen es z·σ/√n. Para dividirlo entre 2 necesitas multiplicar √n por 2, o sea, n por 4: de 100 a 400 personas." data-wrong="El margen depende de 1/√n. ¿Por cuánto hay que multiplicar n para que √n se duplique?">
         <h3>Una encuesta con 100 personas da un margen de error de ±0,6 horas. ¿Cuántas personas necesitas para un margen de ±0,3 horas?</h3>
         <div class="opts">
@@ -134,14 +321,14 @@ media + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</s
       <div class="quiz" data-right="Al estimar σ con s cometemos un error extra. La t, con colas más pesadas, ensancha el intervalo lo justo. Con n grande se parece a la normal." data-wrong="Piensa en qué pasa con n pequeño: s puede alejarse bastante de σ. ¿Eso hace el intervalo más ancho o más angosto?">
         <h3>¿Por qué usamos la distribución t en lugar de la normal cuando estimamos σ con s?</h3>
         <div class="opts">
-          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque la t siempre da intervalos más angostos</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Porque s agrega incertidumbre y la t tiene colas más pesadas para compensarla</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Porque s agrega incertidumbre y la t tiene colas más pesadas para compensarla</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Porque la t siempre da intervalos más angostos</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque los datos no son normales</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Porque la t no depende del tamaño de muestra</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="La confianza es una propiedad del procedimiento, no de un intervalo concreto. Y el margen es la mitad del ancho: 0,4." data-wrong="El intervalo habla de la media, no de los datos individuales, y μ es un número fijo. ¿Qué es lo que varía de muestra en muestra?">
+      <div class="quiz" data-right="La confianza es una propiedad del procedimiento, no de un intervalo concreto. μ es fija y este intervalo la contiene o no." data-wrong="El intervalo habla de la media, no de los datos individuales, y μ es un número fijo. ¿Qué es lo que varía de muestra en muestra?">
         <h3>Un intervalo de 95 % para μ es [3,8 ; 4,6]. ¿Qué afirmación es correcta?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>μ está en ese intervalo con probabilidad 0,95</button>
@@ -151,34 +338,104 @@ media + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</s
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Con 0 eventos el intervalo de Wald colapsa en [0, 0]. Wilson o Clopper-Pearson dan un límite superior razonable, cercano a 3/n." data-wrong="Calcula el error estándar de Wald con p̂ = 0: ¿qué ancho tiene el intervalo? ¿Tiene sentido?">
+        <h3>En 60 piezas inspeccionadas no hay ninguna defectuosa. ¿Qué intervalo conviene reportar para la proporción de defectuosas?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Wald: [0 ; 0]</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Wilson o Clopper-Pearson, con límite superior cerca de 0,06</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Ninguno: sin defectos la proporción es 0</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El intervalo t con s = 0</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Por la dualidad entre intervalos y pruebas, el 0 fuera del intervalo al 95 % equivale a rechazar la igualdad al 5 %: p &lt; 0,05. Y el intervalo dice además que la diferencia está entre 0,3 y 2,1." data-wrong="Recuerda la dualidad: un intervalo de nivel 1 − α contiene los valores que no se rechazan con una prueba de nivel α.">
+        <h3>El intervalo al 95 % para la diferencia de medias entre dos tratamientos es [0,3 ; 2,1]. ¿Qué puedes decir del valor p de la prueba bilateral de igualdad?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Que es mayor que 0,05</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Nada, intervalos y pruebas no se relacionan</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Que es exactamente 0,05</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Que es menor que 0,05</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="ic-ej"><span class="sec">§ 7</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. La calculadora de tamaño de muestra te sirve para el último.</p>
+      <h2 id="ic-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Estos ejercicios piden demostrar, derivar o simular. Intenta resolverlos antes de abrir la solución; los simuladores y el código de § 10 te sirven para comprobar resultados.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una muestra de 49 piezas tiene media 72 mm. Si σ = 14 mm es conocida, calcula el intervalo de 95 % para μ.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>SE = 14/√49 = 2. Margen = 1,96 × 2 = 3,92. Intervalo: <b>[68,08 ; 75,92] mm</b>.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Con datos \(\mathcal{N}(\mu, \sigma^2)\), usa el pivote \((n-1)S^2/\sigma^2 \sim \chi^2_{n-1}\) para derivar un IC al 95 % para \(\sigma^2\) y para \(\sigma\). (b) Aplícalo a las 10 horas frente a pantallas (\(s^2 = 1{,}117\)). (c) Explica por qué este intervalo no es simétrico y por qué es mucho menos robusto a la falta de normalidad que el intervalo t.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(P\big(\chi^2_{0{,}025} \le (n-1)S^2/\sigma^2 \le \chi^2_{0{,}975}\big) = 0{,}95\). Invirtiendo (al tomar recíprocos las desigualdades se invierten): \(\frac{(n-1)S^2}{\chi^2_{0{,}975}} \le \sigma^2 \le \frac{(n-1)S^2}{\chi^2_{0{,}025}}\). Para \(\sigma\), raíz cuadrada en ambos extremos (invariancia por transformaciones monótonas).</p>
+            <p>(b) Con 9 gl, \(\chi^2_{0{,}025} = 2{,}700\) y \(\chi^2_{0{,}975} = 19{,}023\). \((n-1)s^2 = 10{,}056\). IC para \(\sigma^2\): \([10{,}056/19{,}023;\ 10{,}056/2{,}700] = [0{,}529;\ 3{,}724]\); para \(\sigma\): \([0{,}727;\ 1{,}930]\) horas.</p>
+            <p>(c) La chi-cuadrado es asimétrica a la derecha, por eso el límite superior queda más lejos de \(s^2\). La robustez: la varianza de \(S^2\) es \(\sigma^4\big(\frac{2}{n-1} + \frac{\kappa}{n}\big)\), donde \(\kappa\) es el exceso de curtosis. La fórmula chi-cuadrado supone \(\kappa = 0\); con colas pesadas (\(\kappa &gt; 0\)) el intervalo es demasiado angosto aunque \(n\) sea grande. El intervalo t, en cambio, depende de \(\bar X\), que se vuelve normal por el TLC.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Con los mismos datos, ¿cuántas veces más ancho es el intervalo de 99 % que el de 95 %?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>El ancho es proporcional a z: 2,576/1,96 ≈ <b>1,31</b>. El intervalo de 99 % es un 31 % más ancho.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Deriva el intervalo de Wilson resolviendo la desigualdad \((\hat p - p)^2 \le z^2 p(1-p)/n\) como una ecuación de segundo grado en \(p\). (b) Muestra que su centro es un promedio ponderado entre \(\hat p\) y \(1/2\). (c) Calcula los intervalos de Wald, Wilson y Clopper-Pearson al 95 % para 7 éxitos en 40 ensayos y compáralos con el intervalo de credibilidad bayesiano con prior \(\text{Beta}(1,1)\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Desarrollando: \(p^2(1 + z^2/n) - p(2\hat p + z^2/n) + \hat p^2 \le 0\). Las raíces de la cuadrática son \(p = \frac{\hat p + z^2/(2n) \pm z\sqrt{\hat p(1-\hat p)/n + z^2/(4n^2)}}{1 + z^2/n}\), y la desigualdad se cumple entre ellas.</p>
+            <p>(b) El centro es \(\frac{n}{n + z^2}\hat p + \frac{z^2}{n + z^2}\cdot\frac12\): un promedio con pesos \(n\) y \(z^2 \approx 4\). Es como agregar unas 4 observaciones “mitad y mitad”, lo que aleja el intervalo de los bordes cuando \(\hat p\) es extremo.</p>
+            <p>(c) \(\hat p = 0{,}175\). Wald: \(0{,}175 \pm 1{,}96\sqrt{0{,}175 \cdot 0{,}825/40} = [0{,}057;\ 0{,}293]\). Wilson: \([0{,}087;\ 0{,}320]\). Clopper-Pearson: \([0{,}073;\ 0{,}328]\) (<code>binom.test(7, 40)</code>). Bayesiano: posterior \(\text{Beta}(8, 34)\), intervalo de colas iguales \([0{,}088;\ 0{,}321]\), casi idéntico a Wilson. Wald queda corrido hacia abajo e ignora la asimetría de la distribución de \(\hat p\).</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Con las 10 respuestas de horas frente a pantallas del ejemplo, calcula el intervalo de 90 % usando la t de Student.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>x̄ = 4,32, s ≈ 1,057, SE ≈ 0,334 y t<sub>0,95; 9</sub> ≈ 1,833. Margen ≈ 0,613. Intervalo: <b>[3,71 ; 4,93] horas</b>.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Un hospital reporta intervalos al 95 % para el tiempo medio de espera en 5 servicios. (a) Si los 5 intervalos son independientes, ¿cuál es la probabilidad de que todos contengan a su media real? (b) Demuestra la desigualdad de Bonferroni \(P(\bigcap A_i) \ge 1 - \sum P(A_i^c)\) y úsala para elegir el nivel individual que garantiza 95 % conjunto. (c) Con \(n = 25\) por servicio, ¿cuánto más ancho es cada intervalo de Bonferroni que el individual al 95 %?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(0{,}95^5 \approx 0{,}774\): hay un 22,6 % de probabilidad de que al menos uno falle.</p>
+            <p>(b) Por la desigualdad de Boole, \(P(\bigcup A_i^c) \le \sum P(A_i^c)\); tomando complementos, \(P(\bigcap A_i) = 1 - P(\bigcup A_i^c) \ge 1 - \sum P(A_i^c)\). Con nivel individual \(1 - 0{,}05/5 = 0{,}99\), el conjunto tiene al menos \(1 - 5 \cdot 0{,}01 = 0{,}95\), sin suponer independencia.</p>
+            <p>(c) Con 24 gl, \(t_{0{,}025} = 2{,}064\) y \(t_{0{,}005} = 2{,}797\): cada intervalo es \(2{,}797/2{,}064 \approx 1{,}36\) veces más ancho. Es el precio de hacer afirmaciones simultáneas; el ANOVA y las comparaciones múltiples (<a href="#anova">ANOVA</a>) tratan el problema con más potencia.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Cobertura real por simulación.</b> Los tiempos de una tarea siguen una lognormal con parámetros \(0\) y \(1\) (media real \(e^{1/2} \approx 1{,}649\), muy asimétrica). (a) Simula 2 000 muestras de tamaño \(n = 20\) y estima la cobertura del intervalo t al 95 % y del bootstrap percentil. (b) Explica por qué ambos quedan por debajo del 95 % y de qué lado suelen fallar. (c) Propón una alternativa mejor.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) La simulación da coberturas de aproximadamente 0,87 (t) y 0,86 (bootstrap percentil), muy por debajo del 95 % nominal.</p>
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
-<span class="f">print</span>(stats.t.<span class="f">interval</span>(<span class="n">0.9</span>, df=<span class="n">9</span>, loc=horas.<span class="f">mean</span>(), scale=stats.<span class="f">sem</span>(horas)))</code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">t.test</span>(horas, conf.level = <span class="n">0.9</span>)$conf.int   <span class="c"># 3.71  4.93</span></code></pre>
-</div></div></details>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+rng = np.random.<span class="f">default_rng</span>(<span class="n">5</span>)
+mu = np.<span class="f">exp</span>(<span class="n">1</span> / <span class="n">2</span>)                        <span class="c"># media real de una lognormal(0, 1): ≈ 1.649</span>
+reps, n, B = <span class="n">2_000</span>, <span class="n">20</span>, <span class="n">1_000</span>
+ok_t = ok_b = <span class="n">0</span>
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps):
+    x = rng.<span class="f">lognormal</span>(<span class="n">0</span>, <span class="n">1</span>, n)
+    lo, hi = stats.t.<span class="f">interval</span>(<span class="n">0.95</span>, n - <span class="n">1</span>, x.<span class="f">mean</span>(), stats.<span class="f">sem</span>(x))
+    ok_t += lo &lt;= mu &lt;= hi
+    medias = rng.<span class="f">choice</span>(x, (B, n)).<span class="f">mean</span>(axis=<span class="n">1</span>)     <span class="c"># bootstrap percentil</span>
+    lo, hi = np.<span class="f">quantile</span>(medias, [<span class="n">0.025</span>, <span class="n">0.975</span>])
+    ok_b += lo &lt;= mu &lt;= hi
+<span class="f">print</span>(ok_t / reps, ok_b / reps)           <span class="c"># ≈ 0.87  ≈ 0.86: ambos quedan bajo 0.95</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">5</span>)
+mu &lt;- <span class="f">exp</span>(<span class="n">1</span> / <span class="n">2</span>)                          <span class="c"># media real de una lognormal(0, 1)</span>
+reps &lt;- <span class="n">2000</span>; n &lt;- <span class="n">20</span>; B &lt;- <span class="n">1000</span>
+ok_t &lt;- ok_b &lt;- <span class="n">0</span>
+<span class="k">for</span> (r <span class="k">in</span> <span class="n">1</span>:reps) {
+  x &lt;- <span class="f">rlnorm</span>(n, <span class="n">0</span>, <span class="n">1</span>)
+  ic &lt;- <span class="f">t.test</span>(x)$conf.int
+  ok_t &lt;- ok_t + (ic[<span class="n">1</span>] &lt;= mu &amp;&amp; mu &lt;= ic[<span class="n">2</span>])
+  medias &lt;- <span class="f">replicate</span>(B, <span class="f">mean</span>(<span class="f">sample</span>(x, replace = <span class="k">TRUE</span>)))
+  q &lt;- <span class="f">quantile</span>(medias, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))
+  ok_b &lt;- ok_b + (q[<span class="n">1</span>] &lt;= mu &amp;&amp; mu &lt;= q[<span class="n">2</span>])
+}
+<span class="f">c</span>(ok_t, ok_b) / reps                      <span class="c"># ≈ 0.87  ≈ 0.86</span></code></pre>
+</div>
+            <p>(b) Con \(n = 20\), la media de una lognormal todavía es muy asimétrica (por el TLC, la asimetría baja como \(\gamma/\sqrt n\), y \(\gamma \approx 6{,}2\) aquí). Además \(\bar x\) y \(s\) están correlacionadas positivamente: cuando la muestra no trae valores grandes, \(\bar x\) queda baja y \(s\) también, y el intervalo, angosto, no alcanza a \(\mu\). Por eso fallan casi siempre por el lado de abajo (el intervalo queda bajo \(\mu\)). El bootstrap percentil hereda el mismo problema: la muestra no contiene la cola que falta.</p>
+            <p>(c) Trabajar en escala log (intervalo t para \(\ln X\) y luego el método de Cox para la media lognormal, o reportar la media geométrica), el bootstrap BCa o el bootstrap t, o aumentar \(n\). Y siempre, preguntarse si la media es el parámetro relevante: con datos así, la mediana suele ser más útil.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>En una encuesta a 400 personas, 220 prefieren la marca A. Calcula el intervalo de 95 % para la proporción p. ¿A cuántas personas habría que encuestar para tener un margen de ±3 puntos sin saber nada de p?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>p̂ = 0,55 y SE = √(0,55 × 0,45 / 400) ≈ 0,0249. Margen ≈ 0,049. Intervalo: <b>[0,501 ; 0,599]</b>. Sin información previa se usa p = 0,5 (el peor caso): n = (1,96/0,03)² × 0,25 ≈ 1 067,1, así que se necesitan <b>1 068 personas</b>.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Intervalo para un cociente con el método delta.</b> En un ensayo, 30 de 200 pacientes con tratamiento y 50 de 200 con placebo tienen el evento. (a) Calcula el riesgo relativo \(\widehat{RR} = \hat p_1/\hat p_2\). (b) Usa el método delta para mostrar que \(\operatorname{Var}(\ln\widehat{RR}) \approx \frac{1-p_1}{n_1p_1} + \frac{1-p_2}{n_2p_2}\) y construye un IC al 95 % para \(RR\). (c) Interpreta el intervalo en términos de reducción de riesgo y explica por qué se construye en escala logarítmica.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\hat p_1 = 0{,}15\), \(\hat p_2 = 0{,}25\), \(\widehat{RR} = 0{,}6\).</p>
+            <p>(b) \(\ln\widehat{RR} = \ln\hat p_1 - \ln\hat p_2\). Por el método delta, \(\operatorname{Var}(\ln\hat p) \approx \frac{1}{p^2}\cdot\frac{p(1-p)}{n} = \frac{1-p}{np}\), y las dos muestras son independientes. Numéricamente: \(\frac{0{,}85}{30} + \frac{0{,}75}{50} = 0{,}0283 + 0{,}015 = 0{,}0433\), EE = 0,208. IC para \(\ln RR\): \(\ln 0{,}6 \pm 1{,}96 \cdot 0{,}208 = -0{,}511 \pm 0{,}408 = [-0{,}919;\ -0{,}103]\). Exponenciando: \(RR \in [0{,}40;\ 0{,}90]\).</p>
+            <p>(c) El tratamiento reduce el riesgo entre un 10 % y un 60 %; como el intervalo excluye el 1, el efecto es significativo al 5 %. La escala log hace que la distribución del estimador sea más simétrica y que la varianza no dependa del nivel, y garantiza que el intervalo para el cociente sea positivo y respete que \(RR = 0{,}5\) y \(RR = 2\) son efectos “igual de grandes” en sentidos opuestos.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>
