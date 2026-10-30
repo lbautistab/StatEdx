@@ -1,4 +1,4 @@
-/* StatEdx · clase 6, pruebas de hipótesis */
+/* StatEdx · sesión ph: Pruebas de hipótesis y valor p */
 (() => {
   const { fit, tok, fmt, pct, randn, npdf, erf, Phi, tq, segBind, axisTicks } = M;
 
@@ -13,7 +13,7 @@
     document.getElementById('ph-a').textContent = fmt(PH.a, 2);
     const d = document.getElementById('ph-d'); d.textContent = rej ? 'Rechazar' : 'No rechazar'; d.style.color = rej ? 'var(--hot)' : 'var(--ink)';
     document.getElementById('ph-head').textContent = 'Binomial(100; 0,5)';
-    const f = fit(document.getElementById('c-ph')); if (!f) return; const { ctx, w, h } = f;
+    const f = fit(document.getElementById('ph-c-coin')); if (!f) return; const { ctx, w, h } = f;
     const accent = tok('--accent'), hot = tok('--hot'), ink = tok('--ink'), muted = tok('--muted'), line = tok('--line');
     ctx.clearRect(0, 0, w, h);
     const pad = { l: 12, r: 12, t: 18, b: 26 }, lo = 24.5, hi = 75.5, peak = BIN[50] * 1.08;
@@ -48,13 +48,13 @@
   function drawAB() {
     const sig = AB.ps.filter(p => p < 0.05).length;
     const power = AB.d ? 1 - Phi(1.96 - AB.d / Math.sqrt(2 / 50)) + Phi(-1.96 - AB.d / Math.sqrt(2 / 50)) : 0.05;
-    document.getElementById('ab-sig').textContent = sig + ' de 200';
-    document.getElementById('ab-rate').textContent = pct(sig / 200);
-    document.getElementById('ab-what').textContent = AB.d ? 'potencia' : 'falsos positivos';
-    document.getElementById('ab-theory').textContent = AB.d ? '≈ ' + pct(power, 0) : 'α = 5 %';
-    document.getElementById('ab-head').textContent = AB.d ? `efecto real = ${fmt(AB.d, 1)}σ` : 'H₀ es cierta';
+    document.getElementById('ph-ab-sig').textContent = sig + ' de 200';
+    document.getElementById('ph-ab-rate').textContent = pct(sig / 200);
+    document.getElementById('ph-ab-what').textContent = AB.d ? 'potencia' : 'falsos positivos';
+    document.getElementById('ph-ab-theory').textContent = AB.d ? '≈ ' + pct(power, 0) : 'α = 5 %';
+    document.getElementById('ph-ab-head').textContent = AB.d ? `efecto real = ${fmt(AB.d, 1)}σ` : 'H₀ es cierta';
     const accent = tok('--accent'), hot = tok('--hot'), muted = tok('--muted'), line = tok('--line'), ink = tok('--ink');
-    let f = fit(document.getElementById('c-ab'));
+    let f = fit(document.getElementById('ph-c-ab'));
     if (f) {
       const { ctx, w, h } = f; ctx.clearRect(0, 0, w, h);
       const cols = 20, rows = 10, gx = (w - 24) / cols, gy = (h - 24) / rows, r = Math.min(gx, gy) * 0.32;
@@ -65,7 +65,7 @@
       });
       ctx.globalAlpha = 1;
     }
-    f = fit(document.getElementById('c-ab-h'));
+    f = fit(document.getElementById('ph-c-abh'));
     if (f) {
       const { ctx, w, h } = f; ctx.clearRect(0, 0, w, h);
       const pad = { l: 12, r: 12, t: 14, b: 26 }, B = 20, counts = new Array(B).fill(0);
@@ -81,9 +81,50 @@
       axisTicks(ctx, X, 0, 1, 0.25, h - 8, muted);
     }
   }
-  segBind('ab-d', b => { AB.d = +b.dataset.d; abRun(); });
-  document.getElementById('ab-again').addEventListener('click', abRun);
+  segBind('ph-ab-d', b => { AB.d = +b.dataset.d; abRun(); });
+  document.getElementById('ph-ab-again').addEventListener('click', abRun);
 
-  M.draw.ph = () => { drawPH(); drawAB(); };
-  M.init.push(abRun);
+
+  // ---------- potencia: distribuciones del estadístico z bajo H0 y bajo H1 ----------
+  const PW = { d: 0.4, n: 50, a: 0.05 };
+  const zq = a => { let lo = 0, hi = 8; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; (1 - Phi(m) > a) ? lo = m : hi = m; } return (lo + hi) / 2; };
+  function drawPW() {
+    const zc = zq(PW.a / 2), delta = PW.d * Math.sqrt(PW.n / 2);
+    const power = 1 - Phi(zc - delta) + Phi(-zc - delta);
+    const n80 = Math.ceil(2 * ((zc + 0.8416) / Math.max(PW.d, 1e-9)) ** 2);
+    document.getElementById('ph-pw-pow').textContent = pct(power, 1);
+    document.getElementById('ph-pw-beta').textContent = pct(1 - power, 1);
+    document.getElementById('ph-pw-zc').textContent = '± ' + fmt(zc, 2);
+    document.getElementById('ph-pw-n80').textContent = PW.d > 0 ? n80.toLocaleString('es') + ' por grupo' : '–';
+    document.getElementById('ph-pw-head').textContent = `δ = d·√(n/2) = ${fmt(delta, 2)}`;
+    const f = fit(document.getElementById('ph-c-pow')); if (!f) return; const { ctx, w, h } = f;
+    const accent = tok('--accent'), hot = tok('--hot'), ink = tok('--ink'), muted = tok('--muted'), line = tok('--line');
+    ctx.clearRect(0, 0, w, h);
+    const pad = { l: 12, r: 12, t: 16, b: 26 }, lo = -4, hi = Math.max(6, delta + 4);
+    const X = v => pad.l + (v - lo) / (hi - lo) * (w - pad.l - pad.r);
+    const peak = npdf(0, 0, 1) * 1.1, Y = d => h - pad.b - d / peak * (h - pad.t - pad.b);
+    const area = (a, b, m, col, alpha) => { ctx.fillStyle = col; ctx.globalAlpha = alpha; ctx.beginPath(); ctx.moveTo(X(a), Y(0)); for (let i = 0; i <= 80; i++) { const x = a + (b - a) * i / 80; ctx.lineTo(X(x), Y(npdf(x, m, 1))); } ctx.lineTo(X(b), Y(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; };
+    area(zc, hi, delta, accent, .45); area(lo, -zc, delta, accent, .45);
+    area(-zc, zc, delta, muted, .18);
+    area(zc, hi, 0, hot, .7); area(lo, -zc, 0, hot, .7);
+    for (const [m, col, dash] of [[0, ink, []], [delta, accent, [5, 4]]]) {
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath();
+      for (let i = 0; i <= 240; i++) { const x = lo + (hi - lo) * i / 240; const y = Y(npdf(x, m, 1)); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.strokeStyle = muted; ctx.lineWidth = 1;
+    for (const z of [-zc, zc]) { ctx.beginPath(); ctx.moveTo(Math.round(X(z)) + .5, pad.t - 4); ctx.lineTo(Math.round(X(z)) + .5, h - pad.b); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(pad.l, h - pad.b + .5); ctx.lineTo(w - pad.r, h - pad.b + .5); ctx.stroke();
+    ctx.fillStyle = ink; ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'center';
+    ctx.fillText('H₀', X(0), Y(npdf(0, 0, 1)) - 4);
+    if (delta > 0.6) { ctx.fillStyle = accent; ctx.fillText('H₁', X(delta), Y(npdf(0, 0, 1)) - 4); }
+    axisTicks(ctx, X, -4, Math.floor(hi), w < 480 ? 2 : 1, h - 8, muted);
+  }
+  const pwD = document.getElementById('ph-pw-d'), pwN = document.getElementById('ph-pw-n');
+  pwD.addEventListener('input', () => { PW.d = +pwD.value / 100; document.getElementById('ph-pw-d-v').textContent = fmt(PW.d, 2); drawPW(); });
+  pwN.addEventListener('input', () => { PW.n = +pwN.value; document.getElementById('ph-pw-n-v').textContent = PW.n; drawPW(); });
+  segBind('ph-pw-alpha', b => { PW.a = +b.dataset.a; drawPW(); });
+
+  M.draw.ph = () => { drawPH(); drawAB(); drawPW(); };
+  M.init.push(() => { abRun(); drawPW(); });
 })();

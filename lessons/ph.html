@@ -5,32 +5,129 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Pruebas de hipótesis y valor p</h1>
-      <p>¿El nuevo diseño de la página realmente vende más, o fue suerte? Una prueba de hipótesis responde comparando lo que observaste con lo que el azar produciría si no hubiera ningún efecto.</p>
-      <div class="lmeta"><span>55 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza</span><span>Python · SciPy</span></div>
+      <p>¿El nuevo diseño de la página realmente vende más, o fue suerte? Una prueba de hipótesis responde comparando lo que observaste con lo que el azar produciría si no hubiera ningún efecto. Aquí aprendes el marco de Neyman-Pearson, qué es y qué no es el valor p, cómo calcular la potencia y el tamaño de muestra, cómo controlar los falsos positivos cuando haces muchas pruebas y por qué tantos resultados “significativos” no se replican.</p>
+      <div class="lmeta"><span>100 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#ph-idea" data-sec="ph-idea">La idea</a></li>
-        <li><a href="#ph-lab" data-sec="ph-lab">Laboratorio: la moneda</a></li>
-        <li><a href="#ph-pvalor" data-sec="ph-pvalor">Qué es el valor p</a></li>
-        <li><a href="#ph-errores" data-sec="ph-errores">Errores y potencia</a></li>
+        <li><a href="#ph-intro" data-sec="ph-intro">Introducción</a></li>
+        <li><a href="#ph-def" data-sec="ph-def">Definición</a></li>
+        <li><a href="#ph-marco" data-sec="ph-marco">El marco de Neyman-Pearson</a></li>
+        <li><a href="#ph-pvalor" data-sec="ph-pvalor">El valor p a fondo</a></li>
+        <li><a href="#ph-potencia" data-sec="ph-potencia">Potencia y tamaño de muestra</a></li>
+        <li><a href="#ph-multiples" data-sec="ph-multiples">Pruebas múltiples y reproducibilidad</a></li>
+        <li><a href="#ph-prop" data-sec="ph-prop">Propiedades</a></li>
+        <li><a href="#ph-lab" data-sec="ph-lab">Ejercicios de simulación</a></li>
+        <li><a href="#ph-apps" data-sec="ph-apps">Aplicaciones reales</a></li>
         <li><a href="#ph-code" data-sec="ph-code">En R y Python</a></li>
-        <li><a href="#ph-quiz" data-sec="ph-quiz">Comprueba</a></li>
-        <li><a href="#ph-ej" data-sec="ph-ej">Ejercicios</a></li>
+        <li><a href="#ph-quiz" data-sec="ph-quiz">Quiz</a></li>
+        <li><a href="#ph-ej" data-sec="ph-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="ph-idea"><span class="sec">§ 1</span>La idea</h2>
-      <p>Una prueba de hipótesis funciona como un juicio. Partimos de la <b>hipótesis nula</b> \(H_0\): no hay efecto, la diferencia es puro azar. Solo la rechazamos si los datos serían muy raros en un mundo donde \(H_0\) es cierta.</p>
-      <div class="eq">\[ H_0:\ p = 0{,}5 \qquad\text{frente a}\qquad H_1:\ p \neq 0{,}5 \]
-        <div class="note">Ejemplo: \(p\) es la probabilidad de que una moneda caiga en cara. \(H_0\) dice que la moneda es justa.</div>
+      <h2 id="ph-intro"><span class="sec">§ 1</span>Introducción</h2>
+      <p>Lanzas una moneda 100 veces y salen 60 caras. ¿Está cargada? Una moneda justa también puede dar 60 caras; la pregunta es qué tan raro sería. Una prueba de hipótesis funciona como un juicio: partimos de la <b>hipótesis nula</b> \(H_0\) (no hay efecto, la moneda es justa, la diferencia es puro azar) y solo la rechazamos si los datos serían muy raros en un mundo donde \(H_0\) es cierta. Como en un juicio, “no culpable” no significa “inocente”: no rechazar \(H_0\) no prueba que sea verdadera.</p>
+      <p><b>Un poco de historia.</b> John Arbuthnot hizo en 1710 la primera prueba de significancia conocida: en 82 años seguidos de registros de Londres nacieron más niños que niñas, y calculó que bajo igualdad eso tendría probabilidad \((1/2)^{82}\). Karl Pearson introdujo en 1900 la prueba chi-cuadrado y su valor p. Ronald Fisher popularizó en los años 1920 el valor p como medida continua de evidencia contra \(H_0\) y sugirió 0,05 como umbral orientativo. Jerzy Neyman y Egon Pearson (1933) propusieron un marco distinto, de decisión: dos hipótesis, dos tipos de error y pruebas óptimas. La práctica actual mezcla ambas tradiciones, y esa mezcla explica muchos malentendidos. En 2016 la American Statistical Association publicó una declaración oficial sobre el uso correcto de los valores p.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a plantear hipótesis nula y alternativa, elegir un estadístico y definir la región de rechazo;</li>
+          <li>a definir y calcular el valor p, y a evitar sus cinco malas interpretaciones más comunes;</li>
+          <li>a distinguir los errores tipo I y II y a calcular la potencia de una prueba;</li>
+          <li>a planificar el tamaño de muestra para detectar un efecto con potencia dada;</li>
+          <li>a controlar los falsos positivos con Bonferroni, Holm y Benjamini-Hochberg;</li>
+          <li>a reconocer prácticas que inflan los falsos positivos, como mirar los datos todos los días.</li>
+        </ul>
       </div>
 
-      <h2 id="ph-lab"><span class="sec">§ 2</span>Laboratorio: la moneda</h2>
-      <p>Lanzas una moneda 100 veces. Las barras muestran qué tan probable es cada número de caras si la moneda es justa. Las barras resaltadas son los resultados al menos tan extremos como el tuyo; su suma es el valor p.</p>
+      <h2 id="ph-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> Una <b>hipótesis estadística</b> es una afirmación sobre la distribución de los datos, usualmente sobre un parámetro \(\theta\). Una <b>prueba</b> de \(H_0: \theta \in \Theta_0\) frente a \(H_1: \theta \in \Theta_1\) es una regla que, a partir de un <b>estadístico de prueba</b> \(T(X_1, \dots, X_n)\), decide rechazar \(H_0\) cuando \(T\) cae en una <b>región de rechazo</b> \(R\). Su <b>nivel de significancia</b> es
+        \[ \alpha = \sup_{\theta \in \Theta_0} P_\theta(T \in R), \]
+        y su <b>función de potencia</b> es \(\pi(\theta) = P_\theta(T \in R)\) para \(\theta \in \Theta_1\).</div>
+      <ul>
+        <li><b>\(H_0\)</b>: la hipótesis de “no efecto” o del statu quo, la que se pone a prueba. Debe permitir calcular la distribución de \(T\).</li>
+        <li><b>\(H_1\)</b>: lo que se quiere detectar. Puede ser <b>bilateral</b> (\(\theta \ne \theta_0\)) o <b>unilateral</b> (\(\theta &gt; \theta_0\) o \(\theta &lt; \theta_0\)), y se decide <i>antes</i> de ver los datos.</li>
+        <li><b>Estadístico</b>: un resumen de los datos cuya distribución bajo \(H_0\) es conocida, como \(z = (\bar x - \mu_0)/(\sigma/\sqrt n)\) o el número de caras.</li>
+        <li><b>Valor p</b>: la probabilidad, calculada bajo \(H_0\), de obtener un estadístico al menos tan extremo (en la dirección de \(H_1\)) como el observado.</li>
+      </ul>
+      <div class="eq">\[ p\text{-valor} = P_{H_0}\big(T \ge t_{\text{obs}}\big) \ \text{(unilateral)}, \qquad p\text{-valor} = P_{H_0}\big(|T| \ge |t_{\text{obs}}|\big) \ \text{(bilateral, si } T \text{ es simétrico)} \]</div>
+      <p><b>Ejemplo numérico.</b> Moneda: \(H_0: p = 0{,}5\) frente a \(H_1: p \ne 0{,}5\), con \(T\) = número de caras en 100 lanzamientos, \(T \sim \text{Bin}(100;\ 0{,}5)\) bajo \(H_0\). Con 60 caras, el valor p es \(P(T \ge 60) + P(T \le 40) = 2 \cdot 0{,}0284 = 0{,}0569\). Con \(\alpha = 0{,}05\), no se rechaza (por poco). Con la aproximación normal: \(z = (60 - 50)/5 = 2\) y \(p \approx 2(1 - \Phi(2)) = 0{,}0455\); con corrección por continuidad, \(z = 9{,}5/5 = 1{,}9\) y \(p \approx 0{,}057\), casi igual al exacto.</p>
+
+      <h2 id="ph-marco"><span class="sec">§ 3</span>El marco de Neyman-Pearson</h2>
+      <p>Toda decisión puede equivocarse de dos formas:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th></th><th>\(H_0\) es cierta</th><th>\(H_0\) es falsa</th></tr></thead>
+        <tbody>
+          <tr><td><b>Rechazar \(H_0\)</b></td><td>Error tipo I (falso positivo), probabilidad \(\alpha\)</td><td>Acierto: potencia \(1 - \beta\)</td></tr>
+          <tr><td><b>No rechazar \(H_0\)</b></td><td>Acierto: \(1 - \alpha\)</td><td>Error tipo II (falso negativo), probabilidad \(\beta\)</td></tr>
+        </tbody>
+      </table></div>
+      <p>No se pueden hacer ambos errores pequeños a la vez con \(n\) fijo: agrandar la región de rechazo baja \(\beta\) pero sube \(\alpha\). La convención de Neyman-Pearson es <b>fijar \(\alpha\)</b> (el error considerado más grave, como condenar a un inocente o aprobar un medicamento inútil) y, entre las pruebas de nivel \(\alpha\), elegir la de mayor potencia.</p>
+      <p><b>Lema de Neyman-Pearson.</b> Para hipótesis simples \(H_0: \theta = \theta_0\) frente a \(H_1: \theta = \theta_1\), la prueba más potente de nivel \(\alpha\) rechaza cuando el cociente de verosimilitudes es grande:</p>
+      <div class="eq">\[ \Lambda(\mathbf x) = \frac{L(\theta_1;\ \mathbf x)}{L(\theta_0;\ \mathbf x)} &gt; k, \qquad \text{con } k \text{ tal que } P_{\theta_0}(\Lambda &gt; k) = \alpha \]
+        <div class="note">Para datos normales con \(\sigma\) conocida y \(\mu_1 &gt; \mu_0\), \(\ln\Lambda = \frac{n(\mu_1 - \mu_0)}{\sigma^2}\bar x + \text{cte}\) crece con \(\bar x\): la prueba óptima rechaza para \(\bar x\) grande, es decir, la prueba z unilateral. Como la región no depende de \(\mu_1\), la prueba es <b>uniformemente más potente</b> para toda \(H_1: \mu &gt; \mu_0\). Esta lógica de cociente de verosimilitudes es la base de casi todas las pruebas que verás: <a href="#ttest">t</a>, <a href="#chi2">chi-cuadrado</a>, <a href="#anova">ANOVA</a>.</div>
+      </div>
+      <p><b>Los pasos de una prueba.</b> (1) Plantea \(H_0\) y \(H_1\) y fija \(\alpha\) antes de ver los datos. (2) Elige el estadístico y verifica sus supuestos. (3) Calcula el estadístico observado. (4) Calcula el valor p o compara con el valor crítico. (5) Decide y, sobre todo, <b>reporta el tamaño del efecto con su intervalo de confianza</b>.</p>
+      <p><b>Ejemplo resuelto.</b> Una máquina debe llenar 500 ml. En 16 botellas, \(\bar x = 497{,}8\) y \(s = 4{,}2\). \(H_0: \mu = 500\) frente a \(H_1: \mu \ne 500\). El estadístico es \(t = (497{,}8 - 500)/(4{,}2/\sqrt{16}) = -2{,}2/1{,}05 = -2{,}095\), con 15 grados de libertad. El valor p bilateral es \(2P(t_{15} \le -2{,}095) \approx 0{,}054\): no se rechaza al 5 %. Si el interés era solo detectar llenado de menos (\(H_1: \mu &lt; 500\), fijada de antemano), \(p \approx 0{,}027\) y sí se rechaza. Elegir la cola <i>después</i> de ver los datos para conseguir significancia es una forma de hacer trampa.</p>
+      <p><b>Dualidad con los intervalos.</b> La prueba bilateral de nivel \(\alpha\) rechaza \(H_0: \mu = \mu_0\) si y solo si \(\mu_0\) queda fuera del intervalo de confianza \(1 - \alpha\) (ver <a href="#ic">intervalos de confianza</a>). Aquí el IC al 95 % es \(497{,}8 \pm 2{,}131 \cdot 1{,}05 = [495{,}56;\ 500{,}04]\), que apenas incluye 500.</p>
+
+      <h2 id="ph-pvalor"><span class="sec">§ 4</span>El valor p a fondo</h2>
+      <p><b>Teorema.</b> Si el estadístico \(T\) es continuo y \(H_0\) (simple) es cierta, el valor p es una variable aleatoria \(\text{U}(0,1)\). Prueba: para la prueba unilateral, \(p = 1 - F_0(T)\), donde \(F_0\) es la acumulada de \(T\) bajo \(H_0\). Por la transformada integral de probabilidad, \(F_0(T) \sim \text{U}(0,1)\), y por tanto \(1 - F_0(T)\) también. Consecuencia: \(P_{H_0}(p \le \alpha) = \alpha\). Rechazar cuando \(p \le \alpha\) es exactamente una prueba de nivel \(\alpha\). Con estadísticos discretos (binomial), \(P(p \le \alpha) \le \alpha\): la prueba es conservadora.</p>
+      <p>Eso explica el histograma plano del segundo simulador de § 8 cuando no hay efecto, y por qué, si haces 20 pruebas sin efecto, esperas una significativa. Cuando \(H_1\) es cierta, los valores p se acumulan cerca de 0, y tanto más cuanto mayor es la potencia.</p>
+      <p><b>Lo que el valor p no es.</b> La declaración de la ASA (Wasserstein y Lazar, 2016) enumera seis principios. Los malentendidos más frecuentes:</p>
+      <ul>
+        <li>El valor p <b>no</b> es la probabilidad de que \(H_0\) sea cierta. Es \(P(\text{datos así} \mid H_0)\), no \(P(H_0 \mid \text{datos})\); confundirlas es la falacia del fiscal (ver <a href="#condicional">probabilidad condicional</a>).</li>
+        <li>\(1 - p\) <b>no</b> es la probabilidad de que el efecto sea real ni de que el resultado se replique.</li>
+        <li>Un valor p grande <b>no</b> prueba que no haya efecto; puede que tu muestra sea pequeña (potencia baja).</li>
+        <li>Significativo <b>no</b> quiere decir importante. Con muestras enormes, efectos diminutos dan valores p pequeños. El tamaño del efecto y su intervalo dicen si importa.</li>
+        <li>\(p = 0{,}049\) y \(p = 0{,}051\) son prácticamente la misma evidencia. El umbral 0,05 es una convención, no una frontera natural.</li>
+      </ul>
+      <p><b>¿Cuánta evidencia es \(p = 0{,}05\)?</b> Menos de lo que parece. Sellke, Bayarri y Berger (2001) mostraron que, para \(p &lt; 1/e\), el factor de Bayes a favor de \(H_1\) no puede superar \(-1/(e\,p\ln p)\). Con \(p = 0{,}05\), la evidencia es a lo sumo de 2,5 a 1 a favor de \(H_1\); con \(p = 0{,}01\), de 8 a 1. Si a priori la hipótesis tenía 50 % de probabilidad, tras \(p = 0{,}05\) la probabilidad posterior de \(H_0\) es todavía al menos del 29 %. Por esta razón algunos autores propusieron en 2018 usar 0,005 para hablar de “descubrimientos” (ver <a href="#bayes">estadística bayesiana</a>).</p>
+
+      <h2 id="ph-potencia"><span class="sec">§ 5</span>Potencia y tamaño de muestra</h2>
+      <p>La <b>potencia</b> es la probabilidad de rechazar \(H_0\) cuando el efecto es real. Depende de cuatro cosas: el tamaño del efecto, la variabilidad, el tamaño de muestra y \(\alpha\).</p>
+      <p><b>Derivación para dos medias.</b> Compara dos grupos de \(n\) observaciones cada uno, con desviación \(\sigma\) y diferencia real \(\Delta\). El estadístico \(Z = (\bar X_B - \bar X_A)/(\sigma\sqrt{2/n})\) es \(\mathcal{N}(0,1)\) bajo \(H_0\) y \(\mathcal{N}(\delta, 1)\) bajo \(H_1\), con \(\delta = \frac{\Delta}{\sigma}\sqrt{n/2} = d\sqrt{n/2}\), donde \(d = \Delta/\sigma\) es el <b>tamaño de efecto de Cohen</b>. La prueba bilateral rechaza si \(|Z| &gt; z_{\alpha/2}\), así que</p>
+      <div class="eq">\[ 1 - \beta = P(|Z| &gt; z_{\alpha/2}) = 1 - \Phi(z_{\alpha/2} - \delta) + \Phi(-z_{\alpha/2} - \delta) \;\approx\; 1 - \Phi(z_{\alpha/2} - \delta) \]
+        <div class="note">El segundo término (rechazar en la dirección equivocada) es despreciable salvo con \(\delta\) muy pequeño. Despejando \(\delta = z_{\alpha/2} + z_{\beta}\) se obtiene el tamaño por grupo:
+        \[ n = \frac{2\,(z_{\alpha/2} + z_{\beta})^2}{d^2}. \]</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> Para detectar \(d = 0{,}4\) con \(\alpha = 0{,}05\) (\(z = 1{,}96\)) y potencia 80 % (\(z_\beta = 0{,}8416\)): \(n = 2(2{,}8016)^2/0{,}16 \approx 98{,}1\), es decir 99 por grupo. Con solo 50 por grupo, \(\delta = 0{,}4 \cdot 5 = 2\) y la potencia es \(1 - \Phi(-0{,}04) \approx 0{,}52\): una moneda al aire. Cohen propuso como referencias \(d = 0{,}2\) (pequeño), 0,5 (mediano) y 0,8 (grande), aunque lo relevante es el efecto que importa en tu contexto.</p>
+      <div class="callout"><b>Estudios con poca potencia:</b> no solo fallan al detectar efectos. Cuando sí logran un resultado significativo, la estimación tiende a <b>exagerar</b> el efecto (error tipo M) y a veces tiene el signo equivocado (error tipo S), como mostraron Gelman y Carlin (2014). La pregunta 5 de § 12 lo comprueba por simulación. Calcular la potencia <i>antes</i> del estudio es obligatorio en ensayos clínicos; la “potencia post hoc” calculada con el efecto observado no aporta información nueva. La sesión <a href="#tamano">tamaño de muestra</a> amplía estos cálculos.</div>
+
+      <h2 id="ph-multiples"><span class="sec">§ 6</span>Pruebas múltiples y reproducibilidad</h2>
+      <p>Si haces \(m\) pruebas independientes con \(H_0\) cierta en todas, la probabilidad de al menos un falso positivo es \(1 - (1 - \alpha)^m\): 0,40 con \(m = 10\) y 0,64 con \(m = 20\). Hay dos maneras de controlar el problema:</p>
+      <ul>
+        <li><b>Tasa de error por familia (FWER)</b>: \(P(\text{al menos un falso positivo}) \le \alpha\). <b>Bonferroni</b> usa \(\alpha/m\) en cada prueba (por la desigualdad de Boole). <b>Holm</b> (1979) ordena los valores p \(p_{(1)} \le \cdots \le p_{(m)}\) y rechaza secuencialmente mientras \(p_{(k)} \le \alpha/(m - k + 1)\): controla lo mismo y es siempre al menos tan potente.</li>
+        <li><b>Tasa de falsos descubrimientos (FDR)</b>: la proporción esperada de falsos positivos entre los rechazos. <b>Benjamini y Hochberg</b> (1995) rechazan las \(k\) hipótesis con menor valor p, donde \(k\) es el mayor índice con \(p_{(k)} \le k\alpha/m\). Es lo habitual en genómica, donde se prueban miles de genes a la vez.</li>
+      </ul>
+      <p><b>Prácticas que inflan los falsos positivos</b> (a menudo sin mala intención): probar muchas variables o subgrupos y reportar solo los significativos; elegir la prueba, la cola o los datos atípicos a excluir después de ver los resultados; y la <b>parada opcional</b>, mirar el experimento cada día y detenerlo apenas \(p &lt; 0{,}05\). En el código de § 10, mirar 20 veces un experimento sin efecto eleva los falsos positivos del 5 % a cerca del 24 %. Simmons, Nelson y Simonsohn (2011) mostraron que combinando unas pocas de estas libertades se puede obtener \(p &lt; 0{,}05\) para casi cualquier hipótesis.</p>
+      <p><b>La crisis de replicación.</b> El proyecto Open Science Collaboration (<i>Science</i>, 2015) repitió 100 estudios de psicología publicados: el 97 % de los originales eran significativos, pero solo el 36 % de las réplicas lo fue, y los efectos replicados eran en promedio la mitad de los originales. Las respuestas de la comunidad: registrar hipótesis y análisis antes de recolectar datos, reportar tamaños de efecto con intervalos, calcular la potencia y publicar también los resultados nulos.</p>
+
+      <h2 id="ph-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>El nivel controla el error tipo I.</b> Por construcción, \(P_{H_0}(\text{rechazar}) \le \alpha\). Con estadístico continuo y \(H_0\) simple, la igualdad es exacta.</li>
+        <li><b>Uniformidad del valor p bajo \(H_0\).</b> \(p = 1 - F_0(T) \sim \text{U}(0,1)\) por la transformada integral; por eso \(P(p \le \alpha) = \alpha\).</li>
+        <li><b>Potencia creciente en \(n\), \(|\Delta|\) y \(\alpha\).</b> \(1 - \beta \approx 1 - \Phi(z_{\alpha/2} - d\sqrt{n/2})\) crece con \(d\sqrt n\) y con \(\alpha\). Una prueba <b>consistente</b> tiene potencia \(\to 1\) cuando \(n \to \infty\) para cualquier efecto fijo distinto de 0.</li>
+        <li><b>Compromiso entre errores.</b> Con \(n\) fijo, bajar \(\alpha\) sube \(\beta\): el valor crítico se aleja y la región de rechazo se achica.</li>
+        <li><b>Lema de Neyman-Pearson.</b> Entre las pruebas de nivel \(\alpha\) para hipótesis simples, la del cociente de verosimilitudes es la más potente.</li>
+        <li><b>Dualidad prueba-intervalo.</b> Rechazar \(H_0: \theta = \theta_0\) al nivel \(\alpha\) bilateral equivale a que \(\theta_0\) quede fuera del IC \(1 - \alpha\).</li>
+        <li><b>Unilateral frente a bilateral.</b> Para el mismo estadístico simétrico, \(p_{\text{bilateral}} = 2\,p_{\text{unilateral}}\) cuando el efecto va en la dirección de \(H_1\); la prueba unilateral es más potente en esa dirección y ciega en la otra.</li>
+        <li><b>Multiplicidad.</b> \(P(\text{algún falso positivo}) = 1 - (1-\alpha)^m\) con pruebas independientes; Bonferroni garantiza FWER \(\le \alpha\) sin suponer independencia, y Benjamini-Hochberg garantiza FDR \(\le \alpha\) con independencia o dependencia positiva.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes:</b>
+        <ul>
+          <li>Decir “aceptamos \(H_0\)” o “no hay efecto” cuando \(p &gt; 0{,}05\). Lo correcto: “los datos no aportan evidencia suficiente”, y mirar el intervalo para ver qué efectos siguen siendo compatibles.</li>
+          <li>Leer el valor p como la probabilidad de que \(H_0\) sea cierta, o \(1 - p\) como la probabilidad de que el efecto sea real.</li>
+          <li>Reportar solo “significativo/no significativo” sin el tamaño del efecto ni su intervalo.</li>
+          <li>Decidir la hipótesis, la cola o el análisis después de ver los datos, o detener el experimento apenas sale significativo.</li>
+          <li>Hacer decenas de pruebas y destacar las que dieron \(p &lt; 0{,}05\) sin corregir por multiplicidad.</li>
+        </ul>
+      </div>
+
+      <h2 id="ph-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>En el primer simulador lanzas una moneda 100 veces. Las barras muestran qué tan probable es cada número de caras si la moneda es justa. Las barras resaltadas son los resultados al menos tan extremos como el tuyo; su suma es el valor p.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · distribución bajo H₀</span><span class="num" id="ph-head">–</span></div>
         <div class="lab-body">
@@ -45,7 +142,7 @@
               </div>
             </div>
           </div>
-          <canvas class="plot" id="c-ph" height="250" aria-label="Distribución binomial de caras bajo la hipótesis nula, con las colas del valor p resaltadas"></canvas>
+          <canvas class="plot" id="ph-c-coin" height="250" aria-label="Distribución binomial de caras bajo la hipótesis nula, con las colas del valor p resaltadas"></canvas>
           <div class="readout">
             <div><span>caras observadas</span><b id="ph-o">–</b></div>
             <div><span>valor p (dos colas)</span><b id="ph-p">–</b></div>
@@ -55,80 +152,174 @@
         </div>
         <figcaption>Con 60 caras el valor p queda muy cerca de 0,05. Prueba 59 y 61: una sola cara cambia la decisión. Por eso conviene reportar el valor p y no solo “significativo o no”.</figcaption>
       </figure>
-
-      <h2 id="ph-pvalor"><span class="sec">§ 3</span>Qué es el valor p</h2>
-      <div class="eq">\[ p\text{-valor} = P\big(\text{un resultado al menos tan extremo como el observado} \;\big|\; H_0 \text{ es cierta}\big) \]</div>
-      <p>Si el valor p es menor que \(\alpha\), decimos que el resultado es <b>estadísticamente significativo</b> y rechazamos \(H_0\). Tres malentendidos frecuentes:</p>
-      <ul>
-        <li>El valor p <b>no</b> es la probabilidad de que \(H_0\) sea cierta.</li>
-        <li>Un valor p grande <b>no</b> prueba que no haya efecto; puede que tu muestra sea pequeña.</li>
-        <li>Significativo <b>no</b> quiere decir importante. Con muestras enormes, efectos diminutos dan valores p pequeños.</li>
-      </ul>
-
-      <h2 id="ph-errores"><span class="sec">§ 4</span>Errores y potencia</h2>
-      <p>Toda decisión puede equivocarse de dos formas. Un <b>error tipo I</b> es rechazar \(H_0\) cuando era cierta (un falso positivo); ocurre con probabilidad \(\alpha\). Un <b>error tipo II</b> es no detectar un efecto que sí existe. La <b>potencia</b> es la probabilidad de detectarlo: \(1-\beta\).</p>
-      <p>El simulador corre 200 pruebas A/B. En cada una, 50 personas ven la página A y 50 la página B, y se compara su tiempo en la página. Tú decides si existe un efecto real.</p>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Mueve las caras de 55 a 65 con α = 0,05. ¿Desde qué valor se rechaza?
+          <details><summary>Qué deberías observar</summary><p>Con 60 el valor p es 0,057 y no se rechaza; con 61 baja a ≈ 0,035 y se rechaza. Simétricamente, con 39 o menos también. La región de rechazo al 5 % es “39 o menos, o 61 o más”, y su probabilidad real bajo H₀ es ≈ 0,035, menor que 0,05: la binomial discreta hace que la prueba sea conservadora.</p></details></li>
+        <li>Fija 62 caras y cambia α entre 0,10, 0,05 y 0,01.
+          <details><summary>Qué deberías observar</summary><p>El valor p no cambia (≈ 0,021): es una propiedad de los datos. Lo que cambia es la decisión: se rechaza con 0,10 y 0,05, pero no con 0,01. Por eso α debe fijarse antes de ver los datos.</p></details></li>
+        <li>Pon 50 caras y luego 52.
+          <details><summary>Qué deberías observar</summary><p>Con 50 el valor p es 1: todos los resultados son al menos tan extremos. Con 52 es ≈ 0,76. Un valor p grande no dice que la moneda sea justa; solo que 52 caras son muy compatibles con una moneda justa (y también con una de p = 0,55).</p></details></li>
+      </ol>
+      <p>El segundo simulador corre 200 pruebas A/B. En cada una, 50 personas ven la página A y 50 la página B, y se compara su tiempo en la página. Tú decides si existe un efecto real.</p>
       <figure class="instrument lab">
-        <div class="instrument-head"><span><span class="dot"></span>simulador · 200 experimentos A/B</span><span class="num" id="ab-head">–</span></div>
+        <div class="instrument-head"><span><span class="dot"></span>simulador · 200 experimentos A/B</span><span class="num" id="ph-ab-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
             <div class="ctrl">
-              <label id="ab-d-label">EFECTO REAL DE LA PÁGINA B</label>
-              <div class="seg" id="ab-d" role="group" aria-labelledby="ab-d-label">
+              <label id="ph-ab-d-label">EFECTO REAL DE LA PÁGINA B</label>
+              <div class="seg" id="ph-ab-d" role="group" aria-labelledby="ph-ab-d-label">
                 <button data-d="0" aria-pressed="true">Ninguno</button>
                 <button data-d="0.3" aria-pressed="false">Pequeño (0,3σ)</button>
                 <button data-d="0.6" aria-pressed="false">Grande (0,6σ)</button>
               </div>
             </div>
-            <button class="btn btn-ghost btn-sm" id="ab-again" type="button">Correr otros 200</button>
+            <button class="btn btn-ghost btn-sm" id="ph-ab-again" type="button">Correr otros 200</button>
           </div>
           <div class="twin">
             <div>
-              <div class="plot-label"><span>Cada punto es un experimento</span><span>● p &lt; 0,05</span></div>
-              <canvas class="plot" id="c-ab" height="220" aria-label="Doscientos experimentos; los significativos aparecen resaltados"></canvas>
+              <div class="plot-label"><span>Cada punto es un experimento</span><span>resaltado: p &lt; 0,05</span></div>
+              <canvas class="plot" id="ph-c-ab" height="220" aria-label="Doscientos experimentos; los significativos aparecen resaltados"></canvas>
             </div>
             <div>
-              <div class="plot-label"><span>Histograma de los 200 valores p</span><span>┄ esperado si H₀</span></div>
-              <canvas class="plot" id="c-ab-h" height="220" aria-label="Histograma de los valores p de los doscientos experimentos"></canvas>
+              <div class="plot-label"><span>Histograma de los 200 valores p</span><span>línea: esperado si H₀</span></div>
+              <canvas class="plot" id="ph-c-abh" height="220" aria-label="Histograma de los valores p de los doscientos experimentos"></canvas>
             </div>
           </div>
           <div class="readout">
-            <div><span>experimentos significativos</span><b id="ab-sig">–</b></div>
-            <div><span>proporción</span><b id="ab-rate">–</b></div>
-            <div><span>esto mide</span><b id="ab-what">–</b></div>
-            <div><span>valor teórico</span><b id="ab-theory">–</b></div>
+            <div><span>experimentos significativos</span><b id="ph-ab-sig">–</b></div>
+            <div><span>proporción</span><b id="ph-ab-rate">–</b></div>
+            <div><span>esto mide</span><b id="ph-ab-what">–</b></div>
+            <div><span>valor teórico</span><b id="ph-ab-theory">–</b></div>
           </div>
         </div>
         <figcaption>Sin efecto real, los valores p se reparten parejo entre 0 y 1, y aun así cerca del 5 % sale “significativo” por azar. Si corres 20 pruebas sin efecto, lo esperable es que una salga significativa.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con “Ninguno”, pulsa “Correr otros 200” cinco veces y anota la proporción de significativos.
+          <details><summary>Qué deberías observar</summary><p>Oscila alrededor de 5 % (unos 10 de 200, normalmente entre 4 y 16). El histograma de valores p es aproximadamente plano: es la uniformidad del valor p bajo H₀. Cada punto resaltado es un falso positivo.</p></details></li>
+        <li>Cambia a “Pequeño (0,3σ)”.
+          <details><summary>Qué deberías observar</summary><p>Solo cerca del 32 % de los experimentos detecta el efecto, aunque es real en todos: la potencia es baja. El histograma de valores p se carga hacia la izquierda, pero hay muchos valores p grandes. Con esta potencia, la mayoría de los estudios “fracasarían”.</p></details></li>
+        <li>Cambia a “Grande (0,6σ)”.
+          <details><summary>Qué deberías observar</summary><p>La potencia sube a ≈ 85 % y casi todos los valores p caen en la primera barra (p &lt; 0,05). El mismo n con un efecto el doble de grande pasa de 32 % a 85 % de potencia, porque la potencia depende de d·√(n/2).</p></details></li>
+      </ol>
+      <p>El tercer simulador muestra de dónde sale la potencia. La curva sólida es la distribución del estadístico z bajo \(H_0\) y la punteada, bajo \(H_1\), desplazada en \(\delta = d\sqrt{n/2}\). En rojo, el área \(\alpha\) (error tipo I); en azul, la potencia; en gris, \(\beta\).</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · potencia de una prueba de dos medias</span><span class="num" id="ph-pw-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="ph-pw-d">TAMAÑO DE EFECTO · d = <b id="ph-pw-d-v" class="num">0,40</b></label><input id="ph-pw-d" type="range" min="0" max="120" value="40"></div>
+            <div class="ctrl"><label for="ph-pw-n">TAMAÑO POR GRUPO · n = <b id="ph-pw-n-v" class="num">50</b></label><input id="ph-pw-n" type="range" min="5" max="300" value="50"></div>
+            <div class="ctrl">
+              <label id="ph-pw-a-label">α</label>
+              <div class="seg" id="ph-pw-alpha" role="group" aria-labelledby="ph-pw-a-label">
+                <button data-a="0.10" aria-pressed="false">0,10</button>
+                <button data-a="0.05" aria-pressed="true">0,05</button>
+                <button data-a="0.01" aria-pressed="false">0,01</button>
+              </div>
+            </div>
+          </div>
+          <canvas class="plot" id="ph-c-pow" height="240" aria-label="Distribuciones del estadístico bajo la hipótesis nula y la alternativa, con las áreas de error tipo I, potencia y error tipo II"></canvas>
+          <div class="legend"><span><i style="background:var(--hot)"></i>α (error tipo I)</span><span><i style="background:var(--accent)"></i>potencia 1 − β</span><span><i style="background:var(--muted)"></i>β (error tipo II)</span></div>
+          <div class="readout">
+            <div><span>potencia</span><b id="ph-pw-pow">–</b></div>
+            <div><span>β (error tipo II)</span><b id="ph-pw-beta">–</b></div>
+            <div><span>valor crítico z</span><b id="ph-pw-zc">–</b></div>
+            <div><span>n para potencia 80 %</span><b id="ph-pw-n80">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con d = 0,4 y 50 por grupo la potencia es de apenas 52 %. Sube n hasta 99 y llegarás al 80 % que se exige habitualmente.</figcaption>
+      </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con d = 0,40 y α = 0,05, sube n hasta que la potencia llegue a 80 %.
+          <details><summary>Qué deberías observar</summary><p>Ocurre cerca de n = 99 por grupo, el valor que da la fórmula n = 2(z₀,₀₂₅ + z₀,₂)²/d². La curva punteada se aleja de la sólida como √n.</p></details></li>
+        <li>Con n = 100 fijo, cambia α de 0,05 a 0,01.
+          <details><summary>Qué deberías observar</summary><p>El valor crítico pasa de 1,96 a 2,58, el área roja se achica y la potencia cae de ≈ 80 % a ≈ 60 %. Ser más exigente con los falsos positivos cuesta falsos negativos, salvo que aumentes n.</p></details></li>
+        <li>Pon d = 0 y mira la potencia.
+          <details><summary>Qué deberías observar</summary><p>Las dos curvas coinciden y la “potencia” vale exactamente α: sin efecto real, solo puedes rechazar por error. El readout de n para 80 % no existe, porque ningún tamaño detecta un efecto nulo.</p></details></li>
+        <li>Pon d = 0,1 (efecto muy pequeño) y busca el n para 80 %.
+          <details><summary>Qué deberías observar</summary><p>Hacen falta unas 1 570 personas por grupo. Los efectos pequeños son caros de detectar: dividir d por 4 multiplica n por 16.</p></details></li>
+      </ol>
 
-      <h2 id="ph-code"><span class="sec">§ 5</span>En R y Python</h2>
+      <h2 id="ph-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Física: el descubrimiento del bosón de Higgs y el criterio de 5σ</h3>
+      <p>En julio de 2012, los experimentos ATLAS y CMS del CERN anunciaron una nueva partícula compatible con el bosón de Higgs. La hipótesis nula era “solo hay fondo, no hay partícula”, y el estadístico, el exceso de eventos en una región de masa cercana a 125 GeV. La física de partículas exige un exceso de al menos 5 desviaciones estándar para hablar de descubrimiento, un valor p unilateral de \(1 - \Phi(5) \approx 2{,}9 \cdot 10^{-7}\). El umbral es tan estricto porque se buscan señales en muchas regiones de masa a la vez (el “efecto de mirar en otro lado”, un problema de pruebas múltiples) y porque los errores sistemáticos son difíciles de modelar. La decisión: anunciar el descubrimiento solo cuando ambos experimentos, de forma independiente, superaron el umbral.</p>
+      <h3>Salud: estudios de asociación del genoma completo</h3>
+      <p>Un estudio de asociación del genoma completo (GWAS) prueba alrededor de un millón de variantes genéticas para ver cuáles se asocian a una enfermedad. Con \(\alpha = 0{,}05\) en cada una, se esperarían 50 000 falsos positivos. El estándar del campo es \(p &lt; 5 \cdot 10^{-8}\), que corresponde a una corrección de Bonferroni para aproximadamente un millón de pruebas independientes. La decisión: solo las variantes que superan ese umbral, y que luego se replican en una cohorte independiente, se consideran asociaciones confirmadas. Para priorizar candidatos en análisis exploratorios se usa la FDR de Benjamini-Hochberg.</p>
+      <h3>Industria: verificación del llenado</h3>
+      <p>Una autoridad de metrología legal inspecciona una línea de envasado que declara 500 ml. Toma 16 botellas: \(\bar x = 497{,}8\), \(s = 4{,}2\). La prueba t bilateral da \(p \approx 0{,}054\); la unilateral, que corresponde a la pregunta del inspector (¿se llena de menos?) si se fijó de antemano, da \(p \approx 0{,}027\). La decisión: con \(\alpha = 0{,}05\), sancionar o exigir un ajuste. La empresa, por su parte, debería usar el intervalo \([495{,}6;\ 500{,}0]\) para estimar cuánto ajustar la máquina, y calcular la potencia del plan de inspección: con 16 botellas, un déficit de 2 ml se detecta menos de la mitad de las veces (potencia ≈ 41 %).</p>
+      <h3>Tecnología: pruebas A/B y la tentación de mirar</h3>
+      <p>Una tienda compara dos páginas de pago con 6 000 visitas cada una: A convierte el 8,0 % y B el 9,2 %. La prueba de dos proporciones da \(z \approx 2{,}34\), \(p \approx 0{,}019\), y un IC al 95 % para la mejora de \([0{,}2;\ 2{,}2]\) puntos porcentuales. La decisión: adoptar B, sabiendo que la mejora podría ser pequeña. Pero el experimento tenía potencia de solo ≈ 50 % para detectar una mejora de 1 punto: el cálculo previo pedía unas 12 200 visitas por grupo. Y si el equipo hubiera revisado el panel todos los días deteniéndose al primer \(p &lt; 0{,}05\), la tasa de falsos positivos habría sido de alrededor del 24 %. Las plataformas de experimentación usan pruebas secuenciales con umbrales corregidos para permitir mirar sin inflar el error.</p>
+
+      <h2 id="ph-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <p>Primero la moneda. Después el caso A/B completo: prueba de dos proporciones, intervalo para la mejora, cálculo del tamaño de muestra que hacía falta y una simulación que mide cuánto se inflan los falsos positivos al mirar el experimento cada día.</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
-<span class="k">import</span> numpy <span class="k">as</span> np
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">from</span> statsmodels.stats.proportion <span class="k">import</span> proportions_ztest, proportion_effectsize
+<span class="k">from</span> statsmodels.stats.power <span class="k">import</span> NormalIndPower
 
-<span class="c"># 1. ¿Está cargada la moneda? 60 caras en 100 lanzamientos</span>
-res = stats.<span class="f">binomtest</span>(<span class="n">60</span>, n=<span class="n">100</span>, p=<span class="n">0.5</span>)
-<span class="f">print</span>(<span class="s">f"p = {res.pvalue:.4f}"</span>)                    <span class="c"># 0.0569</span>
+<span class="c"># --- 1) ¿Está cargada la moneda? 60 caras en 100 lanzamientos ---</span>
+<span class="f">print</span>(<span class="f">round</span>(stats.<span class="f">binomtest</span>(<span class="n">60</span>, n=<span class="n">100</span>, p=<span class="n">0.5</span>).pvalue, <span class="n">4</span>))     <span class="c"># 0.0569</span>
 
-<span class="c"># 2. Prueba A/B: comparar dos medias con la t de Welch</span>
-rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
-a = rng.<span class="f">normal</span>(<span class="n">0.0</span>, <span class="n">1</span>, <span class="n">50</span>)
-b = rng.<span class="f">normal</span>(<span class="n">0.6</span>, <span class="n">1</span>, <span class="n">50</span>)
-t, p = stats.<span class="f">ttest_ind</span>(b, a, equal_var=<span class="k">False</span>)
-<span class="f">print</span>(<span class="s">f"t = {t:.2f}, p = {p:.4f}"</span>)</code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="c"># 1. ¿Está cargada la moneda? 60 caras en 100 lanzamientos</span>
-<span class="f">binom.test</span>(<span class="n">60</span>, n = <span class="n">100</span>, p = <span class="n">0.5</span>)$p.value      <span class="c"># 0.0569</span>
+<span class="c"># --- 2) Caso aplicado: prueba A/B de conversión ---</span>
+compras = np.<span class="f">array</span>([<span class="n">480</span>, <span class="n">552</span>])            <span class="c"># A, B</span>
+visitas = np.<span class="f">array</span>([<span class="n">6000</span>, <span class="n">6000</span>])          <span class="c"># 8.0 % frente a 9.2 %</span>
+z, p = <span class="f">proportions_ztest</span>(compras, visitas)
+<span class="f">print</span>(<span class="f">round</span>(z, <span class="n">2</span>), <span class="f">round</span>(p, <span class="n">4</span>))           <span class="c"># z ≈ -2.34, p ≈ 0.019</span>
+pa, pb = compras / visitas
+ee = np.<span class="f">sqrt</span>(pa * (<span class="n">1</span> - pa) / <span class="n">6000</span> + pb * (<span class="n">1</span> - pb) / <span class="n">6000</span>)
+<span class="f">print</span>(np.<span class="f">round</span>([pb - pa - <span class="n">1.96</span> * ee, pb - pa + <span class="n">1.96</span> * ee], <span class="n">4</span>))   <span class="c"># IC 95 % de la mejora ≈ [0.002 0.022]</span>
 
-<span class="c"># 2. Prueba A/B: comparar dos medias con la t de Welch</span>
-<span class="f">set.seed</span>(<span class="n">1</span>)
-a &lt;- <span class="f">rnorm</span>(<span class="n">50</span>, mean = <span class="n">0.0</span>, sd = <span class="n">1</span>)
-b &lt;- <span class="f">rnorm</span>(<span class="n">50</span>, mean = <span class="n">0.6</span>, sd = <span class="n">1</span>)
-<span class="f">t.test</span>(b, a)              <span class="c"># Welch por defecto (var.equal = FALSE)</span></code></pre>
+<span class="c"># --- 3) ¿Cuántas visitas hacían falta? Potencia 80 % para detectar 8 % -&gt; 9 % ---</span>
+h = <span class="f">proportion_effectsize</span>(<span class="n">0.09</span>, <span class="n">0.08</span>)     <span class="c"># tamaño de efecto de Cohen para proporciones</span>
+n = <span class="f">NormalIndPower</span>().<span class="f">solve_power</span>(effect_size=h, alpha=<span class="n">0.05</span>, power=<span class="n">0.8</span>)
+<span class="f">print</span>(<span class="f">round</span>(h, <span class="n">4</span>), <span class="f">int</span>(np.<span class="f">ceil</span>(n)))       <span class="c"># h ≈ 0.036, ≈ 12 200 visitas por grupo</span>
+
+<span class="c"># --- 4) El peligro de mirar todos los días (parada opcional) sin efecto real ---</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+reps, dias, por_dia, p0 = <span class="n">2_000</span>, <span class="n">20</span>, <span class="n">300</span>, <span class="n">0.08</span>
+falsos_fijo = falsos_mirando = <span class="n">0</span>
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps):
+    a = rng.<span class="f">binomial</span>(por_dia, p0, dias).<span class="f">cumsum</span>()
+    b = rng.<span class="f">binomial</span>(por_dia, p0, dias).<span class="f">cumsum</span>()
+    n_acum = por_dia * np.<span class="f">arange</span>(<span class="n">1</span>, dias + <span class="n">1</span>)
+    pp = (a + b) / (<span class="n">2</span> * n_acum)
+    zz = (b - a) / n_acum / np.<span class="f">sqrt</span>(pp * (<span class="n">1</span> - pp) * <span class="n">2</span> / n_acum)
+    pvals = <span class="n">2</span> * stats.norm.<span class="f">sf</span>(np.<span class="f">abs</span>(zz))
+    falsos_fijo += pvals[-<span class="n">1</span>] &lt; <span class="n">0.05</span>        <span class="c"># se mira una sola vez, al final</span>
+    falsos_mirando += (pvals &lt; <span class="n">0.05</span>).<span class="f">any</span>() <span class="c"># se detiene apenas sale significativo</span>
+<span class="f">print</span>(falsos_fijo / reps, falsos_mirando / reps)   <span class="c"># ≈ 0.05 frente a ≈ 0.24</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># --- 1) ¿Está cargada la moneda? 60 caras en 100 lanzamientos ---</span>
+<span class="f">binom.test</span>(<span class="n">60</span>, n = <span class="n">100</span>, p = <span class="n">0.5</span>)$p.value          <span class="c"># 0.0569</span>
+
+<span class="c"># --- 2) Caso aplicado: prueba A/B de conversión ---</span>
+compras &lt;- <span class="f">c</span>(<span class="n">480</span>, <span class="n">552</span>); visitas &lt;- <span class="f">c</span>(<span class="n">6000</span>, <span class="n">6000</span>)
+<span class="f">prop.test</span>(compras, visitas, correct = <span class="k">FALSE</span>)      <span class="c"># X² ≈ 5.47 (= z²), p ≈ 0.019, IC de la diferencia</span>
+
+<span class="c"># --- 3) Potencia 80 % para detectar 8 % -&gt; 9 % ---</span>
+<span class="f">power.prop.test</span>(p1 = <span class="n">0.08</span>, p2 = <span class="n">0.09</span>, sig.level = <span class="n">0.05</span>, power = <span class="n">0.8</span>)   <span class="c"># n ≈ 12 200 por grupo</span>
+<span class="f">library</span>(pwr)
+<span class="f">pwr.2p.test</span>(h = <span class="f">ES.h</span>(<span class="n">0.09</span>, <span class="n">0.08</span>), sig.level = <span class="n">0.05</span>, power = <span class="n">0.8</span>)      <span class="c"># lo mismo con h de Cohen</span>
+
+<span class="c"># --- 4) Parada opcional sin efecto real ---</span>
+<span class="f">set.seed</span>(<span class="n">3</span>)
+reps &lt;- <span class="n">2000</span>; dias &lt;- <span class="n">20</span>; por_dia &lt;- <span class="n">300</span>; p0 &lt;- <span class="n">0.08</span>
+res &lt;- <span class="f">replicate</span>(reps, {
+  a &lt;- <span class="f">cumsum</span>(<span class="f">rbinom</span>(dias, por_dia, p0)); b &lt;- <span class="f">cumsum</span>(<span class="f">rbinom</span>(dias, por_dia, p0))
+  n &lt;- por_dia * (<span class="n">1</span>:dias); pp &lt;- (a + b) / (<span class="n">2</span> * n)
+  z &lt;- (b - a) / n / <span class="f">sqrt</span>(pp * (<span class="n">1</span> - pp) * <span class="n">2</span> / n)
+  pv &lt;- <span class="n">2</span> * <span class="f">pnorm</span>(-<span class="f">abs</span>(z))
+  <span class="f">c</span>(fijo = pv[dias] &lt; <span class="n">0.05</span>, mirando = <span class="f">any</span>(pv &lt; <span class="n">0.05</span>))
+})
+<span class="f">rowMeans</span>(res)                                     <span class="c"># ≈ 0.05  ≈ 0.24</span></code></pre>
 </div>
+      <p>La simulación final es la lección más importante: con la misma prueba y los mismos datos, la tasa de error depende de <i>cómo</i> se decide parar. El valor p solo tiene su significado cuando el plan de análisis se fijó antes de ver los datos.</p>
 
-      <h2 id="ph-quiz"><span class="sec">§ 6</span>Comprueba</h2>
+      <h2 id="ph-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="El valor p se calcula suponiendo que H₀ es cierta: mide qué tan raros son tus datos en ese mundo. No dice la probabilidad de que H₀ sea cierta." data-wrong="Recuerda la definición: el valor p es una probabilidad sobre los datos, calculada suponiendo H₀. ¿Cuál de las opciones habla de los datos y no de la hipótesis?">
         <h3>Una prueba A/B da p = 0,03. ¿Cuál es la interpretación correcta?</h3>
         <div class="opts">
@@ -149,46 +340,113 @@ b &lt;- <span class="f">rnorm</span>(<span class="n">50</span>, mean = <span cla
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="Con más datos el error estándar baja, la diferencia observada se separa mejor del ruido y es más fácil detectar un efecto real." data-wrong="Piensa en el error estándar σ/√n: ¿qué le pasa cuando n crece, y cómo afecta eso a la capacidad de ver un efecto?">
-        <h3>Si aumentas el tamaño de muestra y mantienes α = 0,05, ¿qué le pasa a la potencia de la prueba?</h3>
+      <div class="quiz" data-right="n = 2(z₀,₀₂₅ + z₀,₂)²/d² = 2 · 2,80²/0,25 ≈ 62,8, así que 63 por grupo." data-wrong="Usa n = 2(z_α/2 + z_β)²/d² con z_α/2 = 1,96, z_β = 0,84 y d = 0,5.">
+        <h3>Quieres detectar un efecto d = 0,5 con α = 0,05 bilateral y potencia 80 %. ¿Cuántas personas necesitas por grupo, aproximadamente?</h3>
         <div class="opts">
-          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Disminuye</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>No cambia, depende solo de α</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se vuelve igual a 1 − α</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Aumenta</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>16</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>32</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>250</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>63</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con 20 pruebas independientes sin efecto, P(al menos una significativa) = 1 − 0,95²⁰ ≈ 0,64. Encontrar una es lo esperable, no un hallazgo." data-wrong="Calcula la probabilidad de que ninguna de las 20 pruebas dé un falso positivo y réstala de 1.">
+        <h3>Un equipo prueba 20 variantes de un botón, ninguna con efecto real, y reporta la única con p = 0,03. ¿Qué tan sorprendente es?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Muy sorprendente: solo 3 % de probabilidad</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Nada sorprendente: al menos un p &lt; 0,05 ocurre con probabilidad ≈ 0,64</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Imposible si ninguna tiene efecto</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Sorprendente, con probabilidad 0,05 · 20 = 1</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con un millón de usuarios, una diferencia diminuta da un valor p minúsculo. Hay que mirar el tamaño del efecto: 0,02 segundos probablemente no importa a nadie." data-wrong="Significativo no es lo mismo que importante. ¿Qué pasa con el error estándar cuando n es enorme?">
+        <h3>Con un millón de usuarios por grupo, la versión B carga 0,02 segundos más rápido (p &lt; 0,0001). ¿Qué concluyes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Que B es mucho mejor, porque p es muy pequeño</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Que hay un error, porque p no puede ser tan pequeño</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Que la diferencia es real pero quizá irrelevante: hay que juzgar el tamaño del efecto</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Que hay que repetir con menos usuarios</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
 
-      <h2 id="ph-ej"><span class="sec">§ 7</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <h2 id="ph-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Estos ejercicios piden demostrar, derivar o simular. Intenta resolverlos antes de abrir la solución; los simuladores y el código de § 10 te sirven para comprobar resultados.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una empresa afirma que sus focos duran en promedio 1 000 horas. Sospechas que duran menos. Plantea H₀ y H₁ y di si la prueba es de una o de dos colas.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>H₀: μ = 1 000 frente a H₁: μ &lt; 1 000. Es una prueba de <b>una cola</b> (cola izquierda), porque solo te interesa detectar una duración menor.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que, si \(T\) es continuo con acumulada \(F_0\) bajo \(H_0\), el valor p unilateral \(P = 1 - F_0(T)\) es uniforme en \((0,1)\). (b) ¿Qué distribución tiene \(P\) bajo \(H_1\) para la prueba z unilateral con desplazamiento \(\delta\)? Calcula \(P(P \le 0{,}05)\) con \(\delta = 2\). (c) Explica por qué con estadísticos discretos la prueba es conservadora, usando la moneda con 100 lanzamientos.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(P(P \le u) = P(F_0(T) \ge 1 - u) = P(T \ge F_0^{-1}(1-u)) = 1 - F_0(F_0^{-1}(1-u)) = u\), para \(u \in (0,1)\): es la acumulada de una uniforme.</p>
+            <p>(b) Bajo \(H_1\), \(Z \sim \mathcal{N}(\delta, 1)\) y \(P = 1 - \Phi(Z)\). Entonces \(P(P \le u) = P(Z \ge \Phi^{-1}(1-u)) = 1 - \Phi(z_{u} - \delta)\), con \(z_u = \Phi^{-1}(1-u)\). Con \(u = 0{,}05\) y \(\delta = 2\): \(1 - \Phi(1{,}645 - 2) = \Phi(0{,}355) \approx 0{,}64\): la potencia. La densidad de \(P\) es decreciente: se acumula cerca de 0.</p>
+            <p>(c) Con la binomial, \(P\) solo toma un número finito de valores. El mayor conjunto de resultados con probabilidad \(\le 0{,}05\) es \(\{T \le 39\} \cup \{T \ge 61\}\), con probabilidad 0,035. No hay forma de llegar exactamente a 0,05 sin aleatorizar, así que la prueba rechaza menos de lo nominal (y pierde algo de potencia). El valor p medio (mid-p) es un compromiso usado en la práctica.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Una prueba da p = 0,08 con α = 0,05. ¿Qué decides y cómo lo redactarías en un informe?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Como 0,08 &gt; 0,05, <b>no se rechaza H₀</b>. Una buena redacción: “Los datos no aportan evidencia suficiente de un efecto al 5 % (p = 0,08)”. No digas que “se acepta H₀” ni que “no hay efecto”.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Sean \(X_1, \dots, X_n\) i.i.d. \(\mathcal{N}(\mu, \sigma^2)\) con \(\sigma\) conocida. (a) Aplica el lema de Neyman-Pearson a \(H_0: \mu = \mu_0\) frente a \(H_1: \mu = \mu_1\) con \(\mu_1 &gt; \mu_0\) y muestra que la región óptima es \(\bar x &gt; c\). (b) Encuentra \(c\) para nivel \(\alpha\) y la potencia como función de \(\mu_1\). (c) ¿Por qué no existe una prueba uniformemente más potente para la alternativa bilateral \(\mu \ne \mu_0\)?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\ln\Lambda = -\frac{1}{2\sigma^2}\sum[(x_i - \mu_1)^2 - (x_i - \mu_0)^2] = \frac{n(\mu_1 - \mu_0)}{\sigma^2}\bar x - \frac{n(\mu_1^2 - \mu_0^2)}{2\sigma^2}\). Como \(\mu_1 - \mu_0 &gt; 0\), \(\Lambda &gt; k\) equivale a \(\bar x &gt; c\).</p>
+            <p>(b) \(P_{\mu_0}(\bar X &gt; c) = \alpha\) da \(c = \mu_0 + z_\alpha\sigma/\sqrt n\). Potencia: \(\pi(\mu_1) = P_{\mu_1}(\bar X &gt; c) = 1 - \Phi\big(z_\alpha - \frac{(\mu_1 - \mu_0)\sqrt n}{\sigma}\big)\), creciente en \(\mu_1\) y en \(n\).</p>
+            <p>(c) La región óptima para \(\mu_1 &gt; \mu_0\) es la cola derecha y para \(\mu_1 &lt; \mu_0\) es la izquierda: ninguna región única es la mejor contra ambas. La prueba bilateral \(|\bar x - \mu_0| &gt; z_{\alpha/2}\sigma/\sqrt n\) es la más potente entre las pruebas <i>insesgadas</i> (las que no tienen potencia menor que \(\alpha\) en ningún punto de \(H_1\)).</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Lanzas una moneda 100 veces y salen 62 caras. Calcula el valor p de dos colas con la aproximación normal y con la prueba binomial exacta.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Con la normal: z = (62 − 50)/5 = 2,4, y p = 2(1 − Φ(2,4)) ≈ <b>0,016</b>. La prueba exacta da p ≈ <b>0,021</b>. En ambos casos se rechaza H₀ al 5 %.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Un estudio prueba 10 biomarcadores y obtiene los valores p 0,001; 0,008; 0,039; 0,041; 0,042; 0,060; 0,074; 0,205; 0,212 y 0,360. (a) ¿Cuántos se rechazan sin corregir, con Bonferroni, con Holm y con Benjamini-Hochberg al 5 %? (b) Explica qué controla cada método. (c) Demuestra que Holm controla la FWER.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Sin corregir: 5 (los menores que 0,05). Bonferroni (\(p \le 0{,}005\)): 1. Holm: \(0{,}001 \le 0{,}05/10\) se rechaza; \(0{,}008 \le 0{,}05/9 = 0{,}0056\) no, y se detiene: 1. BH: umbrales \(k \cdot 0{,}005\) = 0,005; 0,010; 0,015; …; el mayor \(k\) con \(p_{(k)} \le 0{,}005k\) es \(k = 2\) (0,008 ≤ 0,010; 0,039 &gt; 0,015, 0,041 &gt; 0,020, 0,042 &gt; 0,025, …): 2. En R: <code>p.adjust(p, "holm")</code> y <code>p.adjust(p, "BH")</code>.</p>
+            <p>(b) Bonferroni y Holm controlan la probabilidad de cometer <i>algún</i> falso positivo; BH controla la <i>proporción esperada</i> de falsos positivos entre los rechazos, que es más permisivo y apropiado en estudios exploratorios.</p>
+            <p>(c) Sea \(m_0\) el número de nulas verdaderas e \(I_0\) su conjunto. Para que Holm cometa un error, la primera nula verdadera rechazada debe serlo en un paso \(k \le m - m_0 + 1\), con umbral \(\le \alpha/m_0\). Entonces algún \(p_i\) con \(i \in I_0\) es \(\le \alpha/m_0\), y por Boole \(P(\min_{i \in I_0} p_i \le \alpha/m_0) \le m_0 \cdot \alpha/m_0 = \alpha\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Valor p y probabilidad de la hipótesis.</b> En un campo de investigación, solo el 10 % de las hipótesis que se prueban son verdaderas. Los estudios usan \(\alpha = 0{,}05\) y tienen potencia 0,5. (a) Usa el teorema de Bayes para calcular la proporción de resultados significativos que son falsos positivos. (b) Repite con potencia 0,8 y con \(\alpha = 0{,}005\). (c) Relaciona el resultado con la crisis de replicación y con la cota de Sellke, Bayarri y Berger.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) De 1 000 hipótesis: 100 verdaderas dan \(100 \cdot 0{,}5 = 50\) significativas; 900 falsas dan \(900 \cdot 0{,}05 = 45\) significativas. La proporción de falsos positivos entre los significativos es \(45/95 \approx 47\,\%\). Casi la mitad de los “hallazgos” serían falsos.</p>
+            <p>(b) Potencia 0,8: \(45/(80 + 45) = 36\,\%\). Con \(\alpha = 0{,}005\) y potencia 0,8: \(4{,}5/(80 + 4{,}5) \approx 5{,}3\,\%\). Bajar \(\alpha\) es mucho más efectivo cuando las hipótesis a priori son poco probables.</p>
+            <p>(c) El valor p no incorpora la probabilidad previa de la hipótesis ni la potencia, y por eso “p &lt; 0,05” puede corresponder a una probabilidad alta de \(H_0\). Es el argumento de Ioannidis (2005, “Why most published research findings are false”) y explica tasas de replicación como el 36 % de la Open Science Collaboration. La cota de Sellke-Bayarri-Berger lo confirma desde otro ángulo: con \(p = 0{,}05\) el factor de Bayes no supera 2,5.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>La maldición del ganador.</b> Simula 20 000 estudios con dos grupos de 50 personas y un efecto real de \(d = 0{,}3\). (a) Estima la potencia de la prueba t. (b) Compara la media del efecto estimado en todos los estudios con la media solo en los significativos. (c) Calcula el factor de exageración (error tipo M) y la proporción de significativos con signo equivocado (error tipo S), y explica qué implica para leer la literatura publicada.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) La potencia teórica es \(1 - \Phi(1{,}96 - 0{,}3\sqrt{25}) \approx 0{,}32\), y la simulación da ≈ 0,32.</p>
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
-<span class="f">print</span>(stats.<span class="f">binomtest</span>(<span class="n">62</span>, n=<span class="n">100</span>, p=<span class="n">0.5</span>).pvalue)   <span class="c"># 0.021</span>
-<span class="f">print</span>(<span class="n">2</span> * stats.norm.<span class="f">sf</span>(<span class="n">2.4</span>))                     <span class="c"># 0.016</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">binom.test</span>(<span class="n">62</span>, n = <span class="n">100</span>, p = <span class="n">0.5</span>)$p.value   <span class="c"># 0.021</span>
-<span class="n">2</span> * <span class="f">pnorm</span>(<span class="n">2.4</span>, lower.tail = <span class="k">FALSE</span>)           <span class="c"># 0.016</span></code></pre>
-</div></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Tu equipo corre 20 pruebas A/B independientes en un trimestre, y en ninguna hay efecto real. Con α = 0,05, ¿cuál es la probabilidad de obtener al menos un resultado “significativo”? ¿Qué α por prueba tendrías que usar con la corrección de Bonferroni?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>P(ningún falso positivo) = 0,95²⁰ ≈ 0,358, así que P(al menos uno) ≈ <b>0,64</b>. Con Bonferroni, cada prueba usa α = 0,05/20 = <b>0,0025</b>.</p></div></details>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+rng = np.random.<span class="f">default_rng</span>(<span class="n">10</span>)
+d, n, reps = <span class="n">0.3</span>, <span class="n">50</span>, <span class="n">20_000</span>                 <span class="c"># efecto real 0.3σ, 50 por grupo</span>
+a = rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">1</span>, (reps, n))
+b = rng.<span class="f">normal</span>(d, <span class="n">1</span>, (reps, n))
+est = b.<span class="f">mean</span>(axis=<span class="n">1</span>) - a.<span class="f">mean</span>(axis=<span class="n">1</span>)
+t, p = stats.<span class="f">ttest_ind</span>(b, a, axis=<span class="n">1</span>)
+sig = p &lt; <span class="n">0.05</span>
+<span class="f">print</span>(<span class="f">round</span>(sig.<span class="f">mean</span>(), <span class="n">3</span>))                  <span class="c"># potencia ≈ 0.32</span>
+<span class="f">print</span>(<span class="f">round</span>(est.<span class="f">mean</span>(), <span class="n">3</span>))                  <span class="c"># todas las réplicas: ≈ 0.30 (insesgado)</span>
+<span class="f">print</span>(<span class="f">round</span>(est[sig].<span class="f">mean</span>(), <span class="n">3</span>))             <span class="c"># solo las significativas: ≈ 0.52</span>
+<span class="f">print</span>(<span class="f">round</span>(est[sig].<span class="f">mean</span>() / d, <span class="n">2</span>))         <span class="c"># exageración (error tipo M) ≈ 1.7</span>
+<span class="f">print</span>(<span class="f">round</span>((est[sig] &lt; <span class="n">0</span>).<span class="f">mean</span>(), <span class="n">4</span>))       <span class="c"># error de signo (tipo S) ≈ 0.001</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">10</span>)
+d &lt;- <span class="n">0.3</span>; n &lt;- <span class="n">50</span>; reps &lt;- <span class="n">20000</span>
+res &lt;- <span class="f">t</span>(<span class="f">replicate</span>(reps, {
+  a &lt;- <span class="f">rnorm</span>(n); b &lt;- <span class="f">rnorm</span>(n, d)
+  <span class="f">c</span>(est = <span class="f">mean</span>(b) - <span class="f">mean</span>(a), p = <span class="f">t.test</span>(b, a, var.equal = <span class="k">TRUE</span>)$p.value)
+}))
+sig &lt;- res[, <span class="s">"p"</span>] &lt; <span class="n">0.05</span>
+<span class="f">mean</span>(sig)                          <span class="c"># potencia ≈ 0.32</span>
+<span class="f">mean</span>(res[, <span class="s">"est"</span>])                 <span class="c"># ≈ 0.30</span>
+<span class="f">mean</span>(res[sig, <span class="s">"est"</span>])              <span class="c"># ≈ 0.52: los significativos exageran</span>
+<span class="f">mean</span>(res[sig, <span class="s">"est"</span>]) / d          <span class="c"># ≈ 1.7</span>
+<span class="f">mean</span>(res[sig, <span class="s">"est"</span>] &lt; <span class="n">0</span>)          <span class="c"># ≈ 0.001</span></code></pre>
+</div>
+            <p>(b) En todos los estudios el efecto estimado promedia ≈ 0,30 (el estimador es insesgado). Pero entre los significativos promedia ≈ 0,52: para que un estudio con poca potencia salga significativo, tiene que haber sobrestimado el efecto por azar.</p>
+            <p>(c) El factor de exageración es ≈ 1,7 y el error de signo es raro (≈ 0,1 %) con este efecto, aunque crece mucho con efectos más pequeños. Si solo se publican los resultados significativos, la literatura exagera sistemáticamente los efectos, y las réplicas (con el efecto real) encuentran efectos menores, como observó la Open Science Collaboration. La defensa: estudios con potencia alta, prerregistro y metaanálisis que incluyan resultados no significativos.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

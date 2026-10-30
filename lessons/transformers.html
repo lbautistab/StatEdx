@@ -5,30 +5,30 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Atención y transformers</h1>
-      <p>En “el animal no cruzó la calle porque estaba cansado”, sabes que quien estaba cansado es el animal y no la calle. Para eso tu cerebro conecta palabras lejanas sin recorrer la frase palabra por palabra. El mecanismo de atención hace lo mismo: cada palabra decide a qué otras mirar. Con él se construyen los transformers, la arquitectura detrás de los modelos de lenguaje actuales.</p>
-      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: redes recurrentes y LSTM</span><span>R · Python</span></div>
+      <p>Los transformers son la arquitectura detrás de los modelos de lenguaje actuales. Su pieza central, la atención, deja que cada elemento de una secuencia mire directamente a todos los demás y decida a cuáles prestar atención. Aquí aprendes la atención con consultas, claves y valores, por qué se escala por √d<sub>k</sub> y qué hace la softmax con los gradientes, la atención multicabeza, la codificación posicional y sus propiedades, el bloque transformer, los modelos de lenguaje y sus costos.</p>
+      <div class="lmeta"><span>100 min</span><span>Nivel avanzado</span><span>Requiere: redes recurrentes y LSTM</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#transformers-idea" data-sec="transformers-idea">La idea</a></li>
-        <li><a href="#transformers-atencion" data-sec="transformers-atencion">Consultas, claves y valores</a></li>
-        <li><a href="#transformers-lab" data-sec="transformers-lab">Laboratorio: autoatención</a></li>
-        <li><a href="#transformers-multi" data-sec="transformers-multi">Atención multicabeza</a></li>
-        <li><a href="#transformers-pos" data-sec="transformers-pos">Codificación posicional</a></li>
-        <li><a href="#transformers-lab2" data-sec="transformers-lab2">Laboratorio: posiciones</a></li>
-        <li><a href="#transformers-bloque" data-sec="transformers-bloque">El bloque transformer</a></li>
-        <li><a href="#transformers-lm" data-sec="transformers-lm">Modelos de lenguaje</a></li>
+        <li><a href="#transformers-intro" data-sec="transformers-intro">Introducción</a></li>
+        <li><a href="#transformers-def" data-sec="transformers-def">Definición</a></li>
+        <li><a href="#transformers-atencion" data-sec="transformers-atencion">La atención por dentro</a></li>
+        <li><a href="#transformers-pos" data-sec="transformers-pos">Multicabeza y posiciones</a></li>
+        <li><a href="#transformers-bloque" data-sec="transformers-bloque">Bloque y modelos de lenguaje</a></li>
         <li><a href="#transformers-costo" data-sec="transformers-costo">Costo y limitaciones</a></li>
+        <li><a href="#transformers-prop" data-sec="transformers-prop">Propiedades</a></li>
+        <li><a href="#transformers-sim" data-sec="transformers-sim">Ejercicios de simulación</a></li>
+        <li><a href="#transformers-apps" data-sec="transformers-apps">Aplicaciones reales</a></li>
         <li><a href="#transformers-code" data-sec="transformers-code">En R y Python</a></li>
-        <li><a href="#transformers-quiz" data-sec="transformers-quiz">Comprueba</a></li>
-        <li><a href="#transformers-ej" data-sec="transformers-ej">Ejercicios</a></li>
+        <li><a href="#transformers-quiz" data-sec="transformers-quiz">Quiz</a></li>
+        <li><a href="#transformers-ej" data-sec="transformers-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="transformers-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="transformers-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Compara dos frases que solo difieren en la última palabra:</p>
       <ul>
         <li>“El animal no cruzó la calle porque estaba <b>cansado</b>.”</li>
@@ -38,8 +38,22 @@
       <p>La <b>atención</b> propone algo más directo: cada palabra mira a <i>todas</i> las demás al mismo tiempo, calcula qué tan relevante es cada una y construye su nueva representación como un promedio ponderado de ellas. “Cansado” puede asignar mucho peso a “animal” y casi nada a “calle”. Ninguna información tiene que viajar por una cadena de pasos.</p>
       <p>En 2017, el artículo <i>Attention Is All You Need</i> mostró que una red construida casi solo con atención, el <b>transformer</b>, traducía mejor que las mejores RNN y se entrenaba mucho más rápido, porque todas las posiciones se procesan en paralelo. Hoy es la base de los modelos de lenguaje (GPT, Claude, Llama), de BERT, y también de modelos para imágenes, audio, proteínas y series de tiempo.</p>
       <div class="callout"><b>Representaciones contextuales:</b> en un transformer, cada palabra empieza con un vector fijo (su <i>embedding</i>) y, capa tras capa, ese vector se mezcla con los de las demás palabras. Al final, el vector de “banco” en “me senté en el banco del parque” es distinto del de “banco” en “pedí un préstamo al banco”.</div>
+      <p><b>Un poco de historia.</b> Bahdanau, Cho y Bengio (2014) introdujeron la atención para traducción automática: un decodificador recurrente que, en cada palabra que genera, mira con pesos aprendidos a todas las palabras de la frase original, en lugar de depender de un único vector resumen. Vaswani y colaboradores (2017) eliminaron la recurrencia por completo; su transformer obtuvo 28,4 puntos BLEU en la traducción inglés-alemán del conjunto WMT 2014, el mejor resultado de entonces, con una fracción del costo de entrenamiento. En 2018 llegaron BERT (Devlin y colaboradores), un codificador preentrenado para comprender texto, y GPT (Radford y colaboradores), un decodificador para generarlo; GPT-3 (2020) mostró que al escalar a 175 000 millones de parámetros aparecían capacidades nuevas. La misma arquitectura se trasladó a imágenes (ViT, 2020) y a proteínas (AlphaFold 2, 2021).</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a definir la atención escalada por producto punto y a calcularla a mano;</li>
+          <li>a demostrar por qué se divide por \(\sqrt{d_k}\) y cómo la saturación de la softmax apaga el gradiente;</li>
+          <li>a probar que la autoatención es equivariante a permutaciones y cómo la codificación posicional lo resuelve;</li>
+          <li>a contar parámetros y costos de un bloque transformer y a entender la máscara causal;</li>
+          <li>a interpretar la pérdida, la perplejidad y la temperatura de un modelo de lenguaje, y a conectar la atención con la regresión por núcleos.</li>
+        </ul>
+      </div>
 
-      <h2 id="transformers-atencion"><span class="sec">§ 2</span>Consultas, claves y valores</h2>
+      <h2 id="transformers-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición (atención escalada por producto punto).</b> Dadas \(n\) consultas, \(m\) claves y \(m\) valores apilados como filas de \(Q \in \mathbb R^{n \times d_k}\), \(K \in \mathbb R^{m \times d_k}\) y \(V \in \mathbb R^{m \times d_v}\),
+        \[ \operatorname{Atención}(Q, K, V) = A \, V, \qquad A = \operatorname{softmax}_{\text{filas}} \! \Big( \frac{Q K^\top}{ \sqrt{d_k} } \Big), \]
+        \[ A_{ij} = \frac{ \exp(s_{ij}) }{ \sum_{l} \exp(s_{il}) }, \qquad s_{ij} = \frac{ q_i \cdot k_j }{ \sqrt{d_k} } . \]
+        Cada fila de \(A\) son pesos positivos que suman 1: la salida \(i\) es un <b>promedio ponderado</b> de los valores. En la <b>autoatención</b>, \(Q = XW_Q\), \(K = XW_K\), \(V = XW_V\) salen de la misma secuencia \(X\).</div>
       <p>La atención se inspira en una búsqueda en una base de datos. Cada posición \(i\) de la secuencia produce tres vectores a partir de su representación \(x_i \in \mathbb{R}^{d}\):</p>
       <ul>
         <li>una <b>consulta</b> \(q_i = W_Q x_i\): “qué estoy buscando”;</li>
@@ -54,10 +68,111 @@
       <div class="eq">\[ \operatorname{Atención}(Q, K, V) = \operatorname{softmax}\!\left(\frac{Q K^{\top}}{\sqrt{d_k}}\right) V \]
         <div class="note">\(QK^\top\) es una matriz \(n \times n\) con todas las puntuaciones; la softmax se aplica por filas. Cuando \(Q\), \(K\) y \(V\) salen de la misma secuencia se habla de <b>autoatención</b> (<i>self-attention</i>).</div>
       </div>
+      <p><b>Ejemplo numérico.</b> Una consulta \(q = (1, 0)\) mira tres posiciones con claves \(k_1 = (1, 0)\), \(k_2 = (0, 1)\), \(k_3 = (1, 1)\) y valores \(v_1 = (10, 0)\), \(v_2 = (0, 10)\), \(v_3 = (5, 5)\), con \(d_k = 2\). Puntuaciones \(q \cdot k_j/\sqrt 2 = (0{,}707;\ 0;\ 0{,}707)\). Exponenciales \((2{,}028;\ 1;\ 2{,}028)\), con suma 5,056. Pesos \(\alpha = (0{,}401;\ 0{,}198;\ 0{,}401)\). Salida \(z = 0{,}401(10, 0) + 0{,}198(0, 10) + 0{,}401(5, 5) = (6{,}02;\ 3{,}98)\). La consulta “busca” la primera dimensión, así que favorece por igual a \(k_1\) y \(k_3\).</p>
+
+      <h2 id="transformers-atencion"><span class="sec">§ 3</span>La atención por dentro: escala, gradientes y simetría</h2>
       <p><b>¿Por qué dividir entre \(\sqrt{d_k}\)?</b> Si las componentes de \(q\) y \(k\) son independientes con media 0 y varianza 1, el producto punto \(q\cdot k = \sum_{m=1}^{d_k} q_m k_m\) tiene varianza \(d_k\). Con \(d_k = 64\), las puntuaciones tienen desviación típica 8, la softmax se satura (casi todo el peso en una posición) y sus gradientes se vuelven casi cero. Dividir entre \(\sqrt{d_k}\) devuelve la varianza a 1.</p>
       <div class="callout"><b>La softmax tiene temperatura:</b> multiplicar todas las puntuaciones por una constante grande vuelve la atención más “dura” (cercana a elegir una sola posición); por una constante chica la vuelve más uniforme. El factor \(1/\sqrt{d_k}\) es una temperatura fija; en el laboratorio puedes cambiarla para ver el efecto.</div>
+      <h3>El gradiente de la softmax</h3>
+      <p>Para una fila con puntuaciones \(s\) y pesos \(\alpha = \operatorname{softmax}(s)\), derivando \(\alpha_j = e^{s_j}/\sum_l e^{s_l}\):</p>
+      <div class="eq">\[ \frac{\partial\alpha_j}{\partial s_l} = \alpha_j(\delta_{jl} - \alpha_l), \qquad J = \operatorname{diag}(\alpha) - \alpha\alpha^\top . \]
+        <div class="note">Si la softmax está saturada (\(\alpha \approx e_j\), todo el peso en una posición), entonces \(J \approx \operatorname{diag}(e_j) - e_je_j^\top = 0\): el gradiente que llega a las puntuaciones casi desaparece y las matrices \(W_Q\), \(W_K\) dejan de aprender. Con \(d_k = 64\) y 10 claves, en simulación la norma típica de \(J\) es ≈ 0,08 sin escalar y ≈ 0,25 escalando por \(1/\sqrt{d_k}\), y el peso máximo medio baja de ≈ 0,86 a ≈ 0,32.</div>
+      </div>
+      <h3>Equivariancia a permutaciones</h3>
+      <p>Sea \(P\) una matriz de permutación (reordena las filas). Sin codificación posicional, la autoatención \(f(X) = \operatorname{softmax}(XW_QW_K^\top X^\top/\sqrt{d_k})XW_V\) cumple:</p>
+      <div class="eq">\[ f(PX) = \operatorname{softmax}\big(P\,S\,P^\top\big)\,P\,XW_V = P\,\operatorname{softmax}(S)\,P^\top P\,XW_V = P\,f(X), \qquad S = \frac{XW_QW_K^\top X^\top}{\sqrt{d_k}} . \]
+        <div class="note">Se usa que la softmax por filas conmuta con permutar filas y columnas a la vez, \(\operatorname{softmax}(PSP^\top) = P\operatorname{softmax}(S)P^\top\), y que \(P^\top P = I\). Reordenar las palabras solo reordena las salidas: la autoatención trata la secuencia como un conjunto. La máscara causal rompe esta simetría (depende del orden), pero solo de forma parcial.</div>
+      </div>
+      <h3>La atención como regresión por núcleos</h3>
+      <p>Si las puntuaciones son \(s_{ij} = -\lVert q_i - k_j\rVert^2/(2h^2)\) en vez de un producto punto, la salida \(\sum_j\alpha_{ij}v_j\) es exactamente el estimador de <b>Nadaraya-Watson</b> con núcleo gaussiano y ancho de banda \(h\): una regresión no paramétrica que promedia las respuestas \(v_j\) de los puntos cercanos a \(q_i\). La temperatura de la softmax hace el papel del ancho de banda, con el mismo compromiso sesgo-varianza que en la <a href="#knn">k-NN</a>. El transformer aprende, además, qué significa “cercano” a través de \(W_Q\) y \(W_K\).</p>
 
-      <h2 id="transformers-lab"><span class="sec">§ 3</span>Laboratorio: autoatención en una frase</h2>
+      <h2 id="transformers-pos"><span class="sec">§ 4</span>Atención multicabeza y codificación posicional</h2>
+      <h3>Atención multicabeza</h3>
+      <p>Una sola atención produce un único promedio ponderado por posición, pero una palabra tiene muchas relaciones a la vez: con su sujeto, con el verbo, con la palabra anterior, con la negación. La <b>atención multicabeza</b> ejecuta \(h\) atenciones en paralelo, cada una con sus propias proyecciones, y concatena los resultados:</p>
+      <div class="eq">\[ \text{cabeza}_r = \operatorname{Atención}\big(X W_Q^{(r)},\, X W_K^{(r)},\, X W_V^{(r)}\big), \qquad \operatorname{MultiCabeza}(X) = \big[\text{cabeza}_1, \dots, \text{cabeza}_h\big]\, W_O \]
+        <div class="note">Con \(d_{\text{modelo}} = 512\) y \(h = 8\), cada cabeza trabaja en \(d_k = 512/8 = 64\) dimensiones. El costo total es parecido al de una cabeza de 512 dimensiones, pero cada cabeza puede especializarse.</div>
+      </div>
+      <p>Al inspeccionar modelos entrenados aparecen cabezas con funciones reconocibles: algunas miran a la palabra anterior, otras conectan pronombres con sus referentes, otras siguen relaciones sintácticas como verbo-objeto. Muchas otras no tienen una interpretación clara, y quitar algunas cabezas a veces casi no cambia el resultado.</p>
+      <p><b>Parámetros:</b> \(W_Q, W_K, W_V, W_O\) son matrices de \(d_{\text{modelo}} \times d_{\text{modelo}}\) (sumando todas las cabezas), así que una capa de atención tiene \(4 d_{\text{modelo}}^2 + 4 d_{\text{modelo}}\) parámetros con sesgos. No depende del largo \(n\) de la secuencia: igual que en las RNN, los pesos se comparten entre posiciones.</p>
+      <h3>Codificación posicional</h3>
+      <p>La atención trata la secuencia como un <i>conjunto</i>: si reordenas las palabras, cada salida se reordena igual, pero sus valores no cambian. Para la autoatención, “el perro mordió al hombre” y “el hombre mordió al perro” tienen las mismas palabras y, sin más información, las mismas representaciones. Formalmente, la autoatención es <b>equivariante a permutaciones</b>.</p>
+      <p>La solución es sumar a cada embedding un vector que dependa de la posición. El transformer original usa senos y cosenos de frecuencias geométricas:</p>
+      <div class="eq">\[ PE_{(p,\, 2i)} = \sin\!\left(\frac{p}{10\,000^{2i/d}}\right), \qquad PE_{(p,\, 2i+1)} = \cos\!\left(\frac{p}{10\,000^{2i/d}}\right), \qquad i = 0, \dots, \tfrac d2 - 1 \]
+        <div class="note">Las primeras dimensiones oscilan rápido (período \(2\pi\) posiciones) y las últimas muy lento (período cercano a \(2\pi \cdot 10\,000\)). Es como un reloj con manecillas de segundos, minutos y horas: la combinación identifica cada posición de forma única.</div>
+      </div>
+      <ul>
+        <li><b>Posiciones relativas:</b> para cada frecuencia, \(PE_{p+k}\) es una rotación de \(PE_p\) que solo depende de \(k\). Eso facilita aprender relaciones como “la palabra dos posiciones antes”, y hace que el producto punto \(PE_p \cdot PE_{p+k}\) dependa solo de la distancia \(k\).</li>
+        <li><b>Posiciones aprendidas:</b> BERT y GPT-2 aprenden un vector por posición, como si fuera otro embedding. Funciona bien, pero no generaliza a secuencias más largas que las vistas en entrenamiento.</li>
+        <li><b>RoPE:</b> muchos modelos actuales rotan directamente las consultas y las claves según su posición, de modo que \(q_i \cdot k_j\) depende de \(i - j\). Es la idea de la codificación sinusoidal, aplicada dentro de la atención.</li>
+      </ul>
+      <p><b>Derivación de la propiedad relativa.</b> Para la frecuencia \(\omega_i = 10\,000^{-2i/d}\), el par \((\sin\omega_ip, \cos\omega_ip)\) avanzado \(k\) posiciones es, por las fórmulas de suma de ángulos,</p>
+      <div class="eq">\[ \begin{pmatrix}\sin\omega_i(p + k)\\ \cos\omega_i(p + k)\end{pmatrix} = \begin{pmatrix}\cos\omega_ik &amp; \sin\omega_ik\\ -\sin\omega_ik &amp; \cos\omega_ik\end{pmatrix}\begin{pmatrix}\sin\omega_ip\\ \cos\omega_ip\end{pmatrix}, \qquad PE_p \cdot PE_{p+k} = \sum_{i=0}^{d/2 - 1}\cos(\omega_ik) . \]
+        <div class="note">El desplazamiento es una rotación que no depende de \(p\), y el producto punto depende solo de la distancia \(k\). Con \(d = 16\) y \(k = 3\), da 5,54 tanto para \(p = 7\) como para \(p = 20\).</div>
+      </div>
+
+      <h2 id="transformers-bloque"><span class="sec">§ 5</span>El bloque transformer y los modelos de lenguaje</h2>
+      <p>Un transformer apila \(N\) bloques idénticos (6 en el original, 12 en BERT-base, hasta más de 100 en modelos grandes). Cada bloque tiene dos subcapas, cada una envuelta en una conexión residual y una normalización:</p>
+      <div class="eq">\[ \begin{aligned} H &amp;= X + \operatorname{MultiCabeza}\big(\operatorname{LN}(X)\big) \\ \text{Salida} &amp;= H + \operatorname{FFN}\big(\operatorname{LN}(H)\big), \qquad \operatorname{FFN}(h) = W_2\, \operatorname{GELU}(W_1 h + b_1) + b_2 \end{aligned} \]
+        <div class="note">LN es la normalización por capa (<i>layer norm</i>): estandariza cada vector a media 0 y varianza 1 y aplica una escala y un desplazamiento aprendidos. Esta es la variante <i>pre-LN</i>, la más usada hoy porque entrena de forma más estable que la original.</div>
+      </div>
+      <ul>
+        <li><b>La atención mezcla posiciones;</b> la red <b>FFN</b> (<i>feed-forward</i>) procesa cada posición por separado, con los mismos pesos, típicamente con \(d_{ff} = 4\,d_{\text{modelo}}\). Se suele decir que la atención decide “de dónde traer información” y la FFN “qué hacer con ella”; en la FFN se concentra cerca de dos tercios de los parámetros.</li>
+        <li><b>Residuales:</b> igual que en ResNet, permiten apilar muchos bloques y dan un camino directo al gradiente. Cada bloque “escribe” una corrección sobre un flujo residual compartido.</li>
+        <li><b>Codificador:</b> autoatención sin máscara; cada posición ve toda la secuencia. Sirve para entender (clasificar, extraer). Ejemplo: BERT.</li>
+        <li><b>Decodificador:</b> autoatención con <b>máscara causal</b>: la posición \(i\) solo ve las posiciones \(j \le i\), poniendo \(-\infty\) en las puntuaciones de las posiciones futuras antes de la softmax. Sirve para generar. Ejemplo: GPT.</li>
+        <li><b>Codificador-decodificador:</b> para traducción, el decodificador tiene además <b>atención cruzada</b>: sus consultas salen del texto que está generando y las claves y valores, de la salida del codificador. Ejemplo: el transformer original, T5.</li>
+      </ul>
+      <p><b>Conteo de parámetros de un bloque.</b> Con \(d_{\text{modelo}} = 512\), 8 cabezas y \(d_{ff} = 2\,048\): atención \(4(512^2 + 512) = 1\,050\,624\); FFN \(512 \cdot 2\,048 + 2\,048 + 2\,048 \cdot 512 + 512 = 2\,099\,712\); dos normalizaciones \(2(512 + 512) = 2\,048\). Total \(3\,152\,384\), dos tercios en la FFN. El número de cabezas y el largo de la secuencia no cambian la cuenta.</p>
+      <h3>Modelos de lenguaje</h3>
+      <p>Un <b>modelo de lenguaje</b> asigna probabilidades a secuencias de texto. Por la regla de la cadena de la probabilidad, basta con predecir cada <i>token</i> dado los anteriores:</p>
+      <div class="eq">\[ P(w_1, \dots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_1, \dots, w_{t-1}), \qquad \mathcal{L} = -\frac1T \sum_{t=1}^{T} \log P_\theta(w_t \mid w_{&lt;t}) \]
+        <div class="note">\(\mathcal{L}\) es la entropía cruzada promedio, la misma pérdida de clasificación de siempre: en cada posición, la red clasifica cuál de los \(V\) tokens del vocabulario viene después. La <b>perplejidad</b> \(e^{\mathcal{L}}\) se interpreta como el número efectivo de opciones entre las que el modelo duda.</div>
+      </div>
+      <ol>
+        <li><b>Tokenización:</b> el texto se corta en <i>tokens</i>, que suelen ser trozos de palabras (“transform” + “ers”), con vocabularios de 30 000 a 200 000 tokens. Cada token se convierte en un embedding.</li>
+        <li><b>Paso por el decodificador:</b> embeddings + posiciones → \(N\) bloques con máscara causal → una capa lineal que da \(V\) puntuaciones (<i>logits</i>) por posición → softmax.</li>
+        <li><b>Entrenamiento en paralelo:</b> gracias a la máscara causal, una sola pasada por un texto de \(T\) tokens produce las \(T\) predicciones y sus pérdidas a la vez. Esa es una gran ventaja sobre las RNN.</li>
+        <li><b>Generación:</b> se predice un token, se agrega al texto y se repite. Para elegir el token se muestrea de la softmax con <b>temperatura</b> \(T\): \(p_k \propto \exp(z_k / T)\). Con \(T \to 0\) siempre sale el más probable (decodificación codiciosa); con \(T &gt; 1\) el texto es más variado y más propenso a errores. Variantes como <i>top-k</i> o <i>top-p</i> muestrean solo entre los tokens más probables.</li>
+      </ol>
+      <p><b>Preentrenamiento y ajuste.</b> Los modelos grandes se preentrenan con enormes cantidades de texto prediciendo el siguiente token (GPT) o tokens ocultos al azar (BERT). Después se ajustan (<i>fine-tuning</i>) con ejemplos de instrucciones y con retroalimentación humana para que sigan indicaciones y sean útiles. Las <b>leyes de escala</b> observadas empíricamente muestran que la pérdida baja de forma predecible, como una potencia, al aumentar parámetros, datos y cómputo.</p>
+      <div class="callout"><b>Lo que no hay que olvidar:</b> un modelo de lenguaje está entrenado para producir texto <i>probable</i>, no texto <i>verdadero</i>. Puede generar afirmaciones falsas con mucha fluidez (las llamadas alucinaciones) y reproduce sesgos de sus datos. Evaluar sus salidas con datos y criterio sigue siendo trabajo estadístico.</div>
+
+      <h2 id="transformers-costo"><span class="sec">§ 6</span>Costo y limitaciones</h2>
+      <p>La matriz de atención tiene \(n^2\) entradas por cabeza y por capa. Duplicar el largo del contexto cuadruplica el costo de la atención en tiempo y memoria. Con \(n = 4\,096\) tokens y 32 cabezas, una sola capa guarda \(4\,096^2 \times 32 \approx 5{,}4 \times 10^8\) pesos de atención: más de 1 GB en media precisión. Por eso existen variantes eficientes (atención por ventanas, dispersa o lineal) e implementaciones como FlashAttention, que calculan lo mismo sin guardar la matriz completa.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Aspecto</th><th>RNN / LSTM</th><th>CNN 1D</th><th>Transformer</th></tr></thead>
+        <tbody>
+          <tr><td>Costo por capa</td><td>\(O(n\,d^2)\)</td><td>\(O(k\,n\,d^2)\)</td><td>\(O(n^2 d + n\,d^2)\)</td></tr>
+          <tr><td>Pasos secuenciales</td><td>\(n\): no se paraleliza</td><td>1</td><td>1</td></tr>
+          <tr><td>Camino entre dos posiciones lejanas</td><td>\(n\) pasos</td><td>\(\log_k n\) capas</td><td>1 paso</td></tr>
+          <tr><td>Sesgo inductivo</td><td>orden y recencia</td><td>localidad</td><td>casi ninguno: necesita muchos datos</td></tr>
+          <tr><td>Generación token a token</td><td>barata: estado fijo</td><td>media</td><td>crece con el contexto (caché de claves y valores)</td></tr>
+        </tbody>
+      </table></div>
+      <p>El transformer tiene pocos supuestos sobre los datos. Con muchos datos es una ventaja, porque aprende la estructura en lugar de imponerla. Con pocos datos es una desventaja: para una serie de tiempo corta o una tabla pequeña, un modelo clásico o un árbol de decisión suelen rendir mejor.</p>
+
+      <h2 id="transformers-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Pesos convexos.</b> \(A_{ij} &gt; 0\) y \(\sum_jA_{ij} = 1\): cada salida está en la envoltura convexa de los valores. <i>Justificación:</i> definición de la softmax.</li>
+        <li><b>Varianza del producto punto.</b> Con componentes independientes de media 0 y varianza 1, \(\operatorname{Var}(q \cdot k) = d_k\). <i>Justificación:</i> suma de \(d_k\) productos independientes de varianza 1.</li>
+        <li><b>Jacobiano de la softmax.</b> \(J = \operatorname{diag}(\alpha) - \alpha\alpha^\top\), que tiende a 0 cuando la softmax se satura. <i>Justificación:</i> derivada del cociente.</li>
+        <li><b>Invariancia a desplazar las puntuaciones.</b> \(\operatorname{softmax}(s + c\mathbf 1) = \operatorname{softmax}(s)\). <i>Justificación:</i> \(e^c\) se cancela; por eso se resta el máximo para estabilidad numérica.</li>
+        <li><b>Equivariancia a permutaciones.</b> \(f(PX) = Pf(X)\) sin codificación posicional. <i>Justificación:</i> sección 3.</li>
+        <li><b>Posiciones relativas sinusoidales.</b> \(PE_{p+k} = R(k)PE_p\) con \(R(k)\) ortogonal por bloques, y \(PE_p \cdot PE_{p+k} = \sum_i\cos\omega_ik\). <i>Justificación:</i> fórmulas de suma de ángulos.</li>
+        <li><b>Parámetros independientes de n; costo cuadrático en n.</b> Atención: \(4d^2 + 4d\) parámetros y \(O(n^2d)\) operaciones. <i>Justificación:</i> pesos compartidos entre posiciones; la matriz \(QK^\top\) es de \(n \times n\).</li>
+        <li><b>Perplejidad de un modelo uniforme.</b> Con \(V\) tokens equiprobables, \(e^{\mathcal L} = V\); para cualquier modelo, la entropía cruzada es al menos la entropía del texto. <i>Justificación:</i> desigualdad de Gibbs.</li>
+      </ol>
+      <h3>Errores comunes</h3>
+      <ul>
+        <li><b>Leer los pesos de atención como explicación causal</b> de la predicción. Muestran de dónde se mezcló información en una capa, no por qué el modelo decidió.</li>
+        <li><b>Olvidar la máscara causal</b> al entrenar un generador: la red “hace trampa” mirando el token que debe predecir y la pérdida baja de forma engañosa.</li>
+        <li><b>Calcular la softmax sin restar el máximo</b>, con desbordes numéricos.</li>
+        <li><b>Usar un transformer con pocos datos</b> donde un modelo con más supuestos (lineal, ARIMA, árbol) rinde mejor.</li>
+        <li><b>Confundir texto probable con texto verdadero</b> al evaluar un modelo de lenguaje.</li>
+      </ul>
+
+      <h2 id="transformers-sim"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <h3>Laboratorio 1: autoatención en una frase</h3>
       <p>Cada palabra tiene una consulta y una clave de 4 dimensiones, escritas a mano para que se lean: “qué tan animado”, “qué tan lugar”, “qué tan verbo” y “qué tan palabra funcional”. En un transformer real se aprenden y tienen cientos de dimensiones, pero el cálculo es idéntico. La matriz muestra todos los pesos \(\alpha_{ij}\) (fila: quien consulta; columna: a quien mira). Toca una fila o usa el control para elegir la palabra que consulta.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · pesos de atención</span><span class="num" id="transformers-head">–</span></div>
@@ -101,28 +216,18 @@
         </div>
         <figcaption>Con “cansado”, la última palabra pone la mayor parte de su peso en “animal”; cambia a “inundada” y el peso salta a “calle”. Baja τ a 0,3: la atención se vuelve casi una elección única y la entropía cae. Súbela a 3: los pesos se reparten. Con la máscara causal, cada palabra solo puede mirar hacia atrás: la primera fila tiene todo su peso en “El”.</figcaption>
       </figure>
-
-      <h2 id="transformers-multi"><span class="sec">§ 4</span>Atención multicabeza</h2>
-      <p>Una sola atención produce un único promedio ponderado por posición, pero una palabra tiene muchas relaciones a la vez: con su sujeto, con el verbo, con la palabra anterior, con la negación. La <b>atención multicabeza</b> ejecuta \(h\) atenciones en paralelo, cada una con sus propias proyecciones, y concatena los resultados:</p>
-      <div class="eq">\[ \text{cabeza}_r = \operatorname{Atención}\big(X W_Q^{(r)},\, X W_K^{(r)},\, X W_V^{(r)}\big), \qquad \operatorname{MultiCabeza}(X) = \big[\text{cabeza}_1, \dots, \text{cabeza}_h\big]\, W_O \]
-        <div class="note">Con \(d_{\text{modelo}} = 512\) y \(h = 8\), cada cabeza trabaja en \(d_k = 512/8 = 64\) dimensiones. El costo total es parecido al de una cabeza de 512 dimensiones, pero cada cabeza puede especializarse.</div>
-      </div>
-      <p>Al inspeccionar modelos entrenados aparecen cabezas con funciones reconocibles: algunas miran a la palabra anterior, otras conectan pronombres con sus referentes, otras siguen relaciones sintácticas como verbo-objeto. Muchas otras no tienen una interpretación clara, y quitar algunas cabezas a veces casi no cambia el resultado.</p>
-      <p><b>Parámetros:</b> \(W_Q, W_K, W_V, W_O\) son matrices de \(d_{\text{modelo}} \times d_{\text{modelo}}\) (sumando todas las cabezas), así que una capa de atención tiene \(4 d_{\text{modelo}}^2 + 4 d_{\text{modelo}}\) parámetros con sesgos. No depende del largo \(n\) de la secuencia: igual que en las RNN, los pesos se comparten entre posiciones.</p>
-
-      <h2 id="transformers-pos"><span class="sec">§ 5</span>Codificación posicional</h2>
-      <p>La atención trata la secuencia como un <i>conjunto</i>: si reordenas las palabras, cada salida se reordena igual, pero sus valores no cambian. Para la autoatención, “el perro mordió al hombre” y “el hombre mordió al perro” tienen las mismas palabras y, sin más información, las mismas representaciones. Formalmente, la autoatención es <b>equivariante a permutaciones</b>.</p>
-      <p>La solución es sumar a cada embedding un vector que dependa de la posición. El transformer original usa senos y cosenos de frecuencias geométricas:</p>
-      <div class="eq">\[ PE_{(p,\, 2i)} = \sin\!\left(\frac{p}{10\,000^{2i/d}}\right), \qquad PE_{(p,\, 2i+1)} = \cos\!\left(\frac{p}{10\,000^{2i/d}}\right), \qquad i = 0, \dots, \tfrac d2 - 1 \]
-        <div class="note">Las primeras dimensiones oscilan rápido (período \(2\pi\) posiciones) y las últimas muy lento (período cercano a \(2\pi \cdot 10\,000\)). Es como un reloj con manecillas de segundos, minutos y horas: la combinación identifica cada posición de forma única.</div>
-      </div>
-      <ul>
-        <li><b>Posiciones relativas:</b> para cada frecuencia, \(PE_{p+k}\) es una rotación de \(PE_p\) que solo depende de \(k\). Eso facilita aprender relaciones como “la palabra dos posiciones antes”, y hace que el producto punto \(PE_p \cdot PE_{p+k}\) dependa solo de la distancia \(k\).</li>
-        <li><b>Posiciones aprendidas:</b> BERT y GPT-2 aprenden un vector por posición, como si fuera otro embedding. Funciona bien, pero no generaliza a secuencias más largas que las vistas en entrenamiento.</li>
-        <li><b>RoPE:</b> muchos modelos actuales rotan directamente las consultas y las claves según su posición, de modo que \(q_i \cdot k_j\) depende de \(i - j\). Es la idea de la codificación sinusoidal, aplicada dentro de la atención.</li>
-      </ul>
-
-      <h2 id="transformers-lab2"><span class="sec">§ 6</span>Laboratorio: codificación posicional</h2>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Elige como consulta la última palabra (posición 8) con “cansado” y τ = 1. Anota la palabra más atendida y su peso. Cambia a “inundada”.
+          <details><summary>Qué deberías observar</summary><p>Con “cansado” la palabra más atendida es “animal”; con “inundada” el peso salta a “calle”. Cambiar una sola clave/consulta reorganiza toda la fila de pesos.</p></details></li>
+        <li>Con la misma consulta, baja τ a 0,3 y luego súbela a 3. Mira la entropía y las “palabras efectivas”.
+          <details><summary>Qué deberías observar</summary><p>Con τ = 0,3 la atención casi elige una sola palabra: la entropía cae cerca de 0 bits y las palabras efectivas se acercan a 1. Con τ = 3 los pesos se reparten, la entropía sube hacia \(\log_2 9 \approx 3{,}2\) bits y las palabras efectivas crecen. Es el efecto de no escalar (τ chica equivale a puntuaciones grandes) o de escalar demasiado.</p></details></li>
+        <li>Activa la máscara causal y recorre las filas de la matriz. ¿Qué forma tiene?
+          <details><summary>Qué deberías observar</summary><p>La matriz es triangular inferior: cada palabra solo mira a sí misma y a las anteriores. La primera fila tiene todo su peso en “El”. La última fila no cambia, porque ya podía ver todo lo anterior.</p></details></li>
+        <li>Calcula a mano, con los pesos que muestra la fila elegida, la suma de los pesos. ¿Qué número obtienes siempre?
+          <details><summary>Qué deberías observar</summary><p>Siempre 1 (salvo redondeo): cada fila es una distribución de probabilidad. Por eso la salida es un promedio ponderado de los valores.</p></details></li>
+      </ol>
+      <h3>Laboratorio 2: codificación posicional</h3>
       <p>A la izquierda, la matriz de codificación posicional: cada fila es una posición (de 0 a 63) y cada columna una dimensión. A la derecha, la similitud coseno entre la posición elegida \(p\) y todas las demás. Observa cómo las columnas de la izquierda oscilan rápido y las de la derecha casi no cambian.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · codificación sinusoidal</span><span class="num" id="transformers-pe-head">–</span></div>
@@ -159,47 +264,25 @@
         </div>
         <figcaption>La similitud es máxima en p y baja a medida que te alejas, de forma parecida hacia ambos lados: las posiciones cercanas tienen vectores parecidos. Mueve p y fíjate en que la curva solo se desplaza: depende de la distancia, no de la posición absoluta. Con d = 16 hay pocas frecuencias y la similitud tiene “rebotes”; con d = 128 la curva es más limpia.</figcaption>
       </figure>
-
-      <h2 id="transformers-bloque"><span class="sec">§ 7</span>El bloque transformer</h2>
-      <p>Un transformer apila \(N\) bloques idénticos (6 en el original, 12 en BERT-base, hasta más de 100 en modelos grandes). Cada bloque tiene dos subcapas, cada una envuelta en una conexión residual y una normalización:</p>
-      <div class="eq">\[ \begin{aligned} H &amp;= X + \operatorname{MultiCabeza}\big(\operatorname{LN}(X)\big) \\ \text{Salida} &amp;= H + \operatorname{FFN}\big(\operatorname{LN}(H)\big), \qquad \operatorname{FFN}(h) = W_2\, \operatorname{GELU}(W_1 h + b_1) + b_2 \end{aligned} \]
-        <div class="note">LN es la normalización por capa (<i>layer norm</i>): estandariza cada vector a media 0 y varianza 1 y aplica una escala y un desplazamiento aprendidos. Esta es la variante <i>pre-LN</i>, la más usada hoy porque entrena de forma más estable que la original.</div>
-      </div>
-      <ul>
-        <li><b>La atención mezcla posiciones;</b> la red <b>FFN</b> (<i>feed-forward</i>) procesa cada posición por separado, con los mismos pesos, típicamente con \(d_{ff} = 4\,d_{\text{modelo}}\). Se suele decir que la atención decide “de dónde traer información” y la FFN “qué hacer con ella”; en la FFN se concentra cerca de dos tercios de los parámetros.</li>
-        <li><b>Residuales:</b> igual que en ResNet, permiten apilar muchos bloques y dan un camino directo al gradiente. Cada bloque “escribe” una corrección sobre un flujo residual compartido.</li>
-        <li><b>Codificador:</b> autoatención sin máscara; cada posición ve toda la secuencia. Sirve para entender (clasificar, extraer). Ejemplo: BERT.</li>
-        <li><b>Decodificador:</b> autoatención con <b>máscara causal</b>: la posición \(i\) solo ve las posiciones \(j \le i\), poniendo \(-\infty\) en las puntuaciones de las posiciones futuras antes de la softmax. Sirve para generar. Ejemplo: GPT.</li>
-        <li><b>Codificador-decodificador:</b> para traducción, el decodificador tiene además <b>atención cruzada</b>: sus consultas salen del texto que está generando y las claves y valores, de la salida del codificador. Ejemplo: el transformer original, T5.</li>
-      </ul>
-
-      <h2 id="transformers-lm"><span class="sec">§ 8</span>Modelos de lenguaje</h2>
-      <p>Un <b>modelo de lenguaje</b> asigna probabilidades a secuencias de texto. Por la regla de la cadena de la probabilidad, basta con predecir cada <i>token</i> dado los anteriores:</p>
-      <div class="eq">\[ P(w_1, \dots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_1, \dots, w_{t-1}), \qquad \mathcal{L} = -\frac1T \sum_{t=1}^{T} \log P_\theta(w_t \mid w_{&lt;t}) \]
-        <div class="note">\(\mathcal{L}\) es la entropía cruzada promedio, la misma pérdida de clasificación de siempre: en cada posición, la red clasifica cuál de los \(V\) tokens del vocabulario viene después. La <b>perplejidad</b> \(e^{\mathcal{L}}\) se interpreta como el número efectivo de opciones entre las que el modelo duda.</div>
-      </div>
+      <p><b>Experimentos guiados</b></p>
       <ol>
-        <li><b>Tokenización:</b> el texto se corta en <i>tokens</i>, que suelen ser trozos de palabras (“transform” + “ers”), con vocabularios de 30 000 a 200 000 tokens. Cada token se convierte en un embedding.</li>
-        <li><b>Paso por el decodificador:</b> embeddings + posiciones → \(N\) bloques con máscara causal → una capa lineal que da \(V\) puntuaciones (<i>logits</i>) por posición → softmax.</li>
-        <li><b>Entrenamiento en paralelo:</b> gracias a la máscara causal, una sola pasada por un texto de \(T\) tokens produce las \(T\) predicciones y sus pérdidas a la vez. Esa es una gran ventaja sobre las RNN.</li>
-        <li><b>Generación:</b> se predice un token, se agrega al texto y se repite. Para elegir el token se muestrea de la softmax con <b>temperatura</b> \(T\): \(p_k \propto \exp(z_k / T)\). Con \(T \to 0\) siempre sale el más probable (decodificación codiciosa); con \(T &gt; 1\) el texto es más variado y más propenso a errores. Variantes como <i>top-k</i> o <i>top-p</i> muestrean solo entre los tokens más probables.</li>
+        <li>Con d = 64, mueve p de 10 a 40 y mira la curva de similitud. ¿Cambia su forma?
+          <details><summary>Qué deberías observar</summary><p>La curva solo se desplaza con p: las similitudes con p + 1, p + 5 y p + 20 se mantienen prácticamente iguales. Es la propiedad \(PE_p \cdot PE_{p+k} = \sum_i\cos\omega_ik\), que solo depende de k (la similitud coseno además divide por la norma, que es constante, \(\sqrt{d/2}\)).</p></details></li>
+        <li>Compara d = 16 y d = 128. ¿En cuál la similitud baja más limpiamente con la distancia?
+          <details><summary>Qué deberías observar</summary><p>Con d = 16 hay solo 8 frecuencias y la suma de cosenos tiene rebotes: posiciones lejanas pueden parecer similares. Con d = 128 la curva es más suave y monótona cerca de p: más frecuencias dan una “huella” más única para cada posición.</p></details></li>
+        <li>Mira el “período más lento” al cambiar d. ¿Por qué crece con d?
+          <details><summary>Qué deberías observar</summary><p>La frecuencia más lenta es \(\omega = 10\,000^{-(d-2)/d}\), cuyo período \(2\pi/\omega\) se acerca a \(2\pi \cdot 10\,000\) cuando d crece. Con d = 16 el período es menor, aunque sigue siendo mucho mayor que las 64 posiciones del gráfico.</p></details></li>
       </ol>
-      <p><b>Preentrenamiento y ajuste.</b> Los modelos grandes se preentrenan con enormes cantidades de texto prediciendo el siguiente token (GPT) o tokens ocultos al azar (BERT). Después se ajustan (<i>fine-tuning</i>) con ejemplos de instrucciones y con retroalimentación humana para que sigan indicaciones y sean útiles. Las <b>leyes de escala</b> observadas empíricamente muestran que la pérdida baja de forma predecible, como una potencia, al aumentar parámetros, datos y cómputo.</p>
-      <div class="callout"><b>Lo que no hay que olvidar:</b> un modelo de lenguaje está entrenado para producir texto <i>probable</i>, no texto <i>verdadero</i>. Puede generar afirmaciones falsas con mucha fluidez (las llamadas alucinaciones) y reproduce sesgos de sus datos. Evaluar sus salidas con datos y criterio sigue siendo trabajo estadístico.</div>
 
-      <h2 id="transformers-costo"><span class="sec">§ 9</span>Costo y limitaciones</h2>
-      <p>La matriz de atención tiene \(n^2\) entradas por cabeza y por capa. Duplicar el largo del contexto cuadruplica el costo de la atención en tiempo y memoria. Con \(n = 4\,096\) tokens y 32 cabezas, una sola capa guarda \(4\,096^2 \times 32 \approx 5{,}4 \times 10^8\) pesos de atención: más de 1 GB en media precisión. Por eso existen variantes eficientes (atención por ventanas, dispersa o lineal) e implementaciones como FlashAttention, que calculan lo mismo sin guardar la matriz completa.</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Aspecto</th><th>RNN / LSTM</th><th>CNN 1D</th><th>Transformer</th></tr></thead>
-        <tbody>
-          <tr><td>Costo por capa</td><td>\(O(n\,d^2)\)</td><td>\(O(k\,n\,d^2)\)</td><td>\(O(n^2 d + n\,d^2)\)</td></tr>
-          <tr><td>Pasos secuenciales</td><td>\(n\): no se paraleliza</td><td>1</td><td>1</td></tr>
-          <tr><td>Camino entre dos posiciones lejanas</td><td>\(n\) pasos</td><td>\(\log_k n\) capas</td><td>1 paso</td></tr>
-          <tr><td>Sesgo inductivo</td><td>orden y recencia</td><td>localidad</td><td>casi ninguno: necesita muchos datos</td></tr>
-          <tr><td>Generación token a token</td><td>barata: estado fijo</td><td>media</td><td>crece con el contexto (caché de claves y valores)</td></tr>
-        </tbody>
-      </table></div>
-      <p>El transformer tiene pocos supuestos sobre los datos. Con muchos datos es una ventaja, porque aprende la estructura en lugar de imponerla. Con pocos datos es una desventaja: para una serie de tiempo corta o una tabla pequeña, un modelo clásico o un árbol de decisión suelen rendir mejor.</p>
+      <h2 id="transformers-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Tecnología: traducción automática</h3>
+      <p>El transformer original (Vaswani y colaboradores, 2017) se entrenó con unos 4,5 millones de pares de oraciones inglés-alemán de WMT 2014 y alcanzó 28,4 puntos BLEU, más de 2 puntos sobre los mejores sistemas previos, en 3,5 días con 8 GPU. La ventaja práctica fue doble: mejor calidad y entrenamiento mucho más paralelo. Hoy los traductores comerciales y los modelos multilingües usan esta arquitectura.</p>
+      <h3>Biología y salud: estructura de proteínas</h3>
+      <p>AlphaFold 2 (Jumper y colaboradores, Nature, 2021) usa bloques de atención sobre alineamientos de secuencias evolutivamente relacionadas y sobre pares de residuos para predecir la forma tridimensional de una proteína a partir de su secuencia de aminoácidos. En la competencia CASP14 alcanzó una precisión comparable a la experimental en la mayoría de los blancos. La base de datos de estructuras predichas que se publicó después, con cientos de millones de proteínas, acelera el diseño de fármacos y el estudio de enfermedades.</p>
+      <h3>Visión: transformers para imágenes</h3>
+      <p>El Vision Transformer (Dosovitskiy y colaboradores, 2020) corta una imagen en parches de 16 × 16 píxeles, los trata como tokens y aplica un codificador transformer estándar. Preentrenado con cientos de millones de imágenes, superó a las mejores <a href="#cnn">redes convolucionales</a> en ImageNet (≈ 88,5 % de exactitud top-1); entrenado solo con ImageNet, en cambio, rindió peor que ellas. Es el ejemplo perfecto del sesgo inductivo: la CNN “sabe” de localidad, el transformer necesita muchos datos para aprenderla.</p>
+      <h3>Ciencias sociales y economía: búsqueda y análisis de texto</h3>
+      <p>En 2019 Google anunció que usaba BERT para interpretar alrededor de 1 de cada 10 búsquedas en inglés, sobre todo consultas largas donde las preposiciones cambian el sentido. En investigación social y económica, modelos tipo BERT se ajustan con unos miles de textos etiquetados para clasificar noticias, discursos o reseñas por tema o sentimiento, y construir índices (por ejemplo, de incertidumbre económica) a partir de millones de documentos. La decisión que permite: medir variables que antes requerían lectura humana, con la obligación de validar contra una muestra codificada a mano.</p>
 
       <h2 id="transformers-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
       <p>Programamos la atención desde cero: atención escalada, codificación posicional, atención multicabeza y máscara causal. Luego comprobamos tres propiedades: los pesos suman 1, la máscara impide mirar al futuro y, sin codificación posicional, la autoatención es equivariante a permutaciones.</p>
@@ -326,7 +409,7 @@ Yb &lt;- <span class="f">multicabeza</span>(Xs[perm, ], W[[<span class="n">1</sp
       </div>
       <p>Un transformer real agrega a esto embeddings aprendidos, normalización por capa, conexiones residuales, la red FFN y una capa final de salida, y aprende todas las matrices \(W\) con retropropagación y Adam. El núcleo, sin embargo, son estas veinte líneas: proyectar, comparar, normalizar con softmax y promediar.</p>
 
-      <h2 id="transformers-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <h2 id="transformers-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Con componentes independientes de varianza 1, el producto punto q·k tiene varianza d_k. Sin escalar, las puntuaciones son enormes, la softmax se satura y sus gradientes casi desaparecen." data-wrong="Calcula la varianza de una suma de d_k productos independientes con varianza 1 cada uno. ¿Qué le pasa a una softmax cuando sus entradas son muy grandes?">
         <h3>¿Para qué se dividen las puntuaciones de atención entre √d_k?</h3>
         <div class="opts">
@@ -357,36 +440,121 @@ Yb &lt;- <span class="f">multicabeza</span>(Xs[perm, ], W[[<span class="n">1</sp
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="La pérdida es −log 0,25 ≈ 1,386 y la perplejidad e^1,386 = 4: el modelo duda como si eligiera al azar entre 4 tokens." data-wrong="La perplejidad es e elevado a la entropía cruzada, y la entropía cruzada de una predicción es −log de la probabilidad del token correcto.">
+        <h3>Un modelo de lenguaje asigna probabilidad 0,25 al token correcto en todas las posiciones de un texto. ¿Cuál es su perplejidad?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,25</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>1,386</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Depende del tamaño del vocabulario</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La matriz de atención tiene n² entradas por cabeza y por capa, así que pasar de 2 000 a 8 000 tokens multiplica ese costo por 16. Los parámetros no cambian." data-wrong="Recuerda que QKᵀ es una matriz de n × n. ¿Qué pasa con n² si n se multiplica por 4?">
+        <h3>Aumentas el contexto de 2 000 a 8 000 tokens. ¿Qué pasa con el costo de la matriz de atención y con el número de parámetros?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Ambos se multiplican por 4</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>El costo se multiplica por 16 y los parámetros no cambian</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El costo no cambia y los parámetros se multiplican por 4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Ambos se multiplican por 16</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="transformers-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
-      <p>Resuélvelos a mano; el código del § 10 te sirve para comprobar el primero.</p>
+      <h2 id="transformers-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución. Combinan demostraciones, conteos y simulación.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una consulta \(q = (1, 0)\) mira tres posiciones con claves \(k_1 = (1, 0)\), \(k_2 = (0, 1)\), \(k_3 = (1, 1)\) y valores \(v_1 = (10, 0)\), \(v_2 = (0, 10)\), \(v_3 = (5, 5)\). Con \(d_k = 2\), calcula los pesos de atención y la salida \(z\).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Puntuaciones \(q \cdot k_j/\sqrt2\): \((0{,}707;\ 0;\ 0{,}707)\). Exponenciales: \((2{,}028;\ 1;\ 2{,}028)\), con suma 5,056. Pesos: \(\alpha = (0{,}401;\ 0{,}198;\ 0{,}401)\). Salida: \(z = 0{,}401\,(10, 0) + 0{,}198\,(0, 10) + 0{,}401\,(5, 5) = (6{,}02;\ 3{,}98)\). La consulta “busca” la primera dimensión, así que favorece a \(k_1\) y \(k_3\) por igual.</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code>z, a = <span class="f">atencion</span>(np.<span class="f">array</span>([[<span class="n">1.</span>, <span class="n">0</span>]]), np.<span class="f">array</span>([[<span class="n">1.</span>, <span class="n">0</span>], [<span class="n">0</span>, <span class="n">1</span>], [<span class="n">1</span>, <span class="n">1</span>]]),
-                np.<span class="f">array</span>([[<span class="n">10.</span>, <span class="n">0</span>], [<span class="n">0</span>, <span class="n">10</span>], [<span class="n">5</span>, <span class="n">5</span>]]))
-<span class="f">print</span>(a, z)     <span class="c"># [[0.401 0.198 0.401]] [[6.017 3.983]]</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">atencion</span>(<span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="n">0</span>), <span class="n">1</span>), <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>), <span class="n">3</span>, byrow = <span class="k">TRUE</span>),
-         <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">10</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">10</span>, <span class="n">5</span>, <span class="n">5</span>), <span class="n">3</span>, byrow = <span class="k">TRUE</span>))</code></pre>
-</div></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que \(\operatorname{softmax}(PSP^\top) = P\operatorname{softmax}(S)P^\top\) para toda matriz de permutación \(P\) y deduce que la autoatención sin posiciones es equivariante a permutaciones. (b) Muestra que si además se promedian las salidas (como en una cabeza de clasificación con promedio), el resultado es invariante. (c) Explica por qué sumar \(PE\) a los embeddings rompe la simetría y por qué la máscara causal también la rompe.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Si \(P\) envía la fila \(i\) a la posición \(\pi(i)\), entonces \((PSP^\top)_{\pi(i)\pi(j)} = S_{ij}\): se permutan filas y columnas con la misma \(\pi\). La softmax de la fila \(\pi(i)\) de \(PSP^\top\) contiene los mismos números que la fila \(i\) de \(S\), en el orden permutado, y la normalización (suma de la fila) es la misma. Por eso \(\operatorname{softmax}(PSP^\top) = P\operatorname{softmax}(S)P^\top\). Con \(X \mapsto PX\), \(S \mapsto PSP^\top\) y \(XW_V \mapsto PXW_V\), así que \(f(PX) = P\operatorname{softmax}(S)P^\top PXW_V = Pf(X)\). Las capas FFN y las normalizaciones actúan fila por fila y también conmutan con \(P\).</p>
+            <p>(b) \(\frac1n\mathbf 1^\top f(PX) = \frac1n\mathbf 1^\top Pf(X) = \frac1n\mathbf 1^\top f(X)\), porque \(\mathbf 1^\top P = \mathbf 1^\top\). El modelo trataría “el perro mordió al hombre” igual que “el hombre mordió al perro”.</p>
+            <p>(c) Con \(X + PE\), permutar las palabras no permuta las posiciones: \(PX + PE \ne P(X + PE)\), así que la entrada cambia de verdad. La máscara causal hace que la fila \(i\) solo vea \(j \le i\); permutar cambia qué ve cada palabra, de modo que la salida tampoco es una simple permutación. Por eso los decodificadores sin posiciones explícitas pueden inferir algo del orden, aunque en la práctica se usan siempre.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Un bloque transformer tiene \(d_{\text{modelo}} = 512\), 8 cabezas y \(d_{ff} = 2\,048\). Cuenta los parámetros de la atención multicabeza (con sesgos), de la FFN y de las dos normalizaciones por capa. ¿Qué fracción está en la FFN? ¿Cambia el total si las secuencias tienen 100 o 1 000 tokens?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Atención: \(4\,(512^2 + 512) = 1\,050\,624\). FFN: \(512\cdot2\,048 + 2\,048 + 2\,048\cdot512 + 512 = 2\,099\,712\). Normalizaciones: \(2 \times (512 + 512) = 2\,048\). Total: \(3\,152\,384\), de los cuales la FFN es el 66,6 %. El número de cabezas no cambia la cuenta (solo cómo se reparten las columnas), y el largo de la secuencia tampoco: cambia el costo de cálculo, no los parámetros.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Deriva el jacobiano de la softmax, \(J = \operatorname{diag}(\alpha) - \alpha\alpha^\top\), y prueba que es simétrico, semidefinido positivo y que \(J\mathbf 1 = 0\). (b) Simula 2 000 consultas y 10 claves con componentes \(N(0, 1)\) en \(d_k = 64\) y compara, con y sin el factor \(1/\sqrt{d_k}\), la mediana de \(\lVert J\rVert_2\) y el peso máximo medio. Interpreta.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\partial\alpha_j/\partial s_l = \alpha_j\delta_{jl} - \alpha_j\alpha_l\), que es la entrada \((j, l)\) de \(\operatorname{diag}(\alpha) - \alpha\alpha^\top\): simétrica. Para \(u\) cualquiera, \(u^\top Ju = \sum_j\alpha_ju_j^2 - (\sum_j\alpha_ju_j)^2 = \operatorname{Var}_\alpha(u) \ge 0\) (la varianza de \(u\) bajo la distribución \(\alpha\)). Y \(J\mathbf 1 = \alpha - \alpha(\alpha^\top\mathbf 1) = 0\), coherente con la invariancia a sumar una constante a las puntuaciones.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+<span class="k">def</span> <span class="f">softmax</span>(s): e = np.<span class="f">exp</span>(s - s.<span class="f">max</span>()); <span class="k">return</span> e / e.<span class="f">sum</span>()
+d, n = <span class="n">64</span>, <span class="n">10</span>
+<span class="k">for</span> esc <span class="k">in</span> [<span class="n">1.0</span>, <span class="n">1</span> / np.<span class="f">sqrt</span>(d)]:
+    normas, maximos = [], []
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">2000</span>):
+        q, K = rng.<span class="f">normal</span>(size=d), rng.<span class="f">normal</span>(size=(n, d))
+        a = <span class="f">softmax</span>(esc * K @ q)
+        J = np.<span class="f">diag</span>(a) - np.<span class="f">outer</span>(a, a)
+        normas.<span class="f">append</span>(np.linalg.<span class="f">norm</span>(J, <span class="n">2</span>)); maximos.<span class="f">append</span>(a.<span class="f">max</span>())
+    <span class="f">print</span>(esc, np.<span class="f">median</span>(normas), np.<span class="f">mean</span>(maximos))
+<span class="c"># sin escalar: ≈ 0.076 y 0.86 · escalado: ≈ 0.25 y 0.32</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
+softmax &lt;- <span class="k">function</span>(s) { e &lt;- <span class="f">exp</span>(s - <span class="f">max</span>(s)); e / <span class="f">sum</span>(e) }
+d &lt;- <span class="n">64</span>; n &lt;- <span class="n">10</span>
+<span class="k">for</span> (esc <span class="k">in</span> <span class="f">c</span>(<span class="n">1</span>, <span class="n">1</span> / <span class="f">sqrt</span>(d))) {
+  r &lt;- <span class="f">replicate</span>(<span class="n">2000</span>, {
+    q &lt;- <span class="f">rnorm</span>(d); K &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(n * d), n)
+    a &lt;- <span class="f">softmax</span>(esc * <span class="f">drop</span>(K %*% q))
+    J &lt;- <span class="f">diag</span>(a) - <span class="f">outer</span>(a, a)
+    <span class="f">c</span>(<span class="f">norm</span>(J, <span class="s">"2"</span>), <span class="f">max</span>(a))
+  })
+  <span class="f">print</span>(<span class="f">c</span>(esc, <span class="f">median</span>(r[<span class="n">1</span>, ]), <span class="f">mean</span>(r[<span class="n">2</span>, ])))
+}</code></pre>
+            </div>
+            <p>(b) Sin escalar, las puntuaciones tienen desviación ≈ 8: la softmax casi siempre concentra el peso (máximo medio ≈ 0,86) y la norma del jacobiano es ≈ 0,08, tres veces menor que con escala (≈ 0,25, peso máximo ≈ 0,32). Un jacobiano pequeño significa gradientes pequeños hacia \(W_Q\) y \(W_K\): el aprendizaje de “a quién mirar” se frena. El factor \(1/\sqrt{d_k}\) mantiene la softmax en su zona sensible al comienzo del entrenamiento.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>(a) Con \(d_k = 64\) y consultas y claves con componentes independientes \(\mathcal N(0, 1)\), ¿cuál es la desviación típica de \(q\cdot k\) antes y después de escalar? (b) Un modelo usa contexto de \(n = 4\,096\) tokens y 32 cabezas. ¿Cuánta memoria ocupa la matriz de atención de una capa en media precisión (2 bytes por número)? ¿Y si el contexto se duplica?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\operatorname{Var}(q\cdot k) = \sum_{m=1}^{64}\operatorname{Var}(q_m k_m) = 64\), así que la desviación típica es 8 antes de escalar y 1 después de dividir entre \(\sqrt{64} = 8\). (b) \(4\,096^2 \times 32 \times 2 \approx 1{,}07 \times 10^9\) bytes, cerca de 1,07 GB por capa. Con \(n = 8\,192\) la matriz tiene 4 veces más entradas: unos 4,3 GB. Por eso las implementaciones eficientes evitan guardarla completa.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que para la codificación sinusoidal \(PE_{p+k} = R(k)\,PE_p\) con \(R(k)\) ortogonal por bloques de \(2 \times 2\) que no depende de \(p\). (b) Deduce que \(\lVert PE_p\rVert^2 = d/2\) y que la similitud coseno entre \(p\) y \(p + k\) es \(\frac2d\sum_{i}\cos(\omega_ik)\). (c) En RoPE se rota \(q_i\) por \(R(i)\) y \(k_j\) por \(R(j)\). Muestra que \((R(i)q)\cdot(R(j)k) = q\cdot R(j - i)k\), que depende solo de la posición relativa.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Para cada par \((2i, 2i+1)\): \(\sin(a + b) = \sin a\cos b + \cos a\sin b\) y \(\cos(a + b) = \cos a\cos b - \sin a\sin b\) con \(a = \omega_ip\), \(b = \omega_ik\), lo que da la matriz \(\begin{pmatrix}\cos\omega_ik &amp; \sin\omega_ik\\ -\sin\omega_ik &amp; \cos\omega_ik\end{pmatrix}\), una rotación. \(R(k)\) es la matriz diagonal por bloques con esas rotaciones.</p>
+            <p>(b) Cada par aporta \(\sin^2 + \cos^2 = 1\), así que \(\lVert PE_p\rVert^2 = d/2\). Y \(PE_p\cdot PE_{p+k} = \sum_i[\sin a_i\sin(a_i + b_i) + \cos a_i\cos(a_i + b_i)] = \sum_i\cos b_i = \sum_i\cos\omega_ik\). Dividiendo por \(\lVert PE_p\rVert\,\lVert PE_{p+k}\rVert = d/2\) se obtiene la similitud coseno.</p>
+            <p>(c) Las rotaciones son ortogonales y forman un grupo: \(R(i)^\top = R(-i)\) y \(R(-i)R(j) = R(j - i)\). Entonces \((R(i)q)^\top R(j)k = q^\top R(i)^\top R(j)k = q^\top R(j - i)k\). La puntuación de atención depende del contenido (\(q\), \(k\)) y de la distancia \(j - i\), no de las posiciones absolutas: por eso RoPE generaliza mejor a contextos más largos que las posiciones aprendidas.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Un modelo de lenguaje con un vocabulario de 4 tokens da los logits \(z = (2, 1, 0, -1)\) para el siguiente token. (a) Calcula las probabilidades con temperatura \(T = 1\), \(T = 0{,}5\) y \(T = 2\). (b) Si el token correcto era el segundo, ¿cuál es la pérdida de entropía cruzada y la perplejidad de esa predicción? (c) Un modelo que asigna probabilidad uniforme a un vocabulario de 50 000 tokens, ¿qué perplejidad tiene?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) Con \(T = 1\): \(e^{z} = (7{,}39;\ 2{,}72;\ 1;\ 0{,}37)\), suma 11,48, \(p = (0{,}644;\ 0{,}237;\ 0{,}087;\ 0{,}032)\). Con \(T = 0{,}5\) (logits duplicados): \(p = (0{,}865;\ 0{,}117;\ 0{,}016;\ 0{,}002)\), más concentrada. Con \(T = 2\) (logits a la mitad): \(p = (0{,}455;\ 0{,}276;\ 0{,}167;\ 0{,}102)\), más pareja. (b) \(\mathcal L = -\log 0{,}237 = 1{,}44\) y perplejidad \(e^{1{,}44} = 4{,}22\): el modelo estaba tan indeciso como si eligiera al azar entre unos 4 tokens (aquí, más que los 4 del vocabulario, porque se equivocó de favorito). (c) Con probabilidad \(1/50\,000\) para todo, \(\mathcal L = \log 50\,000\) y la perplejidad es exactamente 50 000. Un buen modelo de lenguaje en texto general baja a perplejidades de un dígito o pocas decenas.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Un modelo de lenguaje con vocabulario de 4 tokens da los logits \(z = (2, 1, 0, -1)\). (a) Calcula las probabilidades con temperatura \(T = 1\), \(0{,}5\) y \(2\), y la entropía (en nats) de cada distribución. (b) Si el token correcto era el segundo, calcula la entropía cruzada y la perplejidad. (c) Demuestra que la entropía cruzada media de un modelo \(q\) sobre textos generados por \(p\) es al menos la entropía de \(p\) (desigualdad de Gibbs), y explica qué dice esto sobre la perplejidad mínima alcanzable.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(T = 1\): \(e^z = (7{,}39;\ 2{,}72;\ 1;\ 0{,}37)\), suma 11,48, \(p = (0{,}644;\ 0{,}237;\ 0{,}087;\ 0{,}032)\), entropía \(-\sum p\log p \approx 0{,}95\). \(T = 0{,}5\): \(p = (0{,}865;\ 0{,}117;\ 0{,}016;\ 0{,}002)\), entropía ≈ 0,47. \(T = 2\): \(p = (0{,}455;\ 0{,}276;\ 0{,}167;\ 0{,}102)\), entropía ≈ 1,26. Bajar la temperatura concentra la distribución; subirla la acerca a la uniforme (entropía máxima \(\log 4 = 1{,}386\)).</p>
+            <p>(b) \(\mathcal L = -\log 0{,}237 = 1{,}44\) y perplejidad \(e^{1{,}44} = 4{,}22\): mayor que 4 porque el modelo se equivocó de favorito.</p>
+            <p>(c) \(H(p, q) - H(p) = \sum_xp(x)\log\frac{p(x)}{q(x)} = \operatorname{KL}(p\,\Vert\,q) \ge 0\), por la desigualdad de Jensen aplicada a \(-\log\). La igualdad ocurre solo si \(q = p\). Por eso la perplejidad de cualquier modelo está acotada por abajo por \(e^{H(p)}\), la incertidumbre intrínseca del lenguaje: ningún modelo puede bajar de ahí, y las mejoras de perplejidad son reducciones de la divergencia KL con la distribución real del texto.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación: la atención como regresión por núcleos. Genera 200 puntos \(x_j \sim U(0, 1)\) con \(y_j = \sin(2\pi x_j) + \varepsilon_j\), \(\varepsilon_j \sim N(0;\ 0{,}3^2)\). Usa cada \(x\) de una grilla como consulta, los \(x_j\) como claves y los \(y_j\) como valores, con puntuaciones \(s = -(x - x_j)^2/(2h^2)\). Calcula el RMSE contra la función verdadera para \(h = 0{,}01;\ 0{,}05;\ 0{,}2\) y relaciona \(h\) con la temperatura y con el compromiso sesgo-varianza.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+x = np.<span class="f">sort</span>(rng.<span class="f">uniform</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">200</span>))                 <span class="c"># claves</span>
+y = np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * x) + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">0.3</span>, <span class="n">200</span>)    <span class="c"># valores</span>
+xg = np.<span class="f">linspace</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">101</span>); f = np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * xg)   <span class="c"># consultas y verdad</span>
+<span class="k">for</span> h <span class="k">in</span> [<span class="n">0.01</span>, <span class="n">0.05</span>, <span class="n">0.2</span>]:
+    S = -(xg[:, <span class="k">None</span>] - x[<span class="k">None</span>, :])**<span class="n">2</span> / (<span class="n">2</span> * h * h)       <span class="c"># puntuaciones</span>
+    A = np.<span class="f">exp</span>(S - S.<span class="f">max</span>(<span class="n">1</span>, keepdims=<span class="k">True</span>)); A /= A.<span class="f">sum</span>(<span class="n">1</span>, keepdims=<span class="k">True</span>)
+    <span class="f">print</span>(h, np.<span class="f">sqrt</span>(np.<span class="f">mean</span>((A @ y - f)**<span class="n">2</span>)).<span class="f">round</span>(<span class="n">3</span>))
+<span class="c"># 0.01: 0.124 · 0.05: 0.09 · 0.2: 0.349</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
+x &lt;- <span class="f">sort</span>(<span class="f">runif</span>(<span class="n">200</span>)); y &lt;- <span class="f">sin</span>(<span class="n">2</span> * pi * x) + <span class="f">rnorm</span>(<span class="n">200</span>, <span class="n">0</span>, <span class="n">0.3</span>)
+xg &lt;- <span class="f">seq</span>(<span class="n">0</span>, <span class="n">1</span>, length.out = <span class="n">101</span>); f &lt;- <span class="f">sin</span>(<span class="n">2</span> * pi * xg)
+<span class="k">for</span> (h <span class="k">in</span> <span class="f">c</span>(<span class="n">0.01</span>, <span class="n">0.05</span>, <span class="n">0.2</span>)) {
+  S &lt;- -<span class="f">outer</span>(xg, x, <span class="s">"-"</span>)^<span class="n">2</span> / (<span class="n">2</span> * h^<span class="n">2</span>)
+  A &lt;- <span class="f">exp</span>(S - <span class="f">apply</span>(S, <span class="n">1</span>, max)); A &lt;- A / <span class="f">rowSums</span>(A)
+  <span class="f">cat</span>(h, <span class="f">sqrt</span>(<span class="f">mean</span>((A %*% y - f)^<span class="n">2</span>)), <span class="s">"\n"</span>)
+}
+<span class="c"># equivalente: ksmooth(x, y, "normal", bandwidth = ...) con otra escala de ancho</span></code></pre>
+            </div>
+            <p>La salida de esta “atención” es el estimador de Nadaraya-Watson. Con \(h = 0{,}01\) (temperatura baja, atención casi dura) cada consulta promedia muy pocos vecinos: poco sesgo, mucha varianza, RMSE ≈ 0,12. Con \(h = 0{,}2\) promedia casi todo: la curva se aplana, mucho sesgo, RMSE ≈ 0,35. El intermedio \(h = 0{,}05\) equilibra ambos (RMSE ≈ 0,09). En un transformer, la escala de \(W_Q\), \(W_K\) y el factor \(1/\sqrt{d_k}\) controlan esa “dureza”, y el entrenamiento aprende además la métrica de similitud. Esta lectura estadística ayuda a entender por qué la atención necesita muchos datos: es un suavizador muy flexible.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>
