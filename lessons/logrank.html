@@ -5,32 +5,46 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Comparar grupos: prueba log-rank</h1>
-      <p>Tienes dos curvas de Kaplan-Meier que se ven distintas. ¿La diferencia es real o puede ser azar? La prueba log-rank responde comparando, en cada tiempo de evento, cuántos eventos hubo en cada grupo con cuántos esperarías si los dos tuvieran el mismo riesgo. Aquí aprendes a calcularla, a leerla y a reconocer cuándo pierde potencia.</p>
-      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: Kaplan-Meier y prueba chi-cuadrado</span><span>R · Python</span></div>
+      <p>Tienes dos curvas de Kaplan-Meier que se ven distintas. ¿La diferencia es real o puede ser azar? La prueba log-rank responde comparando, en cada tiempo de evento, cuántos eventos hubo en cada grupo con cuántos esperarías si los dos tuvieran el mismo riesgo. Aquí la defines, derivas su media y su varianza, aprendes a calcular el tamaño de muestra, a elegir pesos cuando los riesgos no son proporcionales y a aplicarla a ensayos reales de leucemia y cáncer de mama.</p>
+      <div class="lmeta"><span>85 min</span><span>Nivel intermedio</span><span>Requiere: Kaplan-Meier y prueba chi-cuadrado</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#logrank-idea" data-sec="logrank-idea">La idea</a></li>
-        <li><a href="#logrank-tabla" data-sec="logrank-tabla">Una tabla en cada evento</a></li>
-        <li><a href="#logrank-estad" data-sec="logrank-estad">El estadístico</a></li>
-        <li><a href="#logrank-lab" data-sec="logrank-lab">Laboratorio: observados y esperados</a></li>
-        <li><a href="#logrank-potencia" data-sec="logrank-potencia">Cuándo pierde potencia</a></li>
-        <li><a href="#logrank-leer" data-sec="logrank-leer">Interpretar sin errores</a></li>
+        <li><a href="#logrank-intro" data-sec="logrank-intro">Introducción</a></li>
+        <li><a href="#logrank-def" data-sec="logrank-def">Definición</a></li>
+        <li><a href="#logrank-hiper" data-sec="logrank-hiper">La tabla de cada evento</a></li>
+        <li><a href="#logrank-estad" data-sec="logrank-estad">El estadístico y sus variantes</a></li>
+        <li><a href="#logrank-potencia" data-sec="logrank-potencia">Potencia, pesos y tamaño</a></li>
+        <li><a href="#logrank-prop" data-sec="logrank-prop">Propiedades</a></li>
+        <li><a href="#logrank-lab" data-sec="logrank-lab">Ejercicios de simulación</a></li>
+        <li><a href="#logrank-apps" data-sec="logrank-apps">Aplicaciones reales</a></li>
         <li><a href="#logrank-code" data-sec="logrank-code">En R y Python</a></li>
-        <li><a href="#logrank-quiz" data-sec="logrank-quiz">Comprueba</a></li>
-        <li><a href="#logrank-ej" data-sec="logrank-ej">Ejercicios</a></li>
+        <li><a href="#logrank-quiz" data-sec="logrank-quiz">Quiz</a></li>
+        <li><a href="#logrank-ej" data-sec="logrank-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="logrank-idea"><span class="sec">§ 1</span>La idea</h2>
-      <p>Un ensayo clínico compara un tratamiento nuevo contra el estándar en 300 pacientes. Al final del seguimiento, la curva de Kaplan-Meier del grupo nuevo está por encima: a los 12 meses, el 32 % del grupo nuevo sigue sin progresión, frente al 22 % del grupo control. ¿Basta con comparar esos dos porcentajes?</p>
-      <p>No. Comparar en un solo tiempo desperdicia la información del resto de la curva, y el resultado depende de qué tiempo elijas (y elegirlo después de ver los datos es hacer trampa). Tampoco puedes comparar las proporciones de eventos con una chi-cuadrado común, porque los pacientes tienen seguimientos distintos y hay censura.</p>
-      <div class="callout"><b>Qué vas a aprender:</b> la prueba log-rank usa <b>toda la curva</b>. En cada tiempo en que alguien tiene el evento, pregunta: dado quién estaba en riesgo en ese instante, ¿el evento le tocó al grupo que esperaríamos si el tratamiento no hiciera nada? Después acumula las sorpresas a lo largo del tiempo.</div>
+      <h2 id="logrank-intro"><span class="sec">§ 1</span>Introducción</h2>
+      <p>Un ensayo clínico compara un tratamiento nuevo contra el estándar en 300 pacientes. Al final del seguimiento, la curva de <a href="#km">Kaplan-Meier</a> del grupo nuevo está por encima: a los 12 meses, el 32 % del grupo nuevo sigue sin progresión, frente al 22 % del grupo control. ¿Basta con comparar esos dos porcentajes?</p>
+      <p>No. Comparar en un solo tiempo desperdicia la información del resto de la curva, y el resultado depende de qué tiempo elijas (y elegirlo después de ver los datos es hacer trampa). Tampoco puedes comparar las proporciones de eventos con una <a href="#chi2">chi-cuadrado</a> común, porque los pacientes tienen seguimientos distintos y hay censura: un paciente seguido 2 meses no tuvo la misma oportunidad de tener el evento que uno seguido 30.</p>
+      <p>La idea que resuelve el problema viene de la epidemiología de los años cincuenta y sesenta. Mantel y Haenszel (1959) propusieron combinar muchas tablas 2×2, una por estrato, en una sola prueba. Nathan Mantel (1966) aplicó esa idea a la supervivencia, tratando cada tiempo de evento como un estrato, y Richard Peto y Julian Peto (1972) le dieron el nombre de <i>log-rank</i> y su justificación como prueba de rangos invariante. Desde entonces es la prueba estándar en ensayos clínicos con desenlace de tiempo hasta el evento: la mayoría de los ensayos oncológicos de fase III la usan como análisis primario.</p>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Plantear la hipótesis nula de igualdad de riesgos y armar la tabla 2×2 de cada tiempo de evento.</li>
+          <li>Derivar la media y la varianza hipergeométricas y construir el estadístico \(\chi^2\) log-rank.</li>
+          <li>Calcular la prueba a mano, con \(G\) grupos y estratificada, y resumir el efecto con un HR aproximado.</li>
+          <li>Planificar el número de eventos con la fórmula de Schoenfeld.</li>
+          <li>Reconocer cuándo pierde potencia y elegir pesos de Fleming-Harrington o la RMST.</li>
+          <li>Aplicarla en R y Python a los datos reales <code>aml</code> y <code>gbsg</code>.</li>
+        </ul>
+      </div>
 
-      <h2 id="logrank-tabla"><span class="sec">§ 2</span>Una tabla 2×2 en cada tiempo de evento</h2>
+      <h2 id="logrank-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Tienes dos grupos con funciones de riesgo \(h_1(t)\) y \(h_2(t)\). La prueba log-rank contrasta</p>
+      <div class="eq">\[ H_0: h_1(t) = h_2(t) \ \text{ para todo } t \quad (\Leftrightarrow S_1 = S_2) \qquad \text{frente a} \qquad H_1: h_1 \ne h_2 \]</div>
       <p>Llama \(t_1 &lt; \dots &lt; t_k\) a los tiempos distintos con eventos en la muestra combinada. En cada \(t_j\) arma una tabla con quienes estaban en riesgo justo antes:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>En t<sub>j</sub></th><th>Evento</th><th>Sin evento</th><th>En riesgo</th></tr></thead>
@@ -40,21 +54,33 @@
           <tr><td><b>Total</b></td><td>d<sub>j</sub></td><td>n<sub>j</sub> − d<sub>j</sub></td><td>n<sub>j</sub></td></tr>
         </tbody>
       </table></div>
-      <p>La hipótesis nula es que los dos grupos tienen la misma función de riesgo en todo momento, \(H_0: h_1(t) = h_2(t)\) para todo \(t\) (equivalente a \(S_1 = S_2\)). Bajo \(H_0\), y tomando los márgenes de la tabla como fijos, los \(d_j\) eventos se reparten entre los \(n_j\) en riesgo como en una urna sin reemplazo. Entonces \(d_{1j}\) sigue una distribución <b>hipergeométrica</b> con:</p>
-      <div class="eq">\[ E_{1j} = d_j\,\frac{n_{1j}}{n_j}, \qquad V_{1j} = d_j\,\frac{n_{1j}}{n_j}\left(1 - \frac{n_{1j}}{n_j}\right)\frac{n_j - d_j}{n_j - 1} \]
-        <div class="note">\(E_{1j}\) es la parte de los eventos que “le toca” al grupo 1 por su tamaño en el conjunto en riesgo. Si en \(t_j\) el grupo 1 es el 40 % de los que están en riesgo y hay 5 eventos, esperamos 2 en ese grupo. El último factor de \(V_{1j}\) es la corrección por muestreo sin reemplazo; vale 1 cuando \(d_j = 1\).</div>
+      <p>Cada término: \(n_{gj}\) es el número en riesgo del grupo \(g\) justo antes de \(t_j\), \(d_{gj}\) sus eventos en \(t_j\), y \(n_j, d_j\) los totales.</p>
+      <div class="callout"><b>Definición (estadístico log-rank).</b> Con \(E_{1j} = d_j\,n_{1j}/n_j\) los eventos esperados en el grupo 1 y \(V_{1j}\) su varianza hipergeométrica en cada tiempo,
+        <div class="eq">\[ O_1 = \sum_j d_{1j}, \qquad E_1 = \sum_j E_{1j}, \qquad \chi^2_{\text{LR}} = \frac{(O_1 - E_1)^2}{\sum_j V_{1j}} \;\overset{H_0}{\approx}\; \chi^2_1 \]</div>
+        Se rechaza \(H_0\) al 5 % si \(\chi^2_{\text{LR}} &gt; 3{,}84\). El signo de \(O_1 - E_1\) indica la dirección: \(O_1 &gt; E_1\) significa que el grupo 1 tuvo más eventos de los esperados, es decir, peor supervivencia.
       </div>
+      <p><b>Ejemplo numérico pequeño.</b> En un tiempo de evento hay \(n_j = 10\) en riesgo, 4 del grupo 1, y \(d_j = 2\) eventos. Bajo \(H_0\) esperas \(E_{1j} = 2 \cdot 4/10 = 0{,}8\) eventos en el grupo 1, con varianza \(V_{1j} = 2 \cdot 0{,}4 \cdot 0{,}6 \cdot (8/9) = 0{,}427\). Si los dos eventos ocurrieron en el grupo 1, este tiempo aporta \(d_{1j} - E_{1j} = 1{,}2\) a la suma: una pequeña “sorpresa” contra el grupo 1. La prueba acumula estas sorpresas en todos los tiempos.</p>
 
-      <h2 id="logrank-estad"><span class="sec">§ 3</span>El estadístico log-rank</h2>
-      <p>Sumando sobre todos los tiempos de evento, \(O_1 = \sum_j d_{1j}\) son los eventos observados en el grupo 1 y \(E_1 = \sum_j E_{1j}\) los esperados bajo \(H_0\). Como las tablas de distintos tiempos son (aproximadamente) independientes condicionadas a los conjuntos en riesgo, las varianzas también se suman:</p>
-      <div class="eq">\[ Z = \frac{O_1 - E_1}{\sqrt{\sum_j V_{1j}}} \;\approx\; \mathcal{N}(0, 1), \qquad \chi^2_{\text{LR}} = \frac{(O_1 - E_1)^2}{\sum_j V_{1j}} \;\approx\; \chi^2_1 \]
-        <div class="note">Rechazas \(H_0\) al 5 % si \(\chi^2_{\text{LR}} &gt; 3{,}84\). El signo de \(Z\) dice la dirección: \(O_1 &gt; E_1\) significa que el grupo 1 tuvo más eventos de los esperados, es decir, peor supervivencia. Con \(G\) grupos, el estadístico es una forma cuadrática con \(G - 1\) grados de libertad.</div>
+      <h2 id="logrank-hiper"><span class="sec">§ 3</span>La tabla de cada evento: distribución hipergeométrica</h2>
+      <p>Bajo \(H_0\), y tomando los márgenes de la tabla como fijos (quién está en riesgo y cuántos eventos hubo en total), los \(d_j\) eventos se reparten entre los \(n_j\) en riesgo como en una urna sin reemplazo: cualquier subconjunto de tamaño \(d_j\) es igual de probable. Entonces \(d_{1j}\) sigue una distribución <b>hipergeométrica</b>:</p>
+      <div class="eq">\[ P(d_{1j} = x) = \frac{\binom{n_{1j}}{x}\binom{n_{2j}}{d_j - x}}{\binom{n_j}{d_j}} \]</div>
+      <p><b>Derivación de la media y la varianza.</b> Numera a los \(n_{1j}\) individuos del grupo 1 y define \(I_i = 1\) si el individuo \(i\) tiene el evento. Por simetría, \(P(I_i = 1) = d_j/n_j\), así que \(E[d_{1j}] = \sum_i E[I_i] = n_{1j}\,d_j/n_j\). Para la varianza necesitas además \(P(I_i = 1, I_l = 1) = \frac{d_j(d_j-1)}{n_j(n_j-1)}\) para \(i \ne l\):</p>
+      <div class="eq">\[ \operatorname{Var}(d_{1j}) = n_{1j}\,\frac{d_j}{n_j}\Big(1 - \frac{d_j}{n_j}\Big) + n_{1j}(n_{1j}-1)\Big[\frac{d_j(d_j-1)}{n_j(n_j-1)} - \frac{d_j^2}{n_j^2}\Big] = d_j\,\frac{n_{1j}}{n_j}\Big(1 - \frac{n_{1j}}{n_j}\Big)\frac{n_j - d_j}{n_j - 1} \]</div>
+      <div class="eq">\[ E_{1j} = d_j\,\frac{n_{1j}}{n_j}, \qquad V_{1j} = d_j\,\frac{n_{1j}}{n_j}\left(1 - \frac{n_{1j}}{n_j}\right)\frac{n_j - d_j}{n_j - 1} \]
+        <div class="note">\(E_{1j}\) es la parte de los eventos que “le toca” al grupo 1 por su tamaño en el conjunto en riesgo. Si en \(t_j\) el grupo 1 es el 40 % de los que están en riesgo y hay 5 eventos, esperamos 2 en ese grupo. El último factor de \(V_{1j}\) es la corrección por muestreo sin reemplazo; vale 1 cuando \(d_j = 1\), y entonces \(V_{1j} = p_j(1-p_j)\) con \(p_j = n_{1j}/n_j\).</div>
+      </div>
+      <p><b>Por qué se pueden sumar las tablas.</b> Las tablas de tiempos distintos no son independientes (quién sigue en riesgo depende de lo que pasó antes), pero sí lo son en el sentido de martingala: condicionado a todo lo ocurrido hasta justo antes de \(t_j\), el término \(d_{1j} - E_{1j}\) tiene media cero. Una suma de incrementos de martingala tiene varianza igual a la suma de las varianzas condicionales, y el teorema central del límite para martingalas da la normalidad. Es la misma maquinaria que justifica el estimador de Nelson-Aalen de la <a href="#km">sesión anterior</a>.</p>
+
+      <h2 id="logrank-estad"><span class="sec">§ 4</span>El estadístico log-rank y sus variantes</h2>
+      <p>Sumando sobre todos los tiempos de evento, \(O_1 = \sum_j d_{1j}\) son los eventos observados en el grupo 1 y \(E_1 = \sum_j E_{1j}\) los esperados bajo \(H_0\):</p>
+      <div class="eq">\[ Z = \frac{O_1 - E_1}{\sqrt{\sum_j V_{1j}}} \;\approx\; \mathcal{N}(0, 1), \qquad \chi^2_{\text{LR}} = Z^2 = \frac{(O_1 - E_1)^2}{\sum_j V_{1j}} \;\approx\; \chi^2_1 \]
+        <div class="note">Como \(d_{1j} + d_{2j} = d_j = E_{1j} + E_{2j}\), siempre se cumple \(O_1 - E_1 = -(O_2 - E_2)\): da igual qué grupo elijas como referencia. Algunos programas antiguos usan la aproximación \(\sum_g (O_g - E_g)^2/E_g\), que es conservadora (da un \(\chi^2\) menor).</div>
       </div>
       <p>Un resumen útil del tamaño del efecto es el cociente de las razones observado/esperado, que aproxima la razón de riesgos cuando el efecto es proporcional:</p>
-      <div class="eq">\[ \widehat{HR} \approx \frac{O_1 / E_1}{O_2 / E_2} \]
-        <div class="note">Esta aproximación es buena cuando el efecto es moderado. Para una estimación con intervalo de confianza, usa el modelo de Cox de la siguiente sesión: su prueba del score con una sola covariable binaria es exactamente la prueba log-rank.</div>
+      <div class="eq">\[ \widehat{HR} \approx \frac{O_1 / E_1}{O_2 / E_2}, \qquad \ln \widehat{HR}_{\text{Peto}} = \frac{O_1 - E_1}{V}, \quad \operatorname{EE} = \frac{1}{\sqrt{V}} \]
+        <div class="note">El estimador “de un paso” de Peto es muy bueno cuando el HR está entre 0,5 y 2. Para una estimación con intervalo de confianza, usa el <a href="#cox">modelo de Cox</a>: su prueba del score con una sola covariable binaria es exactamente la prueba log-rank (con la aproximación de Breslow para empates).</div>
       </div>
-      <p><b>Ejemplo a mano.</b> Grupo A: 2, 4, 4, 6+, 7, 9. Grupo B: 3, 6, 8+, 10, 12+, 14+ (meses).</p>
+      <p><b>Ejemplo resuelto a mano.</b> Grupo A: 2, 4, 4, 6+, 7, 9. Grupo B: 3, 6, 8+, 10, 12+, 14+ (meses).</p>
       <div class="tablewrap"><table>
         <thead><tr><th>t<sub>j</sub></th><th>n<sub>j</sub></th><th>n<sub>Aj</sub></th><th>d<sub>j</sub></th><th>d<sub>Aj</sub></th><th>E<sub>Aj</sub></th><th>V<sub>Aj</sub></th></tr></thead>
         <tbody>
@@ -68,11 +94,59 @@
           <tr><td><b>Suma</b></td><td></td><td></td><td>8</td><td><b>5</b></td><td><b>2,913</b></td><td><b>1,586</b></td></tr>
         </tbody>
       </table></div>
-      <p>\(\chi^2 = (5 - 2{,}913)^2 / 1{,}586 = 2{,}75\), con \(p \approx 0{,}098\). El grupo A tuvo 5 eventos cuando se esperaban 2,9, y \(\widehat{HR} \approx (5/2{,}91)/(3/5{,}09) \approx 2{,}9\). El efecto parece grande, pero con 12 personas y 8 eventos no alcanza significancia al 5 %. Fíjate en el 6+ de A: se censuró en el mismo tiempo que un evento de B y sigue contando en riesgo en \(t = 6\).</p>
+      <p>En \(t = 4\): \(V = 2 \cdot 0{,}5 \cdot 0{,}5 \cdot 8/9 = 0{,}444\). Sumando, \(\chi^2 = (5 - 2{,}913)^2 / 1{,}586 = 2{,}75\), con \(p \approx 0{,}098\). El grupo A tuvo 5 eventos cuando se esperaban 2,9, y \(\widehat{HR} \approx (5/2{,}91)/(3/5{,}09) \approx 2{,}9\) (Peto: \(e^{2{,}087/1{,}586} = 3{,}7\)). El efecto parece grande, pero con 12 personas y 8 eventos no alcanza significancia al 5 %. Fíjate en el 6+ de A: se censuró en el mismo tiempo que un evento de B y sigue contando en riesgo en \(t = 6\).</p>
+      <p><b>Más de dos grupos.</b> Con \(G\) grupos, forma el vector \(\mathbf{U} = (O_1 - E_1, \dots, O_{G-1} - E_{G-1})\), omitiendo uno porque las \(G\) diferencias suman cero, y su matriz de covarianzas \(\mathbf{V}\) con elementos \(V_{gh} = \sum_j d_j \frac{n_{gj}}{n_j}\big(\delta_{gh} - \frac{n_{hj}}{n_j}\big)\frac{n_j - d_j}{n_j - 1}\). Entonces \(\chi^2 = \mathbf{U}^\top \mathbf{V}^{-1}\mathbf{U} \approx \chi^2_{G-1}\). Si los grupos están ordenados (dosis, estadio), la <b>prueba de tendencia</b> con puntajes \(c_g\) usa \(\big(\sum_g c_g(O_g - E_g)\big)^2 / \mathbf{c}^\top\mathbf{V}\mathbf{c} \approx \chi^2_1\) y es mucho más potente para una relación monótona.</p>
+      <p><b>Log-rank estratificada.</b> Si un factor afecta fuertemente el riesgo (centro, estadio, estado menopáusico), calcula \(O - E\) y \(V\) dentro de cada estrato \(s\) y súmalos: \(\chi^2_{\text{estr}} = \big(\sum_s (O_s - E_s)\big)^2 / \sum_s V_s\). No supone que los estratos tengan el mismo riesgo basal, solo que el efecto del grupo va en la misma dirección en todos. Es el análogo para supervivencia de la prueba de Cochran-Mantel-Haenszel.</p>
 
-      <h2 id="logrank-lab"><span class="sec">§ 4</span>Laboratorio: observados frente a esperados</h2>
-      <p>El grupo control tiene riesgo constante de 0,08 por mes. Elige cómo difiere el grupo nuevo y cuánto. Arriba ves las curvas de Kaplan-Meier; abajo, la suma acumulada de \(O - E\) del grupo nuevo a lo largo del tiempo, con la franja que marca \(\pm 1{,}96\) desviaciones. Si la línea termina fuera de la franja, la prueba rechaza. Pulsa “Potencia” para repetir el experimento 200 veces.</p>
-      <figure class="instrument lab">
+      <h2 id="logrank-potencia"><span class="sec">§ 5</span>Potencia, pruebas ponderadas y tamaño de muestra</h2>
+      <p><b>Fórmula de Schoenfeld.</b> Bajo riesgos proporcionales con \(\theta = \ln HR\) pequeño y una fracción \(p\) de pacientes en el grupo 1, Schoenfeld (1981) mostró que \(Z \approx \mathcal{N}\big(\theta\sqrt{D\,p(1-p)},\ 1\big)\), donde \(D\) es el número total de eventos. La razón es que cada evento aporta información \(V_{1j} \approx p(1-p)\) y el numerador crece como \(\theta \cdot V\). Para que la prueba bilateral de nivel \(\alpha\) tenga potencia \(1 - \beta\):</p>
+      <div class="eq">\[ \theta\sqrt{D\,p(1-p)} = z_{1-\alpha/2} + z_{1-\beta} \quad\Rightarrow\quad D = \frac{(z_{1-\alpha/2} + z_{1-\beta})^2}{p(1-p)\,(\ln HR)^2} \]
+        <div class="note">Con asignación 1:1, \(p(1-p) = 1/4\) y \(D = 4(z_{1-\alpha/2} + z_{1-\beta})^2/(\ln HR)^2\). Para HR = 0,75, α = 0,05 y potencia 80 %: \(D = 4(2{,}802)^2/0{,}0828 = 379\) eventos. La potencia depende de los <b>eventos</b>, no de los pacientes: un ensayo con 1 000 pacientes y 40 eventos tiene poca potencia.</div>
+      </div>
+      <p>La prueba log-rank es la <b>más potente</b> (localmente óptima) cuando el efecto es de riesgos proporcionales: \(h_2(t) = \theta\,h_1(t)\) con \(\theta\) constante. En ese caso cada tiempo de evento empuja \(O - E\) en la misma dirección. Cuando el efecto cambia con el tiempo, pierde potencia:</p>
+      <ul>
+        <li><b>Curvas que se cruzan.</b> Una cirugía con alto riesgo inmediato pero mejor pronóstico a largo plazo produce \(O - E\) positivo al principio y negativo después. Las contribuciones se cancelan y la prueba puede no ver nada.</li>
+        <li><b>Efecto tardío o efecto que se desvanece.</b> Una inmunoterapia que tarda meses en actuar, o un tratamiento que solo protege al inicio. Solo una parte de los tiempos aporta señal.</li>
+      </ul>
+      <p>La solución estándar es una familia de <b>pruebas ponderadas</b>, que multiplican cada aporte por un peso \(w_j\) que solo depende del pasado:</p>
+      <div class="eq">\[ Z_w = \frac{\sum_j w_j\,(d_{1j} - E_{1j})}{\sqrt{\sum_j w_j^2\,V_{1j}}}, \qquad w_j^{\text{FH}(\rho, \gamma)} = \hat S(t_j^-)^{\rho}\,\big[1 - \hat S(t_j^-)\big]^{\gamma} \]
+        <div class="note">\(w_j = 1\) es log-rank. \(w_j = n_j\) es la prueba de Gehan-Wilcoxon. Fleming-Harrington con \(\rho = 1, \gamma = 0\) (pesos \(\hat S\), cercana a Peto-Peto) enfatiza diferencias tempranas; con \(\rho = 0, \gamma = 1\) enfatiza diferencias tardías. \(\hat S\) es el Kaplan-Meier de la muestra combinada. La prueba ponderada es óptima cuando el log-HR verdadero es proporcional a \(w(t)\).</div>
+      </div>
+      <p>Una simulación con 100 pacientes por grupo, riesgo control 0,08 por mes y censura uniforme entre 12 y 36 meses muestra el efecto de los pesos (1 000 réplicas, rechazo al 5 %):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Escenario</th><th>Log-rank</th><th>FH(1, 0) temprana</th><th>FH(0, 1) tardía</th></tr></thead>
+        <tbody>
+          <tr><td>Proporcional, HR = 0,6</td><td><b>0,86</b></td><td>0,81</td><td>0,77</td></tr>
+          <tr><td>Se cruzan: HR 2 antes de 6 m, 0,5 después</td><td>0,21</td><td><b>0,65</b></td><td>0,14</td></tr>
+          <tr><td>Efecto tardío: HR 1 antes de 6 m, 0,4 después</td><td>0,74</td><td>0,38</td><td><b>0,94</b></td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Elige los pesos antes de ver los datos.</b> Probar log-rank, Wilcoxon y Fleming-Harrington y reportar el menor valor p infla el error tipo I. Si no sabes qué forma tendrá el efecto, decláralo en el protocolo: hay pruebas combinadas (como MaxCombo) que toman el máximo de varias y corrigen por ello.</div>
+      <p>Otras herramientas cuando no hay riesgos proporcionales: comparar la <b>media restringida</b> (RMST) hasta un horizonte \(\tau\), que no supone nada sobre la forma del efecto, o modelar el efecto variable en el tiempo con <a href="#cox">Cox</a>.</p>
+
+      <h2 id="logrank-prop"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>Suma cero entre grupos.</b> \(\sum_g (O_g - E_g) = 0\), porque en cada tiempo \(\sum_g d_{gj} = d_j = \sum_g E_{gj}\). Por eso con \(G\) grupos hay \(G - 1\) grados de libertad.</li>
+        <li><b>Distribución asintótica.</b> Bajo \(H_0\), \(Z = (O_1 - E_1)/\sqrt{V} \to \mathcal{N}(0, 1)\) por el teorema central del límite para martingalas; no requiere que \(h(t)\) tenga ninguna forma paramétrica.</li>
+        <li><b>Invarianza a transformaciones del tiempo.</b> El estadístico solo usa el orden de los tiempos, así que no cambia si mides en días, meses o \(\log t\). Es una prueba de rangos (de ahí el nombre de Peto).</li>
+        <li><b>Equivalencia con Cox.</b> La prueba del score del modelo \(h(t \mid x) = h_0(t)e^{\beta x}\) con \(x\) binaria, evaluada en \(\beta = 0\), es \(U(0) = O_1 - E_1\) e \(I(0) = \sum V_{1j}\): coincide con log-rank.</li>
+        <li><b>Optimalidad local.</b> Entre las pruebas de rangos ponderadas, log-rank es la más potente frente a alternativas de riesgos proporcionales cercanas a \(H_0\); FH(\(\rho, \gamma\)) es óptima cuando \(\ln HR(t) \propto w(t)\).</li>
+        <li><b>Tamaño de muestra en eventos.</b> \(D = (z_{1-\alpha/2} + z_{1-\beta})^2/[p(1-p)(\ln HR)^2]\); el número de pacientes se obtiene dividiendo entre la probabilidad de observar el evento.</li>
+        <li><b>Estratificación.</b> Sumar \(O - E\) y \(V\) por estratos controla un factor de confusión sin suponer riesgos basales iguales, con la misma distribución \(\chi^2_1\).</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Reportar solo el valor p. La log-rank es una prueba, no una medida del efecto: añade un HR con intervalo, medianas por grupo o la diferencia de RMST.</li>
+          <li>Leer “no significativo” como “iguales”. Con pocos eventos la prueba tiene poca potencia.</li>
+          <li>Cortar una variable continua (edad mayor o menor que la mediana) para usar log-rank. Pierdes información: usa Cox con la variable continua.</li>
+          <li>Ignorar curvas que se cruzan. Un \(p\) grande con curvas claramente distintas suele indicar cancelación, no ausencia de efecto.</li>
+          <li>Con más de dos grupos, concluir cuáles difieren a partir del \(p\) global. Haz comparaciones por pares con corrección por multiplicidad o una prueba de tendencia.</li>
+        </ul>
+      </div>
+
+      <h2 id="logrank-lab"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
+      <p>El grupo control tiene riesgo constante de 0,08 por mes y censura administrativa entre 12 y 30 meses. Elige cómo difiere el grupo nuevo y cuánto. Arriba ves las curvas de Kaplan-Meier; abajo, la suma acumulada de \(O - E\) del grupo nuevo a lo largo del tiempo, con la franja que marca \(\pm 1{,}96\) desviaciones. Si la línea termina fuera de la franja, la prueba rechaza. Pulsa “Potencia” para repetir el experimento 200 veces.</p>
+<figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · prueba log-rank</span><span class="num" id="logrank-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
@@ -115,32 +189,31 @@
         </div>
         <figcaption>En “Se cruzan”, el grupo nuevo tiene más riesgo al inicio y menos después. La línea de O − E sube y luego baja: los aportes se cancelan y la potencia cae aunque las curvas sean claramente distintas. Con pesos de Peto se gana potencia cuando la diferencia es temprana y se pierde cuando es tardía.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Escenario “Proporcional”, riesgo relativo 0,60 y 100 por grupo. Pulsa “Nueva muestra” varias veces y después “Potencia”.
+          <details><summary>Qué deberías observar</summary><p>La línea de O − E baja casi en línea recta: cada evento aporta en la misma dirección. El HR aproximado oscila alrededor de 0,6 y la potencia simulada ronda el 80 % o más. La fórmula de Schoenfeld con unos 120 a 130 eventos predice algo parecido.</p></details></li>
+        <li>Mantén “Proporcional” y pon el riesgo relativo en 1,00. Pulsa “Potencia” varias veces.
+          <details><summary>Qué deberías observar</summary><p>Bajo \(H_0\) la “potencia” simulada es en realidad el error tipo I: debe quedar cerca de 0,05 (entre 0,02 y 0,08 por la variabilidad de 200 réplicas). La línea de O − E vaga dentro de la franja.</p></details></li>
+        <li>Cambia a “Se cruzan” con riesgo relativo 0,50. Compara la potencia con pesos “Log-rank” y “Peto (tempranos)”.
+          <details><summary>Qué deberías observar</summary><p>Con log-rank, O − E sube durante los primeros 6 meses (el nuevo tiene el doble de riesgo) y luego baja: la suma final queda cerca de cero y la potencia cae mucho aunque las curvas de KM son claramente distintas. Los pesos tempranos dan más importancia al daño inicial y la potencia sube.</p></details></li>
+        <li>Cambia a “Efecto tardío” (el efecto empieza a los 8 meses) y sube \(n\) de 50 a 300 por grupo.
+          <details><summary>Qué deberías observar</summary><p>Aquí los pesos de Peto pierden: dan poco peso a los tiempos tardíos, justo donde está la señal. La potencia de log-rank crece con \(n\), pero es menor que en el escenario proporcional con el mismo HR, porque solo los eventos después de 8 meses aportan.</p></details></li>
+      </ol>
 
-      <h2 id="logrank-potencia"><span class="sec">§ 5</span>Cuándo pierde potencia</h2>
-      <p>La prueba log-rank es la <b>más potente</b> (localmente óptima) cuando el efecto es de riesgos proporcionales: \(h_2(t) = \theta\,h_1(t)\) con \(\theta\) constante. En ese caso cada tiempo de evento empuja \(O - E\) en la misma dirección. Cuando el efecto cambia con el tiempo, pierde potencia:</p>
-      <ul>
-        <li><b>Curvas que se cruzan.</b> Una cirugía con alto riesgo inmediato pero mejor pronóstico a largo plazo produce \(O - E\) positivo al principio y negativo después. Las contribuciones se cancelan y la prueba puede no ver nada.</li>
-        <li><b>Efecto tardío o efecto que se desvanece.</b> Una inmunoterapia que tarda meses en actuar, o un tratamiento que solo protege al inicio. Solo una parte de los tiempos aporta señal.</li>
-      </ul>
-      <p>La solución estándar es una familia de <b>pruebas ponderadas</b>, que multiplican cada aporte por un peso \(w_j\):</p>
-      <div class="eq">\[ Z_w = \frac{\sum_j w_j\,(d_{1j} - E_{1j})}{\sqrt{\sum_j w_j^2\,V_{1j}}}, \qquad w_j^{\text{FH}(\rho, \gamma)} = \hat S(t_j^-)^{\rho}\,\big[1 - \hat S(t_j^-)\big]^{\gamma} \]
-        <div class="note">\(w_j = 1\) es log-rank. \(w_j = n_j\) es la prueba de Gehan-Wilcoxon. Fleming-Harrington con \(\rho = 1, \gamma = 0\) (pesos \(\hat S\), cercana a Peto-Peto) enfatiza diferencias tempranas; con \(\rho = 0, \gamma = 1\) enfatiza diferencias tardías. \(\hat S\) es el Kaplan-Meier de la muestra combinada.</div>
-      </div>
-      <div class="callout"><b>Elige los pesos antes de ver los datos.</b> Probar log-rank, Wilcoxon y Fleming-Harrington y reportar el menor valor p infla el error tipo I. Si no sabes qué forma tendrá el efecto, decláralo en el protocolo: hay pruebas combinadas (como MaxCombo) que toman el máximo de varias y corrigen por ello.</div>
-      <p>Otras herramientas cuando no hay riesgos proporcionales: comparar la <b>media restringida</b> (RMST) hasta un horizonte \(\tau\), que no supone nada sobre la forma del efecto, o modelar el efecto variable en el tiempo con Cox. Y si hay un factor que afecta fuertemente el riesgo (centro, estadio de la enfermedad), la <b>log-rank estratificada</b> calcula \(O - E\) y \(V\) dentro de cada estrato y los suma, sin suponer que los estratos tienen el mismo riesgo basal.</p>
+      <h2 id="logrank-apps"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Salud: leucemia mieloide aguda y quimioterapia de mantenimiento</h3>
+      <p>El conjunto <code>aml</code> del paquete <code>survival</code> recoge 23 pacientes con leucemia mieloide aguda en remisión: 11 recibieron quimioterapia de mantenimiento y 12 no. El desenlace es el tiempo hasta la recaída en semanas. Hubo 7 recaídas en el grupo mantenido cuando se esperaban 10,7, y 11 en el no mantenido cuando se esperaban 7,3. La log-rank da \(\chi^2 = 3{,}40\) con \(p = 0{,}065\), y el HR aproximado del mantenido es \((7/10{,}69)/(11/7{,}31) \approx 0{,}44\). Lectura: el efecto estimado es grande, pero con 18 eventos la evidencia es débil. Justifica un ensayo más grande, no un cambio de práctica.</p>
+      <h3>Oncología: terapia hormonal en cáncer de mama (GBSG)</h3>
+      <p>Los datos del German Breast Cancer Study Group (<code>gbsg</code>, 686 pacientes con ganglios positivos, 299 recaídas o muertes) comparan la supervivencia libre de recurrencia con y sin terapia hormonal. Las 246 tratadas tuvieron 94 eventos frente a 118,7 esperados; la log-rank da \(\chi^2 = 8{,}56\), \(p = 0{,}003\), y la mediana sube de 1 528 a 2 018 días. Como las tratadas son sobre todo posmenopáusicas (187 de 246), conviene estratificar por menopausia: la log-rank estratificada da \(\chi^2 = 9{,}51\), \(p = 0{,}002\). El efecto se mantiene dentro de cada estrato.</p>
+      <h3>Tecnología: prueba A/B de retención</h3>
+      <p>Una app de finanzas personales lanza un nuevo tutorial a 4 000 usuarios nuevos y mantiene el antiguo para otros 4 000. El evento es “desinstalar o 30 días sin abrir la app”; quienes se registraron hace poco están censurados. Comparar la tasa de abandono a 30 días ignora la censura; la log-rank usa toda la curva. Si el grupo nuevo tiene O = 1 410 y E = 1 520 con V ≈ 740, \(Z = -110/27{,}2 = -4{,}0\): el tutorial reduce el abandono, con HR ≈ 0,86. El equipo decide desplegarlo a todos.</p>
+      <h3>Industria: comparar dos proveedores de rodamientos</h3>
+      <p>Una planta instala 60 rodamientos del proveedor A y 60 del B en máquinas equivalentes y registra las horas hasta la falla; al cabo de 8 000 horas los que no fallaron se censuran. Si las curvas se cruzan (B falla más al principio por defectos de montaje, pero dura más), la log-rank puede dar \(p &gt; 0{,}3\) aunque la diferencia sea real. Una prueba FH(0, 1), declarada de antemano porque lo que importa es la vida larga, o la comparación de la RMST a 8 000 horas, responde mejor a la decisión de compra.</p>
 
-      <h2 id="logrank-leer"><span class="sec">§ 6</span>Interpretar sin errores</h2>
-      <ul>
-        <li><b>Es una prueba, no una medida del efecto.</b> Un \(p\) pequeño dice que las curvas difieren; no dice cuánto. Reporta también un HR con intervalo, medianas por grupo o la diferencia de RMST.</li>
-        <li><b>“No significativo” no es “iguales”.</b> Con pocos eventos la prueba tiene poca potencia. Recuerda que la información la dan los eventos: un ensayo con 1 000 pacientes y 40 eventos tiene poca potencia.</li>
-        <li><b>No sirve para variables continuas.</b> Si cortas la edad en “mayores y menores de la mediana” pierdes información; usa Cox con edad continua.</li>
-        <li><b>Supone censura no informativa en cada grupo</b>, y que el patrón de censura no difiera por razones ligadas al pronóstico.</li>
-        <li><b>Con más de dos grupos</b>, un \(p\) global pequeño no dice cuáles difieren. Haz comparaciones por pares con corrección por multiplicidad, o una prueba de tendencia si los grupos están ordenados (por ejemplo, dosis).</li>
-      </ul>
-
-      <h2 id="logrank-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
+      <h2 id="logrank-code"><span class="sec">§ 9</span>En R y Python</h2>
       <p>Simulamos un ensayo con 150 pacientes por grupo, riesgo constante de 0,10 por mes en el control y 0,06 en el tratamiento nuevo (HR real 0,6), y censura administrativa entre 12 y 36 meses. Aplicamos log-rank, una prueba ponderada y la versión estratificada, y recalculamos el estadístico a mano.</p>
-      <div class="codetabs">
+<div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
@@ -209,8 +282,38 @@ km
 <span class="f">plot</span>(km, col = <span class="f">c</span>(<span class="s">"grey40"</span>, <span class="s">"tomato"</span>), mark.time = <span class="k">TRUE</span>, xlab = <span class="s">"meses"</span>)</code></pre>
       </div>
       <p>El HR aproximado por observados y esperados (≈ 0,67) queda cerca del real. La prueba con pesos tempranos da un χ² menor (≈ 6,5) porque aquí el efecto es proporcional: los pesos que no son constantes descartan información útil de los tiempos tardíos.</p>
+      <p><b>Caso aplicado completo: leucemia y cáncer de mama.</b> Reproducimos las dos aplicaciones de la sección anterior con los datos reales.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> statsmodels.duration.survfunc <span class="k">import</span> survdiff, SurvfuncRight
 
-      <h2 id="logrank-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+url = <span class="s">"https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/survival/"</span>
+aml = pd.<span class="f">read_csv</span>(url + <span class="s">"aml.csv"</span>)        <span class="c"># time (semanas), cens (1 = recaída), group (1 = mantenido)</span>
+<span class="f">print</span>(<span class="f">survdiff</span>(aml.time, aml.cens, aml.group))   <span class="c"># (3.396, 0.0653)</span>
+
+gb = pd.<span class="f">read_csv</span>(url + <span class="s">"gbsg.csv"</span>)        <span class="c"># rfstime (días), status, hormon, meno</span>
+<span class="f">print</span>(<span class="f">survdiff</span>(gb.rfstime, gb.status, gb.hormon))                  <span class="c"># (8.565, 0.0034)</span>
+<span class="f">print</span>(<span class="f">survdiff</span>(gb.rfstime, gb.status, gb.hormon, strata=gb.meno))   <span class="c"># (9.512, 0.0020)</span>
+<span class="f">print</span>(<span class="f">survdiff</span>(gb.rfstime, gb.status, gb.hormon, weight_type=<span class="s">"fh"</span>, fh_p=<span class="n">1</span>))
+
+<span class="k">for</span> h <span class="k">in</span> (<span class="n">0</span>, <span class="n">1</span>):
+    g = gb[gb.hormon == h]
+    km = <span class="f">SurvfuncRight</span>(g.rfstime, g.status)
+    <span class="f">print</span>(h, <span class="f">len</span>(g), g.status.<span class="f">sum</span>(), km.<span class="f">quantile</span>(<span class="n">0.5</span>))     <span class="c"># 0 440 205 1528 · 1 246 94 2018</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="c"># aml: time, status, x = Maintained / Nonmaintained</span>
+<span class="f">survdiff</span>(<span class="f">Surv</span>(time, status) ~ x, data = aml)          <span class="c"># Chisq ≈ 3.4, p ≈ 0.07</span>
+
+<span class="c"># gbsg: rfstime, status, hormon, meno</span>
+<span class="f">survdiff</span>(<span class="f">Surv</span>(rfstime, status) ~ hormon, data = gbsg)                   <span class="c"># Chisq ≈ 8.6</span>
+<span class="f">survdiff</span>(<span class="f">Surv</span>(rfstime, status) ~ hormon + <span class="f">strata</span>(meno), data = gbsg)   <span class="c"># Chisq ≈ 9.5</span>
+<span class="f">survdiff</span>(<span class="f">Surv</span>(rfstime, status) ~ hormon, data = gbsg, rho = <span class="n">1</span>)          <span class="c"># Peto-Peto</span>
+<span class="f">survfit</span>(<span class="f">Surv</span>(rfstime, status) ~ hormon, data = gbsg)                    <span class="c"># medianas 1528 y 2018</span>
+<span class="c"># HR con IC: summary(coxph(Surv(rfstime, status) ~ hormon, data = gbsg))</span></code></pre>
+      </div>
+
+      <h2 id="logrank-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="Correcto. El grupo tratado representa 60 de 200 en riesgo, el 30 %, así que de 4 eventos le tocan 4 × 0,3 = 1,2 bajo la hipótesis nula." data-wrong="E se calcula con la proporción del grupo en el conjunto en riesgo en ese instante, no con el tamaño inicial ni con los eventos observados.">
         <h3>En un tiempo de evento hay 200 en riesgo (60 del grupo tratado) y 4 eventos. ¿Cuántos eventos esperas en el grupo tratado bajo H₀?</h3>
         <div class="opts">
@@ -241,39 +344,176 @@ km
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Correcto. La potencia de la log-rank depende del número de eventos, no del de pacientes. Con 40 eventos la información es pequeña, sin importar cuántos pacientes se reclutaron." data-wrong="Recuerda la fórmula de Schoenfeld: D = 4(z₁ + z₂)²/(ln HR)². ¿Qué cantidad aparece ahí, pacientes o eventos?">
+        <h3>Un ensayo con 2 000 pacientes registra solo 40 eventos. ¿Qué limita la potencia de la log-rank?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Nada: 2 000 pacientes garantizan buena potencia</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La proporción de censuras, pero no el número de eventos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>El número de eventos: la información de la prueba crece con los eventos, no con los pacientes</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La duración del ensayo en días</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Bien. Estratificar calcula O − E y V dentro de cada estrato y los suma, de modo que el riesgo basal puede ser distinto en cada uno. Es el análogo de Cochran-Mantel-Haenszel." data-wrong="Piensa en qué pasa con un factor que cambia mucho el riesgo basal y está desbalanceado entre grupos. ¿Qué versión de la prueba compara solo dentro de cada nivel del factor?">
+        <h3>En un estudio observacional, el grupo tratado tiene muchas más pacientes posmenopáusicas, y la menopausia cambia el riesgo basal. ¿Qué haces?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Usar pesos de Fleming-Harrington</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Eliminar a las pacientes premenopáusicas</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Comparar las medianas sin prueba</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Hacer una log-rank estratificada por menopausia</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="logrank-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>Los dos primeros se hacen con calculadora; el tercero y el cuarto conviene comprobarlos con el código o con el laboratorio.</p>
+      <h2 id="logrank-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Demostraciones, planificación de ensayos, simulación y análisis de datos reales. Intenta cada una antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un ensayo informa: grupo placebo O = 48, E = 36,5; grupo tratado O = 30, E = 41,5; varianza del log-rank V = 19,2. Calcula χ², el valor p y el HR aproximado del tratado frente al placebo.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Para el tratado, O − E = 30 − 41,5 = −11,5. χ² = 11,5² / 19,2 = 132,25 / 19,2 ≈ <b>6,89</b>; con 1 grado de libertad, p ≈ <b>0,009</b>. HR ≈ (30/41,5) / (48/36,5) = 0,723 / 1,315 ≈ <b>0,55</b>: el tratamiento reduce el riesgo cerca de un 45 %. Comprueba que O y E suman lo mismo en ambos grupos (78 eventos): siempre debe ocurrir.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Considera el modelo de Cox \(h(t \mid x) = h_0(t)e^{\beta x}\) con \(x \in \{0, 1\}\) y sin empates. Escribe la verosimilitud parcial, calcula la función score \(U(\beta)\) y la información \(I(\beta)\), y demuestra que la prueba del score en \(\beta = 0\), \(U(0)^2/I(0)\), es exactamente la prueba log-rank.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>La verosimilitud parcial es \(L(\beta) = \prod_j \frac{e^{\beta x_{(j)}}}{\sum_{i \in R_j} e^{\beta x_i}}\), donde \(x_{(j)}\) es la covariable de quien tuvo el evento en \(t_j\) y \(R_j\) el conjunto en riesgo. Con \(x\) binaria, \(\sum_{i \in R_j} e^{\beta x_i} = n_{0j} + n_{1j}e^{\beta}\).</p>
+            <p>Log-verosimilitud: \(\ell(\beta) = \sum_j \big[\beta x_{(j)} - \ln(n_{0j} + n_{1j}e^\beta)\big]\). Score: \(U(\beta) = \sum_j \big[x_{(j)} - \frac{n_{1j}e^\beta}{n_{0j} + n_{1j}e^\beta}\big]\). En \(\beta = 0\): \(U(0) = \sum_j \big[d_{1j} - n_{1j}/n_j\big] = O_1 - E_1\).</p>
+            <p>Información: \(I(\beta) = \sum_j p_j(\beta)\big(1 - p_j(\beta)\big)\) con \(p_j(\beta) = \frac{n_{1j}e^\beta}{n_{0j} + n_{1j}e^\beta}\). En \(\beta = 0\), \(I(0) = \sum_j \frac{n_{1j}}{n_j}\big(1 - \frac{n_{1j}}{n_j}\big) = \sum_j V_{1j}\) (con \(d_j = 1\) el factor de corrección vale 1). Así \(U(0)^2/I(0) = (O_1 - E_1)^2/\sum V_{1j} = \chi^2_{\text{LR}}\). Con empates, la aproximación de Breslow da la misma \(U(0)\) pero una varianza binomial; la log-rank exacta corresponde a la verosimilitud “exacta” de Cox.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Calcula la prueba log-rank a mano. Grupo 1: 1, 3, 5+. Grupo 2: 2, 4, 6, 7+ (semanas).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Tiempos de evento: 1, 2, 3, 4, 6, todos con d = 1, así que V<sub>j</sub> = p(1 − p) con p = n<sub>1j</sub>/n<sub>j</sub>.</p>
-            <p>t = 1: n = 7, n₁ = 3, E₁ = 0,429, V = 0,245. t = 2: n = 6, n₁ = 2, E₁ = 0,333, V = 0,222. t = 3: n = 5, n₁ = 2, E₁ = 0,400, V = 0,240. t = 4: n = 4, n₁ = 1, E₁ = 0,250, V = 0,188. t = 6: n = 2, n₁ = 0, E₁ = 0, V = 0.</p>
-            <p>O₁ = 2, E₁ = 1,412, V = 0,895. χ² = 0,588² / 0,895 ≈ <b>0,39</b>, p ≈ <b>0,53</b>. Con 5 eventos no hay forma de detectar diferencias moderadas.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Planificas un ensayo para detectar un HR de 0,7 con log-rank, α = 0,05 bilateral y potencia del 80 %, con asignación 1:1. Usa la fórmula de Schoenfeld, d = 4(z<sub>1−α/2</sub> + z<sub>1−β</sub>)² / (ln HR)², para calcular cuántos <b>eventos</b> necesitas. Si esperas que el 60 % de los pacientes tenga el evento durante el seguimiento, ¿cuántos pacientes reclutas?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>z<sub>0,975</sub> = 1,960 y z<sub>0,80</sub> = 0,842, suma 2,802, al cuadrado 7,85. ln 0,7 = −0,357, al cuadrado 0,1272. d = 4 × 7,85 / 0,1272 ≈ <b>247 eventos</b>. Con 60 % de eventos: 247 / 0,6 ≈ <b>412 pacientes</b> (206 por grupo). El tamaño se planifica en eventos: si el seguimiento es corto o el riesgo menor de lo previsto, necesitarás más pacientes o más tiempo.</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Deriva la fórmula de Schoenfeld para el número de eventos a partir de \(Z \approx \mathcal{N}(\theta\sqrt{D p(1-p)}, 1)\). Después planifica un ensayo para detectar HR = 0,75 con α = 0,05 bilateral y potencia 90 %, asignación 2:1 (tratamiento:control). Si esperas que el 55 % de los pacientes tenga el evento, ¿cuántos reclutas? Compara con la asignación 1:1.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Se rechaza si \(|Z| &gt; z_{1-\alpha/2}\). Ignorando la cola opuesta, la potencia es \(P(Z &lt; -z_{1-\alpha/2}) = \Phi\big(|\theta|\sqrt{Dp(1-p)} - z_{1-\alpha/2}\big)\). Igualando a \(1 - \beta\): \(|\theta|\sqrt{Dp(1-p)} - z_{1-\alpha/2} = z_{1-\beta}\), de donde \(D = (z_{1-\alpha/2} + z_{1-\beta})^2/[p(1-p)\theta^2]\).</p>
+            <p>Datos: \(z_{0{,}975} + z_{0{,}90} = 1{,}960 + 1{,}282 = 3{,}242\), al cuadrado 10,51. \((\ln 0{,}75)^2 = 0{,}0828\). Con 2:1, \(p = 2/3\) y \(p(1-p) = 2/9 = 0{,}222\): \(D = 10{,}51/(0{,}222 \cdot 0{,}0828) = 572\) eventos y \(571/0{,}55 \approx 1\,039\) pacientes. Con 1:1, \(p(1-p) = 0{,}25\): \(D = 508\) eventos y unos 924 pacientes. La asignación 2:1 cuesta un 12,5 % más de eventos (el factor \(0{,}25/0{,}222 = 1{,}125\)) a cambio de que más pacientes reciban el tratamiento nuevo.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> scipy.stats <span class="k">import</span> norm
-d = <span class="n">4</span> * (norm.<span class="f">ppf</span>(<span class="n">0.975</span>) + norm.<span class="f">ppf</span>(<span class="n">0.80</span>)) ** <span class="n">2</span> / np.<span class="f">log</span>(<span class="n">0.7</span>) ** <span class="n">2</span>
-<span class="f">print</span>(np.<span class="f">ceil</span>(d), np.<span class="f">ceil</span>(d / <span class="n">0.6</span>))   <span class="c"># 247 412</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>d &lt;- <span class="n">4</span> * (<span class="f">qnorm</span>(<span class="n">0.975</span>) + <span class="f">qnorm</span>(<span class="n">0.80</span>))^<span class="n">2</span> / <span class="f">log</span>(<span class="n">0.7</span>)^<span class="n">2</span>
-<span class="f">ceiling</span>(<span class="f">c</span>(d, d / <span class="n">0.6</span>))   <span class="c"># 247 412</span></code></pre>
-</div></div></details>
+z = norm.<span class="f">ppf</span>(<span class="n">0.975</span>) + norm.<span class="f">ppf</span>(<span class="n">0.90</span>)
+<span class="k">for</span> p <span class="k">in</span> (<span class="n">2</span> / <span class="n">3</span>, <span class="n">1</span> / <span class="n">2</span>):
+    D = z ** <span class="n">2</span> / (p * (<span class="n">1</span> - p) * np.<span class="f">log</span>(<span class="n">0.75</span>) ** <span class="n">2</span>)
+    <span class="f">print</span>(<span class="f">round</span>(p, <span class="n">3</span>), np.<span class="f">ceil</span>(D), np.<span class="f">ceil</span>(D / <span class="n">0.55</span>))
+<span class="c"># 0.667 572 1039 · 0.5 508 924</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>z &lt;- <span class="f">qnorm</span>(<span class="n">0.975</span>) + <span class="f">qnorm</span>(<span class="n">0.90</span>)
+<span class="k">for</span> (p <span class="k">in</span> <span class="f">c</span>(<span class="n">2</span>/<span class="n">3</span>, <span class="n">1</span>/<span class="n">2</span>)) {
+  D &lt;- z^<span class="n">2</span> / (p * (<span class="n">1</span> - p) * <span class="f">log</span>(<span class="n">0.75</span>)^<span class="n">2</span>)
+  <span class="f">print</span>(<span class="f">ceiling</span>(<span class="f">c</span>(D, D / <span class="n">0.55</span>)))     <span class="c"># 572 1039 · 508 924</span>
+}</code></pre>
+            </div>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Un tratamiento tiene riesgo doble que el control durante los primeros 6 meses y la mitad después (riesgo del control constante, 0,08 por mes). (a) Explica qué esperas de la log-rank y de una prueba con pesos tempranos. (b) Propón un análisis que capture el efecto. (c) Comprueba tus predicciones en el laboratorio con el escenario “Se cruzan”.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) Durante los primeros 6 meses el tratado acumula O − E positivo; después, negativo. Con riesgo de control 0,08, cerca del 38 % del control tiene el evento antes de los 6 meses, así que buena parte de los eventos cae en cada tramo y la suma tiende a cancelarse: la log-rank tiene poca potencia. Una prueba con pesos tempranos (Fleming-Harrington ρ = 1) le da más peso al tramo inicial y tiende a detectar el <b>daño temprano</b>; una con pesos tardíos (γ = 1) detectaría el beneficio tardío. Ninguna cuenta la historia completa. (b) Un modelo de Cox con efecto que cambia en el tiempo: dos coeficientes, uno para t &lt; 6 y otro para t ≥ 6 (en R, <code>survSplit</code> y una interacción con el tramo). También sirve comparar la RMST a un horizonte clínicamente relevante o reportar Kaplan-Meier con supervivencia a 6 y 24 meses. (c) En el laboratorio, con riesgo relativo 0,5 y “Se cruzan”, la potencia de la log-rank queda muy por debajo de la del escenario proporcional con el mismo n.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Escribe una función que calcule la prueba de Fleming-Harrington FH(ρ, γ) y estima por simulación (1 000 réplicas, 100 por grupo, riesgo control 0,08 por mes, censura uniforme entre 12 y 36 meses) la potencia de log-rank, FH(1, 0) y FH(0, 1) en tres escenarios: riesgos proporcionales con HR 0,6; curvas que se cruzan (HR 2 antes de 6 meses y 0,5 después); efecto tardío (HR 1 antes de 6 meses y 0,4 después). Interpreta.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Resultados de una corrida (semilla 11): proporcional 0,86 / 0,81 / 0,77; cruce 0,21 / 0,65 / 0,14; tardío 0,74 / 0,38 / 0,94 (log-rank / FH(1, 0) / FH(0, 1)). Cada prueba gana en el escenario para el que es óptima: log-rank con efecto constante, FH(1, 0) cuando la señal está al inicio (aquí, el daño temprano domina porque al principio hay más pacientes en riesgo) y FH(0, 1) con efecto tardío. Ninguna gana siempre, y por eso los pesos se fijan en el protocolo según la hipótesis biológica, o se usa una prueba combinada.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">11</span>)
+
+<span class="k">def</span> <span class="f">sim_T</span>(n, escenario):
+    lam = <span class="n">0.08</span>
+    <span class="k">if</span> escenario == <span class="s">"ph"</span>:
+        <span class="k">return</span> rng.<span class="f">exponential</span>(<span class="n">1</span> / (<span class="n">0.6</span> * lam), n)
+    h1, h2 = (<span class="n">2</span> * lam, <span class="n">0.5</span> * lam) <span class="k">if</span> escenario == <span class="s">"cruce"</span> <span class="k">else</span> (lam, <span class="n">0.4</span> * lam)
+    T = rng.<span class="f">exponential</span>(<span class="n">1</span> / h1, n)
+    tarde = T &gt; <span class="n">6</span>                              <span class="c"># riesgo por tramos: cambia a los 6 meses</span>
+    T[tarde] = <span class="n">6</span> + rng.<span class="f">exponential</span>(<span class="n">1</span> / h2, tarde.<span class="f">sum</span>())
+    <span class="k">return</span> T
+
+<span class="k">def</span> <span class="f">fh</span>(time, ev, grp, rho, gam):
+    num = var = <span class="n">0.0</span>; S = <span class="n">1.0</span>
+    <span class="k">for</span> t <span class="k">in</span> np.<span class="f">unique</span>(time[ev == <span class="n">1</span>]):
+        r = time &gt;= t; n = r.<span class="f">sum</span>(); n1 = (r &amp; (grp == <span class="n">1</span>)).<span class="f">sum</span>()
+        d = ((time == t) &amp; (ev == <span class="n">1</span>)).<span class="f">sum</span>(); d1 = ((time == t) &amp; (ev == <span class="n">1</span>) &amp; (grp == <span class="n">1</span>)).<span class="f">sum</span>()
+        w = S ** rho * (<span class="n">1</span> - S) ** gam              <span class="c"># KM combinado justo antes de t</span>
+        num += w * (d1 - d * n1 / n)
+        <span class="k">if</span> n &gt; <span class="n">1</span>: var += w * w * d * (n1 / n) * (<span class="n">1</span> - n1 / n) * (n - d) / (n - <span class="n">1</span>)
+        S *= <span class="n">1</span> - d / n
+    <span class="k">return</span> num ** <span class="n">2</span> / var
+
+<span class="k">def</span> <span class="f">potencia</span>(escenario, n=<span class="n">100</span>, reps=<span class="n">1000</span>):
+    rech = np.<span class="f">zeros</span>(<span class="n">3</span>)
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps):
+        T = np.<span class="f">r_</span>[rng.<span class="f">exponential</span>(<span class="n">1</span> / <span class="n">0.08</span>, n), <span class="f">sim_T</span>(n, escenario)]
+        C = rng.<span class="f">uniform</span>(<span class="n">12</span>, <span class="n">36</span>, <span class="n">2</span> * n)
+        y, e = np.<span class="f">minimum</span>(T, C), (T &lt;= C).<span class="f">astype</span>(<span class="f">int</span>)
+        g = np.<span class="f">r_</span>[np.<span class="f">zeros</span>(n), np.<span class="f">ones</span>(n)]
+        <span class="k">for</span> k, (rho, gam) <span class="k">in</span> <span class="f">enumerate</span>([(<span class="n">0</span>, <span class="n">0</span>), (<span class="n">1</span>, <span class="n">0</span>), (<span class="n">0</span>, <span class="n">1</span>)]):
+            rech[k] += <span class="f">fh</span>(y, e, g, rho, gam) &gt; <span class="n">3.841</span>
+    <span class="k">return</span> rech / reps
+
+<span class="k">for</span> esc <span class="k">in</span> (<span class="s">"ph"</span>, <span class="s">"cruce"</span>, <span class="s">"tardio"</span>):
+    <span class="f">print</span>(esc, <span class="f">potencia</span>(esc))
+<span class="c"># ph [0.86 0.81 0.77] · cruce [0.21 0.65 0.14] · tardio [0.74 0.38 0.94]  (tarda ≈ 1 min)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="c"># paquete nph: logrank.test(time, event, group, rho, gamma) calcula FH(ρ, γ)</span>
+<span class="f">library</span>(nph)
+<span class="f">set.seed</span>(<span class="n">11</span>)
+sim_T &lt;- <span class="k">function</span>(n, esc, lam = <span class="n">0.08</span>) {
+  <span class="k">if</span> (esc == <span class="s">"ph"</span>) <span class="k">return</span>(<span class="f">rexp</span>(n, <span class="n">0.6</span> * lam))
+  h &lt;- <span class="k">if</span> (esc == <span class="s">"cruce"</span>) <span class="f">c</span>(<span class="n">2</span>, <span class="n">0.5</span>) * lam <span class="k">else</span> <span class="f">c</span>(<span class="n">1</span>, <span class="n">0.4</span>) * lam
+  T &lt;- <span class="f">rexp</span>(n, h[<span class="n">1</span>]); k &lt;- T &gt; <span class="n">6</span>
+  T[k] &lt;- <span class="n">6</span> + <span class="f">rexp</span>(<span class="f">sum</span>(k), h[<span class="n">2</span>]); T
+}
+potencia &lt;- <span class="k">function</span>(esc, n = <span class="n">100</span>, reps = <span class="n">1000</span>) {
+  <span class="f">rowMeans</span>(<span class="f">replicate</span>(reps, {
+    T &lt;- <span class="f">c</span>(<span class="f">rexp</span>(n, <span class="n">0.08</span>), <span class="f">sim_T</span>(n, esc)); C &lt;- <span class="f">runif</span>(<span class="n">2</span> * n, <span class="n">12</span>, <span class="n">36</span>)
+    y &lt;- <span class="f">pmin</span>(T, C); e &lt;- <span class="f">as.integer</span>(T &lt;= C); g &lt;- <span class="f">rep</span>(<span class="n">0</span>:<span class="n">1</span>, each = n)
+    <span class="f">sapply</span>(<span class="f">list</span>(<span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>), <span class="f">c</span>(<span class="n">1</span>, <span class="n">0</span>), <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>)), <span class="k">function</span>(rg)
+      <span class="f">logrank.test</span>(y, e, g, rho = rg[<span class="n">1</span>], gamma = rg[<span class="n">2</span>])$test$p &lt; <span class="n">0.05</span>)
+  }))
+}
+<span class="f">sapply</span>(<span class="f">c</span>(<span class="s">"ph"</span>, <span class="s">"cruce"</span>, <span class="s">"tardio"</span>), potencia)   <span class="c"># ≈ mismos patrones que en Python</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con los datos <code>gbsg</code> (686 pacientes, 299 eventos), haz la log-rank de terapia hormonal sin estratificar y estratificada por menopausia, calculando a mano O − E y V en cada estrato. ¿Por qué el estadístico estratificado es mayor que el crudo? ¿Este análisis demuestra que la terapia hormonal causa la mejora? Discute qué otros factores habría que considerar.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Crudo: O − E = 94 − 118,7 = −24,7, V = 70,98, χ² = 8,56. Premenopáusicas (290): O = 22, E = 29,3, V = 21,75, χ² = 2,45. Posmenopáusicas (396): O = 72, E = 89,9, V = 44,77, χ² = 7,12. Estratificado: O − E = −25,15, V = 66,52, χ² = 25,15²/66,52 = <b>9,51</b>, p = 0,002.</p>
+            <p>El estratificado es algo mayor porque las tratadas son sobre todo posmenopáusicas y la menopausia se asocia al riesgo; al comparar dentro de cada estrato se elimina esa fuente de variación entre grupos y la varianza baja (66,5 frente a 71,0) más de lo que cambia el numerador. No demuestra causalidad: la asignación de la terapia no fue aleatoria en todas las pacientes y las tratadas son 5,6 años mayores en promedio. Habría que ajustar por edad, tamaño tumoral, grado, número de ganglios y receptores hormonales, idealmente con un modelo de <a href="#cox">Cox</a> o métodos de puntaje de propensión.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np, pandas <span class="k">as</span> pd
+url = <span class="s">"https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/survival/gbsg.csv"</span>
+gb = pd.<span class="f">read_csv</span>(url)
+
+<span class="k">def</span> <span class="f">o_e_v</span>(time, ev, grp):
+    time, ev, grp = <span class="f">map</span>(np.asarray, (time, ev, grp))
+    O = E = V = <span class="n">0.0</span>
+    <span class="k">for</span> t <span class="k">in</span> np.<span class="f">unique</span>(time[ev == <span class="n">1</span>]):
+        r = time &gt;= t; n = r.<span class="f">sum</span>(); n1 = (r &amp; (grp == <span class="n">1</span>)).<span class="f">sum</span>()
+        d = ((time == t) &amp; (ev == <span class="n">1</span>)).<span class="f">sum</span>()
+        O += ((time == t) &amp; (ev == <span class="n">1</span>) &amp; (grp == <span class="n">1</span>)).<span class="f">sum</span>(); E += d * n1 / n
+        <span class="k">if</span> n &gt; <span class="n">1</span>: V += d * (n1 / n) * (<span class="n">1</span> - n1 / n) * (n - d) / (n - <span class="n">1</span>)
+    <span class="k">return</span> O, E, V
+
+O, E, V = <span class="f">o_e_v</span>(gb.rfstime, gb.status, gb.hormon)
+<span class="f">print</span>(<span class="s">"crudo"</span>, O, <span class="f">round</span>(E, <span class="n">1</span>), <span class="f">round</span>(V, <span class="n">2</span>), <span class="f">round</span>((O - E) ** <span class="n">2</span> / V, <span class="n">2</span>))   <span class="c"># 94 118.7 70.98 8.56</span>
+num = den = <span class="n">0</span>
+<span class="k">for</span> m, s <span class="k">in</span> gb.<span class="f">groupby</span>(<span class="s">"meno"</span>):
+    O, E, V = <span class="f">o_e_v</span>(s.rfstime, s.status, s.hormon)
+    <span class="f">print</span>(m, <span class="f">len</span>(s), O, <span class="f">round</span>(E, <span class="n">1</span>), <span class="f">round</span>(V, <span class="n">2</span>)); num += O - E; den += V
+<span class="f">print</span>(<span class="s">"estratificado"</span>, <span class="f">round</span>(num ** <span class="n">2</span> / den, <span class="n">2</span>))                          <span class="c"># 9.51</span>
+<span class="f">print</span>(gb.<span class="f">groupby</span>(<span class="s">"hormon"</span>).age.<span class="f">mean</span>())                                   <span class="c"># 51.1 y 56.6</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="f">survdiff</span>(<span class="f">Surv</span>(rfstime, status) ~ hormon, data = gbsg)
+<span class="k">for</span> (m <span class="k">in</span> <span class="n">0</span>:<span class="n">1</span>) <span class="f">print</span>(<span class="f">survdiff</span>(<span class="f">Surv</span>(rfstime, status) ~ hormon, data = <span class="f">subset</span>(gbsg, meno == m)))
+sd &lt;- <span class="f">survdiff</span>(<span class="f">Surv</span>(rfstime, status) ~ hormon + <span class="f">strata</span>(meno), data = gbsg)
+sd$chisq                                          <span class="c"># ≈ 9.51</span>
+<span class="f">tapply</span>(gbsg$age, gbsg$hormon, mean)</code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Un artículo compara cirugía frente a radioterapia y reporta: “las curvas de supervivencia se cruzan a los 14 meses; log-rank p = 0,48; concluimos que ambos tratamientos son equivalentes”. Los autores también probaron Wilcoxon (p = 0,03) y lo mencionan en la discusión como “evidencia de beneficio temprano de la radioterapia”. (a) ¿Qué está mal en la conclusión? (b) ¿Qué problema tiene usar el Wilcoxon a posteriori? (c) Propón un análisis preespecificado razonable y qué reportarías.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> Un p grande no demuestra equivalencia; para eso haría falta una prueba de equivalencia con un margen definido. Además, con curvas que se cruzan, la log-rank suma aportes de signo opuesto que se cancelan: un p = 0,48 es compatible con diferencias grandes y de sentido contrario en distintos periodos. Concluir “equivalentes” es doblemente erróneo.</p>
+            <p><b>(b)</b> Elegir la prueba después de ver las curvas infla el error tipo I: con dos o tres pruebas correlacionadas, la probabilidad de que alguna dé p &lt; 0,05 bajo \(H_0\) puede llegar al 8 % o 10 %. El 0,03 del Wilcoxon es exploratorio.</p>
+            <p><b>(c)</b> Si se esperaba un efecto no proporcional (mortalidad operatoria temprana frente a control tardío), preespecificar: una prueba combinada (MaxCombo con FH(0,0), FH(1,0), FH(0,1)) con su corrección, o la diferencia de RMST a un horizonte clínico (por ejemplo 36 meses) como medida principal. Reportar KM por grupo con número en riesgo, supervivencia a 6 y 36 meses con IC, y un Cox con efecto por tramos (antes y después de 14 meses) para describir el cambio de dirección del riesgo.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

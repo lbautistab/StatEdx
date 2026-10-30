@@ -5,95 +5,195 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Modelos lineales generalizados: regresión de Poisson</h1>
-      <p>Accidentes por cruce, llamadas por hora, reclamos por póliza: muchas respuestas son conteos. Aquí aprendes a modelarlos con un GLM de Poisson, a interpretar sus coeficientes como razones de tasas, a usar la exposición como offset y a detectar y corregir la sobredispersión con la binomial negativa.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: regresión logística</span><span>R · Python</span></div>
+      <p>Accidentes por cruce, llamadas por hora, reclamos por póliza: muchas respuestas son conteos. Aquí aprendes el marco general de los GLM, a modelar conteos con un GLM de Poisson, a estimarlo por máxima verosimilitud con IRLS, a interpretar sus coeficientes como razones de tasas, a usar la exposición como offset y a detectar y corregir la sobredispersión con la binomial negativa.</p>
+      <div class="lmeta"><span>95 min</span><span>Nivel avanzado</span><span>Requiere: regresión logística</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#glm-idea" data-sec="glm-idea">La idea</a></li>
-        <li><a href="#glm-comp" data-sec="glm-comp">Los tres componentes</a></li>
+        <li><a href="#glm-intro" data-sec="glm-intro">Introducción</a></li>
+        <li><a href="#glm-def" data-sec="glm-def">Definición</a></li>
         <li><a href="#glm-poisson" data-sec="glm-poisson">Regresión de Poisson</a></li>
-        <li><a href="#glm-mv" data-sec="glm-mv">Estimación y devianza</a></li>
-        <li><a href="#glm-lab" data-sec="glm-lab">Laboratorio: ajusta la curva</a></li>
+        <li><a href="#glm-mv" data-sec="glm-mv">Verosimilitud, IRLS y devianza</a></li>
         <li><a href="#glm-offset" data-sec="glm-offset">Exposición y offset</a></li>
-        <li><a href="#glm-sobre" data-sec="glm-sobre">Sobredispersión</a></li>
-        <li><a href="#glm-nb" data-sec="glm-nb">Binomial negativa</a></li>
-        <li><a href="#glm-code" data-sec="glm-code">Ejemplo en R y Python</a></li>
-        <li><a href="#glm-quiz" data-sec="glm-quiz">Comprueba</a></li>
-        <li><a href="#glm-ej" data-sec="glm-ej">Ejercicios</a></li>
+        <li><a href="#glm-sobre" data-sec="glm-sobre">Sobredispersión y binomial negativa</a></li>
+        <li><a href="#glm-prop" data-sec="glm-prop">Propiedades</a></li>
+        <li><a href="#glm-lab" data-sec="glm-lab">Ejercicios de simulación</a></li>
+        <li><a href="#glm-apps" data-sec="glm-apps">Aplicaciones reales</a></li>
+        <li><a href="#glm-code" data-sec="glm-code">En R y Python</a></li>
+        <li><a href="#glm-quiz" data-sec="glm-quiz">Quiz</a></li>
+        <li><a href="#glm-ej" data-sec="glm-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="glm-idea"><span class="sec">§ 1</span>La idea</h2>
-      <p>La oficina de movilidad de tu ciudad registró los accidentes en 20 cruces. Algunos se observaron 6 meses, otros un año y otros dos. Quieren saber cuánto aumenta el riesgo de accidente con el tráfico (miles de vehículos al día) para decidir dónde instalar semáforos inteligentes.</p>
+      <h2 id="glm-intro"><span class="sec">§ 1</span>Introducción</h2>
+      <p>La oficina de movilidad de tu ciudad registró los accidentes en 20 cruces. Algunos se observaron 6 meses, otros un año y otros dos. Quieren saber cuánto aumenta el riesgo de accidente con el tráfico (miles de vehículos al día) para decidir dónde instalar semáforos inteligentes, que cuestan cerca de 40 000 dólares cada uno. Si se equivocan de cruces, gastan el presupuesto sin salvar a nadie.</p>
       <p>Una regresión lineal parece la herramienta obvia, pero choca con la naturaleza de los datos: la respuesta es un <b>conteo</b> (0, 1, 2, …), muchos cruces tienen cero accidentes, la recta puede predecir valores negativos y la variabilidad crece con la media (donde se esperan 10 accidentes, la dispersión es mucho mayor que donde se espera 1). Además, comparar un cruce observado 6 meses con otro observado 24 no es justo si no tienes en cuenta el tiempo de observación.</p>
-      <div class="callout"><b>La idea central:</b> en lugar de forzar los datos a una recta con errores normales, elige una distribución adecuada para la respuesta (Poisson para conteos) y conecta su media con los predictores a través de una <b>función de enlace</b> (el logaritmo). Eso es un modelo lineal generalizado, el mismo marco que ya usaste en la regresión logística.</div>
+      <p><b>Un poco de historia.</b> Siméon Denis Poisson publicó en 1837 la distribución que lleva su nombre como límite de la binomial para eventos raros. Su fama llegó en 1898, cuando Ladislaus von Bortkiewicz mostró que las muertes por coces de caballo en 14 cuerpos del ejército prusiano a lo largo de 20 años seguían casi exactamente esa ley. Durante décadas, cada tipo de respuesta tuvo su propio método: mínimos cuadrados para datos normales, probit y logit para proporciones, modelos log lineales para tablas de contingencia. En 1972 John Nelder y Robert Wedderburn, en la Rothamsted Experimental Station, mostraron que todos eran casos de un mismo esquema, el <b>modelo lineal generalizado</b> (GLM), y que se podían estimar con un único algoritmo, los mínimos cuadrados reponderados iterativos. El libro de McCullagh y Nelder (1983, 2.ª ed. 1989) consolidó la teoría, y el programa GLIM la puso al alcance de cualquier analista. Hoy la función <code>glm()</code> de R desciende directamente de esa idea.</p>
+      <div class="callout"><b>La idea central:</b> en lugar de forzar los datos a una recta con errores normales, elige una distribución adecuada para la respuesta (Poisson para conteos) y conecta su media con los predictores a través de una <b>función de enlace</b> (el logaritmo). Es el mismo marco que ya usaste en la <a href="#logit">regresión logística</a>.</div>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Reconocer los tres componentes de un GLM y escribir una distribución en forma de familia exponencial.</li>
+          <li>Plantear e interpretar una regresión de Poisson, leyendo los coeficientes como razones de tasas.</li>
+          <li>Derivar las ecuaciones de verosimilitud, entender el algoritmo IRLS y usar la devianza para comparar modelos.</li>
+          <li>Incorporar la exposición con un offset y predecir tasas y conteos.</li>
+          <li>Diagnosticar la sobredispersión y corregirla con cuasi-Poisson o binomial negativa.</li>
+          <li>Ajustar todo el flujo en R y Python con un caso aplicado completo.</li>
+        </ul>
+      </div>
 
-      <h2 id="glm-comp"><span class="sec">§ 2</span>Los tres componentes de un GLM</h2>
-      <p>Un modelo lineal generalizado (GLM, Nelder y Wedderburn, 1972) se arma con tres piezas:</p>
-      <ul>
-        <li><b>Componente aleatorio</b>: las respuestas \(Y_i\) son independientes y siguen una distribución de la <b>familia exponencial</b> con media \(\mu_i = E[Y_i]\).</li>
-        <li><b>Predictor lineal</b>: \(\eta_i = \beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} = \mathbf{x}_i^\top \boldsymbol\beta\).</li>
-        <li><b>Función de enlace</b> \(g\), monótona y derivable, que conecta ambas: \(g(\mu_i) = \eta_i\), es decir, \(\mu_i = g^{-1}(\eta_i)\).</li>
-      </ul>
-      <p>La familia exponencial (en su forma de dispersión) agrupa a las distribuciones cuya densidad o probabilidad se puede escribir como</p>
+      <h2 id="glm-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Un GLM se arma con tres piezas. Las tres son necesarias y cada una cumple un papel distinto:</p>
+      <div class="callout"><b>Definición (modelo lineal generalizado).</b> Sean \(Y_1, \dots,Y_n\) respuestas independientes con vectores de predictores \(\mathbf{x}_i \in \mathbb{R}^{p}\). Un GLM especifica:
+        <ul>
+          <li><b>Componente aleatorio</b>: cada \(Y_i\) sigue una distribución de la <b>familia exponencial de dispersión</b> con media \(\mu_i = E[Y_i]\).</li>
+          <li><b>Predictor lineal</b>: \(\eta_i = \beta_0 + \beta_1 x_{i1} + \dots + \beta_{p-1} x_{i,p-1} = \mathbf{x}_i^ \top \boldsymbol \beta\).</li>
+          <li><b>Función de enlace</b> \(g\), monótona y derivable, que conecta ambas: \(g(\mu_i) = \eta_i\), es decir, \(\mu_i = g^{-1}(\eta_i)\).</li>
+        </ul>
+      </div>
+      <p>La familia exponencial de dispersión agrupa a las distribuciones cuya densidad (o función de probabilidad) se puede escribir como</p>
       <div class="eq">\[ f(y;\theta,\phi) = \exp\!\left\{ \frac{y\,\theta - b(\theta)}{a(\phi)} + c(y,\phi) \right\}, \qquad E[Y] = b'(\theta), \qquad \operatorname{Var}(Y) = b''(\theta)\,a(\phi) \]
-        <div class="note">\(\theta\) es el parámetro natural y \(\phi\) el de dispersión. La varianza se escribe como \(\operatorname{Var}(Y) = \phi\,V(\mu)\), donde \(V(\mu)\) es la <b>función de varianza</b>: dice cómo cambia la variabilidad con la media. El enlace que hace \(\eta = \theta\) se llama <b>canónico</b>.</div>
+        <div class="note">\(\theta\) es el <b>parámetro natural</b> (o canónico), \(\phi\) el de <b>dispersión</b>, \(b(\theta)\) la <b>función de cumulantes</b> y \(c(y, \phi)\) una función que no depende de \(\theta\). La varianza se escribe como \(\operatorname{Var}(Y) = \phi\,V(\mu)\), donde \(V(\mu) = b''(\theta)\) expresada en función de \(\mu\) es la <b>función de varianza</b>: dice cómo cambia la variabilidad con la media. El enlace que hace \(\eta = \theta\) se llama <b>enlace canónico</b>.</div>
+      </div>
+      <p><b>La Poisson es de la familia exponencial.</b> Escribe su función de probabilidad con exponenciales y logaritmos:</p>
+      <div class="eq">\[ P(Y=y) = \frac{e^{-\mu}\mu^{y}}{y!} = \exp\{\, y\log\mu - \mu - \log y! \,\} \]
+        <div class="note">Identificando términos: \(\theta = \log \mu\), \(b(\theta) = e^{\theta}\), \(a(\phi) = 1\) y \(c(y) = - \log y!\). Entonces \(E[Y] = b'(\theta) = e^ \theta = \mu\) y \(\operatorname{Var}(Y) = b''(\theta) = e^ \theta = \mu\), así que \(V(\mu) = \mu\) y \(\phi = 1\). El enlace canónico es \(g(\mu) = \log \mu\).</div>
       </div>
       <div class="tablewrap"><table>
         <thead><tr><th>Respuesta</th><th>Distribución</th><th>\(V(\mu)\)</th><th>Enlace canónico</th><th>Modelo conocido</th></tr></thead>
         <tbody>
-          <tr><td>Continua, simétrica</td><td>Normal</td><td>\(1\)</td><td>identidad \(\mu\)</td><td>Regresión lineal</td></tr>
-          <tr><td>Sí / no, proporciones</td><td>Binomial</td><td>\(\mu(1-\mu)\)</td><td>logit \(\log\frac{\mu}{1-\mu}\)</td><td>Regresión logística</td></tr>
-          <tr><td>Conteos</td><td>Poisson</td><td>\(\mu\)</td><td>log \(\log\mu\)</td><td>Regresión de Poisson</td></tr>
-          <tr><td>Positiva, asimétrica</td><td>Gamma</td><td>\(\mu^2\)</td><td>inversa \(1/\mu\) (se usa más log)</td><td>Costos, tiempos</td></tr>
-          <tr><td>Conteos sobredispersos</td><td>Binomial negativa</td><td>\(\mu + \mu^2/k\)</td><td>log</td><td>Regresión binomial negativa</td></tr>
+          <tr><td>Continua, simétrica</td><td>Normal</td><td>\(1\)</td><td>identidad \(\mu\)</td><td><a href="#regmult">Regresión lineal</a></td></tr>
+          <tr><td>Sí / no, proporciones</td><td>Binomial</td><td>\(\mu(1- \mu)\)</td><td>logit \(\log \frac{\mu}{1- \mu}\)</td><td><a href="#logit">Regresión logística</a></td></tr>
+          <tr><td>Conteos</td><td>Poisson</td><td>\(\mu\)</td><td>log \(\log \mu\)</td><td>Regresión de Poisson</td></tr>
+          <tr><td>Positiva, asimétrica</td><td>Gamma</td><td>\(\mu^2\)</td><td>inversa \(1/ \mu\) (se usa más log)</td><td>Costos, tiempos</td></tr>
+          <tr><td>Conteos sobredispersos</td><td>Binomial negativa (\(k\) fijo)</td><td>\(\mu + \mu^2/k\)</td><td>log (no canónico)</td><td>Regresión binomial negativa</td></tr>
         </tbody>
       </table></div>
-      <div class="callout"><b>Error común:</b> creer que un GLM transforma la respuesta. Ajustar \(\log y\) con mínimos cuadrados modela \(E[\log Y]\), no \(\log E[Y]\), y además falla con los ceros. El GLM deja \(Y\) en su escala y transforma la <b>media</b>: \(\log E[Y] = \eta\).</div>
+      <p><b>Ejemplo numérico.</b> Supón que el modelo verdadero para los accidentes anuales en un cruce es \(\log \mu = -0{,}8 + 0{,}06\,x\), con \(x\) en miles de vehículos al día. En un cruce con \(x = 20\): \(\eta = -0{,}8 + 1{,}2 = 0{,}4\) y \(\mu = e^{0{,}4} = 1{,}492\) accidentes al año. La probabilidad de un año sin accidentes es \(P(Y=0) = e^{-1{,}492} = 0{,}225\) y la de tres o más es \(1 - e^{-1{,}492}(1 + 1{,}492 + 1{,}492^2/2)\) \(= 1 - 0{,}225 \times 3{,}605 = 0{,}189\). En un cruce con \(x = 30\), \(\mu = e^{1{,}0} = 2{,}718\): diez mil vehículos más multiplican la media por \(e^{0{,}6} = 1{,}822\).</p>
+      <div class="callout"><b>Error común:</b> creer que un GLM transforma la respuesta. Ajustar \(\log y\) con mínimos cuadrados modela \(E[\log Y]\), no \(\log E[Y]\), y además falla con los ceros. El GLM deja \(Y\) en su escala y transforma la <b>media</b>: \(\log E[Y] = \eta\). Por la desigualdad de Jensen, \(E[\log Y] \le \log E[Y]\), así que ambos enfoques ni siquiera estiman lo mismo.</div>
 
-      <h2 id="glm-poisson"><span class="sec">§ 3</span>Regresión de Poisson</h2>
-      <p>Un conteo \(Y\) sin un tope fijo, generado por eventos que ocurren de forma independiente a una tasa constante, sigue una distribución de Poisson:</p>
+      <h2 id="glm-poisson"><span class="sec">§ 3</span>Regresión de Poisson e interpretación</h2>
+      <p><b>Supuestos.</b> La regresión de Poisson supone que (1) los conteos \(Y_i\) son independientes dado \(\mathbf{x}_i\); (2) cada uno sigue una Poisson, lo que surge cuando los eventos ocurren uno a uno, de forma independiente y a una tasa constante dentro de la unidad de observación; (3) el logaritmo de la media es lineal en los predictores; y (4) en consecuencia, \(E[Y_i] = \operatorname{Var}(Y_i) = \mu_i\).</p>
       <div class="eq">\[ P(Y = y) = \frac{e^{-\mu}\mu^{y}}{y!}, \quad y = 0, 1, 2, \dots \qquad E[Y] = \operatorname{Var}(Y) = \mu \]
-        <div class="note">La igualdad entre media y varianza (<b>equidispersión</b>) es el supuesto más fuerte del modelo y el que más a menudo falla en datos reales. Lo revisamos en la sección 7.</div>
+        <div class="note">La igualdad entre media y varianza (<b>equidispersión</b>) es el supuesto más fuerte del modelo y el que más a menudo falla en datos reales. Lo revisamos en la sección 6.</div>
       </div>
-      <p>La regresión de Poisson usa el enlace logarítmico, que garantiza medias positivas y convierte los efectos aditivos en el predictor en efectos <b>multiplicativos</b> sobre la media:</p>
+      <p>¿Por qué el enlace logarítmico? Porque la media de un conteo tiene que ser positiva y el predictor lineal puede tomar cualquier valor real: \(\mu = e^{\eta} &gt; 0\) siempre. Además, el log es el enlace canónico, lo que simplifica la estimación (sección 4). Su consecuencia más importante es que convierte los efectos aditivos en el predictor en efectos <b>multiplicativos</b> sobre la media:</p>
       <div class="eq">\[ \log \mu_i = \beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} \quad\Longleftrightarrow\quad \mu_i = e^{\beta_0}\,\big(e^{\beta_1}\big)^{x_{i1}}\cdots\big(e^{\beta_p}\big)^{x_{ip}} \]
         <div class="note">Si \(x_1\) sube en una unidad y el resto queda igual, la media se multiplica por \(e^{\beta_1}\). A ese número se le llama <b>razón de tasas</b> (IRR, <i>incidence rate ratio</i>). Con \(\beta_1 = 0{,}05\), \(e^{0{,}05} = 1{,}051\): cada unidad extra aumenta el conteo esperado un 5,1 %.</div>
       </div>
+      <p><b>Derivación de la razón de tasas.</b> Compara dos unidades que solo difieren en \(x_1\), una con \(x_1 = a + 1\) y otra con \(x_1 = a\):</p>
+      <div class="eq">\[ \frac{\mu(a+1)}{\mu(a)} = \frac{\exp(\beta_0 + \beta_1(a+1) + \cdots)}{\exp(\beta_0 + \beta_1 a + \cdots)} = e^{\beta_1} \]
+        <div class="note">El cociente no depende de \(a\) ni de los otros predictores: en la escala multiplicativa, el efecto es constante. En la escala de conteos, en cambio, el efecto marginal \(\partial \mu/ \partial x_1 = \beta_1 \mu\) crece con la media.</div>
+      </div>
       <ul>
-        <li>\(e^{\beta_0}\) es el conteo esperado cuando todos los predictores valen cero (o la tasa base, si hay exposición).</li>
-        <li>Para un cambio de \(c\) unidades, el factor es \(e^{c\beta_1}\). Por ejemplo, 10 mil vehículos más con \(\beta_1 = 0{,}05\) dan \(e^{0{,}5} \approx 1{,}65\): un 65 % más de accidentes esperados.</li>
+        <li>\(e^{\beta_0}\) es el conteo esperado cuando todos los predictores valen cero (o la tasa base, si hay exposición). Centrar los predictores hace que sea interpretable.</li>
+        <li>Para un cambio de \(c\) unidades, el factor es \(e^{c \beta_1}\). Por ejemplo, 10 mil vehículos más con \(\beta_1 = 0{,}05\) dan \(e^{0{,}5} \approx 1{,}65\): un 65 % más de accidentes esperados.</li>
         <li>Para predictores categóricos, \(e^{\beta}\) compara la tasa del nivel con la del nivel de referencia.</li>
-        <li>Un intervalo para la razón de tasas se obtiene exponenciando los extremos del intervalo de \(\beta\): \(\big[e^{\hat\beta - 1{,}96\,\text{EE}},\ e^{\hat\beta + 1{,}96\,\text{EE}}\big]\).</li>
+        <li>Un intervalo para la razón de tasas se obtiene exponenciando los extremos del intervalo de \(\beta\): \(\big[e^{\hat \beta - 1{,}96\, \text{EE}},\ e^{\hat \beta + 1{,}96\, \text{EE}} \big]\). No es simétrico alrededor de \(e^{\hat \beta}\), y está bien que no lo sea.</li>
+        <li>Si un predictor entra como \(\log x\), su coeficiente es una <b>elasticidad</b>: duplicar \(x\) multiplica la media por \(2^{\beta}\).</li>
       </ul>
+      <p><b>Interacciones.</b> Un término \(\beta_3 x_1 x_2\) significa que la razón de tasas de \(x_1\) cambia con \(x_2\): vale \(e^{\beta_1 + \beta_3 x_2}\). En escala log las interacciones son aditivas, pero en la escala de conteos aparecen interacciones incluso sin término cruzado, porque los efectos se multiplican.</p>
       <div class="callout"><b>Para recordar:</b> en Poisson los efectos se leen en porcentaje, no en unidades. Un \(\beta_1\) “pequeño” puede ser enorme si el predictor varía mucho: lo que importa es \(e^{\beta_1 \cdot \text{rango de } x}\).</div>
 
-      <h2 id="glm-mv"><span class="sec">§ 4</span>Estimación por máxima verosimilitud y devianza</h2>
-      <p>Como en la logística, los coeficientes se estiman maximizando la log-verosimilitud. Para Poisson con enlace log, \(\eta_i = \mathbf{x}_i^\top\boldsymbol\beta\) y \(\mu_i = e^{\eta_i}\):</p>
-      <div class="eq">\[ \ell(\boldsymbol\beta) = \sum_{i=1}^{n} \big[\, y_i\,\eta_i - e^{\eta_i} - \log y_i! \,\big], \qquad \frac{\partial \ell}{\partial \boldsymbol\beta} = \sum_{i=1}^{n} (y_i - \mu_i)\,\mathbf{x}_i = \mathbf{0} \]
-        <div class="note">Las ecuaciones de verosimilitud no tienen solución cerrada. Se resuelven con <b>mínimos cuadrados reponderados iterativos</b> (IRLS): en cada paso se hace una regresión ponderada de la respuesta de trabajo \(z_i = \eta_i + (y_i - \mu_i)/\mu_i\) con pesos \(w_i = \mu_i\). Converge en pocas iteraciones.</div>
+      <h2 id="glm-mv"><span class="sec">§ 4</span>Verosimilitud, IRLS y devianza</h2>
+      <p>Como en la logística, los coeficientes se estiman maximizando la log-verosimilitud. Para Poisson con enlace log, \(\eta_i = \mathbf{x}_i^ \top \boldsymbol \beta\) y \(\mu_i = e^{\eta_i}\):</p>
+      <div class="eq">\[ \ell(\boldsymbol\beta) = \sum_{i=1}^{n} \log\frac{e^{-\mu_i}\mu_i^{y_i}}{y_i!} = \sum_{i=1}^{n} \big[\, y_i\,\eta_i - e^{\eta_i} - \log y_i! \,\big] \]</div>
+      <p><b>Paso 1: la función score.</b> Deriva respecto a \(\beta_j\). Como \(\partial \eta_i/ \partial \beta_j = x_{ij}\) y \(\partial e^{\eta_i}/ \partial \beta_j = \mu_i x_{ij}\):</p>
+      <div class="eq">\[ U_j(\boldsymbol\beta) = \frac{\partial \ell}{\partial \beta_j} = \sum_{i=1}^{n} (y_i - \mu_i)\,x_{ij} \quad\Longrightarrow\quad \mathbf{U}(\boldsymbol\beta) = \mathbf{X}^\top(\mathbf{y} - \boldsymbol\mu) = \mathbf{0} \]
+        <div class="note">Son las <b>ecuaciones de verosimilitud</b>. Tienen la misma forma que las ecuaciones normales de mínimos cuadrados, \(\mathbf{X}^ \top(\mathbf{y} - \mathbf{X} \boldsymbol \beta) = \mathbf{0}\), pero \(\boldsymbol \mu\) depende de \(\boldsymbol \beta\) de forma no lineal, así que no hay solución cerrada.</div>
       </div>
-      <p>Al converger, la matriz de covarianzas aproximada es \(\widehat{\operatorname{Var}}(\hat{\boldsymbol\beta}) = (\mathbf{X}^\top \mathbf{W} \mathbf{X})^{-1}\), con \(\mathbf{W} = \operatorname{diag}(\hat\mu_i)\). De ahí salen los errores estándar, las pruebas de Wald \(z = \hat\beta_j/\text{EE}\) y los intervalos.</p>
-      <p>La medida de ajuste de un GLM es la <b>devianza</b>: el doble de la distancia en log-verosimilitud entre el modelo saturado (que ajusta cada dato perfectamente, \(\hat\mu_i = y_i\)) y tu modelo.</p>
-      <div class="eq">\[ D = 2\sum_{i=1}^{n}\left[ y_i \log\frac{y_i}{\hat\mu_i} - (y_i - \hat\mu_i) \right], \qquad X^2 = \sum_{i=1}^{n} \frac{(y_i - \hat\mu_i)^2}{\hat\mu_i} \]
-        <div class="note">Con la convención \(0 \cdot \log 0 = 0\). \(X^2\) es el estadístico de Pearson. Si el modelo es correcto y los conteos no son muy pequeños, ambos se comportan aproximadamente como \(\chi^2_{n-p}\), donde \(p\) es el número de coeficientes.</div>
+      <p><b>Paso 2: la información.</b> Deriva otra vez: \(\partial^2 \ell/ \partial \beta_j \partial \beta_k = - \sum_i \mu_i x_{ij}x_{ik}\). La matriz hessiana es \(- \mathbf{X}^ \top \mathbf{W} \mathbf{X}\) con \(\mathbf{W} = \operatorname{diag}(\mu_i)\). No depende de \(\mathbf{y}\), así que coincide con la información de Fisher \(\mathcal{I}(\boldsymbol \beta) = \mathbf{X}^ \top \mathbf{W} \mathbf{X}\), y es definida positiva si \(\mathbf{X}\) tiene rango completo: la log-verosimilitud es <b>estrictamente cóncava</b> y el máximo, si existe, es único.</p>
+      <p><b>Paso 3: Newton-Raphson se vuelve IRLS.</b> Un paso de Newton es \(\boldsymbol \beta^{(t+1)} = \boldsymbol \beta^{(t)} + (\mathbf{X}^ \top \mathbf{W} \mathbf{X})^{-1} \mathbf{X}^ \top(\mathbf{y} - \boldsymbol \mu)\). Multiplica por \(\mathbf{X}^ \top \mathbf{W} \mathbf{X}\) y reordena:</p>
+      <div class="eq">\[ \boldsymbol\beta^{(t+1)} = (\mathbf{X}^\top\mathbf{W}\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{W}\mathbf{z}, \qquad z_i = \eta_i + \frac{y_i - \mu_i}{\mu_i}, \qquad w_i = \mu_i \]
+        <div class="note">Cada iteración es una <b>regresión de mínimos cuadrados ponderados</b> de la respuesta de trabajo \(\mathbf{z}\) sobre \(\mathbf{X}\) con pesos \(\mathbf{W}\), evaluados en el \(\boldsymbol \beta\) actual. De ahí el nombre: mínimos cuadrados reponderados iterativos (IRLS). Para un GLM general, \(z_i = \eta_i + (y_i - \mu_i)\,g'(\mu_i)\) y \(w_i = 1/[V(\mu_i)\,g'(\mu_i)^2]\). Converge en 4 a 8 iteraciones.</div>
+      </div>
+      <p>Al converger, la teoría asintótica de máxima verosimilitud da \(\hat{\boldsymbol \beta} \approx N \big(\boldsymbol \beta,\ (\mathbf{X}^ \top \hat{\mathbf{W}} \mathbf{X})^{-1} \big)\). De ahí salen los errores estándar, las pruebas de Wald \(z = \hat \beta_j/ \text{EE}_j\) y los intervalos \(\hat \beta_j \pm 1{,}96\, \text{EE}_j\).</p>
+      <p><b>La devianza.</b> La medida de ajuste de un GLM es la <b>devianza</b>: el doble de la distancia en log-verosimilitud entre el modelo saturado (que ajusta cada dato perfectamente, \(\hat \mu_i = y_i\)) y tu modelo. Para Poisson, sustituyendo en \(\ell\):</p>
+      <div class="eq">\[ D = 2\big[\ell(\mathbf{y};\mathbf{y}) - \ell(\hat{\boldsymbol\mu};\mathbf{y})\big] = 2\sum_{i=1}^{n}\left[ y_i \log\frac{y_i}{\hat\mu_i} - (y_i - \hat\mu_i) \right], \qquad X^2 = \sum_{i=1}^{n} \frac{(y_i - \hat\mu_i)^2}{\hat\mu_i} \]
+        <div class="note">Con la convención \(0 \cdot \log 0 = 0\). \(X^2\) es el estadístico de Pearson. Si el modelo es correcto y los conteos no son muy pequeños, ambos se comportan aproximadamente como \(\chi^2_{n-p}\), donde \(p\) es el número de coeficientes. Con intercepto, \(\sum(y_i - \hat \mu_i) = 0\) y el segundo término de \(D\) desaparece.</div>
       </div>
       <div class="tablewrap"><table>
         <thead><tr><th>Herramienta</th><th>Cómo se calcula</th><th>Para qué sirve</th></tr></thead>
         <tbody>
           <tr><td>Prueba de razón de verosimilitud</td><td>\(D_{\text{reducido}} - D_{\text{completo}} \sim \chi^2_q\)</td><td>Comparar modelos anidados que difieren en \(q\) coeficientes. Más fiable que Wald con muestras chicas.</td></tr>
-          <tr><td>AIC</td><td>\(-2\ell + 2p\)</td><td>Comparar modelos no anidados (por ejemplo Poisson contra binomial negativa).</td></tr>
-          <tr><td>Residuo de Pearson</td><td>\((y_i - \hat\mu_i)/\sqrt{\hat\mu_i}\)</td><td>Detectar observaciones mal ajustadas y estimar la dispersión.</td></tr>
-          <tr><td>Residuo de devianza</td><td>\(\operatorname{sign}(y_i - \hat\mu_i)\sqrt{d_i}\)</td><td>Gráficos de diagnóstico; su suma de cuadrados es \(D\).</td></tr>
+          <tr><td>AIC</td><td>\(-2 \ell + 2p\)</td><td>Comparar modelos no anidados (por ejemplo Poisson contra binomial negativa).</td></tr>
+          <tr><td>Residuo de Pearson</td><td>\((y_i - \hat \mu_i)/ \sqrt{\hat \mu_i}\)</td><td>Detectar observaciones mal ajustadas y estimar la dispersión.</td></tr>
+          <tr><td>Residuo de devianza</td><td>\(\operatorname{sign}(y_i - \hat \mu_i) \sqrt{d_i}\)</td><td>Gráficos de diagnóstico; su suma de cuadrados es \(D\).</td></tr>
         </tbody>
       </table></div>
+      <p><b>Ejemplo resuelto a mano.</b> Dos turnos de una fábrica registran fallas por día durante tres días. Turno de día (\(x = 0\)): 2, 3, 1. Turno de noche (\(x = 1\)): 5, 6, 7. Ajustamos \(\log \mu_i = \beta_0 + \beta_1 x_i\).</p>
+      <ul>
+        <li><b>Estimación.</b> Las ecuaciones de verosimilitud son \(\sum_i (y_i - \mu_i) = 0\) y \(\sum_i x_i(y_i - \mu_i) = 0\). La segunda dice que en el turno de noche \(3 \mu_1 = 18\), así que \(\hat \mu_1 = 6\); la primera, que \(3 \hat \mu_0 + 18 = 24\), así que \(\hat \mu_0 = 2\). Entonces \(\hat \beta_0 = \log 2 = 0{,}693\) y \(\hat \beta_1 = \log(6/2) = \log 3 = 1{,}099\). Con un predictor binario, el MV es el cociente de medias: el turno de noche tiene el triple de fallas.</li>
+        <li><b>Errores estándar.</b> \(\mathbf{X}^ \top \mathbf{W} \mathbf{X}\) \(= \begin{pmatrix} 24 &amp; 18 \\ 18 &amp; 18 \end{pmatrix}\) (sumas de \(\hat \mu_i\) y de \(x_i \hat \mu_i\)). Su determinante es \(24 \cdot 18 - 18^2 = 108\) y su inversa tiene diagonal \(18/108 = 0{,}1667\) y \(24/108 = 0{,}2222\). Así \(\text{EE}(\hat \beta_0) = 0{,}408\) y \(\text{EE}(\hat \beta_1) = 0{,}471\). Fíjate que \(0{,}2222 = 1/6 + 1/18 = 1/ \sum_{\text{día}} y + 1/ \sum_{\text{noche}} y\).</li>
+        <li><b>Wald.</b> \(z = 1{,}099/0{,}471 = 2{,}33\), \(p \approx 0{,}020\). Intervalo del 95 % para la razón de tasas: \(e^{1{,}099 \pm 1{,}96 \cdot 0{,}471} = [1{,}19;\ 7{,}56]\).</li>
+        <li><b>Devianza.</b> Turno de día: \(2[2 \log 1 + 3 \log 1{,}5 + 1 \log 0{,}5]\) \(= 2[0 + 1{,}216 - 0{,}693] = 1{,}046\). Turno de noche: \(2[5 \log \frac{5}{6} + 0 + 7 \log \frac{7}{6}] = 2[-0{,}912 + 1{,}079] = 0{,}335\). Total \(D = 1{,}381\) con 4 gl: el ajuste es excelente.</li>
+        <li><b>Razón de verosimilitud.</b> El modelo nulo tiene \(\hat \mu = 4\) para todos y \(D_0 = 2 \sum y_i \log(y_i/4) = 7{,}660\). La diferencia \(7{,}660 - 1{,}381 = 6{,}28\) se compara con \(\chi^2_1\): \(p \approx 0{,}012\). Coincide en dirección con Wald, como esperamos.</li>
+      </ul>
+      <div class="callout"><b>Conexión:</b> la prueba de razón de verosimilitud es la misma que en la <a href="#logit">logística</a>, y la devianza juega el papel de la suma de cuadrados residual de la <a href="#anova">ANOVA</a>. Para la normal con varianza conocida, \(D = \sum(y_i - \hat \mu_i)^2/ \sigma^2\): la ANOVA es un caso particular de este esquema.</div>
 
-      <h2 id="glm-lab"><span class="sec">§ 5</span>Laboratorio: ajusta la curva</h2>
-      <p>Los puntos son 40 cruces simulados con un modelo de Poisson verdadero \(\log\mu = -0{,}8 + 0{,}06\,x\) (conteos anuales). Mueve \(\beta_0\) y \(\beta_1\) para encontrar la curva que mejor los explica: la banda sombreada marca el rango donde cae el 80 % de los conteos según tu modelo. Observa cómo se ensancha a medida que la media crece, porque en Poisson \(\operatorname{Var} = \mu\). Luego pulsa <b>Ajustar por MV</b> para que IRLS encuentre el óptimo, paso a paso.</p>
+      <h2 id="glm-offset"><span class="sec">§ 5</span>Exposición y offset</h2>
+      <p>En los datos de la oficina de movilidad, un cruce observado 24 meses acumula, en promedio, el cuádruple de accidentes que uno idéntico observado 6 meses. Lo que interesa no es el conteo sino la <b>tasa</b> \(\lambda_i\) (accidentes por mes). Si \(t_i\) es la exposición (tiempo, población, kilómetros recorridos, días-paciente), la propiedad de la Poisson de que una suma de procesos independientes sigue siendo Poisson, con medias que se suman, justifica el modelo \(Y_i \sim \text{Poisson}(t_i \lambda_i)\):</p>
+      <div class="eq">\[ \mu_i = t_i\,\lambda_i, \qquad \log\lambda_i = \mathbf{x}_i^\top\boldsymbol\beta \quad\Longrightarrow\quad \log\mu_i = \underbrace{\log t_i}_{\text{offset}} + \mathbf{x}_i^\top\boldsymbol\beta \]
+        <div class="note">El <b>offset</b> es un término del predictor lineal con coeficiente fijado en 1: no se estima. Así los coeficientes describen tasas, y \(e^{\beta_0}\) es la tasa por unidad de exposición cuando \(x = 0\).</div>
+      </div>
+      <p><b>Qué cambia en la estimación.</b> Las ecuaciones de verosimilitud siguen siendo \(\mathbf{X}^ \top(\mathbf{y} - \boldsymbol \mu) = \mathbf{0}\), ahora con \(\mu_i = t_i e^{\mathbf{x}_i^ \top \boldsymbol \beta}\), y los pesos de IRLS son \(w_i = \mu_i\). Una unidad observada más tiempo tiene una media mayor y, por tanto, más peso: es lo correcto, porque aporta más información. En el caso más simple, sin predictores, la ecuación \(\sum(y_i - t_i e^{\beta_0}) = 0\) da \(\hat \lambda = \sum y_i / \sum t_i\): el total de eventos dividido entre la exposición total, no el promedio de las tasas individuales.</p>
+      <ul>
+        <li>En R: <code>glm(y ~ x + offset(log(t)), family = poisson)</code>. En statsmodels: <code>offset=np.log(t)</code> (o <code>exposure=t</code>).</li>
+        <li>Para predecir, debes dar también la exposición: el conteo esperado en 12 meses de un cruce con 30 mil vehículos es \(12\,e^{\hat \beta_0 + 30 \hat \beta_1}\).</li>
+        <li>Si pones \(\log t\) como predictor común y su coeficiente sale cerca de 1, el offset está justificado. Si sale lejos de 1, la tasa no es proporcional a la exposición y conviene estimarlo libremente. En los cruces sale 0,87 (EE 0,22): compatible con 1.</li>
+        <li>La exposición también puede ser una población: en epidemiología, \(t_i\) son las personas-año en riesgo y \(e^{\beta}\) es una razón de tasas de incidencia, la medida estándar de los estudios de cohorte.</li>
+      </ul>
+      <div class="callout"><b>Error común:</b> modelar la tasa \(y_i/t_i\) con regresión lineal. Pierdes la naturaleza discreta, das el mismo peso a un cruce observado 6 meses que a uno observado 24 (cuando el segundo tiene mucha más información) y la varianza sigue sin ser constante. El offset resuelve los tres problemas.</div>
+
+      <h2 id="glm-sobre"><span class="sec">§ 6</span>Sobredispersión y binomial negativa</h2>
+      <p>En la práctica, la varianza de los conteos suele ser mayor que la media. Las causas típicas son la <b>heterogeneidad no observada</b> (cruces con igual tráfico pero distinta visibilidad, iluminación o diseño), la dependencia entre eventos (un accidente provoca otro), los grupos de observaciones correlacionadas y un exceso de ceros estructurales. A eso se le llama <b>sobredispersión</b>. El estimador del parámetro de dispersión más usado es</p>
+      <div class="eq">\[ \hat\phi = \frac{X^2}{n-p} = \frac{1}{n-p}\sum_{i=1}^{n}\frac{(y_i - \hat\mu_i)^2}{\hat\mu_i} \]
+        <div class="note">Bajo Poisson, \(E[(Y_i - \mu_i)^2/ \mu_i] = 1\), así que \(\hat \phi \approx 1\). Valores por encima de 1,5 o 2 son señal clara de sobredispersión. La devianza dividida entre sus grados de libertad da una idea parecida.</div>
+      </div>
+      <p><b>Qué hace y qué no hace la sobredispersión.</b> No <b>sesga</b> los coeficientes de Poisson: las ecuaciones \(\mathbf{X}^ \top(\mathbf{y} - \boldsymbol \mu) = \mathbf{0}\) tienen esperanza cero siempre que la media esté bien especificada, cualquiera que sea la varianza, así que \(\hat{\boldsymbol \beta}\) sigue siendo consistente. Pero si \(\operatorname{Var}(Y_i) = \phi \mu_i\), la covarianza real de \(\hat{\boldsymbol \beta}\) es \(\phi(\mathbf{X}^ \top \mathbf{W} \mathbf{X})^{-1}\): los errores estándar de Poisson son demasiado pequeños por un factor \(\sqrt{\phi}\). Resultado: intervalos demasiado angostos y valores p demasiado optimistas. Con \(\phi = 4\), un intervalo nominal del 95 % cubre en realidad cerca del 68 %.</p>
+      <p><b>La mezcla Poisson-gamma.</b> La forma más común de incorporar heterogeneidad es suponer que cada unidad tiene su propia tasa aleatoria: \(Y_i \mid \lambda_i \sim \text{Poisson}(\lambda_i)\) con \(\lambda_i \sim \text{Gamma}\) de media \(\mu_i\) y forma \(k\). Integrando:</p>
+      <div class="eq">\[ P(Y = y) = \int_0^\infty \frac{e^{-\lambda}\lambda^y}{y!}\,\frac{(k/\mu)^k\lambda^{k-1}e^{-k\lambda/\mu}}{\Gamma(k)}\,d\lambda = \frac{\Gamma(y + k)}{\Gamma(k)\,y!}\left(\frac{k}{k+\mu}\right)^{k}\left(\frac{\mu}{k+\mu}\right)^{y} \]
+        <div class="note">La integral se resuelve reconociendo un núcleo gamma \(\lambda^{y+k-1}e^{- \lambda(1 + k/ \mu)}\), cuya integral es \(\Gamma(y+k)/(1+k/ \mu)^{y+k}\). El resultado es la <b>binomial negativa</b>. R (<code>MASS::glm.nb</code>) reporta \(\theta = k\); statsmodels reporta \(\alpha = 1/k\).</div>
+      </div>
+      <p>Por la ley de la varianza total, \(\operatorname{Var}(Y) = E[\operatorname{Var}(Y \mid \lambda)] + \operatorname{Var}(E[Y \mid \lambda])\) \(= E[\lambda] + \operatorname{Var}(\lambda) = \mu + \mu^2/k\). Cuando \(k \to \infty\) la gamma se concentra en \(\mu\) y se recupera Poisson. A diferencia de cuasi-Poisson, la varianza extra crece con \(\mu^2\): pesa más en los conteos grandes.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Opción</th><th>Supuesto de varianza</th><th>Cuándo usarla</th></tr></thead>
+        <tbody>
+          <tr><td>Poisson</td><td>\(\mu\)</td><td>Solo si \(\hat \phi \approx 1\). Punto de partida.</td></tr>
+          <tr><td>Cuasi-Poisson</td><td>\(\phi\, \mu\)</td><td>Mismos coeficientes que Poisson, errores estándar multiplicados por \(\sqrt{\hat \phi}\). No tiene verosimilitud (no hay AIC).</td></tr>
+          <tr><td>Binomial negativa</td><td>\(\mu + \mu^2/k\)</td><td>Heterogeneidad entre unidades. Tiene verosimilitud, así que se compara con AIC o razón de verosimilitud.</td></tr>
+          <tr><td>Inflada en ceros (ZIP, ZINB)</td><td>Mezcla de un cero estructural y un conteo</td><td>Cuando hay un grupo que nunca puede tener eventos (por ejemplo, personas que no fuman en un conteo de cigarrillos).</td></tr>
+          <tr><td>Errores estándar robustos (sándwich)</td><td>Ninguno en particular</td><td>Si solo te interesan los coeficientes de la media y quieres inferencia válida sin modelar la varianza.</td></tr>
+          <tr><td>Modelo mixto con efecto aleatorio</td><td>Lognormal en \(\lambda_i\)</td><td>Cuando la heterogeneidad viene de grupos (hospitales, regiones). Ver <a href="#jerarq">modelos jerárquicos</a>.</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Comparar Poisson con binomial negativa.</b> Poisson es el caso límite \(\alpha = 1/k = 0\), que está en la frontera del espacio de parámetros. La prueba de razón de verosimilitud \(2(\ell_{NB} - \ell_P)\) no sigue una \(\chi^2_1\) sino una mezcla 50:50 de \(\chi^2_0\) y \(\chi^2_1\): el valor p correcto es la mitad del que da la tabla \(\chi^2_1\).</p>
+      <div class="callout"><b>Buenas prácticas:</b> ajusta Poisson, calcula \(\hat \phi\) y compara la proporción de ceros observada con la que predice el modelo, \(\frac{1}{n} \sum e^{- \hat \mu_i}\). Si hay sobredispersión, prueba binomial negativa y compara AIC. Y antes de cambiar de distribución, pregúntate si falta un predictor importante: muchas veces la “sobredispersión” es un modelo de la media mal especificado.</div>
+
+      <h2 id="glm-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Media y varianza desde \(b(\theta)\).</b> En la familia exponencial, \(E[Y] = b'(\theta)\) y \(\operatorname{Var}(Y) = a(\phi)\,b''(\theta)\). <i>Justificación:</i> deriva \(\int f(y; \theta)\,dy = 1\) respecto a \(\theta\): \(\int (y - b'(\theta))f\,dy/a(\phi) = 0\), de donde \(E[Y] = b'(\theta)\). Derivar otra vez da la varianza.</li>
+        <li><b>Los totales se reproducen.</b> Con enlace canónico e intercepto, \(\sum_i \hat \mu_i = \sum_i y_i\), y para cada predictor binario los totales por grupo también coinciden. <i>Justificación:</i> es la primera fila de \(\mathbf{X}^ \top(\mathbf{y} - \hat{\boldsymbol \mu}) = \mathbf{0}\), con \(x_{i0} = 1\).</li>
+        <li><b>Concavidad y unicidad.</b> Con enlace canónico, la hessiana es \(- \mathbf{X}^ \top \mathbf{W} \mathbf{X}\), definida negativa si \(\mathbf{X}\) tiene rango completo y todos los \(\mu_i &gt; 0\): si el MV existe, es único y IRLS lo encuentra desde cualquier punto razonable. (Puede no existir si, por ejemplo, un grupo tiene todos los conteos en cero: \(\hat \beta \to - \infty\).)</li>
+        <li><b>Normalidad asintótica.</b> \(\hat{\boldsymbol \beta} \; \dot \sim\; N \big(\boldsymbol \beta, \phi(\mathbf{X}^ \top \mathbf{W} \mathbf{X})^{-1} \big)\). <i>Justificación:</i> teoría general de MV; el score es una suma de términos independientes de media cero, al que se aplica el <a href="#tlc">teorema del límite central</a>.</li>
+        <li><b>Invariancia.</b> El MV de \(e^{\beta_j}\) es \(e^{\hat \beta_j}\), y el intervalo para la razón de tasas se obtiene exponenciando el intervalo de \(\beta_j\) (la exponencial es monótona). Por el método delta, \(\text{EE}(e^{\hat \beta}) \approx e^{\hat \beta}\, \text{EE}(\hat \beta)\).</li>
+        <li><b>Prueba de razón de verosimilitud.</b> Para modelos anidados que difieren en \(q\) parámetros, \(D_0 - D_1 \; \dot \sim\; \chi^2_q\) bajo \(H_0\) (teorema de Wilks). Con sobredispersión se usa \(F = \frac{(D_0 - D_1)/q}{\hat \phi}\).</li>
+        <li><b>Robustez de la media.</b> Si \(E[Y_i] = e^{\mathbf{x}_i^ \top \boldsymbol \beta}\) es correcta, \(\hat{\boldsymbol \beta}\) de Poisson es consistente aunque los datos no sean Poisson (cuasi-verosimilitud). Solo la varianza estimada necesita corregirse.</li>
+        <li><b>Sumas y equivalencia multinomial.</b> Si \(Y_j \sim \text{Poisson}(\mu_j)\) independientes, \(\sum Y_j \sim \text{Poisson}(\sum \mu_j)\), y condicionando en el total, \((Y_1, \dots,Y_J)\) es multinomial con probabilidades \(\mu_j/ \sum \mu\). Por eso los modelos log lineales de Poisson sirven para analizar <a href="#chi2">tablas de contingencia</a>.</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li>Leer \(\beta\) como un cambio aditivo en el conteo. Es un cambio en el logaritmo; el efecto es multiplicativo, \(e^{\beta}\).</li>
+        <li>Olvidar el offset cuando las unidades tienen distinta exposición, o meter la exposición como predictor sin pensar en su coeficiente.</li>
+        <li>Confiar en los valores p de Poisson sin revisar \(\hat \phi\). Con datos reales casi siempre hay sobredispersión.</li>
+        <li>Comparar el AIC de cuasi-Poisson con el de otro modelo: cuasi-Poisson no tiene verosimilitud.</li>
+        <li>Usar la devianza como prueba de bondad de ajuste con conteos muy pequeños (medias menores que 1): la aproximación \(\chi^2_{n-p}\) es mala.</li>
+      </ul>
+
+      <h2 id="glm-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: ajusta la curva.</b> Los puntos son 40 cruces simulados con un modelo de Poisson verdadero \(\log \mu = -0{,}8 + 0{,}06\,x\) (conteos anuales). Mueve \(\beta_0\) y \(\beta_1\) para encontrar la curva que mejor los explica: la banda sombreada marca el rango donde cae el 80 % de los conteos según tu modelo. Observa cómo se ensancha a medida que la media crece, porque en Poisson \(\operatorname{Var} = \mu\). Luego pulsa <b>Ajustar por MV</b> para que IRLS encuentre el óptimo, paso a paso.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · regresión de Poisson</span><span class="num" id="glm-fit-head">–</span></div>
         <div class="lab-body">
@@ -123,25 +223,19 @@
         </div>
         <figcaption>En escala logarítmica la curva se vuelve una recta: eso es el enlace log. Los ceros se dibujan sobre la línea inferior. Cuando Δ devianza llega a 0 tienes el estimador de máxima verosimilitud; una diferencia menor que 3,84 no se distingue del óptimo al 5 %.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Deja \(\beta_1 = 0\) y mueve solo \(\beta_0\) hasta minimizar la devianza. ¿Qué valor de \(e^{\beta_0}\) obtienes y con qué número de los datos coincide?
+          <details><summary>Qué deberías observar</summary><p>Con \(\beta_1 = 0\) el mejor intercepto cumple \(e^{\hat \beta_0} = \bar y\): la media de los 40 conteos. Es la propiedad 2 (los totales se reproducen). La devianza en ese punto es la devianza nula, y su diferencia con la del óptimo completo mide cuánto explica el tráfico.</p></details></li>
+        <li>Fija \(\beta_0 = -0{,}8\) y sube \(\beta_1\) de 0,04 a 0,08. Mira la razón de tasas y la banda del 80 % a la derecha del gráfico.
+          <details><summary>Qué deberías observar</summary><p>La razón de tasas pasa de 1,041 a 1,083, pero en \(x = 40\) la media pasa de \(e^{0{,}8} = 2{,}2\) a \(e^{2{,}4} = 11\): un cambio “pequeño” en \(\beta_1\) se multiplica por el rango de \(x\). La banda se ensancha mucho porque la varianza es igual a la media.</p></details></li>
+        <li>Pulsa <b>Ajustar por MV</b> desde un punto lejano (por ejemplo \(\beta_0 = 1\), \(\beta_1 = -0{,}02\)) y cuenta las iteraciones. Repite con <b>Nuevos datos</b> varias veces.
+          <details><summary>Qué deberías observar</summary><p>IRLS converge en 5 a 8 pasos casi siempre. El estimador cambia de una muestra a otra alrededor de \((-0{,}8;\ 0{,}06)\): ese vaivén es la variabilidad muestral que resume el error estándar (del orden de 0,01 para \(\beta_1\) con 40 cruces).</p></details></li>
+        <li>Cambia a escala logarítmica y compara cómo se ven la curva y la banda.
+          <details><summary>Qué deberías observar</summary><p>La curva se vuelve una recta de pendiente \(\beta_1\): el enlace log hace lineal el modelo en esa escala. La banda se ve de ancho casi constante en log, porque en Poisson el coeficiente de variación \(1/ \sqrt{\mu}\) disminuye solo lentamente con la media.</p></details></li>
+      </ol>
 
-      <h2 id="glm-offset"><span class="sec">§ 6</span>Exposición y offset</h2>
-      <p>En los datos de la oficina de movilidad, un cruce observado 24 meses acumula, en promedio, el cuádruple de accidentes que uno idéntico observado 6 meses. Lo que interesa no es el conteo sino la <b>tasa</b> \(\lambda_i\) (accidentes por mes). Si \(t_i\) es la exposición (tiempo, población, kilómetros recorridos, días-paciente), el modelo natural es</p>
-      <div class="eq">\[ \mu_i = t_i\,\lambda_i, \qquad \log\lambda_i = \mathbf{x}_i^\top\boldsymbol\beta \quad\Longrightarrow\quad \log\mu_i = \underbrace{\log t_i}_{\text{offset}} + \mathbf{x}_i^\top\boldsymbol\beta \]
-        <div class="note">El <b>offset</b> es un término del predictor lineal con coeficiente fijado en 1: no se estima. Así los coeficientes describen tasas, y \(e^{\beta_0}\) es la tasa por unidad de exposición cuando \(x = 0\).</div>
-      </div>
-      <ul>
-        <li>En R: <code>glm(y ~ x + offset(log(t)), family = poisson)</code>. En statsmodels: <code>offset=np.log(t)</code> (o <code>exposure=t</code>).</li>
-        <li>Para predecir, debes dar también la exposición: el conteo esperado en 12 meses de un cruce con 30 mil vehículos es \(12\,e^{\hat\beta_0 + 30\hat\beta_1}\).</li>
-        <li>Si pones \(\log t\) como predictor común y su coeficiente sale cerca de 1, el offset está justificado. Si sale lejos de 1, la tasa no es proporcional a la exposición y conviene estimarlo libremente.</li>
-      </ul>
-      <div class="callout"><b>Error común:</b> modelar la tasa \(y_i/t_i\) con regresión lineal. Pierdes la naturaleza discreta, das el mismo peso a un cruce observado 6 meses que a uno observado 24 (cuando el segundo tiene mucha más información) y la varianza sigue sin ser constante. El offset resuelve los tres problemas.</div>
-
-      <h2 id="glm-sobre"><span class="sec">§ 7</span>Sobredispersión</h2>
-      <p>En la práctica, la varianza de los conteos suele ser mayor que la media. Las causas típicas son la <b>heterogeneidad no observada</b> (cruces con igual tráfico pero distinta visibilidad, iluminación o diseño), la dependencia entre eventos (un accidente provoca otro) y los grupos de observaciones correlacionadas. A eso se le llama <b>sobredispersión</b>.</p>
-      <div class="eq">\[ \hat\phi = \frac{X^2}{n-p} = \frac{1}{n-p}\sum_{i=1}^{n}\frac{(y_i - \hat\mu_i)^2}{\hat\mu_i} \]
-        <div class="note">Bajo Poisson, \(\hat\phi \approx 1\). Valores por encima de 1,5 o 2 son señal clara de sobredispersión. La devianza dividida entre sus grados de libertad da una idea parecida.</div>
-      </div>
-      <p>La sobredispersión <b>no sesga</b> los coeficientes de Poisson (siguen siendo consistentes si la media está bien especificada), pero hace que los errores estándar sean demasiado pequeños por un factor \(\sqrt{\hat\phi}\). Resultado: intervalos demasiado angostos y valores p demasiado optimistas. El simulador muestra cómo se ve: compara el histograma de una muestra con la distribución de Poisson de la misma media.</p>
+      <p><b>Laboratorio 2: sobredispersión.</b> El simulador compara el histograma de 400 conteos con la Poisson de la misma media. Con “Poisson” los datos son equidispersos; con \(k\) finito vienen de una mezcla Poisson-gamma.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · sobredispersión</span><span class="num" id="glm-od-head">–</span></div>
         <div class="lab-body">
@@ -169,28 +263,32 @@
         </div>
         <figcaption>Con k pequeño la muestra tiene muchos más ceros y una cola derecha mucho más larga de lo que Poisson admite. Si ajustaras Poisson a esos datos, la media saldría bien, pero el modelo subestimaría la incertidumbre.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Elige “Poisson”, fija \(\mu = 4\) y genera cinco muestras. Anota la razón varianza / media.
+          <details><summary>Qué deberías observar</summary><p>La razón oscila alrededor de 1 (típicamente entre 0,85 y 1,15 con 400 datos). La Poisson de la misma media coincide con el histograma, y los ceros observados rondan \(e^{-4} \approx 2\) %.</p></details></li>
+        <li>Con \(\mu = 4\), pasa por \(k = 10\), \(k = 2\) y \(k = 0{,}7\). Compara la razón varianza / media con la fórmula \(1 + \mu/k\).
+          <details><summary>Qué deberías observar</summary><p>La teoría predice 1,4; 3 y 6,7. La muestra se acerca a esos valores, con más ruido cuanto menor es \(k\) (la cola larga hace inestable la varianza muestral). Los ceros suben de 2 % a cerca de 11 % con \(k = 2\) y a más de 30 % con \(k = 0{,}7\).</p></details></li>
+        <li>Fija \(k = 2\) y mueve \(\mu\) de 1 a 15. ¿Crece o se mantiene la razón varianza / media?
+          <details><summary>Qué deberías observar</summary><p>Crece linealmente con \(\mu\), porque \(\operatorname{Var}/ \mu = 1 + \mu/k\). Esa es la firma de la binomial negativa; en cuasi-Poisson la razón sería constante (\(\phi\)). Graficar \((y - \hat \mu)^2\) contra \(\hat \mu\) en datos reales ayuda a elegir entre ambas.</p></details></li>
+        <li>Con \(\mu = 0{,}5\) y \(k = 0{,}7\), mira el histograma y los ceros.
+          <details><summary>Qué deberías observar</summary><p>Casi todo es cero (alrededor del 70 %) y unos pocos valores son grandes. Con medias tan bajas, la devianza deja de ser una buena prueba de ajuste y hay que comparar distribuciones completas (por ejemplo, ceros observados contra esperados).</p></details></li>
+      </ol>
 
-      <h2 id="glm-nb"><span class="sec">§ 8</span>Binomial negativa y otras alternativas</h2>
-      <p>La forma más común de incorporar heterogeneidad es suponer que cada unidad tiene su propia tasa aleatoria: \(Y_i \mid \lambda_i \sim \text{Poisson}(\lambda_i)\) con \(\lambda_i \sim \text{Gamma}\) de media \(\mu_i\) y forma \(k\). Al integrar \(\lambda_i\) se obtiene la <b>binomial negativa</b>:</p>
-      <div class="eq">\[ P(Y = y) = \frac{\Gamma(y + k)}{\Gamma(k)\,y!}\left(\frac{k}{k+\mu}\right)^{k}\left(\frac{\mu}{k+\mu}\right)^{y}, \qquad \operatorname{Var}(Y) = \mu + \frac{\mu^2}{k} \]
-        <div class="note">Por la ley de la varianza total: \(\operatorname{Var}(Y) = E[\operatorname{Var}(Y\mid\lambda)] + \operatorname{Var}(E[Y\mid\lambda]) = \mu + \mu^2/k\). Cuando \(k \to \infty\) se recupera Poisson. R (<code>MASS::glm.nb</code>) reporta \(\theta = k\); statsmodels reporta \(\alpha = 1/k\).</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Opción</th><th>Supuesto de varianza</th><th>Cuándo usarla</th></tr></thead>
-        <tbody>
-          <tr><td>Poisson</td><td>\(\mu\)</td><td>Solo si \(\hat\phi \approx 1\). Punto de partida.</td></tr>
-          <tr><td>Cuasi-Poisson</td><td>\(\phi\,\mu\)</td><td>Mismos coeficientes que Poisson, errores estándar multiplicados por \(\sqrt{\hat\phi}\). No tiene verosimilitud (no hay AIC).</td></tr>
-          <tr><td>Binomial negativa</td><td>\(\mu + \mu^2/k\)</td><td>Heterogeneidad entre unidades. Tiene verosimilitud, así que se compara con AIC o razón de verosimilitud.</td></tr>
-          <tr><td>Inflada en ceros (ZIP, ZINB)</td><td>Mezcla de un cero estructural y un conteo</td><td>Cuando hay un grupo que nunca puede tener eventos (por ejemplo, personas que no fuman en un conteo de cigarrillos).</td></tr>
-          <tr><td>Errores estándar robustos (sándwich)</td><td>Ninguno en particular</td><td>Si solo te interesan los coeficientes de la media y quieres inferencia válida sin modelar la varianza.</td></tr>
-        </tbody>
-      </table></div>
-      <div class="callout"><b>Buenas prácticas:</b> ajusta Poisson, calcula \(\hat\phi\) y compara la proporción de ceros observada con la que predice el modelo. Si hay sobredispersión, prueba binomial negativa y compara AIC. Y antes de cambiar de distribución, pregúntate si falta un predictor importante: muchas veces la “sobredispersión” es un modelo de la media mal especificado.</div>
+      <h2 id="glm-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud pública: incidencia de cáncer de pulmón por edad y ciudad</h3>
+      <p>El conjunto de datos <code>eba1977</code> (paquete ISwR de R, de Andersen, 1977) registra los casos de cáncer de pulmón entre 1968 y 1971 en cuatro ciudades danesas (Fredericia, Horsens, Kolding y Vejle), por grupo de edad, junto con la población en cada celda. El modelo natural es \(\log E[\text{casos}] = \log(\text{población}) + \text{edad} + \text{ciudad}\): el offset convierte los conteos en tasas, y \(e^{\beta}\) de cada ciudad es su razón de tasas frente a la de referencia, ajustada por edad. La edad domina (las tasas crecen varias veces entre los 40 y los 70 años); las diferencias entre ciudades son modestas. La decisión que permite: si una ciudad mostrara una razón de tasas claramente mayor que 1 después de ajustar por edad, eso justificaría investigar exposiciones locales (en el estudio original se sospechaba de una planta petroquímica en Fredericia).</p>
+      <h3>Seguros: frecuencia de siniestros con exposición parcial</h3>
+      <p>En tarificación de seguros de autos, cada póliza se observa una fracción del año (altas, bajas, renovaciones). La práctica estándar del sector es modelar el número de siniestros con Poisson y offset \(\log(\text{años de exposición})\); un ejemplo público es la base francesa <code>freMTPL2freq</code> (paquete CASdatasets), con cerca de 678 000 pólizas. Con una frecuencia base de, digamos, 0,07 siniestros por año, un coeficiente de 0,35 para conductores menores de 25 años da una razón de tasas \(e^{0{,}35} = 1{,}42\): la prima pura de frecuencia de ese grupo debería ser 42 % mayor. La sobredispersión se trata con binomial negativa o con errores robustos, y el modelo de frecuencia se combina con un GLM gamma para el costo medio.</p>
+      <h3>Industria: daños en barcos de carga</h3>
+      <p>McCullagh y Nelder analizan en su libro los incidentes de daño por oleaje en barcos de carga (datos <code>ships</code> del paquete MASS): tipo de barco, período de construcción, período de operación y meses de servicio agregados. El modelo usa \(\log(\text{meses de servicio})\) como offset y encuentra diferencias claras por tipo de barco y por época de construcción, además de una dispersión de Pearson algo mayor que 1, que se corrige con cuasi-Poisson. La decisión: qué tipos de casco reforzar o inspeccionar con más frecuencia, comparando tasas por mes de servicio y no conteos brutos.</p>
+      <h3>Ecología: abundancia de especies en transectos</h3>
+      <p>En monitoreo de aves, cada transecto se recorre durante un tiempo y una longitud distintos, y el conteo de individuos depende de la cobertura vegetal y la distancia a zonas urbanas. Con 120 transectos, un modelo binomial negativo con offset \(\log(\text{km recorridos})\) podría dar, por ejemplo, \(\hat \beta_{\text{cobertura}} = 0{,}02\) por punto porcentual, es decir \(e^{0{,}02 \times 30} = 1{,}82\) veces más aves con 30 puntos más de cobertura, y un \(\hat k \approx 1{,}5\) que refleja la fuerte agregación de las aves en bandadas. Usar Poisson aquí daría errores estándar dos o tres veces más chicos de lo real y llevaría a declarar significativos efectos que no lo son.</p>
 
-      <h2 id="glm-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
-      <p>Los 20 cruces de la oficina de movilidad: tráfico (miles de vehículos al día), meses observados y accidentes. Ajustamos Poisson con offset, medimos la dispersión, corregimos con cuasi-Poisson y binomial negativa, y predecimos.</p>
-      <div class="codetabs">
-        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+      <h2 id="glm-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>Los 20 cruces de la oficina de movilidad: tráfico (miles de vehículos al día), meses observados y accidentes. Ajustamos Poisson con offset, comprobamos el offset, medimos la dispersión, corregimos con cuasi-Poisson y binomial negativa, comparamos ceros y predecimos.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
 <span class="k">import</span> statsmodels.api <span class="k">as</span> sm
@@ -201,30 +299,41 @@ df = pd.<span class="f">DataFrame</span>({
     <span class="s">'meses'</span>:      [<span class="n">24</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">24</span>, <span class="n">12</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">24</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">6</span>],
     <span class="s">'accidentes'</span>: [<span class="n">4</span>, <span class="n">7</span>, <span class="n">3</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">4</span>, <span class="n">3</span>, <span class="n">7</span>, <span class="n">6</span>, <span class="n">11</span>, <span class="n">0</span>, <span class="n">13</span>, <span class="n">3</span>, <span class="n">0</span>],
 })
+off = np.<span class="f">log</span>(df[<span class="s">'meses'</span>])
 
 <span class="c"># 1. Poisson con offset log(meses): modela accidentes por mes</span>
 pois = smf.<span class="f">glm</span>(<span class="s">'accidentes ~ trafico'</span>, data=df, family=sm.families.<span class="f">Poisson</span>(),
-               offset=np.<span class="f">log</span>(df[<span class="s">'meses'</span>])).<span class="f">fit</span>()
-<span class="f">print</span>(pois.params)                     <span class="c"># Intercept -2.622, trafico 0.0498</span>
-<span class="f">print</span>(np.<span class="f">exp</span>(pois.params[<span class="s">'trafico'</span>]))    <span class="c"># 1.051: +5.1 % por cada mil vehículos</span>
+               offset=off).<span class="f">fit</span>()
+<span class="f">print</span>(pois.params)                              <span class="c"># Intercept -2.622, trafico 0.0498</span>
+<span class="f">print</span>(np.<span class="f">exp</span>(pois.params[<span class="s">'trafico'</span>]))           <span class="c"># 1.051: +5.1 % por cada mil vehículos</span>
 <span class="f">print</span>(np.<span class="f">exp</span>(pois.<span class="f">conf_int</span>().loc[<span class="s">'trafico'</span>]))   <span class="c"># [1.027, 1.076]</span>
 
-<span class="c"># 2. ¿Hay sobredispersión?</span>
-phi = pois.pearson_chi2 / pois.df_resid
-<span class="f">print</span>(pois.deviance, pois.df_resid, phi)   <span class="c"># 45.66  18  2.20</span>
+<span class="c"># 2. Razón de verosimilitud contra el modelo nulo</span>
+lr = pois.null_deviance - pois.deviance
+<span class="f">print</span>(lr)                                       <span class="c"># 64.88 - 45.66 = 19.22 (p ≈ 1e-5)</span>
 
-<span class="c"># 3. Cuasi-Poisson: mismos coeficientes, EE escalados por √φ</span>
+<span class="c"># 3. ¿Está justificado el offset? log(meses) como predictor libre</span>
+libre = smf.<span class="f">glm</span>(<span class="s">'accidentes ~ trafico + np.log(meses)'</span>, data=df,
+                family=sm.families.<span class="f">Poisson</span>()).<span class="f">fit</span>()
+<span class="f">print</span>(libre.params[<span class="s">'np.log(meses)'</span>], libre.bse[<span class="s">'np.log(meses)'</span>])   <span class="c"># 0.87  0.22</span>
+
+<span class="c"># 4. ¿Hay sobredispersión? Dispersión de Pearson y ceros</span>
+phi = pois.pearson_chi2 / pois.df_resid
+<span class="f">print</span>(pois.deviance, pois.df_resid, phi)        <span class="c"># 45.66  18  2.20</span>
+<span class="f">print</span>((df[<span class="s">'accidentes'</span>] == <span class="n">0</span>).<span class="f">mean</span>(), np.<span class="f">exp</span>(-pois.fittedvalues).<span class="f">mean</span>())   <span class="c"># 0.35  0.147</span>
+
+<span class="c"># 5. Cuasi-Poisson: mismos coeficientes, EE escalados por √φ</span>
 quasi = smf.<span class="f">glm</span>(<span class="s">'accidentes ~ trafico'</span>, data=df, family=sm.families.<span class="f">Poisson</span>(),
-                offset=np.<span class="f">log</span>(df[<span class="s">'meses'</span>])).<span class="f">fit</span>(scale=<span class="s">'X2'</span>)
+                offset=off).<span class="f">fit</span>(scale=<span class="s">'X2'</span>)
 <span class="f">print</span>(pois.bse[<span class="s">'trafico'</span>], quasi.bse[<span class="s">'trafico'</span>])   <span class="c"># 0.0118  0.0175</span>
 
-<span class="c"># 4. Binomial negativa (alpha = 1/k)</span>
-nb = smf.<span class="f">negativebinomial</span>(<span class="s">'accidentes ~ trafico'</span>, data=df,
-                          offset=np.<span class="f">log</span>(df[<span class="s">'meses'</span>])).<span class="f">fit</span>(disp=<span class="n">0</span>)
-<span class="f">print</span>(nb.params)                        <span class="c"># Intercept -2.972, trafico 0.0639, alpha 0.337</span>
-<span class="f">print</span>(pois.aic, nb.aic)                  <span class="c"># 95.6  89.7: gana la binomial negativa</span>
+<span class="c"># 6. Binomial negativa (statsmodels reporta alpha = 1/k)</span>
+nb = smf.<span class="f">negativebinomial</span>(<span class="s">'accidentes ~ trafico'</span>, data=df, offset=off).<span class="f">fit</span>(disp=<span class="n">0</span>)
+<span class="f">print</span>(nb.params)                                <span class="c"># Intercept -2.972, trafico 0.0639, alpha 0.337</span>
+<span class="f">print</span>(np.<span class="f">exp</span>(nb.<span class="f">conf_int</span>().loc[<span class="s">'trafico'</span>]))     <span class="c"># [1.026, 1.107]</span>
+<span class="f">print</span>(pois.aic, nb.aic)                         <span class="c"># 95.6  89.7: gana la binomial negativa</span>
 
-<span class="c"># 5. Accidentes esperados en 12 meses con 30 mil vehículos al día</span>
+<span class="c"># 7. Accidentes esperados en 12 meses con 30 mil vehículos al día</span>
 nuevo = pd.<span class="f">DataFrame</span>({<span class="s">'trafico'</span>: [<span class="n">30</span>]})
 <span class="f">print</span>(pois.<span class="f">predict</span>(nuevo, offset=np.<span class="f">log</span>([<span class="n">12</span>])))   <span class="c"># ≈ 3.88</span></code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="f">library</span>(MASS)   <span class="c"># glm.nb</span>
@@ -239,29 +348,37 @@ df &lt;- <span class="f">data.frame</span>(
 pois &lt;- <span class="f">glm</span>(accidentes ~ trafico + <span class="f">offset</span>(<span class="f">log</span>(meses)), family = poisson, data = df)
 <span class="f">summary</span>(pois)                                 <span class="c"># trafico 0.0498 (EE 0.0118)</span>
 <span class="f">exp</span>(<span class="f">coef</span>(pois)[<span class="s">"trafico"</span>])                    <span class="c"># 1.051</span>
-<span class="f">exp</span>(<span class="f">confint.default</span>(pois)[<span class="s">"trafico"</span>, ])      <span class="c"># 1.027  1.076</span>
+<span class="f">exp</span>(<span class="f">confint.default</span>(pois)[<span class="s">"trafico"</span>, ])       <span class="c"># 1.027  1.076</span>
 
-<span class="c"># 2. Dispersión de Pearson</span>
+<span class="c"># 2. Razón de verosimilitud contra el nulo</span>
+<span class="f">anova</span>(pois, test = <span class="s">"Chisq"</span>)                   <span class="c"># Deviance 19.22, p ≈ 1e-5</span>
+
+<span class="c"># 3. ¿Está justificado el offset?</span>
+libre &lt;- <span class="f">glm</span>(accidentes ~ trafico + <span class="f">log</span>(meses), family = poisson, data = df)
+<span class="f">coef</span>(<span class="f">summary</span>(libre))[<span class="s">"log(meses)"</span>, <span class="n">1</span>:<span class="n">2</span>]       <span class="c"># 0.87  0.22</span>
+
+<span class="c"># 4. Dispersión de Pearson y ceros</span>
 phi &lt;- <span class="f">sum</span>(<span class="f">residuals</span>(pois, type = <span class="s">"pearson"</span>)^<span class="n">2</span>) / <span class="f">df.residual</span>(pois)
 phi                                           <span class="c"># 2.20</span>
+<span class="f">c</span>(<span class="f">mean</span>(df$accidentes == <span class="n">0</span>), <span class="f">mean</span>(<span class="f">dpois</span>(<span class="n">0</span>, <span class="f">fitted</span>(pois))))   <span class="c"># 0.35  0.147</span>
 
-<span class="c"># 3. Cuasi-Poisson</span>
+<span class="c"># 5. Cuasi-Poisson</span>
 quasi &lt;- <span class="f">glm</span>(accidentes ~ trafico + <span class="f">offset</span>(<span class="f">log</span>(meses)), family = quasipoisson, data = df)
 <span class="f">summary</span>(quasi)$coefficients                   <span class="c"># mismo β, EE 0.0175</span>
 
-<span class="c"># 4. Binomial negativa (R reporta theta = k)</span>
+<span class="c"># 6. Binomial negativa (R reporta theta = k ≈ 1/0.337 ≈ 3)</span>
 nb &lt;- <span class="f">glm.nb</span>(accidentes ~ trafico + <span class="f">offset</span>(<span class="f">log</span>(meses)), data = df)
-<span class="f">summary</span>(nb)                                   <span class="c"># trafico ≈ 0.064, theta ≈ 3</span>
-<span class="f">AIC</span>(pois, nb)                                  <span class="c"># ≈ 95.6 y 89.7</span>
+<span class="f">summary</span>(nb)                                   <span class="c"># trafico ≈ 0.064</span>
+<span class="f">AIC</span>(pois, nb)                                 <span class="c"># ≈ 95.6 y 89.7</span>
 
-<span class="c"># 5. Predicción para 30 mil vehículos y 12 meses</span>
+<span class="c"># 7. Predicción para 30 mil vehículos y 12 meses</span>
 <span class="f">predict</span>(pois, newdata = <span class="f">data.frame</span>(trafico = <span class="n">30</span>, meses = <span class="n">12</span>), type = <span class="s">"response"</span>)   <span class="c"># ≈ 3.88</span></code></pre>
-      </div>
-      <p><b>Cómo leerlo.</b> Con Poisson, cada mil vehículos diarios adicionales multiplican la tasa de accidentes por 1,051 (IC 95 %: 1,027 a 1,076). Pero \(\hat\phi = 2{,}20\): los datos varían el doble de lo que Poisson permite, y hay 35 % de cruces sin accidentes cuando el modelo esperaba cerca del 15 %. El cuasi-Poisson ensancha el error estándar de 0,0118 a 0,0175 (el estadístico z baja de 4,2 a 2,9). La binomial negativa mejora el AIC en casi 6 puntos y estima un efecto de 0,064 (6,6 % por mil vehículos): esa es la que conviene reportar, con su intervalo.</p>
+</div>
+      <p><b>Cómo leerlo.</b> Con Poisson, cada mil vehículos diarios adicionales multiplican la tasa de accidentes por 1,051 (IC 95 %: 1,027 a 1,076), y la prueba de razón de verosimilitud contra el nulo es contundente (19,2 con 1 gl). El coeficiente libre de \(\log(\text{meses})\) es 0,87 con EE 0,22: compatible con 1, así que el offset es razonable. Pero \(\hat \phi = 2{,}20\): los datos varían el doble de lo que Poisson permite, y hay 35 % de cruces sin accidentes cuando el modelo esperaba cerca del 15 %. El cuasi-Poisson ensancha el error estándar de 0,0118 a 0,0175 (el estadístico z baja de 4,2 a 2,9). La binomial negativa mejora el AIC en casi 6 puntos y estima un efecto de 0,064 (6,6 % por mil vehículos, IC 95 %: 2,6 % a 10,7 %): esa es la que conviene reportar, con su intervalo.</p>
 
-      <h2 id="glm-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <h2 id="glm-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Con enlace log, una unidad más de x multiplica la media por e^β₁ = e^0,10 ≈ 1,105, es decir, un aumento cercano al 10,5 %." data-wrong="Recuerda que el modelo es log μ = β₀ + β₁x. Una unidad más en x suma β₁ al logaritmo, así que multiplica la media por e^β₁.">
-        <h3>En una regresión de Poisson de llamadas por hora, el coeficiente de la temperatura es β₁ = 0,10. ¿Qué significa?</h3>
+        <h3>1. En una regresión de Poisson de llamadas por hora, el coeficiente de la temperatura es β₁ = 0,10. ¿Qué significa?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cada grado extra suma 0,10 llamadas por hora</button>
           <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Cada grado extra multiplica las llamadas esperadas por cerca de 1,105</button>
@@ -271,7 +388,7 @@ nb &lt;- <span class="f">glm.nb</span>(accidentes ~ trafico + <span class="f">of
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="El offset log(t) entra al predictor con coeficiente fijo igual a 1, así μ = t·λ y los coeficientes describen la tasa por unidad de exposición." data-wrong="Piensa en μ = t·λ. Si tomas logaritmos, log t aparece sumando con un coeficiente que no hay que estimar. ¿Cuánto vale ese coeficiente?">
-        <h3>Comparas infecciones en hospitales con distinto número de días-paciente. ¿Para qué sirve incluir log(días) como offset?</h3>
+        <h3>2. Comparas infecciones en hospitales con distinto número de días-paciente. ¿Para qué sirve incluir log(días) como offset?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Para corregir la sobredispersión</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Para estimar cuánto influye la exposición en el conteo</button>
@@ -281,7 +398,7 @@ nb &lt;- <span class="f">glm.nb</span>(accidentes ~ trafico + <span class="f">of
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Con φ̂ = 3 los coeficientes siguen siendo razonables, pero los errores estándar de Poisson son demasiado chicos por un factor √3 ≈ 1,7. Hay que usar cuasi-Poisson, binomial negativa o errores robustos." data-wrong="La sobredispersión no sesga los coeficientes de la media, pero sí afecta otra cosa clave para la inferencia. ¿Qué pasa con los errores estándar cuando la varianza real es 3 veces la supuesta?">
-        <h3>Ajustas Poisson y obtienes una dispersión de Pearson φ̂ = 3. ¿Qué conclusión es correcta?</h3>
+        <h3>3. Ajustas Poisson y obtienes una dispersión de Pearson φ̂ = 3. ¿Qué conclusión es correcta?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Los errores estándar están subestimados; los valores p son demasiado optimistas</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Los coeficientes están sesgados y hay que descartarlos</button>
@@ -290,53 +407,180 @@ nb &lt;- <span class="f">glm.nb</span>(accidentes ~ trafico + <span class="f">of
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Var = μ + μ²/k = 6 + 36/3 = 18. La razón varianza/media es 3, y crecería si μ aumentara." data-wrong="Usa la ley de la varianza total: E[λ] más Var(λ), con Var(λ) = μ²/k.">
+        <h3>4. En una binomial negativa con media μ = 6 y k = 3, ¿cuál es la varianza?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>6</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>8</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>12</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>18</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con enlace canónico e intercepto, la primera ecuación de verosimilitud es Σ(yᵢ − μ̂ᵢ) = 0: la suma de los ajustados es igual a la suma observada, 240." data-wrong="Escribe la ecuación score correspondiente al intercepto: la columna de unos de X multiplicada por (y − μ̂) debe dar cero.">
+        <h3>5. Ajustas una Poisson con intercepto a 50 conteos que suman 240. ¿Cuánto suman los valores ajustados μ̂ᵢ?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Depende de los predictores; no se puede saber</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Exactamente 240</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Aproximadamente 240 solo si no hay sobredispersión</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>50, uno por observación</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="glm-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. Los dos primeros se hacen con calculadora.</p>
+      <h2 id="glm-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Son ejercicios para pensar con calma: demostraciones, cálculos con datos y estudios de simulación. Intenta cada uno antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un modelo de Poisson para el número de visitas al médico en un año da \(\log\hat\mu = 0{,}40 + 0{,}18\cdot\text{edad}\), con la edad medida en décadas. Interpreta \(e^{0{,}18}\) y calcula cuántas veces más visitas espera alguien de 70 años que alguien de 40.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(e^{0{,}18} = 1{,}197\): cada década adicional multiplica las visitas esperadas por 1,197, un aumento del <b>19,7 %</b>. De 40 a 70 años hay 3 décadas, así que el factor es \(e^{3 \times 0{,}18} = e^{0{,}54} \approx\) <b>1,72</b>. Ojo: no es 3 × 19,7 % = 59 %, porque los efectos se multiplican, no se suman.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que en la familia exponencial \(E[Y] = b'(\theta)\) y \(\operatorname{Var}(Y) = a(\phi)\,b''(\theta)\). (b) Para un GLM con enlace general \(g\), deriva la función score y muestra que el método de Fisher scoring equivale a IRLS con respuesta de trabajo \(z_i = \eta_i + (y_i - \mu_i)g'(\mu_i)\) y pesos \(w_i = 1/[V(\mu_i)g'(\mu_i)^2]\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Parte de \(\int \exp\{[y \theta - b(\theta)]/a(\phi) + c(y, \phi)\}\,dy = 1\) para todo \(\theta\). Derivando bajo la integral: \(\int \frac{y - b'(\theta)}{a(\phi)} f\,dy = 0\), así que \(E[Y] = b'(\theta)\). Derivando de nuevo: \(\int \big[\frac{(y-b'(\theta))^2}{a(\phi)^2} - \frac{b''(\theta)}{a(\phi)} \big]f\,dy = 0\), de donde \(\operatorname{Var}(Y) = a(\phi)b''(\theta)\).</p>
+            <p>(b) La contribución de la observación \(i\) es \(\ell_i = [y_i \theta_i - b(\theta_i)]/a(\phi) + c\). Por la regla de la cadena, \(\frac{\partial \ell_i}{\partial \beta_j} = \frac{\partial \ell_i}{\partial \theta_i} \frac{d \theta_i}{d \mu_i} \frac{d \mu_i}{d \eta_i} \frac{\partial \eta_i}{\partial \beta_j}\). Como \(\partial \ell_i/ \partial \theta_i = (y_i - \mu_i)/a(\phi)\), \(d \mu_i/d \theta_i = b''(\theta_i) = V(\mu_i)\), \(d \mu_i/d \eta_i = 1/g'(\mu_i)\) y \(\partial \eta_i/ \partial \beta_j = x_{ij}\):</p>
+            <div class="eq">\[ U_j = \sum_i \frac{(y_i - \mu_i)\,x_{ij}}{a(\phi)\,V(\mu_i)\,g'(\mu_i)} = \frac{1}{a(\phi)}\sum_i w_i\,(y_i - \mu_i)\,g'(\mu_i)\,x_{ij}. \]</div>
+            <p>La información esperada es \(\mathcal{I}_{jk} = E[U_jU_k] = \frac{1}{a(\phi)} \sum_i w_i x_{ij}x_{ik}\), es decir \(\mathcal{I} = \mathbf{X}^ \top \mathbf{W} \mathbf{X}/a(\phi)\). El paso de Fisher scoring es \(\boldsymbol \beta^{+} = \boldsymbol \beta + \mathcal{I}^{-1} \mathbf{U}\). Multiplica por \(\mathcal{I}\): \(\mathbf{X}^ \top \mathbf{W} \mathbf{X} \boldsymbol \beta^{+} = \mathbf{X}^ \top \mathbf{W} \big[\mathbf{X} \boldsymbol \beta + (\mathbf{y} - \boldsymbol \mu) \odot g'(\boldsymbol \mu) \big] = \mathbf{X}^ \top \mathbf{W} \mathbf{z}\). Es la ecuación normal de mínimos cuadrados ponderados de \(\mathbf{z}\) sobre \(\mathbf{X}\). Con enlace canónico, \(g'(\mu)V(\mu) = 1\), la información observada coincide con la esperada y Fisher scoring es Newton-Raphson.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Un modelo de infecciones hospitalarias con offset \(\log(\text{días-paciente})\) da \(\log\hat\lambda = -6{,}5 + 0{,}30\cdot\text{UCI}\), donde UCI vale 1 para unidades de cuidados intensivos. ¿Cuántas infecciones espera una UCI con 2 000 días-paciente al año? ¿Cuál es la razón de tasas entre UCI y otras unidades?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>La tasa en UCI es \(e^{-6{,}5 + 0{,}30} = e^{-6{,}2} \approx 0{,}00203\) infecciones por día-paciente. Con 2 000 días: \(\hat\mu = 2\,000 \times 0{,}00203 \approx\) <b>4,1 infecciones</b> al año. La razón de tasas es \(e^{0{,}30} \approx\) <b>1,35</b>: las UCI tienen una tasa 35 % mayor, a igual exposición.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>En el ejemplo de los cruces, el modelo de Poisson tiene devianza 45,66 con 18 grados de libertad, estadístico de Pearson \(X^2 = 39{,}6\), \(\hat\beta_1 = 0{,}0498\) y EE = 0,0118. (a) ¿El ajuste es aceptable? (b) Estima \(\phi\). (c) Calcula el EE y el estadístico z de cuasi-Poisson.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) Si el modelo fuera correcto, \(D \approx \chi^2_{18}\), cuya media es 18. \(P(\chi^2_{18} &gt; 45{,}66) \approx 0{,}0003\): el ajuste es malo. (b) \(\hat\phi = 39{,}6/18 = 2{,}20\). (c) \(\text{EE}_{\text{cuasi}} = 0{,}0118\sqrt{2{,}20} \approx 0{,}0175\) y \(z = 0{,}0498/0{,}0175 \approx\) <b>2,85</b> (antes era 4,23). El efecto sigue siendo significativo, pero la evidencia es bastante menor.</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
-<span class="k">import</span> numpy <span class="k">as</span> np
-<span class="f">print</span>(stats.chi2.<span class="f">sf</span>(<span class="n">45.66</span>, <span class="n">18</span>))          <span class="c"># ≈ 0.0003</span>
-phi = <span class="n">39.6</span> / <span class="n">18</span>
-ee = <span class="n">0.0118</span> * np.<span class="f">sqrt</span>(phi)
-<span class="f">print</span>(phi, ee, <span class="n">0.0498</span> / ee)               <span class="c"># 2.2  0.0175  2.85</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">pchisq</span>(<span class="n">45.66</span>, df = <span class="n">18</span>, lower.tail = <span class="k">FALSE</span>)   <span class="c"># ≈ 0.0003</span>
-phi &lt;- <span class="n">39.6</span> / <span class="n">18</span>
-ee &lt;- <span class="n">0.0118</span> * <span class="f">sqrt</span>(phi)
-<span class="f">c</span>(phi, ee, <span class="n">0.0498</span> / ee)                      <span class="c"># 2.2  0.0175  2.85</span></code></pre>
-</div></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Supón que \(Y \mid \lambda \sim \text{Poisson}(\lambda)\) y \(\lambda \sim \text{Gamma}\) con media \(\mu = 4\) y forma \(k = 2\). (a) Usa la ley de la varianza total para calcular \(\operatorname{Var}(Y)\). (b) Compara \(P(Y = 0)\) con la de una Poisson de media 4. (c) Comprueba ambos resultados por simulación.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(E[\operatorname{Var}(Y\mid\lambda)] = E[\lambda] = 4\) y \(\operatorname{Var}(E[Y\mid\lambda]) = \operatorname{Var}(\lambda) = \mu^2/k = 8\). Total: \(\operatorname{Var}(Y) = 4 + 8 =\) <b>12</b>, el triple que en Poisson. (b) En la binomial negativa, \(P(Y=0) = \big(\tfrac{k}{k+\mu}\big)^k = (2/6)^2 \approx\) <b>0,111</b>; en Poisson, \(e^{-4} \approx 0{,}018\). La heterogeneidad multiplica por seis los ceros.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Implementa IRLS desde cero (sin usar <code>glm</code>) para los 20 cruces de la sección 10, con offset \(\log(\text{meses})\). Reporta \(\hat{\boldsymbol \beta}\), los errores estándar a partir de \((\mathbf{X}^ \top \mathbf{W} \mathbf{X})^{-1}\), la devianza y el número de iteraciones hasta que el cambio en \(\boldsymbol \beta\) sea menor que \(10^{-10}\). Compara con la salida de <code>glm</code>.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con offset, \(\eta_i = o_i + \mathbf{x}_i^ \top \boldsymbol \beta\) y la respuesta de trabajo debe restar el offset: \(z_i = \eta_i - o_i + (y_i - \mu_i)/ \mu_i\). Partiendo de \(\boldsymbol \beta = (\log(\sum y/ \sum t), 0)\), converge en 6 iteraciones a \(\hat \beta_0 = -2{,}6216\), \(\hat \beta_1 = 0{,}04976\), con EE 0,3562 y 0,01177, y devianza 45,66, idéntico a <code>glm</code>.</p>
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+x = np.<span class="f">array</span>([<span class="n">33</span>, <span class="n">33</span>, <span class="n">23</span>, <span class="n">15</span>, <span class="n">7</span>, <span class="n">18</span>, <span class="n">19</span>, <span class="n">7</span>, <span class="n">7</span>, <span class="n">40</span>, <span class="n">28</span>, <span class="n">13</span>, <span class="n">20</span>, <span class="n">39</span>, <span class="n">36</span>, <span class="n">35</span>, <span class="n">19</span>, <span class="n">22</span>, <span class="n">29</span>, <span class="n">7</span>.])
+t = np.<span class="f">array</span>([<span class="n">24</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">24</span>, <span class="n">12</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">24</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">6</span>.])
+y = np.<span class="f">array</span>([<span class="n">4</span>, <span class="n">7</span>, <span class="n">3</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">4</span>, <span class="n">3</span>, <span class="n">7</span>, <span class="n">6</span>, <span class="n">11</span>, <span class="n">0</span>, <span class="n">13</span>, <span class="n">3</span>, <span class="n">0</span>.])
+X = np.<span class="f">column_stack</span>([np.<span class="f">ones_like</span>(x), x]); off = np.<span class="f">log</span>(t)
+b = np.<span class="f">array</span>([np.<span class="f">log</span>(y.<span class="f">sum</span>() / t.<span class="f">sum</span>()), <span class="n">0.0</span>])
+<span class="k">for</span> it <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, <span class="n">100</span>):
+    eta = off + X @ b; mu = np.<span class="f">exp</span>(eta)
+    z = eta - off + (y - mu) / mu           <span class="c"># respuesta de trabajo sin offset</span>
+    W = mu
+    b_new = np.linalg.<span class="f">solve</span>(X.T @ (W[:, <span class="k">None</span>] * X), X.T @ (W * z))
+    <span class="k">if</span> np.<span class="f">max</span>(np.<span class="f">abs</span>(b_new - b)) &lt; <span class="n">1e-10</span>:
+        b = b_new; <span class="k">break</span>
+    b = b_new
+mu = np.<span class="f">exp</span>(off + X @ b)
+ee = np.<span class="f">sqrt</span>(np.<span class="f">diag</span>(np.linalg.<span class="f">inv</span>(X.T @ (mu[:, <span class="k">None</span>] * X))))
+yl = np.<span class="f">where</span>(y &gt; <span class="n">0</span>, y * np.<span class="f">log</span>(np.<span class="f">where</span>(y &gt; <span class="n">0</span>, y, <span class="n">1</span>) / mu), <span class="n">0</span>)
+D = <span class="n">2</span> * np.<span class="f">sum</span>(yl - (y - mu))
+<span class="f">print</span>(it, b, ee, D)     <span class="c"># 6 iteraciones, [-2.6216 0.04976] [0.3562 0.01177] 45.66</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">33</span>, <span class="n">33</span>, <span class="n">23</span>, <span class="n">15</span>, <span class="n">7</span>, <span class="n">18</span>, <span class="n">19</span>, <span class="n">7</span>, <span class="n">7</span>, <span class="n">40</span>, <span class="n">28</span>, <span class="n">13</span>, <span class="n">20</span>, <span class="n">39</span>, <span class="n">36</span>, <span class="n">35</span>, <span class="n">19</span>, <span class="n">22</span>, <span class="n">29</span>, <span class="n">7</span>)
+t &lt;- <span class="f">c</span>(<span class="n">24</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">24</span>, <span class="n">12</span>, <span class="n">6</span>, <span class="n">12</span>, <span class="n">24</span>, <span class="n">24</span>, <span class="n">24</span>, <span class="n">6</span>, <span class="n">6</span>)
+y &lt;- <span class="f">c</span>(<span class="n">4</span>, <span class="n">7</span>, <span class="n">3</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">2</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">4</span>, <span class="n">3</span>, <span class="n">7</span>, <span class="n">6</span>, <span class="n">11</span>, <span class="n">0</span>, <span class="n">13</span>, <span class="n">3</span>, <span class="n">0</span>)
+X &lt;- <span class="f">cbind</span>(<span class="n">1</span>, x); off &lt;- <span class="f">log</span>(t)
+b &lt;- <span class="f">c</span>(<span class="f">log</span>(<span class="f">sum</span>(y) / <span class="f">sum</span>(t)), <span class="n">0</span>)
+<span class="k">for</span> (it <span class="k">in</span> <span class="n">1</span>:<span class="n">100</span>) {
+  eta &lt;- off + X %*% b; mu &lt;- <span class="f">as.vector</span>(<span class="f">exp</span>(eta))
+  z &lt;- eta - off + (y - mu) / mu
+  b_new &lt;- <span class="f">solve</span>(<span class="f">t</span>(X) %*% (mu * X), <span class="f">t</span>(X) %*% (mu * z))
+  <span class="k">if</span> (<span class="f">max</span>(<span class="f">abs</span>(b_new - b)) &lt; <span class="n">1e-10</span>) { b &lt;- b_new; <span class="k">break</span> }
+  b &lt;- b_new
+}
+mu &lt;- <span class="f">as.vector</span>(<span class="f">exp</span>(off + X %*% b))
+ee &lt;- <span class="f">sqrt</span>(<span class="f">diag</span>(<span class="f">solve</span>(<span class="f">t</span>(X) %*% (mu * X))))
+D &lt;- <span class="n">2</span> * <span class="f">sum</span>(<span class="f">ifelse</span>(y &gt; <span class="n">0</span>, y * <span class="f">log</span>(y / mu), <span class="n">0</span>) - (y - mu))
+<span class="f">c</span>(it, b, ee, D)
+<span class="f">coef</span>(<span class="f">summary</span>(<span class="f">glm</span>(y ~ x + <span class="f">offset</span>(off), family = poisson)))   <span class="c"># mismos valores</span></code></pre>
+</div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudio de simulación de cobertura. Genera 2 000 conjuntos de \(n = 100\) observaciones con \(x \sim U(0, 2)\), \(\log \mu = 0{,}5 + 0{,}7x\) e \(Y \mid x\) binomial negativa con \(k = 1{,}5\). En cada uno ajusta Poisson, cuasi-Poisson y binomial negativa, y calcula la proporción de veces que el IC del 95 % para \(\beta_1\) contiene 0,7. Interpreta los resultados a la luz de la propiedad 7.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Los tres estimadores de \(\beta_1\) están centrados en 0,7 (la media está bien especificada), pero los intervalos de Poisson son demasiado angostos: su cobertura cae a cerca del 70 %, porque la varianza real \(\mu + \mu^2/1{,}5\) es varias veces \(\mu\). Cuasi-Poisson recupera casi toda la cobertura (alrededor de 93 % a 94 %; no es exacta porque supone varianza proporcional a \(\mu\), no cuadrática), y la binomial negativa, que es el modelo correcto, queda cerca del 95 %. Moraleja: el sesgo no es el problema, la incertidumbre sí.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np, warnings
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+warnings.<span class="f">filterwarnings</span>(<span class="s">'ignore'</span>)
+rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
+R, n, k, b1 = <span class="n">2000</span>, <span class="n">100</span>, <span class="n">1.5</span>, <span class="n">0.7</span>
+hits = {<span class="s">'poisson'</span>: <span class="n">0</span>, <span class="s">'cuasi'</span>: <span class="n">0</span>, <span class="s">'nb'</span>: <span class="n">0</span>}
+<span class="k">for</span> r <span class="k">in</span> <span class="f">range</span>(R):
+    x = rng.<span class="f">uniform</span>(<span class="n">0</span>, <span class="n">2</span>, n); X = sm.<span class="f">add_constant</span>(x)
+    mu = np.<span class="f">exp</span>(<span class="n">0.5</span> + b1 * x)
+    y = rng.<span class="f">poisson</span>(rng.<span class="f">gamma</span>(k, mu / k))          <span class="c"># mezcla Poisson-gamma</span>
+    p = sm.<span class="f">GLM</span>(y, X, family=sm.families.<span class="f">Poisson</span>()).<span class="f">fit</span>()
+    q = sm.<span class="f">GLM</span>(y, X, family=sm.families.<span class="f">Poisson</span>()).<span class="f">fit</span>(scale=<span class="s">'X2'</span>)
+    nb = sm.<span class="f">NegativeBinomial</span>(y, X).<span class="f">fit</span>(disp=<span class="n">0</span>)
+    <span class="k">for</span> name, m <span class="k">in</span> [(<span class="s">'poisson'</span>, p), (<span class="s">'cuasi'</span>, q), (<span class="s">'nb'</span>, nb)]:
+        lo, hi = m.<span class="f">conf_int</span>()[<span class="n">1</span>]
+        hits[name] += lo &lt;= b1 &lt;= hi
+<span class="f">print</span>({m: h / R <span class="k">for</span> m, h <span class="k">in</span> hits.<span class="f">items</span>()})   <span class="c"># ≈ poisson 0.71, cuasi 0.94, nb 0.95</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(MASS)
+<span class="f">set.seed</span>(<span class="n">42</span>)
+R &lt;- <span class="n">2000</span>; n &lt;- <span class="n">100</span>; k &lt;- <span class="n">1.5</span>; b1 &lt;- <span class="n">0.7</span>
+hits &lt;- <span class="f">c</span>(poisson = <span class="n">0</span>, cuasi = <span class="n">0</span>, nb = <span class="n">0</span>)
+<span class="k">for</span> (r <span class="k">in</span> <span class="n">1</span>:R) {
+  x &lt;- <span class="f">runif</span>(n, <span class="n">0</span>, <span class="n">2</span>); mu &lt;- <span class="f">exp</span>(<span class="n">0.5</span> + b1 * x)
+  y &lt;- <span class="f">rnbinom</span>(n, size = k, mu = mu)
+  p &lt;- <span class="f">glm</span>(y ~ x, family = poisson)
+  q &lt;- <span class="f">glm</span>(y ~ x, family = quasipoisson)
+  nb &lt;- <span class="f">glm.nb</span>(y ~ x)
+  <span class="k">for</span> (m <span class="k">in</span> <span class="f">c</span>(<span class="s">"poisson"</span>, <span class="s">"cuasi"</span>, <span class="s">"nb"</span>)) {
+    fit &lt;- <span class="f">list</span>(poisson = p, cuasi = q, nb = nb)[[m]]
+    ci &lt;- <span class="f">confint.default</span>(fit)[<span class="s">"x"</span>, ]
+    hits[m] &lt;- hits[m] + (ci[<span class="n">1</span>] &lt;= b1 &amp; b1 &lt;= ci[<span class="n">2</span>])
+  }
+}
+hits / R   <span class="c"># ≈ poisson 0.71, cuasi 0.94, nb 0.95</span></code></pre>
+</div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Sean \(Y \mid \lambda \sim \text{Poisson}(\lambda)\) y \(\lambda \sim \text{Gamma}(k, k/ \mu)\) (forma \(k\), tasa \(k/ \mu\)). (a) Deriva la función de probabilidad de \(Y\) integrando \(\lambda\). (b) Demuestra que cuando \(k \to \infty\) converge a la Poisson de media \(\mu\). (c) Con \(\mu = 4\) y \(k = 2\), calcula \(\operatorname{Var}(Y)\) y \(P(Y=0)\) y compáralos con la Poisson.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(P(Y=y) = \int_0^ \infty \frac{e^{- \lambda} \lambda^y}{y!} \frac{(k/ \mu)^k}{\Gamma(k)} \lambda^{k-1}e^{-k \lambda/ \mu}d \lambda\) \(= \frac{(k/ \mu)^k}{y!\, \Gamma(k)} \int_0^ \infty \lambda^{y+k-1}e^{- \lambda(1+k/ \mu)}d \lambda\) \(= \frac{(k/ \mu)^k\, \Gamma(y+k)}{y!\, \Gamma(k)\,(1+k/ \mu)^{y+k}}\). Reordenando, \(\frac{\Gamma(y+k)}{\Gamma(k)y!} \big(\frac{k}{k+ \mu} \big)^k \big(\frac{\mu}{k+ \mu} \big)^y\).</p>
+            <p>(b) \(\frac{\Gamma(y+k)}{\Gamma(k)(k+ \mu)^y} = \prod_{j=0}^{y-1} \frac{k+j}{k+ \mu} \to 1\), y \(\big(\frac{k}{k+ \mu} \big)^k = \big(1 + \frac{\mu}{k} \big)^{-k} \to e^{- \mu}\). Queda \(\frac{\mu^y e^{- \mu}}{y!}\).</p>
+            <p>(c) \(\operatorname{Var}(Y) = 4 + 16/2 = 12\), el triple que en Poisson. \(P(Y=0) = (2/6)^2 = 0{,}111\), contra \(e^{-4} = 0{,}018\): seis veces más ceros.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
 rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
 lam = rng.<span class="f">gamma</span>(shape=<span class="n">2</span>, scale=<span class="n">4</span> / <span class="n">2</span>, size=<span class="n">200_000</span>)   <span class="c"># media 4, forma 2</span>
 y = rng.<span class="f">poisson</span>(lam)
-<span class="f">print</span>(y.<span class="f">mean</span>(), y.<span class="f">var</span>(), (y == <span class="n">0</span>).<span class="f">mean</span>())             <span class="c"># ≈ 4  12  0.111</span></code></pre>
+<span class="f">print</span>(y.<span class="f">mean</span>(), y.<span class="f">var</span>(), (y == <span class="n">0</span>).<span class="f">mean</span>())             <span class="c"># ≈ 4  12  0.111</span>
+<span class="f">print</span>(stats.nbinom.<span class="f">pmf</span>(<span class="n">0</span>, <span class="n">2</span>, <span class="n">2</span> / (<span class="n">2</span> + <span class="n">4</span>)))            <span class="c"># 0.1111 exacto</span>
+<span class="k">for</span> k <span class="k">in</span> [<span class="n">10</span>, <span class="n">100</span>, <span class="n">10_000</span>]:                           <span class="c"># convergencia a Poisson</span>
+    <span class="f">print</span>(k, stats.nbinom.<span class="f">pmf</span>(<span class="n">3</span>, k, k / (k + <span class="n">4</span>)), stats.poisson.<span class="f">pmf</span>(<span class="n">3</span>, <span class="n">4</span>))</code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
 lam &lt;- <span class="f">rgamma</span>(<span class="n">200000</span>, shape = <span class="n">2</span>, scale = <span class="n">4</span> / <span class="n">2</span>)
 y &lt;- <span class="f">rpois</span>(<span class="n">200000</span>, lam)
 <span class="f">c</span>(<span class="f">mean</span>(y), <span class="f">var</span>(y), <span class="f">mean</span>(y == <span class="n">0</span>))                    <span class="c"># ≈ 4  12  0.111</span>
-<span class="f">dnbinom</span>(<span class="n">0</span>, size = <span class="n">2</span>, mu = <span class="n">4</span>)                           <span class="c"># 0.111 exacto</span></code></pre>
-</div></div></details>
+<span class="f">dnbinom</span>(<span class="n">0</span>, size = <span class="n">2</span>, mu = <span class="n">4</span>)                        <span class="c"># 0.111 exacto</span>
+<span class="f">sapply</span>(<span class="f">c</span>(<span class="n">10</span>, <span class="n">100</span>, <span class="n">10000</span>), <span class="k">function</span>(k) <span class="f">dnbinom</span>(<span class="n">3</span>, size = k, mu = <span class="n">4</span>))
+<span class="f">dpois</span>(<span class="n">3</span>, <span class="n">4</span>)                                         <span class="c"># 0.195: el límite</span></code></pre>
+</div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Un estudio compara infecciones de herida en dos hospitales. Hospital A: 30 infecciones en 1 500 cirugías; hospital B: 45 en 1 800. Un analista ajusta <code>glm(infecciones ~ hospital, family = poisson)</code> <b>sin offset</b> con los dos totales y concluye que B tiene 50 % más infecciones. (a) Critica el análisis. (b) Calcula la razón de tasas correcta con su IC del 95 % usando un offset. (c) Haz la prueba de razón de verosimilitud de igualdad de tasas. (d) ¿Qué variable omitida podría cambiar la conclusión y cómo la incluirías?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Sin offset, el modelo compara conteos y no tasas: B hizo 20 % más cirugías, así que parte de su exceso es solo mayor exposición. Además, con dos observaciones el modelo es saturado y no permite evaluar la dispersión.</p>
+            <p>(b) Tasas: A, 30/1 500 = 0,0200; B, 45/1 800 = 0,0250. Razón de tasas \(= 1{,}25\), \(\hat \beta = \log 1{,}25 = 0{,}223\). Como en el ejemplo resuelto, \(\text{EE} = \sqrt{1/30 + 1/45} = 0{,}236\). IC 95 %: \(e^{0{,}223 \pm 1{,}96 \cdot 0{,}236} = [0{,}79;\ 1{,}99]\). Incluye 1.</p>
+            <p>(c) Bajo \(H_0\) la tasa común es 75/3 300 = 0,02273, con esperados 34,09 y 40,91. \(D_0\) \(= 2[30 \log(30/34{,}09) + 45 \log(45/40{,}91)]\) \(= 2[-3{,}836 + 4{,}290] = 0{,}91\) con 1 gl, \(p \approx 0{,}34\). No hay evidencia de diferencia.</p>
+            <p>(d) La gravedad de los pacientes (case-mix): si B atiende cirugías más complejas, su tasa cruda está inflada. Con datos por tipo de cirugía, el modelo sería <code>glm(inf ~ hospital + tipo + offset(log(cirugias)), family = poisson)</code>, y \(e^{\beta_{\text{hospital}}}\) pasaría a ser una razón de tasas ajustada, el equivalente a una estandarización indirecta.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np, statsmodels.api <span class="k">as</span> sm, warnings
+warnings.<span class="f">filterwarnings</span>(<span class="s">'ignore'</span>)   <span class="c"># modelo saturado: 0 gl residuales</span>
+y = np.<span class="f">array</span>([<span class="n">30</span>, <span class="n">45</span>]); n = np.<span class="f">array</span>([<span class="n">1500</span>, <span class="n">1800</span>]); X = sm.<span class="f">add_constant</span>([<span class="n">0</span>, <span class="n">1</span>])
+m = sm.<span class="f">GLM</span>(y, X, family=sm.families.<span class="f">Poisson</span>(), offset=np.<span class="f">log</span>(n)).<span class="f">fit</span>()
+<span class="f">print</span>(np.<span class="f">exp</span>(m.params[<span class="n">1</span>]), np.<span class="f">exp</span>(m.<span class="f">conf_int</span>()[<span class="n">1</span>]))   <span class="c"># 1.25  [0.79 1.99]</span>
+<span class="f">print</span>(m.null_deviance)                                <span class="c"># 0.91 (prueba RV con 1 gl)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>d &lt;- <span class="f">data.frame</span>(y = <span class="f">c</span>(<span class="n">30</span>, <span class="n">45</span>), n = <span class="f">c</span>(<span class="n">1500</span>, <span class="n">1800</span>), hosp = <span class="f">c</span>(<span class="s">"A"</span>, <span class="s">"B"</span>))
+m &lt;- <span class="f">glm</span>(y ~ hosp + <span class="f">offset</span>(<span class="f">log</span>(n)), family = poisson, data = d)
+<span class="f">exp</span>(<span class="f">cbind</span>(<span class="f">coef</span>(m), <span class="f">confint.default</span>(m)))[<span class="s">"hospB"</span>, ]   <span class="c"># 1.25  0.79  1.99</span>
+<span class="f">anova</span>(<span class="f">glm</span>(y ~ <span class="f">offset</span>(<span class="f">log</span>(n)), family = poisson, data = d), m, test = <span class="s">"Chisq"</span>)   <span class="c"># 0.91, p ≈ 0.34</span></code></pre>
+</div>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

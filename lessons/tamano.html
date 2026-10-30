@@ -5,27 +5,30 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Tamaño de muestra y diseño de encuestas</h1>
-      <p>“¿A cuántas personas tengo que encuestar?” es la pregunta más frecuente en cualquier proyecto con datos, y la respuesta correcta empieza con otra pregunta: ¿qué tan preciso necesitas ser? Aquí aprendes a calcular n para medias y proporciones, a ajustarlo por población finita, efecto de diseño y no respuesta, y a escribir preguntas que midan lo que quieres medir.</p>
-      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza y muestreo aleatorio simple</span><span>R · Python</span></div>
+      <p>“¿A cuántas personas tengo que encuestar?” es la pregunta más frecuente en cualquier proyecto con datos, y la respuesta correcta empieza con otra pregunta: ¿qué tan preciso necesitas ser? Aquí aprendes a calcular n para medias, proporciones y comparaciones, a ajustarlo por población finita, efecto de diseño y no respuesta, a leer un margen de error y a escribir preguntas que midan lo que quieres medir.</p>
+      <div class="lmeta"><span>85 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza y muestreo aleatorio simple</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#tamano-idea" data-sec="tamano-idea">La idea</a></li>
+        <li><a href="#tamano-intro" data-sec="tamano-intro">Introducción</a></li>
+        <li><a href="#tamano-def" data-sec="tamano-def">Definición</a></li>
         <li><a href="#tamano-base" data-sec="tamano-base">n para proporciones y medias</a></li>
+        <li><a href="#tamano-comp" data-sec="tamano-comp">Comparar grupos: potencia</a></li>
         <li><a href="#tamano-ajustes" data-sec="tamano-ajustes">Ajustes del tamaño</a></li>
-        <li><a href="#tamano-lab" data-sec="tamano-lab">Laboratorio</a></li>
-        <li><a href="#tamano-margen" data-sec="tamano-margen">Leer un margen de error</a></li>
-        <li><a href="#tamano-preg" data-sec="tamano-preg">Redactar preguntas</a></li>
+        <li><a href="#tamano-margen" data-sec="tamano-margen">Leer un margen y redactar</a></li>
+        <li><a href="#tamano-prop" data-sec="tamano-prop">Propiedades</a></li>
+        <li><a href="#tamano-lab" data-sec="tamano-lab">Ejercicios de simulación</a></li>
+        <li><a href="#tamano-apps" data-sec="tamano-apps">Aplicaciones reales</a></li>
         <li><a href="#tamano-code" data-sec="tamano-code">En R y Python</a></li>
-        <li><a href="#tamano-quiz" data-sec="tamano-quiz">Comprueba</a></li>
-        <li><a href="#tamano-ej" data-sec="tamano-ej">Ejercicios</a></li>
+        <li><a href="#tamano-quiz" data-sec="tamano-quiz">Quiz</a></li>
+        <li><a href="#tamano-ej" data-sec="tamano-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="tamano-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="tamano-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una alcaldía quiere saber qué porcentaje de residentes aprueba el nuevo sistema de recolección de basura. La directora pide “una encuesta representativa” y pregunta cuántas entrevistas presupuestar. No existe un número mágico (ni “el 10 % de la población” ni “30 personas”); el tamaño sale de seis decisiones que conviene escribir antes de calcular nada:</p>
       <ol>
         <li><b>Qué estimas:</b> una proporción, una media, una diferencia entre grupos.</li>
@@ -35,18 +38,43 @@
         <li><b>Cómo es el diseño:</b> tamaño de la población, estratos, conglomerados.</li>
         <li><b>Cuánta gente no va a responder.</b></li>
       </ol>
+      <p>Un poco de historia. En 1936 la revista <i>Literary Digest</i> recibió unos 2,4 millones de respuestas por correo y pronosticó que Alf Landon derrotaría a Franklin Roosevelt; Roosevelt ganó con más del 60 % del voto. George Gallup, con una muestra mucho más pequeña pero mejor diseñada, acertó. La lección quedó grabada en la disciplina: <b>un n enorme no arregla un mal diseño</b>, y un n modesto bien elegido basta. La teoría que usamos hoy para calcular tamaños se consolidó poco después, con el trabajo de Jerzy Neyman (1934) sobre muestreo probabilístico y el libro <i>Sampling Techniques</i> de William Cochran (1953), cuya notación seguimos en esta sesión.</p>
       <div class="callout"><b>Empieza por el uso:</b> si la alcaldía va a cambiar el sistema cuando la aprobación baje del 50 %, un margen de ±10 puntos no le sirve cuando el resultado es 54 %. El margen de error se elige mirando la decisión que se va a tomar con el número.</div>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>A derivar el tamaño de muestra para una proporción y una media a partir del intervalo de confianza.</li>
+          <li>A calcular el tamaño para comparar dos grupos con un nivel y una potencia dados.</li>
+          <li>A ajustar \(n\) por efecto de diseño, población finita y no respuesta, en el orden correcto.</li>
+          <li>A leer con sentido crítico el margen de error de una encuesta, de subgrupos y de diferencias.</li>
+          <li>A redactar preguntas que no introduzcan sesgos de medición.</li>
+          <li>A verificar por simulación que un plan de muestreo cumple el margen prometido.</li>
+        </ul>
+      </div>
 
-      <h2 id="tamano-base"><span class="sec">§ 2</span>n para proporciones y medias</h2>
-      <p>En un MAS de una población grande, el margen de error de una proporción con confianza \(1 - \alpha\) es \(e = z_{\alpha/2}\sqrt{P(1-P)/n}\). Despejando \(n\):</p>
+      <h2 id="tamano-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> Dado un estimador \(\hat\theta\) de un parámetro \(\theta\) y una confianza \(1-\alpha\), el <b>margen de error</b> es la semiamplitud del intervalo de confianza, \(e = z_{\alpha/2}\,\mathrm{EE}(\hat\theta)\). El <b>tamaño de muestra requerido</b> es el menor \(n\) tal que \(z_{\alpha/2}\,\mathrm{EE}_n(\hat\theta) \le e\), es decir, que garantiza \(P(|\hat\theta - \theta| \le e) \approx 1-\alpha\).</div>
+      <p>Los términos:</p>
+      <ul>
+        <li>\(z_{\alpha/2}\): cuantil de la normal estándar que deja \(\alpha/2\) a la derecha (1,645; 1,96; 2,576 para 90, 95 y 99 %). Ver <a href="#ic">intervalos de confianza</a>.</li>
+        <li>\(e\): margen absoluto en las unidades de la variable (puntos porcentuales si es una proporción). El margen <b>relativo</b> es \(r = e/\theta\).</li>
+        <li>\(n_0\): tamaño para un MAS de una población infinita con respuesta completa; es el punto de partida.</li>
+        <li>\(\mathrm{deff}\): efecto de diseño, la razón entre la varianza del diseño real y la de un MAS del mismo \(n\) (ver <a href="#conglo">conglomerados</a>).</li>
+        <li>\(N\): tamaño de la población; \(f = n/N\) es la fracción de muestreo.</li>
+        <li>\(TR\): tasa de respuesta esperada, fracción de unidades seleccionadas que terminan con una entrevista válida.</li>
+        <li>Potencia \(1-\beta\): probabilidad de rechazar \(H_0\) cuando la diferencia real es la que quieres detectar (ver <a href="#ttest">pruebas t</a>).</li>
+      </ul>
+      <p><b>Ejemplo numérico pequeño.</b> Con \(n = 100\) y \(\hat p = 0{,}5\), el error estándar es \(\sqrt{0{,}25/100} = 0{,}05\) y el margen al 95 % es \(1{,}96 \cdot 0{,}05 = 0{,}098\): unos ±10 puntos. Si quieres ±5, el margen tiene que bajar a la mitad, el error estándar también, y como depende de \(1/\sqrt n\), necesitas \(n = 400\).</p>
+
+      <h2 id="tamano-base"><span class="sec">§ 3</span>n para proporciones y medias</h2>
+      <p><b>Supuestos.</b> MAS (o MAS con reemplazo), población grande frente a \(n\), y un \(n\) suficiente para que el <a href="#tlc">teorema central del límite</a> haga aproximadamente normal al estimador. <b>Derivación.</b> Para una proporción, \(\hat p\) tiene media \(P\) y varianza \(P(1-P)/n\), así que \(P\big(|\hat p - P| \le z_{\alpha/2}\sqrt{P(1-P)/n}\big) \approx 1-\alpha\). Imponer que esa semiamplitud sea \(e\) da \(e^2 = z^2P(1-P)/n\). Despejando \(n\):</p>
       <div class="eq">\[ n_0 = \frac{z_{\alpha/2}^2\,P(1-P)}{e^2} \qquad\qquad n_0 = \frac{z_{\alpha/2}^2\,\sigma^2}{e^2} \]
-        <div class="note">Izquierda: proporción. Derecha: media, con \(\sigma\) la desviación estándar de la variable. Con \(e = 0{,}03\), 95 % de confianza (\(z = 1{,}96\)) y \(P = 0{,}5\): \(n_0 = 1{,}96^2 \cdot 0{,}25/0{,}0009 = 1\,067{,}1\), que se redondea <b>hacia arriba</b> a 1 068.</div>
+        <div class="note">Izquierda: proporción. Derecha: media, con \(\sigma\) la desviación estándar de la variable (misma derivación con \(V(\bar y) = \sigma^2/n\)). Con \(e = 0{,}03\), 95 % de confianza (\(z = 1{,}96\)) y \(P = 0{,}5\): \(n_0 = 1{,}96^2 \cdot 0{,}25/0{,}0009 = 1\,067{,}1\), que se redondea <b>hacia arriba</b> a 1 068.</div>
       </div>
       <p>El problema obvio es que la fórmula pide justo lo que quieres averiguar (\(P\) o \(\sigma\)). Las salidas habituales:</p>
       <ul>
-        <li><b>Proporción:</b> \(P(1-P)\) es máximo en \(P = 0{,}5\). Usar 0,5 da el tamaño “conservador”, que garantiza el margen sea cual sea el resultado. Si sabes que \(P\) ronda 0,1 o 0,9, usar ese valor reduce mucho \(n\).</li>
-        <li><b>Media:</b> \(\sigma\) sale de una prueba piloto, de un estudio anterior o de una regla gruesa: si casi todos los valores están entre un mínimo y un máximo, \(\sigma \approx \text{rango}/4\) (o /6 si el rango es muy holgado).</li>
-        <li><b>Error relativo:</b> si quieres estimar con un error del \(r\) % del valor (por ejemplo ±5 % del ingreso medio), \(n_0 = z^2\,CV^2/r^2\), donde \(CV = \sigma/\mu\) es el coeficiente de variación.</li>
+        <li><b>Proporción:</b> \(g(P) = P(1-P)\) tiene derivada \(1 - 2P\), que se anula en \(P = 0{,}5\), donde vale 0,25: es el máximo. Usar 0,5 da el tamaño “conservador”, que garantiza el margen sea cual sea el resultado. Si sabes que \(P\) ronda 0,1 o 0,9, usar ese valor reduce mucho \(n\) (\(0{,}09\) frente a \(0{,}25\): 64 % menos).</li>
+        <li><b>Media:</b> \(\sigma\) sale de una prueba piloto, de un estudio anterior o de una regla gruesa: si casi todos los valores están entre un mínimo y un máximo, \(\sigma \approx \text{rango}/4\) (o /6 si el rango es muy holgado). Con una piloto pequeña, usa el límite superior de un intervalo de confianza para \(\sigma\), no el valor puntual.</li>
+        <li><b>Error relativo:</b> si quieres estimar con un error del \(r\) % del valor (por ejemplo ±5 % del ingreso medio), sustituye \(e = r\mu\): \(n_0 = z^2\,CV^2/r^2\), donde \(CV = \sigma/\mu\) es el coeficiente de variación. Para una proporción, \(CV^2 = (1-P)/P\), que se dispara cuando \(P\) es pequeña: estimar con precisión relativa algo raro exige muestras grandes.</li>
       </ul>
       <div class="tablewrap"><table>
         <thead><tr><th>Margen \(e\)</th><th>±5 pts</th><th>±4 pts</th><th>±3 pts</th><th>±2 pts</th><th>±1 pt</th></tr></thead>
@@ -57,13 +85,25 @@
         </tbody>
       </table></div>
       <p>La tabla (con \(P = 0{,}5\) y población infinita) muestra la regla más importante: \(n\) crece con \(1/e^2\). <b>Reducir el margen a la mitad cuesta cuatro veces más entrevistas.</b> Pasar de ±3 a ±1 punto multiplica el presupuesto por nueve.</p>
-      <p>Si el objetivo es <b>comparar</b> dos grupos (por ejemplo, detectar una diferencia \(\Delta\) entre dos medias con una prueba de nivel \(\alpha\) y potencia \(1-\beta\)), el tamaño por grupo es \(n = (z_{\alpha/2} + z_{\beta})^2\, 2\sigma^2/\Delta^2\). Con \(\alpha = 0{,}05\) y potencia de 80 %, \((1{,}96 + 0{,}84)^2 \approx 7{,}85\): para detectar un efecto de 0,3 desviaciones estándar necesitas unas 175 personas por grupo.</p>
+      <p><b>Ejemplo resuelto (media).</b> Un rancho tiene 400 terneros y quiere estimar su peso medio con ±2 kg al 95 %; una piloto sugiere \(\sigma \approx 12\) kg. \(n_0 = 1{,}96^2 \cdot 144/4 = 3{,}8416 \cdot 36 = 138{,}3\). Como es más del 5 % de 400, aplica la corrección finita de la sección 5: \(n = 138{,}3/(1 + 137{,}3/400) = 103{,}0\), así que pesas <b>103 terneros</b>.</p>
 
-      <h2 id="tamano-ajustes"><span class="sec">§ 3</span>Ajustes del tamaño</h2>
+      <h2 id="tamano-comp"><span class="sec">§ 4</span>Comparar grupos: tamaño por potencia</h2>
+      <p>Cuando el objetivo no es estimar sino <b>detectar</b> una diferencia \(\Delta = \mu_1 - \mu_2\) con una prueba bilateral de nivel \(\alpha\), el margen deja de ser la pregunta: lo que importa es la potencia. <b>Derivación.</b> Con \(n\) por grupo, \(\bar y_1 - \bar y_2\) tiene error estándar \(\sigma\sqrt{2/n}\). Se rechaza \(H_0: \Delta = 0\) si \(|\bar y_1 - \bar y_2| &gt; z_{\alpha/2}\,\sigma\sqrt{2/n}\). Si la diferencia real es \(\Delta &gt; 0\), la probabilidad de rechazar (ignorando la cola opuesta, despreciable) es</p>
+      <div class="eq">\[ 1 - \beta = P\!\left(Z &gt; z_{\alpha/2} - \frac{\Delta}{\sigma\sqrt{2/n}}\right) \;\Longrightarrow\; \frac{\Delta}{\sigma\sqrt{2/n}} = z_{\alpha/2} + z_{\beta} \;\Longrightarrow\; n = \frac{2\sigma^2\,(z_{\alpha/2} + z_{\beta})^2}{\Delta^2} \]
+        <div class="note">Con \(\alpha = 0{,}05\) y potencia de 80 % (\(z_\beta = 0{,}842\)): \((1{,}96 + 0{,}84)^2 \approx 7{,}85\). Para detectar un efecto estandarizado \(d = \Delta/\sigma = 0{,}3\) necesitas \(2 \cdot 7{,}85/0{,}09 \approx 175\) personas por grupo.</div>
+      </div>
+      <p>Para dos proporciones \(p_1\) y \(p_2\), la misma lógica da, por grupo,</p>
+      <div class="eq">\[ n = \frac{(z_{\alpha/2} + z_\beta)^2\,[p_1(1-p_1) + p_2(1-p_2)]}{(p_1-p_2)^2} \]</div>
+      <p>Tres lecciones: (1) \(n\) depende de \(1/\Delta^2\), así que detectar efectos pequeños es caro; (2) aumentar la potencia de 80 a 90 % sube el factor de 7,85 a 10,5 (34 % más); (3) con asignación desigual \(n_2 = k\,n_1\), el total crece: \(n_1 = (1 + 1/k)\,\sigma^2 (z_{\alpha/2} + z_\beta)^2 / \Delta^2\), y para un total fijo la asignación 1:1 es la de mayor potencia.</p>
+      <div class="callout"><b>Interpretación:</b> el tamaño por potencia responde a “¿cuántos necesito para que, si el efecto es de verdad \(\Delta\), lo vea con probabilidad \(1-\beta\)?”. Elegir \(\Delta\) es una decisión sustantiva, la diferencia mínima que importa, no un número para que el cálculo dé lo que alcanza el presupuesto.</div>
+
+      <h2 id="tamano-ajustes"><span class="sec">§ 5</span>Ajustes del tamaño</h2>
       <p>\(n_0\) supone un MAS de una población infinita en la que todos responden. Tres ajustes lo acercan a la realidad, y se aplican en este orden:</p>
       <div class="eq">\[ n_1 = n_0 \cdot \mathrm{deff}, \qquad n_2 = \frac{n_1}{1 + \dfrac{n_1 - 1}{N}}, \qquad n_{contactar} = \frac{n_2}{TR} \]
         <div class="note"><b>Efecto de diseño:</b> con conglomerados, deff de 1,5 a 2,5 es habitual en encuestas de hogares; con estratificación proporcional puede ser algo menor que 1. <b>Corrección por población finita:</b> solo importa si \(n_1\) es una fracción apreciable de \(N\). <b>Tasa de respuesta</b> \(TR\): la fracción esperada de personas contactadas que completan la encuesta (incluye elegibilidad, contacto y cooperación).</div>
       </div>
+      <p><b>De dónde sale la corrección finita.</b> En un MAS sin reemplazo de una población de \(N\), \(V(\hat p) = \frac{N-n}{N-1}\cdot\frac{P(1-P)}{n}\). Igualando \(z^2V\) a \(e^2\) y usando \(n_0 = z^2P(1-P)/e^2\): \(n(N-1) = (N-n)\,n_0\), de donde \(n(N - 1 + n_0) = N n_0\) y \(n = \frac{n_0}{1 + (n_0-1)/N}\). Muchas fuentes usan la versión simplificada \(n_0/(1 + n_0/N)\); la diferencia es de una unidad.</p>
+      <p><b>Por qué en este orden.</b> El deff multiplica la varianza del estimador, así que se aplica al tamaño de MAS equivalente; la corrección finita trabaja sobre el número real de entrevistas; y la no respuesta convierte entrevistas en contactos. Si dominios o subgrupos deben reportarse, todo el cálculo se hace <i>por dominio</i>.</p>
       <p>El ejemplo de la alcaldía, con \(e = 3\) puntos, 95 %, \(P = 0{,}5\), un diseño por manzanas con deff = 1,5, una ciudad de 50 000 hogares y una tasa de respuesta del 60 %:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Paso</th><th>Cálculo</th><th>n</th></tr></thead>
@@ -74,11 +114,61 @@
           <tr><td>No respuesta</td><td>\(1\,550{,}9/0{,}60\)</td><td>2 585 hogares a contactar</td></tr>
         </tbody>
       </table></div>
-      <p>Dos observaciones prácticas. Primero, la población finita casi no cambia nada: 1 068 entrevistas dan ±3 puntos tanto en una ciudad de 100 000 habitantes (\(n_2 = 1\,056\)) como en un país de 10 millones (1 067). Segundo, el ajuste por no respuesta corrige el <i>número</i> de entrevistas, no el <i>sesgo</i>: si quienes no responden piensan distinto, sobremuestrear no lo arregla (vuelve a la sesión de fundamentos).</p>
-      <div class="callout"><b>Piensa en los subgrupos desde el principio.</b> Si necesitas ±5 puntos en cada una de las 4 zonas de la ciudad, necesitas unas 385 entrevistas efectivas <i>por zona</i>, unas 1 540 en total, no 385. El tamaño lo define el dominio más pequeño que quieras reportar.</div>
+      <p>Dos observaciones prácticas. Primero, la población finita casi no cambia nada: 1 068 entrevistas dan ±3 puntos tanto en una ciudad de 100 000 habitantes (\(n_2 = 1\,056\)) como en un país de 10 millones (1 067). Lo que determina la precisión es \(n\), no la fracción \(n/N\). Segundo, el ajuste por no respuesta corrige el <i>número</i> de entrevistas, no el <i>sesgo</i>: si quienes no responden piensan distinto, sobremuestrear no lo arregla (vuelve a la sesión de <a href="#muestreo">fundamentos del muestreo</a>).</p>
+      <div class="callout"><b>Piensa en los subgrupos desde el principio.</b> Si necesitas ±5 puntos en cada una de las 4 zonas de la ciudad, necesitas unas 385 entrevistas efectivas <i>por zona</i>, unas 1 540 en total, no 385. El tamaño lo define el dominio más pequeño que quieras reportar. Una vez fijado el total, el reparto entre estratos se decide con la asignación de Neyman (ver <a href="#estrat">estratificado</a>).</div>
 
-      <h2 id="tamano-lab"><span class="sec">§ 4</span>Laboratorio</h2>
-      <p>Una calculadora de tamaño de muestra con todos los ajustes. La curva muestra cómo cambia \(n\) con el margen de error (eje vertical en escala logarítmica); el punto es tu elección actual.</p>
+      <h2 id="tamano-margen"><span class="sec">§ 6</span>Leer un margen de error y redactar preguntas</h2>
+      <p>Cuando una encuesta publica “margen de error de ±3 puntos con 95 % de confianza”, casi siempre se refiere a una proporción cercana a 50 % para la muestra completa, bajo MAS. Tres consecuencias que los titulares suelen ignorar:</p>
+      <ul>
+        <li><b>Los subgrupos tienen márgenes mayores.</b> Si “los jóvenes” son 200 de las 1 068 entrevistas, su margen es de unos ±7 puntos, no ±3.</li>
+        <li><b>La diferencia entre dos candidatos tiene un margen mayor que cada uno.</b> Con \(\hat p_1\) y \(\hat p_2\) de la misma muestra, las cuentas son multinomiales y \(\mathrm{Cov}(\hat p_1,\hat p_2) = -p_1p_2/n\). Entonces \(V(\hat p_1 - \hat p_2) = [p_1(1-p_1) + p_2(1-p_2) + 2p_1p_2]/n = [p_1 + p_2 - (p_1 - p_2)^2]/n\). Con 48 % frente a 45 % y n = 1 068, el margen de la diferencia es de ±5,8 puntos: la ventaja de 3 puntos no es concluyente.</li>
+        <li><b>El margen solo cubre el error de muestreo.</b> No dice nada de cobertura, no respuesta, redacción de preguntas o personas que cambian de opinión. Por eso dos encuestas “con ±3 puntos” pueden diferir por 8.</li>
+      </ul>
+      <div class="callout"><b>Si el diseño no es MAS,</b> el margen honesto es \(z\sqrt{\mathrm{deff}\cdot P(1-P)/n}\). Una encuesta por conglomerados de 1 068 entrevistas con deff = 2 tiene ±4,2 puntos, no ±3. Pide siempre la ficha técnica.</div>
+      <p>Una muestra perfecta no sirve si la pregunta mide otra cosa. El error de medición no baja con \(n\): es un sesgo, y depende sobre todo del cuestionario. Los problemas más comunes y cómo corregirlos:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Problema</th><th>Mal</th><th>Mejor</th></tr></thead>
+        <tbody>
+          <tr><td>Doble pregunta</td><td>¿Está satisfecho con el precio y la calidad del servicio?</td><td>Dos preguntas: una sobre el precio y otra sobre la calidad</td></tr>
+          <tr><td>Sugestiva</td><td>¿No cree que el alcalde debería mejorar el desastroso sistema de basura?</td><td>¿Cómo califica el sistema actual de recolección de basura?</td></tr>
+          <tr><td>Ambigua</td><td>¿Usa el transporte público con frecuencia?</td><td>En los últimos 7 días, ¿cuántos días usó el transporte público?</td></tr>
+          <tr><td>Doble negación</td><td>¿Está en contra de no permitir autos en el centro?</td><td>¿Está a favor o en contra de prohibir los autos en el centro?</td></tr>
+          <tr><td>Opciones incompletas</td><td>Edad: 18-25, 25-35, 40 o más</td><td>Opciones exhaustivas y excluyentes: 18-24, 25-39, 40 o más</td></tr>
+          <tr><td>Escala desbalanceada</td><td>Excelente / Muy bueno / Bueno / Regular</td><td>Muy bueno / Bueno / Ni bueno ni malo / Malo / Muy malo</td></tr>
+          <tr><td>Supone conocimiento</td><td>¿Qué opina de la reforma al artículo 27?</td><td>Pregunta filtro: ¿Ha oído hablar de…? y luego la opinión</td></tr>
+        </tbody>
+      </table></div>
+      <p>Además de la redacción, cuidan la calidad:</p>
+      <ul>
+        <li><b>Periodo de referencia</b> claro y corto (“en el último mes”) para reducir errores de memoria.</li>
+        <li><b>Orden de preguntas:</b> las generales antes que las específicas, porque una pregunta anterior “prepara” la respuesta de la siguiente. Rota el orden de las opciones de respuesta para controlar los efectos de primacía (en papel se eligen más las primeras) y de recencia (en entrevistas telefónicas, las últimas).</li>
+        <li><b>Deseabilidad social:</b> los temas sensibles (votar, consumo de drogas, ingresos) se subdeclaran o se sobredeclaran ante un entrevistador. Un modo autoadministrado o técnicas como la respuesta aleatorizada de Warner (1965) ayudan, a costa de más varianza.</li>
+        <li><b>Prueba piloto y entrevistas cognitivas:</b> aplica el cuestionario a 20 o 30 personas parecidas a tu población y pídeles que expliquen con sus palabras qué entendieron. Casi siempre aparecen sorpresas. La piloto también te da \(\sigma\), \(P\) y la tasa de respuesta para el cálculo del tamaño.</li>
+      </ul>
+
+      <h2 id="tamano-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Ley del cuadrado inverso.</b> \(n \propto 1/e^2\): dividir el margen por \(k\) multiplica \(n\) por \(k^2\). Sale de \(e = z\sigma/\sqrt n\).</li>
+        <li><b>Peor caso de la proporción.</b> \(P(1-P) \le 1/4\), con igualdad en \(P = 1/2\): como \(P(1-P) = 1/4 - (P - 1/2)^2\), el tamaño conservador es \(n_0 = z^2/(4e^2)\).</li>
+        <li><b>Irrelevancia de \(N\) en poblaciones grandes.</b> \(n = n_0/(1 + (n_0-1)/N) \to n_0\) cuando \(N \to \infty\); si \(n_0/N &lt; 0{,}05\), el ajuste cambia \(n\) menos de 5 %.</li>
+        <li><b>Escala con el diseño.</b> \(n_{diseño} = n_0\cdot\mathrm{deff}\), porque el deff multiplica la varianza: hace falta \(\mathrm{deff}\) veces más unidades para el mismo EE.</li>
+        <li><b>Potencia.</b> \(n = 2(z_{\alpha/2}+z_\beta)^2/d^2\) por grupo con \(d = \Delta/\sigma\). Para \(\alpha = 0{,}05\) y 80 % de potencia, \(n \approx 16/d^2\) (regla de Lehr).</li>
+        <li><b>Asignación 1:1 óptima.</b> Para \(n_1 + n_2\) fijo, \(V(\bar y_1 - \bar y_2) = \sigma^2(1/n_1 + 1/n_2)\) es mínima en \(n_1 = n_2\) (desigualdad entre medias armónica y aritmética).</li>
+        <li><b>Subgrupos.</b> Un subgrupo con fracción \(q\) de la muestra tiene margen \(e/\sqrt q\): con \(q = 1/4\), el margen se duplica.</li>
+        <li><b>Diferencia de proporciones en la misma muestra.</b> \(V(\hat p_1-\hat p_2) = [p_1+p_2-(p_1-p_2)^2]/n\), por la covarianza negativa de la multinomial.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Calcular \(n\) como un porcentaje fijo de la población (“el 10 %”): la precisión depende de \(n\), casi nada de \(N\).</li>
+          <li>Olvidar el efecto de diseño en encuestas por conglomerados y prometer un margen que no se cumple.</li>
+          <li>Creer que contactar a más personas corrige el sesgo de no respuesta.</li>
+          <li>Reportar el margen de la muestra completa para subgrupos o para la ventaja entre dos opciones.</li>
+          <li>Elegir \(\Delta\) a posteriori para que el tamaño cuadre con el presupuesto.</li>
+        </ul>
+      </div>
+
+      <h2 id="tamano-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>Primero, una calculadora de tamaño de muestra con todos los ajustes. La curva muestra cómo cambia \(n\) con el margen de error (eje vertical en escala logarítmica); el punto es tu elección actual.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>calculadora · tamaño de muestra</span><span class="num" id="tamano-head">–</span></div>
         <div class="lab-body">
@@ -122,47 +212,72 @@
             <div><span>personas a contactar</span><b id="tamano-r-nc">–</b></div>
           </div>
         </div>
-        <figcaption>Con los valores iniciales reproduces el ejemplo de la alcaldía. Baja el margen de 4 a 2 puntos: n se multiplica por 4. Mueve P de 50 % a 10 %: n baja a menos de la mitad. Elige N = 2 000 y verás que la corrección finita sí importa cuando la muestra es una parte grande de la población. En “Media”, la desviación estándar σ y el margen están en las mismas unidades.</figcaption>
+        <figcaption>Con los valores iniciales reproduces el ejemplo de la alcaldía. En “Media”, la desviación estándar σ y el margen están en las mismas unidades.</figcaption>
       </figure>
+      <p><b>Experimentos guiados con la calculadora</b></p>
+      <ol>
+        <li>Deja todo como está y baja el margen de ±4 a ±2 puntos. ¿Por cuánto se multiplica \(n_0\)?
+          <details><summary>Qué deberías observar</summary><p>\(n_0\) pasa de 601 a 2 401: casi exactamente 4 veces. En la gráfica logarítmica la curva es una recta de pendiente −2, la firma de \(n \propto 1/e^2\).</p></details></li>
+        <li>Con ±3 puntos, mueve P de 50 % a 10 % y luego a 90 %.
+          <details><summary>Qué deberías observar</summary><p>\(n_0\) baja de 1 068 a 385 en ambos casos, porque \(P(1-P)\) es simétrica alrededor de 0,5 y vale 0,09 en 0,1 y 0,9.</p></details></li>
+        <li>Elige N = 2 000 y compáralo con “Muy grande”, con deff = 1,5.
+          <details><summary>Qué deberías observar</summary><p>Con N = 2 000, la corrección finita baja la muestra de 1 601 a unas 890 entrevistas: la fracción \(n/N\) es grande y cada entrevista agota parte de la población. Con N muy grande no cambia nada.</p></details></li>
+        <li>Sube el efecto de diseño de 1 a 3 y la tasa de respuesta de 60 % a 30 %.
+          <details><summary>Qué deberías observar</summary><p>Los dos ajustes se multiplican: el número a contactar crece unas 6 veces respecto de deff = 1 con 60 % de respuesta. Son los dos factores que más encarecen las encuestas reales.</p></details></li>
+      </ol>
+      <p>Segundo, una simulación: 600 encuestas independientes, cada una con entrevistas agrupadas en manzanas de 10 hogares. El efecto de diseño controla cuánto se parecen los hogares de una misma manzana. Las líneas punteadas marcan el margen que prometería un MAS; las continuas, el margen corregido por el deff.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cumplir el margen</span><span class="num" id="tamano-s-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl"><label for="tamano-s-n">ENTREVISTAS · n = <b id="tamano-s-n-v" class="num">400</b></label><input id="tamano-s-n" type="range" min="50" max="2000" step="50" value="400"></div>
+            <div class="ctrl"><label for="tamano-s-p">PROPORCIÓN REAL · P = <b id="tamano-s-p-v" class="num">50 %</b></label><input id="tamano-s-p" type="range" min="5" max="95" step="5" value="50"></div>
+            <div class="ctrl"><label for="tamano-s-deff">EFECTO DE DISEÑO = <b id="tamano-s-deff-v" class="num">1,0</b></label><input id="tamano-s-deff" type="range" min="1" max="4" step="0.1" value="1"></div>
+          </div>
+          <div class="controls"><button class="btn btn-ghost btn-sm" id="tamano-s-again" type="button">Otras 600 encuestas</button></div>
+          <div class="plot-label"><span>Estimaciones p̂ de 600 encuestas</span><span>banda = margen con deff</span></div>
+          <canvas class="plot" id="tamano-c-sim" height="240" aria-label="Histograma de proporciones estimadas con los márgenes de error marcados"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>estimaciones</span><span><i style="background:var(--muted)"></i>margen de un MAS</span><span><i style="background:var(--ink)"></i>margen con deff</span><span><i style="background:var(--hot)"></i>P real</span></div>
+          <div class="readout">
+            <div><span>margen MAS (pts)</span><b id="tamano-s-r1">–</b></div>
+            <div><span>margen con deff (pts)</span><b id="tamano-s-r2">–</b></div>
+            <div><span>dentro del margen MAS</span><b id="tamano-s-r3">–</b></div>
+            <div><span>dentro del margen con deff</span><b id="tamano-s-r4">–</b></div>
+          </div>
+        </div>
+        <figcaption>Si el diseño es un MAS (deff = 1), cerca del 95 % de las encuestas cae dentro de su margen. Al agrupar en manzanas, el margen de un MAS se vuelve una promesa incumplida; el corregido por deff vuelve a cubrir cerca del 95 %.</figcaption>
+      </figure>
+      <p><b>Experimentos guiados con el simulador</b></p>
+      <ol>
+        <li>Fija n = 400, P = 50 % y deff = 1. ¿Qué porcentaje de encuestas cae dentro de ±4,9 puntos? Pulsa varias veces “Otras 600 encuestas”.
+          <details><summary>Qué deberías observar</summary><p>Alrededor de 95 %, con fluctuaciones de uno o dos puntos entre tandas (son 600 encuestas, no infinitas). Es la interpretación frecuentista del margen.</p></details></li>
+        <li>Sube el deff a 2 sin cambiar n.
+          <details><summary>Qué deberías observar</summary><p>El histograma se ensancha y solo cerca del 83 % de las encuestas cae dentro del margen MAS, porque \(2\Phi(1{,}96/\sqrt2) - 1 \approx 0{,}83\). El margen corregido (±6,9 puntos) vuelve a cubrir cerca del 95 %.</p></details></li>
+        <li>Con deff = 2, busca el n con el que el margen corregido baja a ±4,9 puntos.
+          <details><summary>Qué deberías observar</summary><p>Necesitas n ≈ 800: el doble. Es la regla \(n_{diseño} = n_0 \cdot \mathrm{deff}\) en acción.</p></details></li>
+        <li>Pon P = 5 % y n = 100.
+          <details><summary>Qué deberías observar</summary><p>El histograma queda asimétrico y pegado a 0, y la cobertura del margen normal baja de 95 %: con \(nP = 5\) la aproximación normal falla. En ese caso usa intervalos exactos o de Wilson, o una muestra mayor.</p></details></li>
+      </ol>
 
-      <h2 id="tamano-margen"><span class="sec">§ 5</span>Leer un margen de error</h2>
-      <p>Cuando una encuesta publica “margen de error de ±3 puntos con 95 % de confianza”, casi siempre se refiere a una proporción cercana a 50 % para la muestra completa, bajo MAS. Tres consecuencias que los titulares suelen ignorar:</p>
-      <ul>
-        <li><b>Los subgrupos tienen márgenes mayores.</b> Si “los jóvenes” son 200 de las 1 068 entrevistas, su margen es de unos ±7 puntos, no ±3.</li>
-        <li><b>La diferencia entre dos candidatos tiene un margen mayor que cada uno.</b> Con \(\hat p_1\) y \(\hat p_2\) de la misma muestra, \(V(\hat p_1 - \hat p_2) = [p_1 + p_2 - (p_1 - p_2)^2]/n\). Con 48 % frente a 45 % y n = 1 068, el margen de la diferencia es de ±5,8 puntos: la ventaja de 3 puntos no es concluyente.</li>
-        <li><b>El margen solo cubre el error de muestreo.</b> No dice nada de cobertura, no respuesta, redacción de preguntas o personas que cambian de opinión. Por eso dos encuestas “con ±3 puntos” pueden diferir por 8.</li>
-      </ul>
-      <div class="callout"><b>Si el diseño no es MAS,</b> el margen honesto es \(z\sqrt{\mathrm{deff}\cdot P(1-P)/n}\). Una encuesta por conglomerados de 1 068 entrevistas con deff = 2 tiene ±4,2 puntos, no ±3. Pide siempre la ficha técnica.</div>
+      <h2 id="tamano-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: el ensayo de la vacuna Salk (1954)</h3>
+      <p>En la parte aleatorizada con placebo del ensayo de campo de la vacuna contra la polio participaron unos 400 000 niños, la mitad en cada grupo. Las tasas observadas, que recogen Freedman, Pisani y Purves en su libro <i>Statistics</i>, fueron de 28 casos por 100 000 en vacunados y 71 por 100 000 con placebo. Con esas tasas, la fórmula de dos proporciones da unos 42 000 niños por grupo para 80 % de potencia. Los planificadores no conocían la eficacia de antemano y la incidencia de la polio variaba mucho de un año a otro, así que la muestra se diseñó con holgura. La decisión: aprobar una vacuna para millones de niños con evidencia concluyente.</p>
+      <h3>Tecnología: pruebas A/B</h3>
+      <p>Una tienda en línea convierte al 10 % de sus visitantes y quiere detectar si un nuevo diseño sube la conversión a 11 %. Con \(\alpha = 0{,}05\) y 80 % de potencia, \(n = 7{,}85\,(0{,}09 + 0{,}0979)/0{,}01^2 \approx 14\,750\) visitantes por versión. Con 3 000 visitas diarias, el experimento necesita unos 10 días. La decisión: fijar de antemano la duración del experimento y no detenerlo al primer valor p pequeño, lo que inflaría los falsos positivos.</p>
+      <h3>Industria: auditoría de calidad de un lote</h3>
+      <p>Un comprador recibe un lote de 5 000 piezas y quiere estimar la proporción de defectuosas, que espera cerca del 2 %, con ±1 punto al 95 %. \(n_0 = 1{,}96^2 \cdot 0{,}0196/0{,}0001 \approx 753\), y con la corrección finita \(n = 753/(1 + 752/5\,000) \approx 655\) piezas. Usar \(P = 0{,}5\) por precaución habría exigido 9 604, más que el lote: aquí la información previa importa. La decisión: aceptar o rechazar el lote con una inspección del 13 % de las piezas.</p>
+      <h3>Ambiente: concentración de nitratos en pozos</h3>
+      <p>Una agencia ambiental quiere estimar la concentración media de nitratos en los pozos de una cuenca con un error relativo del 10 %. Los muestreos de nitratos en agua subterránea suelen tener coeficientes de variación altos, del orden de 0,6. \(n_0 = 1{,}96^2 \cdot 0{,}36/0{,}01 \approx 139\) pozos. Si cada análisis de laboratorio cuesta 60 dólares, el presupuesto es de unos 8 300 dólares más el trabajo de campo. La decisión: definir si la concentración media supera el umbral regulatorio con una precisión que justifique la inversión.</p>
 
-      <h2 id="tamano-preg"><span class="sec">§ 6</span>Redactar preguntas</h2>
-      <p>Una muestra perfecta no sirve si la pregunta mide otra cosa. El error de medición no baja con \(n\): es un sesgo, y depende sobre todo del cuestionario. Los problemas más comunes y cómo corregirlos:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Problema</th><th>Mal</th><th>Mejor</th></tr></thead>
-        <tbody>
-          <tr><td>Doble pregunta</td><td>¿Está satisfecho con el precio y la calidad del servicio?</td><td>Dos preguntas: una sobre el precio y otra sobre la calidad</td></tr>
-          <tr><td>Sugestiva</td><td>¿No cree que el alcalde debería mejorar el desastroso sistema de basura?</td><td>¿Cómo califica el sistema actual de recolección de basura?</td></tr>
-          <tr><td>Ambigua</td><td>¿Usa el transporte público con frecuencia?</td><td>En los últimos 7 días, ¿cuántos días usó el transporte público?</td></tr>
-          <tr><td>Doble negación</td><td>¿Está en contra de no permitir autos en el centro?</td><td>¿Está a favor o en contra de prohibir los autos en el centro?</td></tr>
-          <tr><td>Opciones incompletas</td><td>Edad: 18-25, 25-35, 40 o más</td><td>Opciones exhaustivas y excluyentes: 18-24, 25-39, 40 o más</td></tr>
-          <tr><td>Escala desbalanceada</td><td>Excelente / Muy bueno / Bueno / Regular</td><td>Muy bueno / Bueno / Ni bueno ni malo / Malo / Muy malo</td></tr>
-          <tr><td>Supone conocimiento</td><td>¿Qué opina de la reforma al artículo 27?</td><td>Pregunta filtro: ¿Ha oído hablar de…? y luego la opinión</td></tr>
-        </tbody>
-      </table></div>
-      <p>Además de la redacción, cuidan la calidad:</p>
-      <ul>
-        <li><b>Periodo de referencia</b> claro y corto (“en el último mes”) para reducir errores de memoria.</li>
-        <li><b>Orden de preguntas:</b> las generales antes que las específicas, porque una pregunta anterior “prepara” la respuesta de la siguiente. Rota el orden de las opciones de respuesta para controlar los efectos de primacía (en papel se eligen más las primeras) y de recencia (en entrevistas telefónicas, las últimas).</li>
-        <li><b>Deseabilidad social:</b> los temas sensibles (votar, consumo de drogas, ingresos) se subdeclaran o se sobredeclaran ante un entrevistador. Un modo autoadministrado o técnicas como la respuesta aleatorizada ayudan.</li>
-        <li><b>Prueba piloto y entrevistas cognitivas:</b> aplica el cuestionario a 20 o 30 personas parecidas a tu población y pídeles que expliquen con sus palabras qué entendieron. Casi siempre aparecen sorpresas. La piloto también te da \(\sigma\), \(P\) y la tasa de respuesta para el cálculo del tamaño.</li>
-      </ul>
-
-      <h2 id="tamano-code"><span class="sec">§ 7</span>En R y Python</h2>
-      <p>Una función que aplica toda la cadena de ajustes, y el cálculo de tamaño para comparar dos grupos con potencia de 80 %.</p>
+      <h2 id="tamano-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>Una función que aplica toda la cadena de ajustes, el cálculo de tamaño para comparar dos grupos con potencia de 80 %, y una verificación por simulación de que el plan de la alcaldía cumple el margen prometido.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">from</span> math <span class="k">import</span> ceil
+<span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> scipy.stats <span class="k">import</span> norm
 <span class="k">from</span> statsmodels.stats.power <span class="k">import</span> NormalIndPower
+<span class="k">from</span> statsmodels.stats.proportion <span class="k">import</span> proportion_effectsize
 
 <span class="k">def</span> <span class="f">tamano</span>(e, conf=<span class="n">0.95</span>, p=<span class="n">0.5</span>, sigma=<span class="k">None</span>, N=<span class="k">None</span>, deff=<span class="n">1.0</span>, tasa=<span class="n">1.0</span>):
     <span class="s">"""Tamaño de muestra para una proporción (p) o una media (sigma)."""</span>
@@ -176,12 +291,19 @@
 <span class="f">print</span>(<span class="f">tamano</span>(<span class="n">0.03</span>, deff=<span class="n">1.5</span>, N=<span class="n">50_000</span>, tasa=<span class="n">0.6</span>))       <span class="c"># (1068, 1601, 1551, 2585)</span>
 <span class="f">print</span>(<span class="f">tamano</span>(<span class="n">2</span>, sigma=<span class="n">12</span>, N=<span class="n">400</span>))                       <span class="c"># media: (139, 139, 103, 103)</span>
 
-<span class="c"># margen de error que se obtiene con un n dado</span>
-n = <span class="n">1068</span>
-<span class="f">print</span>(<span class="n">1.96</span> * (<span class="n">0.25</span> / n) ** <span class="n">0.5</span>)                          <span class="c"># ≈ 0.030</span>
-
 <span class="c"># comparar dos grupos: efecto de 0.3 desviaciones, α = 0.05, potencia 80 %</span>
-<span class="f">print</span>(NormalIndPower().<span class="f">solve_power</span>(effect_size=<span class="n">0.3</span>, alpha=<span class="n">0.05</span>, power=<span class="n">0.8</span>))   <span class="c"># ≈ 174.4 por grupo</span></code></pre>
+<span class="f">print</span>(NormalIndPower().<span class="f">solve_power</span>(effect_size=<span class="n">0.3</span>, alpha=<span class="n">0.05</span>, power=<span class="n">0.8</span>))   <span class="c"># ≈ 174.4 por grupo</span>
+<span class="c"># prueba A/B: 10 % frente a 11 % (h de Cohen)</span>
+h = <span class="f">proportion_effectsize</span>(<span class="n">0.11</span>, <span class="n">0.10</span>)
+<span class="f">print</span>(NormalIndPower().<span class="f">solve_power</span>(h, alpha=<span class="n">0.05</span>, power=<span class="n">0.8</span>))     <span class="c"># ≈ 14 744 por grupo</span>
+
+<span class="c"># verificación por simulación: 1 551 entrevistas en manzanas de 10, deff = 1,5</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+P, m, a, R = <span class="n">0.5</span>, <span class="n">10</span>, <span class="n">155</span>, <span class="n">10_000</span>
+rho = (<span class="n">1.5</span> - <span class="n">1</span>) / (m - <span class="n">1</span>); s = <span class="n">1</span> / rho - <span class="n">1</span>                  <span class="c"># ICC que produce deff = 1,5</span>
+y = rng.<span class="f">binomial</span>(m, rng.<span class="f">beta</span>(P * s, (<span class="n">1</span> - P) * s, (R, a)))
+ph = y.<span class="f">sum</span>(axis=<span class="n">1</span>) / (a * m)
+<span class="f">print</span>(np.<span class="f">mean</span>(<span class="f">abs</span>(ph - P) &lt;= <span class="n">0.03</span>))                        <span class="c"># ≈ 0.95: el plan cumple ±3 puntos</span></code></pre>
 <pre class="code" data-lang="r" hidden><code>tamano &lt;- <span class="k">function</span>(e, conf = <span class="n">0.95</span>, p = <span class="n">0.5</span>, sigma = <span class="k">NULL</span>, N = <span class="k">Inf</span>, deff = <span class="n">1</span>, tasa = <span class="n">1</span>) {
   z  &lt;- <span class="f">qnorm</span>(<span class="n">1</span> - (<span class="n">1</span> - conf) / <span class="n">2</span>)
   v  &lt;- <span class="k">if</span> (<span class="f">is.null</span>(sigma)) p * (<span class="n">1</span> - p) <span class="k">else</span> sigma^<span class="n">2</span>
@@ -201,10 +323,18 @@ n = <span class="n">1068</span>
 
 <span class="c"># comparar dos grupos: diferencia de 0.3 desviaciones, potencia 80 %</span>
 <span class="f">power.t.test</span>(delta = <span class="n">0.3</span>, sd = <span class="n">1</span>, power = <span class="n">0.8</span>)       <span class="c"># n ≈ 175 por grupo (usa la t)</span>
-<span class="f">power.prop.test</span>(p1 = <span class="n">0.50</span>, p2 = <span class="n">0.60</span>, power = <span class="n">0.8</span>)  <span class="c"># n ≈ 387 por grupo</span></code></pre>
-      </div>
+<span class="f">power.prop.test</span>(p1 = <span class="n">0.10</span>, p2 = <span class="n">0.11</span>, power = <span class="n">0.8</span>)  <span class="c"># n ≈ 14 750 por grupo</span>
 
-      <h2 id="tamano-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+<span class="c"># verificación por simulación: 1 551 entrevistas en manzanas de 10, deff = 1,5</span>
+<span class="f">set.seed</span>(<span class="n">3</span>)
+P &lt;- <span class="n">0.5</span>; m &lt;- <span class="n">10</span>; a &lt;- <span class="n">155</span>; R &lt;- <span class="n">10000</span>
+rho &lt;- (<span class="n">1.5</span> - <span class="n">1</span>) / (m - <span class="n">1</span>); s &lt;- <span class="n">1</span> / rho - <span class="n">1</span>
+ph &lt;- <span class="f">replicate</span>(R, <span class="f">sum</span>(<span class="f">rbinom</span>(a, m, <span class="f">rbeta</span>(a, P * s, (<span class="n">1</span> - P) * s))) / (a * m))
+<span class="f">mean</span>(<span class="f">abs</span>(ph - P) &lt;= <span class="n">0.03</span>)                          <span class="c"># ≈ 0.95</span></code></pre>
+      </div>
+      <p>La simulación usa una distribución beta para la proporción de cada manzana: con \(\alpha + \beta = 1/\rho - 1\), la correlación intraclase de la beta-binomial es \(\rho\) y el deff es \(1 + (m-1)\rho\). Es la forma más directa de comprobar, antes de salir a campo, que un plan cumple lo que promete.</p>
+
+      <h2 id="tamano-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="n es proporcional a 1/e². Si e pasa a e/2, n se multiplica por 2² = 4." data-wrong="Mira la fórmula n₀ = z²·P(1 − P)/e². ¿Qué le pasa a n si divides e entre 2?">
         <h3>Con 400 entrevistas tienes un margen de ±5 puntos. ¿Cuántas necesitas, aproximadamente, para un margen de ±2,5 puntos?</h3>
         <div class="opts">
@@ -235,38 +365,91 @@ n = <span class="n">1068</span>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="La corrección finita apenas cambia n cuando n es una fracción pequeña de N: 1 068 entrevistas dan unos ±3 puntos tanto en un país como en una ciudad grande." data-wrong="Calcula n₀/(1 + (n₀ − 1)/N) con N = 10 000 000 y con N = 200 000. ¿Cuánto cambia?">
+        <h3>Para ±3 puntos al 95 %, un país de 10 millones de adultos y una ciudad de 200 000 necesitan, en un MAS:</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Casi el mismo número de entrevistas, unas 1 060 a 1 068</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El país necesita 50 veces más entrevistas</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El 1 % de su población cada uno</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La ciudad necesita más, porque es más heterogénea</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con 175 por grupo para d = 0,3, el tamaño escala con 1/d². Si d se reduce a la mitad, n se multiplica por 4: unos 700 por grupo." data-wrong="La fórmula por potencia es n = 2(z + z)²/d². ¿Qué pasa con n si d pasa de 0,3 a 0,15?">
+        <h3>Para detectar un efecto d = 0,3 con 80 % de potencia necesitas 175 por grupo. ¿Cuántos necesitas para d = 0,15?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Unos 250</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Unos 350</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Unos 700</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Unos 1 400</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="tamano-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. Puedes comprobarlos con la calculadora del laboratorio.</p>
+      <h2 id="tamano-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución. Puedes comprobar varias con los laboratorios.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>¿Cuántas personas necesitas en un MAS para estimar una proporción con un margen de ±4 puntos y 95 % de confianza, si no tienes idea de su valor? ¿Y si un estudio previo indica que ronda el 20 %?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Sin información, \(P = 0{,}5\): \(n_0 = 1{,}96^2 \cdot 0{,}25/0{,}04^2 = 600{,}25\), es decir <b>601</b>.</p><p>Con \(P = 0{,}2\): \(n_0 = 1{,}96^2 \cdot 0{,}16/0{,}0016 = 384{,}2\), es decir <b>385</b>. Saber que la proporción está lejos de 0,5 ahorra un 36 % de la muestra.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Partiendo de \(V(\hat p) = \frac{N-n}{N-1}\cdot\frac{P(1-P)}{n}\) para un MAS sin reemplazo, demuestra que el tamaño que garantiza un margen \(e\) es exactamente \(n = n_0/(1 + (n_0-1)/N)\). Luego aplícalo a la auditoría de un lote de 5 000 piezas con \(P \approx 0{,}02\) y ±1 punto, y explica qué pasaría si usaras \(P = 0{,}5\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Igualando \(z^2V(\hat p) = e^2\): \(\frac{N-n}{N-1}\cdot\frac{P(1-P)}{n} = \frac{e^2}{z^2} = \frac{P(1-P)}{n_0}\). Cancelando \(P(1-P)\): \(n(N-1) = n_0(N-n)\), es decir \(n(N - 1 + n_0) = n_0N\), y dividiendo numerador y denominador entre \(N\): \(n = \frac{n_0}{1 + (n_0 - 1)/N}\).</p><p>Lote: \(n_0 = 3{,}8416\cdot 0{,}0196/0{,}0001 = 752{,}9\); \(n = 752{,}9/(1 + 751{,}9/5\,000) = \) <b>655 piezas</b>. Con \(P = 0{,}5\): \(n_0 = 9\,604\) y \(n = 9\,604/(1 + 9\,603/5\,000) \approx 3\,289\): habría que inspeccionar dos tercios del lote. La información previa sobre \(P\) ahorra cinco veces el trabajo, pero si la tasa real fuera mayor (por ejemplo 5 %), el margen real sería \(1{,}96\sqrt{0{,}0475/655 \cdot 0{,}87} \approx\) ±1,6 puntos.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Un rancho tiene 400 terneros y quiere estimar su peso medio con un error de ±2 kg (95 %). Una muestra piloto sugiere σ ≈ 12 kg. ¿Cuántos terneros hay que pesar?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(n_0 = 1{,}96^2 \cdot 144/4 = 138{,}3\). Como 138 es más del 5 % de 400, aplica la corrección finita: \(n = 138{,}3/(1 + 137{,}3/400) = 103{,}0\). Hay que pesar <b>103 terneros</b> (redondeando hacia arriba).</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Deriva el tamaño por grupo para comparar dos medias con asignación \(n_2 = k\,n_1\). (b) Demuestra que, para un total \(n_1 + n_2\) fijo, la potencia es máxima con \(k = 1\). (c) Un ensayo tiene el doble de costo por paciente en el brazo de tratamiento: ¿qué asignación minimiza el costo para una varianza dada?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\mathrm{EE} = \sigma\sqrt{1/n_1 + 1/(kn_1)}\), es decir \(\mathrm{EE} = \sigma\sqrt{(1 + 1/k)/n_1}\). Imponiendo \(\Delta/\mathrm{EE} = z_{\alpha/2} + z_\beta\): \(n_1 = (1 + 1/k)\,\sigma^2 (z_{\alpha/2} + z_\beta)^2 / \Delta^2\), \(n_2 = k n_1\).</p><p>(b) Con \(n_1 + n_2 = T\), la varianza es \(\sigma^2(1/n_1 + 1/(T - n_1))\). Derivando: \(-1/n_1^2 + 1/(T-n_1)^2 = 0 \Rightarrow n_1 = T/2\). La segunda derivada es positiva: mínimo de varianza, máximo de potencia.</p><p>(c) Minimiza \(c_1n_1 + c_2n_2\) sujeto a \(1/n_1 + 1/n_2 = K\). Por Lagrange, \(c_i = \lambda/n_i^2\), así que \(n_i \propto 1/\sqrt{c_i}\): \(n_{trat}/n_{ctrl} = \sqrt{c_{ctrl}/c_{trat}} = 1/\sqrt2 \approx 0{,}71\). Conviene poner unos 1,41 controles por cada tratado.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Una encuesta nacional de salud quiere estimar la prevalencia de hipertensión (se espera alrededor de 30 %) con ±3 puntos y 95 % de confianza. Usará un diseño por conglomerados con deff = 2, y se espera una tasa de respuesta del 50 %. ¿Cuántos hogares hay que seleccionar? ¿Cuál sería el margen real si el análisis ignorara el diseño?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(n_0 = 1{,}96^2 \cdot 0{,}21/0{,}0009 = 896{,}4\). Con deff: \(896{,}4 \cdot 2 = 1\,792{,}7\). La población es enorme, así que la CPF no cambia nada. A contactar: \(1\,792{,}7/0{,}5 = \) <b>3 586 hogares</b>.</p><p>Con 1 793 entrevistas, un análisis que ignore el diseño reportaría \(1{,}96\sqrt{0{,}21/1\,793} = \) ±2,1 puntos, cuando el margen correcto es ±3. Los intervalos se verían un 30 % más angostos de lo que son.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>En una elección, dos candidatos rondan 48 % y 45 %. (a) Demuestra que \(V(\hat p_1 - \hat p_2) = [p_1 + p_2 - (p_1-p_2)^2]/n\) usando la covarianza multinomial. (b) ¿Cuántas entrevistas (MAS) necesitas para que el margen de la <i>diferencia</i> sea ±3 puntos? (c) ¿Y si el diseño tiene deff = 1,6 y la tasa de respuesta es 40 %?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) En una multinomial, \(V(\hat p_k) = p_k(1-p_k)/n\) y \(\mathrm{Cov}(\hat p_1,\hat p_2) = -p_1p_2/n\). Entonces \(V(\hat p_1-\hat p_2) = [p_1 - p_1^2 + p_2 - p_2^2 + 2p_1p_2]/n = [p_1 + p_2 - (p_1 - p_2)^2]/n\).</p><p>(b) \(n = 1{,}96^2\,[0{,}93 - 0{,}0009]/0{,}03^2 = 3{,}8416 \cdot 0{,}9291/0{,}0009 \approx \) <b>3 966</b>, casi cuatro veces las 1 068 que bastan para el margen de cada candidato.</p><p>(c) \(3\,965{,}7 \cdot 1{,}6 = 6\,345{,}1\) entrevistas, y \(6\,345{,}1/0{,}4 \approx \) <b>15 863 contactos</b>. Por eso las encuestas preelectorales casi nunca pueden “declarar ganador” en carreras cerradas.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>La alcaldía quiere reportar la aprobación del servicio en cada una de sus 4 zonas, con ±5 puntos en cada una (95 %, MAS dentro de cada zona). Las zonas tienen 40 %, 30 %, 20 % y 10 % de los hogares. (a) ¿Cuántas entrevistas necesitas en total? (b) ¿Qué margen tendrá el resultado de toda la ciudad, si pondera correctamente por el tamaño de cada zona? (c) Escribe una versión mejorada de la pregunta “¿No le parece que el nuevo servicio de basura, que costó tanto dinero, es peor que el anterior?”.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) Cada zona necesita \(n_0 = 385\): en total <b>1 540</b> entrevistas, repartidas por igual.</p><p>(b) Es un muestreo estratificado con asignación igual. Con \(P = 0{,}5\) en todas las zonas, \(V = \sum W_h^2 \cdot 0{,}25/385 = (0{,}16 + 0{,}09 + 0{,}04 + 0{,}01)\cdot 0{,}25/385 = 0{,}000195\), margen \(1{,}96\sqrt{0{,}000195} \approx \) <b>±2,7 puntos</b>. Es algo peor que los ±2,5 de un MAS de 1 540, porque la asignación igual se aleja de la proporcional.</p><p>(c) La pregunta es sugestiva (“no le parece”), carga una opinión (“costó tanto dinero”) y obliga a comparar sin opción neutra. Mejor: <i>“Comparado con el servicio anterior, el nuevo servicio de recolección de basura es: mucho mejor, algo mejor, igual, algo peor, mucho peor”</i>, con la opción “no conocí el anterior”.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Planea una encuesta nacional de anemia infantil que reporte cada una de 6 regiones. Prevalencia esperada 12 %, error relativo máximo 15 % en cada región (95 %), 15 hogares por conglomerado con \(\rho = 0{,}05\), y una tasa de respuesta del 85 %. Calcula el número de hogares a seleccionar en total y el número de conglomerados. ¿Qué parámetro domina el costo y cómo lo justificarías ante el ministerio?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>Margen absoluto: \(e = 0{,}15 \cdot 0{,}12 = 0{,}018\). \(n_0 = 3{,}8416\cdot 0{,}1056/0{,}018^2 \approx 1\,252\) por región. \(\mathrm{deff} = 1 + 14\cdot 0{,}05 = 1{,}7\), así que \(n_1 \approx 2\,128{,}5\) por región y \(12\,770{,}7\) en las 6. Con la no respuesta: \(12\,770{,}7/0{,}85 \approx \) <b>15 025 hogares</b>, en \(15\,025/15 \approx\) <b>1 002 conglomerados</b> (unos 167 por región).</p><p>Domina el requisito de reportar <i>cada región</i>: multiplica el tamaño por 6. El error relativo de 15 % sobre una prevalencia de 12 % (±1,8 puntos) también es exigente. Ante el ministerio: o se acepta un error relativo de 20 % en regiones (\(n\) baja a 56 %, porque \(0{,}15^2/0{,}2^2 = 0{,}5625\)), o se reportan solo 3 macrorregiones.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code>P, r, z, m, rho, reg, tr = <span class="n">0.12</span>, <span class="n">0.15</span>, <span class="n">1.959964</span>, <span class="n">15</span>, <span class="n">0.05</span>, <span class="n">6</span>, <span class="n">0.85</span>
+e = r * P
+n0 = z**<span class="n">2</span> * P * (<span class="n">1</span> - P) / e**<span class="n">2</span>
+deff = <span class="n">1</span> + (m - <span class="n">1</span>) * rho
+hog = reg * n0 * deff / tr
+<span class="f">print</span>(<span class="f">round</span>(n0), deff, <span class="f">round</span>(hog), <span class="f">round</span>(hog / m))     <span class="c"># 1252 1.7 15024 1002 (redondea hacia arriba: 15 025)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>P &lt;- <span class="n">0.12</span>; r &lt;- <span class="n">0.15</span>; m &lt;- <span class="n">15</span>; rho &lt;- <span class="n">0.05</span>; reg &lt;- <span class="n">6</span>; tr &lt;- <span class="n">0.85</span>
+e &lt;- r * P
+n0 &lt;- <span class="f">qnorm</span>(<span class="n">0.975</span>)^<span class="n">2</span> * P * (<span class="n">1</span> - P) / e^<span class="n">2</span>
+deff &lt;- <span class="n">1</span> + (m - <span class="n">1</span>) * rho
+hog &lt;- reg * n0 * deff / tr
+<span class="f">c</span>(n0, deff, hog, hog / m)                    <span class="c"># 1252 1.7 15024 1002 (redondea hacia arriba: 15 025)</span></code></pre>
+</div></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación. Una encuestadora entrevista 1 070 personas en 107 manzanas de 10, con \(\rho = 0{,}1\), y publica el margen de un MAS. (a) Calcula el deff teórico y la cobertura real que tendría el intervalo del 95 % calculado como MAS. (b) Comprueba ambas cosas con 10 000 encuestas simuladas, comparando con el intervalo del conglomerado último. (c) ¿Qué margen debió publicar?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\mathrm{deff} = 1 + 9 \cdot 0{,}1 = 1{,}9\). El EE real es \(\sqrt{1{,}9} = 1{,}38\) veces el publicado, así que el intervalo cubre \(2\Phi(1{,}96/1{,}38) - 1 = 2\Phi(1{,}42) - 1 \approx\) <b>84 %</b>, no 95 %.</p><p>(b) La simulación da una cobertura cercana a 0,84 para el intervalo MAS, cerca de 0,95 para el conglomerado último, y un deff estimado promedio de 1,9.</p><p>(c) \(1{,}96\sqrt{1{,}9\cdot 0{,}25/1\,070} \approx\) <b>±4,1 puntos</b>, en lugar de ±3.</p>
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-W = np.<span class="f">array</span>([<span class="n">0.4</span>, <span class="n">0.3</span>, <span class="n">0.2</span>, <span class="n">0.1</span>])
-nh = <span class="n">385</span>
-V = (W**<span class="n">2</span> * <span class="n">0.25</span> / nh).<span class="f">sum</span>()
-<span class="f">print</span>(<span class="n">4</span> * nh, <span class="n">1.96</span> * np.<span class="f">sqrt</span>(V), <span class="n">1.96</span> * np.<span class="f">sqrt</span>(<span class="n">0.25</span> / (<span class="n">4</span> * nh)))   <span class="c"># 1540 0.0274 0.0250</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>W &lt;- <span class="f">c</span>(<span class="n">0.4</span>, <span class="n">0.3</span>, <span class="n">0.2</span>, <span class="n">0.1</span>); nh &lt;- <span class="n">385</span>
-V &lt;- <span class="f">sum</span>(W^<span class="n">2</span> * <span class="n">0.25</span> / nh)
-<span class="f">c</span>(<span class="n">4</span> * nh, <span class="n">1.96</span> * <span class="f">sqrt</span>(V), <span class="n">1.96</span> * <span class="f">sqrt</span>(<span class="n">0.25</span> / (<span class="n">4</span> * nh)))   <span class="c"># 1540 0.0274 0.0250</span></code></pre>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
+P, m, a, R = <span class="n">0.5</span>, <span class="n">10</span>, <span class="n">107</span>, <span class="n">10_000</span>
+rho = <span class="n">0.1</span>; s = <span class="n">1</span> / rho - <span class="n">1</span>                       <span class="c"># α + β de la beta</span>
+y = rng.<span class="f">binomial</span>(m, rng.<span class="f">beta</span>(P * s, (<span class="n">1</span> - P) * s, (R, a)))
+ph = y.<span class="f">sum</span>(axis=<span class="n">1</span>) / (a * m)
+ee_mas = np.<span class="f">sqrt</span>(ph * (<span class="n">1</span> - ph) / (a * m))
+ee_cl = (y / m).<span class="f">std</span>(axis=<span class="n">1</span>, ddof=<span class="n">1</span>) / np.<span class="f">sqrt</span>(a)    <span class="c"># conglomerado último</span>
+<span class="f">print</span>(np.<span class="f">mean</span>(<span class="f">abs</span>(ph - P) &lt;= <span class="n">1.96</span> * ee_mas),
+      np.<span class="f">mean</span>(<span class="f">abs</span>(ph - P) &lt;= <span class="n">1.96</span> * ee_cl))         <span class="c"># ≈ 0.84  0.95</span>
+<span class="f">print</span>(np.<span class="f">mean</span>((ee_cl / ee_mas)**<span class="n">2</span>))               <span class="c"># deff ≈ 1.9</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">7</span>)
+P &lt;- <span class="n">0.5</span>; m &lt;- <span class="n">10</span>; a &lt;- <span class="n">107</span>; R &lt;- <span class="n">10000</span>; rho &lt;- <span class="n">0.1</span>; s &lt;- <span class="n">1</span> / rho - <span class="n">1</span>
+res &lt;- <span class="f">replicate</span>(R, {
+  y &lt;- <span class="f">rbinom</span>(a, m, <span class="f">rbeta</span>(a, P * s, (<span class="n">1</span> - P) * s))
+  ph &lt;- <span class="f">sum</span>(y) / (a * m)
+  <span class="f">c</span>(<span class="f">abs</span>(ph - P) &lt;= <span class="n">1.96</span> * <span class="f">sqrt</span>(ph * (<span class="n">1</span> - ph) / (a * m)),
+    <span class="f">abs</span>(ph - P) &lt;= <span class="n">1.96</span> * <span class="f">sd</span>(y / m) / <span class="f">sqrt</span>(a))
+})
+<span class="f">rowMeans</span>(res)                                  <span class="c"># ≈ 0.84  0.95</span></code></pre>
 </div></div></details>
         </div>
       </div>

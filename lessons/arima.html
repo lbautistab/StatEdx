@@ -6,65 +6,178 @@
       <div class="crumbs"></div>
       <h1>Modelos ARIMA</h1>
       <p>El método de Box y Jenkins completo: entender cuándo un ARMA es estacionario e invertible, identificar órdenes con la ACF y la PACF, estimar y comparar candidatos, revisar los residuos y construir pronósticos con intervalos que crecen como deben.</p>
-      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: introducción a las series de tiempo</span><span>R · Python</span></div>
+      <div class="lmeta"><span>95 min</span><span>Nivel avanzado</span><span>Requiere: introducción a las series de tiempo</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#arima-idea" data-sec="arima-idea">La idea</a></li>
+        <li><a href="#arima-intro" data-sec="arima-intro">Introducción</a></li>
+        <li><a href="#arima-def" data-sec="arima-def">Definición</a></li>
         <li><a href="#arima-raices" data-sec="arima-raices">Estacionariedad e invertibilidad</a></li>
         <li><a href="#arima-ident" data-sec="arima-ident">Identificación</a></li>
-        <li><a href="#arima-lab" data-sec="arima-lab">Laboratorio: ARMA(2,1)</a></li>
-        <li><a href="#arima-est" data-sec="arima-est">Estimación y selección</a></li>
-        <li><a href="#arima-diag" data-sec="arima-diag">Diagnóstico de residuos</a></li>
-        <li><a href="#arima-pron" data-sec="arima-pron">Pronóstico</a></li>
-        <li><a href="#arima-lab2" data-sec="arima-lab2">Laboratorio: el abanico</a></li>
+        <li><a href="#arima-est" data-sec="arima-est">Estimación y diagnóstico</a></li>
+        <li><a href="#arima-pron" data-sec="arima-pron">Pronóstico e intervalos</a></li>
+        <li><a href="#arima-prop" data-sec="arima-prop">Propiedades</a></li>
+        <li><a href="#arima-sim" data-sec="arima-sim">Ejercicios de simulación</a></li>
+        <li><a href="#arima-apl" data-sec="arima-apl">Aplicaciones reales</a></li>
         <li><a href="#arima-code" data-sec="arima-code">En R y Python</a></li>
-        <li><a href="#arima-quiz" data-sec="arima-quiz">Comprueba</a></li>
-        <li><a href="#arima-ej" data-sec="arima-ej">Ejercicios</a></li>
+        <li><a href="#arima-quiz" data-sec="arima-quiz">Quiz</a></li>
+        <li><a href="#arima-ej" data-sec="arima-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="arima-idea"><span class="sec">§ 1</span>La idea</h2>
-      <p>Una empresa compra cada semana un insumo cuyo precio sube y baja sin patrón estacional. El analista nota dos cosas: el precio deambula sin volver a un valor fijo, y cuando sube una semana suele seguir subiendo la siguiente. Lo primero pide <b>diferenciar</b> (trabajar con los cambios semanales); lo segundo pide <b>autorregresión</b> sobre esos cambios. Un ARIMA combina ambas ideas en un solo modelo.</p>
-      <p>En la sesión introductoria viste las definiciones de AR, MA y ARIMA y la tabla de firmas de la ACF y la PACF. Aquí construyes encima: qué condiciones matemáticas debe cumplir un ARMA para tener sentido, cómo pasar de un correlograma a un modelo concreto, cómo saber si el modelo es bueno y cómo se calcula de verdad el pronóstico.</p>
-      <div class="eq">\[ \Phi(B)\,(1-B)^d\, y_t = c + \Theta(B)\,\varepsilon_t, \qquad \Phi(B) = 1 - \phi_1 B - \dots - \phi_p B^p, \qquad \Theta(B) = 1 + \theta_1 B + \dots + \theta_q B^q \]
-        <div class="note">\(B\) es el operador de rezago (\(B y_t = y_{t-1}\), \(B^k y_t = y_{t-k}\)) y \(\varepsilon_t\) es ruido blanco de varianza \(\sigma^2\). Los polinomios \(\Phi\) y \(\Theta\) concentran toda la información del modelo: sus raíces deciden si es estacionario, si es invertible y cómo se ve su ACF.</div>
+      <h2 id="arima-intro"><span class="sec">§ 1</span>Introducción</h2>
+      <p>Una empresa compra cada semana un insumo cuyo precio sube y baja sin patrón estacional. El analista nota dos cosas: el precio deambula sin volver a un valor fijo, y cuando sube una semana suele seguir subiendo la siguiente. Lo primero pide <b>diferenciar</b> (trabajar con los cambios semanales); lo segundo pide <b>autorregresión</b> sobre esos cambios. Un ARIMA combina ambas ideas en un solo modelo, y con él el analista puede responder la pregunta que de verdad le importa: ¿cuánto costará el insumo dentro de 8 semanas y con qué margen de error?</p>
+      <p>La historia de estos modelos tiene tres momentos. En 1927, George Udny Yule ajustó una ecuación autorregresiva de orden 2 a las manchas solares para explicar su ciclo de unos 11 años sin recurrir a senos y cosenos; ese mismo año Eugen Slutsky mostró que promediar ruido puro (lo que hoy llamamos un proceso de medias móviles) produce ondas que parecen ciclos económicos. En 1938, Herman Wold demostró que todo proceso estacionario se puede escribir como una suma infinita de choques pasados, lo que unió ambas ideas. Y en 1970, George Box y Gwilym Jenkins publicaron <i>Time Series Analysis: Forecasting and Control</i>, donde organizaron todo en un método práctico de tres etapas (identificar, estimar, diagnosticar) que se volvió el estándar de la industria y sigue siendo el punto de comparación de cualquier método nuevo de pronóstico.</p>
+      <p>En la sesión de <a href="#ts">introducción a las series de tiempo</a> viste las definiciones de AR, MA y ARIMA y la tabla de firmas de la ACF y la PACF. Aquí construyes encima: qué condiciones matemáticas debe cumplir un ARMA para tener sentido, cómo pasar de un correlograma a un modelo concreto, cómo saber si el modelo es bueno y cómo se calcula de verdad el pronóstico y su incertidumbre.</p>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>A escribir un ARIMA(\(p,d,q\)) con el operador de rezago y a reconocer sus partes.</li>
+          <li>A decidir si un ARMA es estacionario e invertible mirando las raíces de sus polinomios.</li>
+          <li>A identificar órdenes con la ACF, la PACF y las ecuaciones de Yule-Walker.</li>
+          <li>A estimar candidatos, compararlos con AIC, AICc y BIC, y diagnosticar residuos con Ljung-Box.</li>
+          <li>A calcular pronósticos puntuales e intervalos con los pesos \(\psi_j\) de la representación de Wold.</li>
+          <li>A reconocer cuándo un ARIMA es en realidad otro modelo conocido (paseo aleatorio, suavizamiento exponencial).</li>
+        </ul>
       </div>
 
-      <h2 id="arima-raices"><span class="sec">§ 2</span>Estacionariedad, invertibilidad y la forma MA(∞)</h2>
-      <p>Un ARMA(\(p, q\)) es <b>estacionario</b> si todas las raíces de \(\Phi(z) = 0\) están <b>fuera del círculo unitario</b>, es decir, tienen módulo mayor que 1. Para el AR(1), \(1 - \phi z = 0\) da \(z = 1/\phi\), y la condición \(|1/\phi| &gt; 1\) es la ya conocida \(|\phi| &lt; 1\). Para el AR(2), la condición equivale a que el punto \((\phi_1, \phi_2)\) caiga dentro de un triángulo:</p>
-      <div class="eq">\[ \phi_1 + \phi_2 &lt; 1, \qquad \phi_2 - \phi_1 &lt; 1, \qquad |\phi_2| &lt; 1 \]
-        <div class="note">Si además \(\phi_1^2 + 4\phi_2 &lt; 0\), las raíces son complejas y la serie muestra <b>pseudo-ciclos</b>: oscilaciones de período aproximado \(2\pi / \arccos\!\big(\phi_1 / (2\sqrt{-\phi_2})\big)\) que no son estacionalidad, porque no tienen período fijo. Así se modelan, por ejemplo, los ciclos de manchas solares o de ciertos indicadores económicos.</div>
+      <h2 id="arima-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Toda la notación descansa en el <b>operador de rezago</b> \(B\), que desplaza la serie un período hacia atrás: \(B y_t = y_{t-1}\) y, en general, \(B^k y_t = y_{t-k}\). Con él, la diferencia es \(\nabla y_t = y_t - y_{t-1} = (1 - B)\,y_t\), y la diferencia de orden \(d\) es \((1-B)^d y_t\). Por ejemplo, \((1-B)^2 y_t = y_t - 2y_{t-1} + y_{t-2}\).</p>
+      <p>El bloque de construcción es el <b>ruido blanco</b>: una sucesión \(\varepsilon_t\) de variables con media 0, varianza constante \(\sigma^2\) y sin correlación entre tiempos distintos. Si además son normales e independientes, se habla de ruido blanco gaussiano.</p>
+      <div class="callout"><b>Definición (ARIMA).</b> Una serie \(y_t\) sigue un modelo ARIMA(\(p, d, q\)) si su diferencia de orden \(d\), \(w_t = (1-B)^d y_t\), es un proceso ARMA(\(p, q\)) estacionario e invertible:
+        <div class="eq">\[ \Phi(B)\,(1-B)^d\, y_t = c + \Theta(B)\,\varepsilon_t, \qquad \Phi(B) = 1 - \phi_1 B - \dots - \phi_p B^p, \qquad \Theta(B) = 1 + \theta_1 B + \dots + \theta_q B^q \]</div>
       </div>
+      <p>Cada término tiene un papel preciso:</p>
+      <ul>
+        <li>\(p\): orden autorregresivo, cuántos valores pasados de \(w_t\) entran en la ecuación. \(\phi_1, \dots, \phi_p\) son sus coeficientes.</li>
+        <li>\(d\): orden de integración, cuántas veces hay que diferenciar para llegar a una serie estacionaria. Casi siempre es 0, 1 o, rara vez, 2.</li>
+        <li>\(q\): orden de medias móviles, cuántos choques pasados entran. \(\theta_1, \dots, \theta_q\) son sus coeficientes (convención de R, Python y Hyndman: signo positivo; Box y Jenkins usan signo negativo, cuidado al leer libros antiguos).</li>
+        <li>\(c\): constante. Con \(d = 0\) fija la media; con \(d = 1\) es una deriva (pendiente).</li>
+        <li>\(\Phi(B)\) y \(\Theta(B)\): polinomios característicos. Sus raíces deciden la estacionariedad, la invertibilidad y la forma de la ACF.</li>
+      </ul>
+      <p>Casos particulares con nombre propio: ARIMA(0,0,0) es ruido blanco; ARIMA(0,1,0) es el <b>paseo aleatorio</b> \(y_t = y_{t-1} + \varepsilon_t\) (con constante, paseo aleatorio con deriva); ARIMA(\(p\),0,0) es un AR(\(p\)); ARIMA(0,0,\(q\)) es un MA(\(q\)); ARIMA(0,1,1) es el suavizamiento exponencial simple de la sesión de <a href="#holt">Holt-Winters</a>.</p>
+      <p><b>Ejemplo numérico.</b> Considera el AR(1) \(y_t = 2 + 0{,}6\,y_{t-1} + \varepsilon_t\) con \(\sigma^2 = 1\). Su media es \(\mu = c/(1-\phi) = 2/0{,}4 = 5\). Su varianza es \(\gamma_0 = \sigma^2/(1-\phi^2) = 1/0{,}64 \approx 1{,}5625\), y su autocorrelación de rezago \(k\) es \(\rho_k = 0{,}6^k\): \(0{,}6\), \(0{,}36\), \(0{,}216\), \(\dots\) Si hoy \(y_T = 8\), el pronóstico de mañana es \(2 + 0{,}6 \cdot 8 = 6{,}8\) y el de pasado mañana \(2 + 0{,}6 \cdot 6{,}8 = 6{,}08\): el pronóstico regresa a la media 5 a ritmo geométrico. Si en cambio el modelo fuera \((1-B)y_t = 0{,}6(1-B)y_{t-1} + \varepsilon_t\), un ARIMA(1,1,0), el 0,6 actuaría sobre los cambios y el nivel no tendría media a la cual volver.</p>
+
+      <h2 id="arima-raices"><span class="sec">§ 3</span>Estacionariedad, invertibilidad y la forma MA(∞)</h2>
+      <p><b>Supuestos.</b> En toda esta sección \(w_t\) es la serie ya diferenciada, \(\varepsilon_t\) es ruido blanco de varianza \(\sigma^2\) y los polinomios \(\Phi\) y \(\Theta\) no comparten raíces.</p>
+      <p><b>Teorema (estacionariedad).</b> Un ARMA(\(p, q\)) tiene una única solución estacionaria y causal (que depende solo de choques presentes y pasados) si y solo si todas las raíces de \(\Phi(z) = 0\) están <b>fuera del círculo unitario</b>, es decir, tienen módulo mayor que 1.</p>
+      <p>Para ver de dónde sale, toma el AR(1) \(y_t = \phi y_{t-1} + \varepsilon_t\) y sustituye la ecuación en sí misma \(k\) veces:</p>
+      <div class="eq">\[ y_t = \varepsilon_t + \phi\,\varepsilon_{t-1} + \phi^2\varepsilon_{t-2} + \dots + \phi^{k}\varepsilon_{t-k} + \phi^{k+1} y_{t-k-1} \]
+        <div class="note">Si \(|\phi| &lt; 1\), el último término se apaga cuando \(k \to \infty\) y queda \(y_t = \sum_{j \ge 0} \phi^j \varepsilon_{t-j}\), una suma con varianza finita \(\sigma^2/(1-\phi^2)\). Si \(|\phi| \ge 1\), el pasado lejano nunca se olvida y la varianza crece sin límite. La raíz de \(1 - \phi z = 0\) es \(z = 1/\phi\), y \(|1/\phi| &gt; 1\) equivale a \(|\phi| &lt; 1\).</div>
+      </div>
+      <p>Para el AR(2), la condición sobre las raíces equivale a que el punto \((\phi_1, \phi_2)\) caiga dentro de un triángulo:</p>
+      <div class="eq">\[ \phi_1 + \phi_2 &lt; 1, \qquad \phi_2 - \phi_1 &lt; 1, \qquad |\phi_2| &lt; 1 \]
+        <div class="note">Si además \(\phi_1^2 + 4\phi_2 &lt; 0\), las raíces son complejas y la serie muestra <b>pseudo-ciclos</b>: oscilaciones de período aproximado \(2\pi / \arccos\!\big(\phi_1 / (2\sqrt{-\phi_2})\big)\) que no son estacionalidad, porque no tienen período fijo. Así modeló Yule las manchas solares.</div>
+      </div>
+      <p>La derivación del triángulo es directa. Las raíces de \(1 - \phi_1 z - \phi_2 z^2\) están fuera del círculo si y solo si las raíces del polinomio recíproco \(\lambda^2 - \phi_1 \lambda - \phi_2\) están dentro (\(\lambda = 1/z\)). Ese polinomio vale \(1 - \phi_1 - \phi_2\) en \(\lambda = 1\) y \(1 + \phi_1 - \phi_2\) en \(\lambda = -1\); ambos deben ser positivos para que las dos raíces queden entre \(-1\) y 1, y el producto de las raíces, \(-\phi_2\), debe tener módulo menor que 1. Esas son exactamente las tres desigualdades.</p>
       <p>La condición gemela para la parte MA es la <b>invertibilidad</b>: las raíces de \(\Theta(z) = 0\) también deben estar fuera del círculo unitario (para el MA(1), \(|\theta| &lt; 1\)). Hay dos razones para exigirla:</p>
       <ul>
-        <li><b>Identificabilidad.</b> Un MA(1) con \(\theta\) y otro con \(1/\theta\) tienen exactamente la misma ACF: \(\rho_1 = \theta/(1+\theta^2)\). Sin una regla, los datos no distinguen entre ambos. La invertibilidad elige el de \(|\theta| &lt; 1\).</li>
-        <li><b>Pronóstico.</b> Solo un modelo invertible se puede escribir como AR(\(\infty\)), \(\varepsilon_t = \Theta(B)^{-1}\Phi(B)\,y_t\), lo que permite recuperar los choques pasados a partir de los datos observados.</li>
+        <li><b>Identificabilidad.</b> Un MA(1) con \(\theta\) y otro con \(1/\theta\) tienen exactamente la misma ACF: \(\rho_1 = \theta/(1+\theta^2)\), y sustituir \(\theta\) por \(1/\theta\) da \((1/\theta)/(1 + 1/\theta^2) = \theta/(\theta^2 + 1)\). Sin una regla, los datos no distinguen entre ambos. La invertibilidad elige el de \(|\theta| &lt; 1\).</li>
+        <li><b>Pronóstico.</b> Solo un modelo invertible se puede escribir como AR(\(\infty\)), \(\varepsilon_t = \Theta(B)^{-1}\Phi(B)\,y_t\), lo que permite recuperar los choques pasados a partir de los datos observados. Para el MA(1): \(\varepsilon_t = y_t - \theta y_{t-1} + \theta^2 y_{t-2} - \dots\), que converge solo si \(|\theta| &lt; 1\).</li>
       </ul>
-      <p>Un ARMA estacionario se puede reescribir como una suma infinita de choques pasados, la <b>representación de Wold</b>:</p>
+      <p><b>Teorema de Wold (1938).</b> Todo proceso estacionario en covarianza y sin componente determinista se puede escribir como una suma infinita de choques pasados. Para un ARMA estacionario los pesos se obtienen dividiendo los polinomios:</p>
       <div class="eq">\[ y_t = \mu + \sum_{j=0}^{\infty} \psi_j\, \varepsilon_{t-j}, \qquad \Psi(B) = \frac{\Theta(B)}{\Phi(B)}, \qquad \psi_0 = 1, \quad \psi_j = \theta_j + \sum_{i=1}^{\min(j,p)} \phi_i\, \psi_{j-i} \]
-        <div class="note">Los pesos \(\psi_j\) dicen cuánto afecta hoy un choque de hace \(j\) períodos (la <b>función impulso-respuesta</b>). En un modelo estacionario \(\psi_j \to 0\); con \(d = 1\), en cambio, los pesos no se apagan y cada choque deja una huella permanente. Los vas a usar en el § 7 para los intervalos de pronóstico.</div>
+        <div class="note">La recursión sale de igualar coeficientes en \(\Phi(B)\Psi(B) = \Theta(B)\), con \(\theta_j = 0\) para \(j &gt; q\). Los pesos \(\psi_j\) dicen cuánto afecta hoy un choque de hace \(j\) períodos (la <b>función impulso-respuesta</b>). En un modelo estacionario \(\psi_j \to 0\); con \(d = 1\), en cambio, los pesos no se apagan y cada choque deja una huella permanente. Los usarás en el § 6 para los intervalos de pronóstico.</div>
       </div>
+      <p><b>Ejemplo resuelto a mano.</b> Para el ARMA(1,1) \(y_t = 0{,}7\,y_{t-1} + \varepsilon_t + 0{,}4\,\varepsilon_{t-1}\): \(\psi_0 = 1\), \(\psi_1 = 0{,}4 + 0{,}7 = 1{,}1\), \(\psi_2 = 0{,}7 \cdot 1{,}1 = 0{,}77\), \(\psi_3 = 0{,}539\), y en general \(\psi_j = 1{,}1 \cdot 0{,}7^{\,j-1}\). La varianza del proceso es \(\sigma^2 \sum \psi_j^2 = \sigma^2\big(1 + 1{,}21/(1 - 0{,}49)\big) \approx 3{,}37\,\sigma^2\). La raíz AR es \(1/0{,}7 \approx 1{,}43\) y la MA es \(-1/0{,}4 = -2{,}5\): ambas fuera del círculo, así que el modelo es estacionario e invertible.</p>
       <div class="callout"><b>Error común:</b> creer que un coeficiente AR menor que 1 garantiza estacionariedad. En un AR(2) con \(\phi_1 = 0{,}6\) y \(\phi_2 = 0{,}5\), ambos coeficientes son menores que 1, pero \(\phi_1 + \phi_2 = 1{,}1 &gt; 1\): el proceso explota. Lo que cuenta son las raíces del polinomio, no los coeficientes por separado.</div>
 
-      <h2 id="arima-ident"><span class="sec">§ 3</span>Identificación: de la ACF a los órdenes</h2>
+      <h2 id="arima-ident"><span class="sec">§ 4</span>Identificación: de la ACF a los órdenes</h2>
       <p>Identificar es proponer \((p, d, q)\) a partir de los datos. Se hace en dos pasos.</p>
-      <p><b>Paso 1: elige \(d\).</b> Grafica la serie y su ACF. Si la ACF decae muy lento desde casi 1, diferencia. Confirma con pruebas: ADF (\(H_0\): raíz unitaria) y KPSS (\(H_0\): estacionaria). En R, <code>ndiffs()</code> aplica KPSS de forma repetida y te devuelve el número de diferencias. Casi nunca se necesita \(d = 2\); si la serie diferenciada una vez ya fluctúa alrededor de una media, detente.</p>
-      <p><b>Paso 2: elige \(p\) y \(q\)</b> mirando la ACF y la PACF de la serie ya diferenciada. Además de la tabla de firmas que ya conoces, hay fórmulas que ayudan a reconocer cada modelo:</p>
-      <div class="eq">\[ \text{MA(1)}:\ \rho_1 = \frac{\theta}{1+\theta^2},\ \ \rho_k = 0 \ (k \ge 2) \qquad\qquad \text{AR(2)}:\ \rho_1 = \frac{\phi_1}{1-\phi_2},\ \ \rho_k = \phi_1\rho_{k-1} + \phi_2\rho_{k-2} \]
-        <div class="note">En un MA(1), \(|\rho_1| \le 0{,}5\) siempre: si ves \(r_1 = 0{,}8\) con la ACF cortada en 1, no es un MA(1) puro. La recursión del AR(2), llamada de <b>Yule-Walker</b>, hace que su ACF decaiga como una exponencial (raíces reales) o como una onda amortiguada (raíces complejas).</div>
+      <p><b>Paso 1: elige \(d\).</b> Grafica la serie y su ACF. Si la ACF decae muy lento desde casi 1, diferencia. Confirma con pruebas: <b>ADF</b> (Dickey-Fuller aumentada, \(H_0\): raíz unitaria) y <b>KPSS</b> (\(H_0\): estacionaria). La ADF ajusta la regresión</p>
+      <div class="eq">\[ \nabla y_t = \alpha + \beta t + \gamma\, y_{t-1} + \sum_{i=1}^{k} \delta_i \nabla y_{t-i} + u_t, \qquad H_0: \gamma = 0 \]
+        <div class="note">Si \(\gamma = 0\), el nivel pasado no ayuda a predecir el cambio: hay raíz unitaria. El estadístico \(\hat\gamma / \text{EE}(\hat\gamma)\) no sigue una \(t\) de Student bajo \(H_0\), sino la distribución de Dickey-Fuller, con valores críticos más negativos (≈ −2,86 al 5 % con constante). Usar la tabla \(t\) rechazaría la raíz unitaria demasiado seguido.</div>
       </div>
+      <p>Como las dos pruebas tienen hipótesis nulas opuestas, conviene usarlas juntas: si ADF no rechaza y KPSS rechaza, diferencia. En R, <code>ndiffs()</code> aplica KPSS de forma repetida y te devuelve el número de diferencias. Casi nunca se necesita \(d = 2\); si la serie diferenciada una vez ya fluctúa alrededor de una media, detente. <b>Sobrediferenciar</b> también tiene firma: introduce una raíz unitaria en la parte MA, y la ACF de la diferencia muestra un \(r_1\) cercano a \(-0{,}5\).</p>
+      <p><b>Paso 2: elige \(p\) y \(q\)</b> mirando la ACF y la PACF de la serie ya diferenciada.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Modelo</th><th>ACF</th><th>PACF</th></tr></thead>
+        <tbody>
+          <tr><td>AR(\(p\))</td><td>Decae (exponencial u onda amortiguada)</td><td>Se corta después del rezago \(p\)</td></tr>
+          <tr><td>MA(\(q\))</td><td>Se corta después del rezago \(q\)</td><td>Decae</td></tr>
+          <tr><td>ARMA(\(p,q\))</td><td>Decae desde el rezago \(q\)</td><td>Decae desde el rezago \(p\)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Las firmas salen de fórmulas que puedes derivar. Para el MA(1), \(\gamma_0 = \sigma^2(1+\theta^2)\), \(\gamma_1 = E[(\varepsilon_t + \theta\varepsilon_{t-1})(\varepsilon_{t-1} + \theta\varepsilon_{t-2})] = \theta\sigma^2\) y \(\gamma_k = 0\) para \(k \ge 2\), porque ya no comparten choques. Para el AR(2), multiplica la ecuación por \(y_{t-k}\), toma esperanzas y divide por \(\gamma_0\): obtienes las <b>ecuaciones de Yule-Walker</b>.</p>
+      <div class="eq">\[ \text{MA(1)}:\ \rho_1 = \frac{\theta}{1+\theta^2},\ \ \rho_k = 0 \ (k \ge 2) \qquad\qquad \text{AR(2)}:\ \rho_1 = \frac{\phi_1}{1-\phi_2},\ \ \rho_k = \phi_1\rho_{k-1} + \phi_2\rho_{k-2} \]
+        <div class="note">En un MA(1), \(|\rho_1| \le 0{,}5\) siempre (el máximo de \(\theta/(1+\theta^2)\) es 0,5 en \(\theta = 1\)): si ves \(r_1 = 0{,}8\) con la ACF cortada en 1, no es un MA(1) puro. La recursión de Yule-Walker hace que la ACF del AR(2) decaiga como una exponencial (raíces reales) o como una onda amortiguada (raíces complejas).</div>
+      </div>
+      <p>La <b>PACF</b> en el rezago \(k\), \(\phi_{kk}\), es el último coeficiente de la mejor regresión lineal de \(y_t\) sobre \(y_{t-1}, \dots, y_{t-k}\). En un AR(\(p\)), cuando \(k &gt; p\) los rezagos extra no aportan nada y \(\phi_{kk} = 0\): por eso se corta. Bajo ruido blanco, tanto \(r_k\) como \(\hat\phi_{kk}\) tienen error estándar aproximado \(1/\sqrt{T}\), de ahí las bandas \(\pm 1{,}96/\sqrt T\). Para la ACF de un MA(\(q\)) en rezagos \(k &gt; q\), la fórmula de Bartlett da una banda más ancha: \(\operatorname{Var}(r_k) \approx \frac{1}{T}\big(1 + 2\sum_{j=1}^{q} r_j^2\big)\).</p>
+      <p><b>Ejemplo resuelto a mano.</b> Para el AR(2) \(y_t = 0{,}5\,y_{t-1} + 0{,}3\,y_{t-2} + \varepsilon_t\): es estacionario (\(0{,}8 &lt; 1\), \(-0{,}2 &lt; 1\), \(0{,}3 &lt; 1\)); \(\rho_1 = 0{,}5/0{,}7 \approx 0{,}714\); \(\rho_2 = 0{,}5 \cdot 0{,}714 + 0{,}3 \approx 0{,}657\); \(\rho_3 = 0{,}5 \cdot 0{,}657 + 0{,}3 \cdot 0{,}714 \approx 0{,}543\). Como \(\phi_1^2 + 4\phi_2 = 1{,}45 &gt; 0\), las raíces son reales y la ACF decae sin oscilar. Su PACF: \(\phi_{11} = 0{,}714\), \(\phi_{22} = \phi_2 = 0{,}3\) y cero de ahí en adelante.</p>
       <ul>
         <li><b>Constante.</b> Con \(d = 0\), la constante fija la media: \(\mu = c / (1 - \phi_1 - \dots - \phi_p)\). Con \(d = 1\), una constante significa una <b>deriva</b>: los cambios tienen media distinta de cero y el pronóstico tiene pendiente. Con \(d = 2\), una constante implica una tendencia cuadrática, casi nunca razonable.</li>
         <li><b>Sé parsimonioso.</b> Empieza con órdenes bajos. Un ARMA(1,1) suele reemplazar a un AR(4) o a un MA(5).</li>
         <li><b>La identificación propone, no decide.</b> Con series reales las firmas son difusas. Lleva dos o tres candidatos al paso de estimación.</li>
       </ul>
 
-      <h2 id="arima-lab"><span class="sec">§ 4</span>Laboratorio: un ARMA(2,1) por dentro</h2>
-      <p>El simulador genera \(y_t = \phi_1 y_{t-1} + \phi_2 y_{t-2} + \varepsilon_t + \theta\,\varepsilon_{t-1}\) con 200 observaciones. A la izquierda, el triángulo de estacionariedad: haz clic dentro para elegir \((\phi_1, \phi_2)\); debajo de la parábola las raíces son complejas. Abajo, la ACF y la PACF estimadas (barras) contra las teóricas (puntos).</p>
+      <h2 id="arima-est"><span class="sec">§ 5</span>Estimación, selección y diagnóstico</h2>
+      <p>Los parámetros \(\phi, \theta, c, \sigma^2\) se estiman por <b>máxima verosimilitud</b> suponiendo errores normales. Para un AR(1) con media cero, la verosimilitud exacta se factoriza en la densidad del primer dato y las condicionales:</p>
+      <div class="eq">\[ \log L(\phi, \sigma^2) = -\tfrac{T}{2}\log(2\pi\sigma^2) + \tfrac12\log(1-\phi^2) - \frac{(1-\phi^2)\,y_1^2}{2\sigma^2} - \frac{1}{2\sigma^2}\sum_{t=2}^{T}(y_t - \phi y_{t-1})^2 \]
+        <div class="note">Si ignoras los términos del primer dato, maximizar equivale a minimizar \(\sum (y_t - \phi y_{t-1})^2\): es la <b>suma de cuadrados condicional</b> (CSS), que para un AR coincide con mínimos cuadrados ordinarios. Para modelos con parte MA la verosimilitud exacta se calcula con el filtro de Kalman. R usa CSS para arrancar y luego la exacta; con series largas dan resultados casi idénticos.</div>
+      </div>
+      <p>Bajo condiciones de regularidad, el estimador es consistente y asintóticamente normal. Para el AR(1), \(\operatorname{Var}(\hat\phi) \approx (1-\phi^2)/T\): cuanto más cerca de 1 está \(\phi\), más preciso, pero también más sesgado hacia abajo en muestras pequeñas (sesgo de Kendall, aproximadamente \(-(1+3\phi)/T\)). Con \(T = 50\) y \(\phi = 0{,}9\), el sesgo esperado es cercano a \(-0{,}07\).</p>
+      <p>Para elegir entre candidatos se usan criterios de información, que premian el ajuste y castigan la complejidad. Con \(k = p + q + 1 + [c \ne 0]\) parámetros (el 1 es \(\sigma^2\)) y \(T\) observaciones útiles:</p>
+      <div class="eq">\[ \text{AIC} = -2\log L + 2k, \qquad \text{AICc} = \text{AIC} + \frac{2k(k+1)}{T - k - 1}, \qquad \text{BIC} = -2\log L + k\log T \]
+        <div class="note">Menor es mejor. El AICc corrige el sesgo del AIC en muestras pequeñas y es el que usa <code>auto.arima</code>. El BIC castiga más los parámetros y elige modelos más pequeños; es consistente (elige el orden verdadero con probabilidad que tiende a 1), mientras que el AIC es eficiente para pronosticar. Una diferencia menor que 2 entre dos modelos es poco informativa: quédate con el más simple.</div>
+      </div>
+      <div class="callout"><b>Regla crítica:</b> solo compares AIC entre modelos con el <b>mismo \(d\)</b> (y, en la <a href="#sarima">sesión de SARIMA</a>, el mismo \(D\)). Diferenciar cambia los datos sobre los que se calcula la verosimilitud: un ARIMA(1,0,1) y un ARIMA(1,1,1) se ajustan a series distintas, y sus AIC no son comparables. El orden de diferenciación se decide antes, con gráficos y pruebas de raíz unitaria.</div>
+      <p>Otra trampa es la <b>redundancia de parámetros</b>. Si \(\Phi\) y \(\Theta\) comparten una raíz, se cancelan: un ARMA(1,1) con \(\phi = 0{,}6\) y \(\theta = -0{,}6\) es exactamente ruido blanco, porque \((1 - 0{,}6B)\) aparece a ambos lados. Los síntomas son coeficientes de signo opuesto y magnitud parecida con errores estándar enormes. La solución es bajar un orden en cada parte.</p>
+      <p><b>Diagnóstico.</b> Si el modelo captura toda la dependencia, sus residuos \(\hat\varepsilon_t\) deben parecer ruido blanco. Revisa cuatro cosas:</p>
+      <ol>
+        <li><b>Gráfico en el tiempo:</b> sin tendencias, sin rachas y con varianza estable. Si la varianza cambia por tramos (típico en precios financieros), hace falta un modelo de volatilidad como GARCH.</li>
+        <li><b>ACF de los residuos:</b> todas las barras dentro de las bandas, salvo alguna aislada por azar (con 20 rezagos, se espera una fuera por casualidad).</li>
+        <li><b>Prueba de Ljung-Box</b> sobre los primeros \(h\) rezagos, ajustando los grados de libertad por los parámetros estimados (ver la fórmula abajo).</li>
+        <li><b>Normalidad</b> (histograma, gráfico Q-Q): no afecta al pronóstico puntual, pero sí a los intervalos, que se calculan suponiéndola. Con colas pesadas, los intervalos al 95 % se quedan cortos.</li>
+      </ol>
+      <div class="eq">\[ Q = T(T+2)\sum_{k=1}^{h} \frac{r_k^2}{T-k} \;\sim\; \chi^2_{\,h - p - q} \quad \text{bajo } H_0 \]
+        <div class="note">\(r_k\) son las autocorrelaciones de los residuos. Un valor p pequeño indica que queda autocorrelación sin explicar. Valores típicos: \(h = 10\) para datos no estacionales y \(h = 2m\) para estacionales. En Python, el argumento <code>model_df</code> descuenta los \(p + q\) grados de libertad; en R, <code>fitdf</code>.</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> Ajustas un ARIMA(1,1,1) a 150 observaciones y Ljung-Box con \(h = 12\) da \(Q = 24{,}1\). Los grados de libertad son \(12 - 1 - 1 = 10\); el valor crítico es \(\chi^2_{10;\,0{,}95} \approx 18{,}31\) y \(24{,}1 &gt; 18{,}31\) (valor p ≈ 0,007): se rechaza que los residuos sean ruido blanco. Si el pico de la ACF residual está en un rezago corto, sube \(p\) o \(q\); si está en el 12 con datos mensuales, falta un componente estacional.</p>
+      <p>Una prueba complementaria es el <b>sobreajuste</b>: agrega un término más (por ejemplo, pasa de ARIMA(2,1,0) a ARIMA(2,1,1)). Si el modelo era adecuado, el nuevo coeficiente no será significativo y el AIC no bajará.</p>
+
+      <h2 id="arima-pron"><span class="sec">§ 6</span>Pronóstico e intervalos</h2>
+      <p>El pronóstico puntual a \(h\) pasos es la esperanza condicional \(\hat y_{T+h\mid T} = E[y_{T+h} \mid y_1, \dots, y_T]\), que es el predictor de menor error cuadrático medio. Se calcula con tres reglas aplicadas a la ecuación del modelo: los \(y\) futuros se reemplazan por sus pronósticos, los \(\varepsilon\) futuros por 0 y los \(\varepsilon\) pasados por los residuos. Por ejemplo, para un ARIMA(1,1,0), donde \(y_t = y_{t-1} + \phi(y_{t-1} - y_{t-2}) + \varepsilon_t\):</p>
+      <div class="eq">\[ \hat y_{T+1} = y_T + \phi\,(y_T - y_{T-1}), \qquad \hat y_{T+2} = \hat y_{T+1} + \phi\,(\hat y_{T+1} - y_T), \qquad \dots \]</div>
+      <p><b>Derivación de la varianza.</b> Con la forma de Wold, \(y_{T+h} = \mu + \sum_{j \ge 0}\psi_j \varepsilon_{T+h-j}\). Los choques con índice \(\le T\) son conocidos al momento \(T\) y forman el pronóstico; los que quedan, \(\varepsilon_{T+1}, \dots, \varepsilon_{T+h}\), son el error:</p>
+      <div class="eq">\[ e_{T+h} = y_{T+h} - \hat y_{T+h\mid T} = \sum_{j=0}^{h-1} \psi_j\,\varepsilon_{T+h-j}, \qquad \operatorname{Var}(e_{T+h}) = \sigma^2 \sum_{j=0}^{h-1} \psi_j^2 \]
+        <div class="note">La varianza es la suma de las varianzas porque los choques no están correlacionados. El IC al 95 % es \(\hat y_{T+h\mid T} \pm 1{,}96\,\sigma\sqrt{\sum_{j=0}^{h-1}\psi_j^2}\). Para un modelo con \(d = 1\) se usan los pesos de la serie integrada, que son las sumas acumuladas de los del ARMA. Si el modelo es estacionario, \(\sum \psi_j^2\) converge y el intervalo se estabiliza en la varianza de la serie; con \(d = 1\), la suma crece sin límite y el intervalo se abre como \(\sqrt h\) o más rápido.</div>
+      </div>
+      <p><b>Ejemplo resuelto a mano.</b> Un ARIMA(1,1,0) sin constante tiene \(\phi = 0{,}4\) y \(\sigma = 2\); los dos últimos datos son \(y_{T-1} = 47\) y \(y_T = 50\). El último cambio es 3, así que \(\hat y_{T+1} = 50 + 0{,}4 \cdot 3 = 51{,}2\); el cambio pronosticado siguiente es \(0{,}4 \cdot 1{,}2 = 0{,}48\) y \(\hat y_{T+2} = 51{,}68\). Los pesos integrados son \(\psi_0 = 1\), \(\psi_1 = 1 + 0{,}4 = 1{,}4\). Varianza a 1 paso: 4; a 2 pasos: \(4(1 + 1{,}96) = 11{,}84\), desviación ≈ 3,44. Intervalos: \(51{,}2 \pm 3{,}92 = [47{,}28;\ 55{,}12]\) y \(51{,}68 \pm 6{,}74 = [44{,}94;\ 58{,}42]\). A largo plazo, los cambios pronosticados suman \(3(0{,}4 + 0{,}4^2 + \dots) = 3 \cdot 0{,}4/0{,}6 = 2\): el pronóstico se aplana en 52.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Modelo</th><th>Pronóstico a largo plazo</th><th>Intervalo a largo plazo</th></tr></thead>
+        <tbody>
+          <tr><td>ARMA con constante (\(d = 0\))</td><td>Vuelve a la media \(\mu\)</td><td>Se estabiliza</td></tr>
+          <tr><td>\(d = 1\) sin constante</td><td>Se vuelve plano</td><td>Crece sin límite</td></tr>
+          <tr><td>\(d = 1\) con deriva</td><td>Recta con pendiente igual a la deriva</td><td>Crece sin límite</td></tr>
+          <tr><td>ARIMA(0,1,1)</td><td>Plano, igual al SES con \(\alpha = 1 + \theta\)</td><td>Crece como \(\sqrt{1 + (h-1)\alpha^2}\)</td></tr>
+        </tbody>
+      </table></div>
+      <p>La última fila conecta con la sesión de <a href="#holt">suavizamiento exponencial</a>: el SES <b>es</b> un ARIMA(0,1,1). Los dos enfoques no compiten tanto como parece; muchas veces son el mismo modelo escrito de dos maneras. Una advertencia: estos intervalos suponen que los parámetros son los verdaderos. Como en la práctica son estimados, los intervalos reales son algo más anchos, sobre todo con series cortas; para medir qué tan bien pronostica tu modelo fuera de la muestra, usa las técnicas de la sesión de <a href="#pronost">evaluación de pronósticos</a>.</p>
+
+      <h2 id="arima-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Media de un ARMA estacionario.</b> \(\mu = c/(1 - \phi_1 - \dots - \phi_p)\). <i>Justificación:</i> toma esperanzas en la ecuación con \(E[y_t] = \mu\) constante y \(E[\varepsilon_t] = 0\): \(\mu = c + \sum \phi_i \mu\).</li>
+        <li><b>Varianza del AR(1).</b> \(\gamma_0 = \sigma^2/(1-\phi^2)\). <i>Justificación:</i> \(\operatorname{Var}(y_t) = \phi^2\operatorname{Var}(y_{t-1}) + \sigma^2\) y, por estacionariedad, ambas varianzas son iguales.</li>
+        <li><b>ACF del ARMA(1,1).</b> \(\rho_1 = \dfrac{(1 + \phi\theta)(\phi + \theta)}{1 + 2\phi\theta + \theta^2}\) y \(\rho_k = \phi\,\rho_{k-1}\) para \(k \ge 2\). <i>Justificación:</i> para \(k \ge 2\), \(\varepsilon_{t-1}\) ya no está correlacionado con \(y_{t-k}\) y solo queda la parte AR (ver la pregunta avanzada 1).</li>
+        <li><b>Cota del MA(1).</b> \(|\rho_1| \le 1/2\). <i>Justificación:</i> \(1 + \theta^2 - 2|\theta| = (1 - |\theta|)^2 \ge 0\), así que \(|\theta|/(1+\theta^2) \le 1/2\).</li>
+        <li><b>Pesos de Wold del ARMA(1,1).</b> \(\psi_j = (\phi + \theta)\,\phi^{\,j-1}\) para \(j \ge 1\). <i>Justificación:</i> la recursión \(\psi_j = \theta_j + \phi\psi_{j-1}\) con \(\theta_j = 0\) para \(j \ge 2\).</li>
+        <li><b>Varianza del error de pronóstico.</b> \(\sigma^2_h = \sigma^2\sum_{j=0}^{h-1}\psi_j^2\), creciente en \(h\) y acotada por \(\gamma_0\) si el modelo es estacionario. <i>Justificación:</i> § 6.</li>
+        <li><b>SES como ARIMA.</b> El ARIMA(0,1,1) con \(-1 &lt; \theta &lt; 0\) da los mismos pronósticos que el SES con \(\alpha = 1 + \theta\). <i>Justificación:</i> \(\hat y_{T+1} = y_T + \theta\varepsilon_T\) y \(\varepsilon_T = y_T - \hat y_T\) dan \(\hat y_{T+1} = \alpha y_T + (1-\alpha)\hat y_T\) (pregunta avanzada 4).</li>
+        <li><b>Agregación.</b> La suma de un AR(1) y un ruido blanco independiente es un ARMA(1,1). <i>Justificación:</i> aplicar \((1-\phi B)\) a la suma deja \(\varepsilon_t + (1 - \phi B)u_t\), cuya autocovarianza se corta en el rezago 1, que es la de un MA(1). Por eso un AR medido con error se ve como ARMA.</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li>Juzgar la estacionariedad por coeficientes sueltos en lugar de por las raíces del polinomio.</li>
+        <li>Comparar AIC entre modelos con distinto \(d\), o entre un modelo en logaritmos y otro en la escala original.</li>
+        <li>Diferenciar dos veces "por si acaso": la sobrediferenciación agrega una raíz MA unitaria y empeora los pronósticos.</li>
+        <li>Aceptar un ARMA(\(p,q\)) con coeficientes AR y MA casi opuestos y errores estándar enormes: es redundancia de parámetros.</li>
+        <li>Leer un valor p grande de Ljung-Box como prueba de que el modelo es correcto: solo indica que no se detectó autocorrelación con ese \(h\).</li>
+      </ul>
+
+      <h2 id="arima-sim"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: un ARMA(2,1) por dentro.</b> El simulador genera \(y_t = \phi_1 y_{t-1} + \phi_2 y_{t-2} + \varepsilon_t + \theta\,\varepsilon_{t-1}\) con 200 observaciones. A la izquierda, el triángulo de estacionariedad: haz clic dentro para elegir \((\phi_1, \phi_2)\); debajo de la parábola las raíces son complejas. Abajo, la ACF y la PACF estimadas (barras) contra las teóricas (puntos).</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · ARMA(2,1)</span><span class="num" id="arima-head">–</span></div>
         <div class="lab-body">
@@ -114,51 +227,18 @@
         </div>
         <figcaption>Con el AR(2) cíclico, las raíces son complejas: la ACF es una onda amortiguada y la serie oscila con un período de unos 7 pasos. Con el MA(1), la ACF se corta en 1 y la PACF alterna. Lleva el punto fuera del triángulo: la serie explota y la ACF teórica deja de existir.</figcaption>
       </figure>
-
-      <h2 id="arima-est"><span class="sec">§ 5</span>Estimación y selección de modelo</h2>
-      <p>Los parámetros \(\phi, \theta, c, \sigma^2\) se estiman por <b>máxima verosimilitud</b> suponiendo errores normales. La verosimilitud exacta se calcula con el filtro de Kalman; una alternativa más rápida es la de <b>suma de cuadrados condicional</b> (CSS), que fija los primeros valores y minimiza \(\sum \hat\varepsilon_t^2\). Con series largas dan resultados casi idénticos; R usa CSS para arrancar y luego la exacta.</p>
-      <p>Para elegir entre candidatos se usan criterios de información, que premian el ajuste y castigan la complejidad. Con \(k = p + q + 1 + [c \ne 0]\) parámetros (el 1 es \(\sigma^2\)) y \(T\) observaciones útiles:</p>
-      <div class="eq">\[ \text{AIC} = -2\log L + 2k, \qquad \text{AICc} = \text{AIC} + \frac{2k(k+1)}{T - k - 1}, \qquad \text{BIC} = -2\log L + k\log T \]
-        <div class="note">Menor es mejor. El AICc corrige el sesgo del AIC en muestras pequeñas y es el que usa <code>auto.arima</code>. El BIC castiga más los parámetros y elige modelos más pequeños. Una diferencia menor que 2 entre dos modelos es poco informativa: quédate con el más simple.</div>
-      </div>
-      <div class="callout"><b>Regla crítica:</b> solo compares AIC entre modelos con el <b>mismo \(d\)</b> (y, en la próxima sesión, el mismo \(D\)). Diferenciar cambia los datos sobre los que se calcula la verosimilitud: un ARIMA(1,0,1) y un ARIMA(1,1,1) se ajustan a series distintas, y sus AIC no son comparables. El orden de diferenciación se decide antes, con gráficos y pruebas de raíz unitaria.</div>
-      <p>Otra trampa es la <b>redundancia de parámetros</b>. Si \(\Phi\) y \(\Theta\) comparten una raíz, se cancelan: un ARMA(1,1) con \(\phi = 0{,}6\) y \(\theta = -0{,}6\) es exactamente ruido blanco, porque \((1 - 0{,}6B)\) aparece a ambos lados. Los síntomas son coeficientes de signo opuesto y magnitud parecida con errores estándar enormes. La solución es bajar un orden en cada parte.</p>
-
-      <h2 id="arima-diag"><span class="sec">§ 6</span>Diagnóstico de residuos</h2>
-      <p>Si el modelo captura toda la dependencia, sus residuos \(\hat\varepsilon_t\) deben parecer ruido blanco. Revisa cuatro cosas:</p>
+      <p><b>Experimentos guiados</b></p>
       <ol>
-        <li><b>Gráfico en el tiempo:</b> sin tendencias, sin rachas y con varianza estable. Si la varianza cambia por tramos (típico en precios financieros), hace falta un modelo de volatilidad como GARCH.</li>
-        <li><b>ACF de los residuos:</b> todas las barras dentro de las bandas, salvo alguna aislada por azar.</li>
-        <li><b>Prueba de Ljung-Box</b> sobre los primeros \(h\) rezagos, ajustando los grados de libertad por los parámetros estimados:</li>
+        <li>Pulsa <b>AR(2)</b> (\(\phi_1 = 0{,}5\), \(\phi_2 = 0{,}25\)). Cuenta cuántas barras de la PACF salen de las bandas. Pulsa "Nueva serie" cinco veces y repite el conteo.
+          <details><summary>Qué deberías observar</summary><p>La PACF tiene dos barras claras (rezagos 1 y 2) y luego queda dentro de las bandas, salvo alguna barra aislada que aparece y desaparece entre series: es el 5 % de falsos positivos esperado. La ACF, en cambio, decae poco a poco. Es la firma de un AR(2).</p></details></li>
+        <li>Pulsa <b>AR(2) cíclico</b> (\(\phi_1 = 1\), \(\phi_2 = -0{,}6\)) y mira el readout de pseudo-ciclo. Después baja \(\phi_2\) hacia \(-0{,}9\) sin mover \(\phi_1\).
+          <details><summary>Qué deberías observar</summary><p>Con \(\phi_2 = -0{,}6\) el período es de unos 7 pasos y la ACF es una onda amortiguada. Al acercar \(\phi_2\) a \(-1\), la amortiguación se debilita (el módulo de las raíces, \(1/\sqrt{-\phi_2}\), se acerca a 1), la serie oscila casi como un seno y el período se acorta a unos 6 pasos.</p></details></li>
+        <li>Pulsa <b>MA(1)</b> y lleva θ de 0,7 a 0,95. Compara la \(\rho_1\) teórica con la estimada en cada caso.
+          <details><summary>Qué deberías observar</summary><p>La \(\rho_1\) teórica sube de 0,47 a apenas 0,50: nunca pasa de 0,5, como dice la propiedad 4. La ACF se corta en el rezago 1 y la PACF alterna de signo y decae.</p></details></li>
+        <li>Fija \(\theta = 0\), \(\phi_2 = 0{,}5\) y sube \(\phi_1\) de 0,3 a 0,6.
+          <details><summary>Qué deberías observar</summary><p>Con \(\phi_1 = 0{,}3\) el punto está dentro del triángulo. Al cruzar \(\phi_1 + \phi_2 = 1\) (en \(\phi_1 = 0{,}5\)) el readout dice "no", la raíz mínima baja de 1 y la serie se dispara: los coeficientes por separado son menores que 1, pero el proceso ya no es estacionario.</p></details></li>
       </ol>
-      <div class="eq">\[ Q = T(T+2)\sum_{k=1}^{h} \frac{r_k^2}{T-k} \;\sim\; \chi^2_{\,h - p - q} \quad \text{bajo } H_0 \]
-        <div class="note">\(r_k\) son las autocorrelaciones de los residuos. Un valor p pequeño indica que queda autocorrelación sin explicar. Valores típicos: \(h = 10\) para datos no estacionales y \(h = 2m\) para estacionales. En Python, el argumento <code>model_df</code> descuenta los \(p + q\) grados de libertad; en R, <code>fitdf</code>.</div>
-      </div>
-      <ol start="4">
-        <li><b>Normalidad</b> (histograma, gráfico Q-Q): no afecta al pronóstico puntual, pero sí a los intervalos, que se calculan suponiéndola. Con colas pesadas, los intervalos al 95 % se quedan cortos.</li>
-      </ol>
-      <p>Una prueba complementaria es el <b>sobreajuste</b>: agrega un término más (por ejemplo, pasa de ARIMA(2,1,0) a ARIMA(2,1,1)). Si el modelo era adecuado, el nuevo coeficiente no será significativo y el AIC no bajará.</p>
-
-      <h2 id="arima-pron"><span class="sec">§ 7</span>Pronóstico e intervalos</h2>
-      <p>El pronóstico puntual a \(h\) pasos es la esperanza condicional \(\hat y_{T+h\mid T} = E[y_{T+h} \mid y_1, \dots, y_T]\). Se calcula con tres reglas aplicadas a la ecuación del modelo: los \(y\) futuros se reemplazan por sus pronósticos, los \(\varepsilon\) futuros por 0 y los \(\varepsilon\) pasados por los residuos. Por ejemplo, para un ARIMA(1,1,0), donde \(y_t = y_{t-1} + \phi(y_{t-1} - y_{t-2}) + \varepsilon_t\):</p>
-      <div class="eq">\[ \hat y_{T+1} = y_T + \phi\,(y_T - y_{T-1}), \qquad \hat y_{T+2} = \hat y_{T+1} + \phi\,(\hat y_{T+1} - y_T), \qquad \dots \]</div>
-      <p>La varianza del error de pronóstico sale de los pesos \(\psi_j\) del § 2 (para un modelo con \(d = 1\), los de la serie integrada, que son las sumas acumuladas de los del ARMA):</p>
-      <div class="eq">\[ \operatorname{Var}(y_{T+h} - \hat y_{T+h\mid T}) = \sigma^2 \sum_{j=0}^{h-1} \psi_j^2, \qquad \text{IC 95 \%: } \ \hat y_{T+h\mid T} \pm 1{,}96\,\sigma\sqrt{\textstyle\sum_{j=0}^{h-1}\psi_j^2} \]
-        <div class="note">Si el modelo es estacionario, \(\sum \psi_j^2\) converge y el intervalo se estabiliza en la varianza de la serie. Con \(d = 1\), la suma crece sin límite y el intervalo se abre como \(\sqrt h\) o más rápido.</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Modelo</th><th>Pronóstico a largo plazo</th><th>Intervalo a largo plazo</th></tr></thead>
-        <tbody>
-          <tr><td>ARMA con constante (\(d = 0\))</td><td>Vuelve a la media \(\mu\)</td><td>Se estabiliza</td></tr>
-          <tr><td>\(d = 1\) sin constante</td><td>Se vuelve plano</td><td>Crece sin límite</td></tr>
-          <tr><td>\(d = 1\) con deriva</td><td>Recta con pendiente igual a la deriva</td><td>Crece sin límite</td></tr>
-          <tr><td>ARIMA(0,1,1)</td><td>Plano, igual al SES con \(\alpha = 1 + \theta\)</td><td>Crece como \(\sqrt{1 + (h-1)\alpha^2}\)</td></tr>
-        </tbody>
-      </table></div>
-      <p>La última fila conecta con la sesión anterior: el suavizamiento exponencial simple <b>es</b> un ARIMA(0,1,1). Los dos enfoques no compiten tanto como parece; muchas veces son el mismo modelo escrito de dos maneras.</p>
-
-      <h2 id="arima-lab2"><span class="sec">§ 8</span>Laboratorio: el abanico de pronóstico</h2>
-      <p>Elige un modelo y su coeficiente. Verás los últimos 60 datos simulados, el pronóstico a 24 pasos con bandas al 80 % y al 95 % (\(\sigma = 1\)) y, abajo, los pesos \(\psi_j\) que generan esas bandas.</p>
+      <p><b>Laboratorio 2: el abanico de pronóstico.</b> Elige un modelo y su coeficiente. Verás los últimos 60 datos simulados, el pronóstico a 24 pasos con bandas al 80 % y al 95 % (\(\sigma = 1\)) y, abajo, los pesos \(\psi_j\) que generan esas bandas.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · pronóstico ARIMA</span><span class="num" id="arima-f-head">–</span></div>
         <div class="lab-body">
@@ -192,9 +272,30 @@
         </div>
         <figcaption>En el AR(1) el pronóstico vuelve a la media y las bandas se estabilizan; con φ cercano a 1 tardan mucho en hacerlo. En el MA(1) todo pasa en un paso: desde h = 2 el pronóstico es la media. En los modelos con d = 1, los pesos ψ no se apagan y el abanico se abre sin límite.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con <b>AR(1)</b>, compara φ = 0,5 y φ = 0,95. Anota la σ a 24 pasos y el límite.
+          <details><summary>Qué deberías observar</summary><p>Con φ = 0,5 la σ ya está en su límite \(1/\sqrt{1-0{,}25} \approx 1{,}15\) a los pocos pasos. Con φ = 0,95 el límite es \(1/\sqrt{1-0{,}9025} \approx 3{,}20\) y a 24 pasos todavía no lo alcanza: la persistencia hace que el pronóstico tarde mucho en volver a la media.</p></details></li>
+        <li>Con <b>MA(1)</b>, mueve θ y mira los pesos ψ.
+          <details><summary>Qué deberías observar</summary><p>Solo \(\psi_0 = 1\) y \(\psi_1 = \theta\) son distintos de cero. Desde \(h = 2\) el pronóstico es la media y la σ es constante e igual a \(\sqrt{1 + \theta^2}\): un MA(1) tiene memoria de un solo período.</p></details></li>
+        <li>Con <b>ARIMA(0,1,1)</b>, lleva θ a −0,9 y después a 0,5.
+          <details><summary>Qué deberías observar</summary><p>Con θ = −0,9 (α = 0,1 en SES) el pronóstico es plano y el abanico se abre muy despacio: casi todo el choque es transitorio. Con θ = 0,5 los pesos valen 1,5 para siempre y el abanico se abre rápido: cada choque deja una huella permanente mayor que el choque mismo.</p></details></li>
+        <li>Con <b>ARIMA(1,1,0)</b> y φ = 0,8, compara σ a 6 y a 24 pasos con las del AR(1) con el mismo φ.
+          <details><summary>Qué deberías observar</summary><p>En el ARIMA(1,1,0) la σ no tiene límite (el readout lo indica) y a 24 pasos es varias veces mayor que la del AR(1). La diferencia entre modelar los niveles o los cambios no está en el pronóstico de mañana, sino en la incertidumbre a largo plazo.</p></details></li>
+      </ol>
 
-      <h2 id="arima-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
-      <p>Simulamos 240 semanas de precios con un ARIMA(2,1,0) y recorremos el ciclo de Box-Jenkins completo, como si no conociéramos el modelo: decidir \(d\), identificar con ACF y PACF, comparar candidatos por AIC, revisar residuos y pronosticar.</p>
+      <h2 id="arima-apl"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Industria: la concentración de un proceso químico</h3>
+      <p>La "Serie A" de Box y Jenkins son 197 lecturas de la concentración de un proceso químico tomadas cada dos horas. La serie deambula sin una tendencia clara. Los autores propusieron dos modelos casi equivalentes: un ARMA(1,1) con \(\phi \approx 0{,}92\) y una parte MA moderada, y un ARIMA(0,1,1) con \(\theta \approx -0{,}7\) en la convención de esta sesión. El segundo dice que el 30 % de cada choque persiste para siempre, es decir, que la concentración se pronostica como un promedio exponencial de las lecturas pasadas con \(\alpha \approx 0{,}3\). Para el ingeniero de control, la decisión es práctica: si el pronóstico a dos horas sale de la banda de especificación, ajusta el proceso antes de producir lotes defectuosos. Es el origen del subtítulo "Forecasting and Control" del libro.</p>
+      <h3>Ciencias de la Tierra: el ciclo de las manchas solares</h3>
+      <p>Yule ajustó en 1927 un AR(2) a las cifras anuales de manchas solares de Wolfer, con coeficientes del orden de \(\phi_1 \approx 1{,}3\) y \(\phi_2 \approx -0{,}6\). Con esos valores, \(\phi_1^2 + 4\phi_2 &lt; 0\): raíces complejas y un pseudo-ciclo de \(2\pi/\arccos\big(1{,}3/(2\sqrt{0{,}6})\big) \approx 11\) años, muy cerca del ciclo solar observado. La gran idea es que el ciclo no necesita un reloj externo: aparece porque cada año "recuerda" los dos anteriores y recibe choques aleatorios. La serie anual <code>sunspot.year</code> de R y <code>sm.datasets.sunspots</code> de statsmodels permiten reproducirlo; hoy se usa un AR de orden mayor (cerca de 9) para capturar la asimetría del ciclo. Los pronósticos de actividad solar importan a operadores de satélites y redes eléctricas.</p>
+      <h3>Economía: tipos de cambio y el paseo aleatorio</h3>
+      <p>Meese y Rogoff (1983) compararon modelos macroeconómicos estructurales del tipo de cambio contra un ARIMA(0,1,0), es decir, un paseo aleatorio que pronostica "mañana igual que hoy". A horizontes de 1 a 12 meses, el paseo aleatorio no fue superado por los modelos estructurales. En la práctica, cuando un analista ajusta un ARIMA al logaritmo del tipo de cambio diario suele encontrar \(d = 1\) y coeficientes AR o MA cercanos a cero: los cambios diarios son casi ruido blanco. La decisión que se desprende es de humildad: cualquier modelo nuevo debe compararse contra ese ingenuo antes de usarse para cubrir riesgo cambiario.</p>
+      <h3>Salud: demanda diaria en un servicio de urgencias</h3>
+      <p>Un hospital registra unas 180 consultas diarias de urgencias. Tras quitar el efecto del día de la semana (tema de la sesión de <a href="#sarima">SARIMA</a>), los residuos muestran un AR(1) con \(\phi \approx 0{,}4\): un día muy cargado suele seguir de otro algo cargado (por brotes respiratorios, por ejemplo). Con \(\sigma \approx 14\) consultas, el intervalo al 95 % para mañana es de unas \(\pm 27\) consultas y, a una semana, se estabiliza en \(\pm 1{,}96 \cdot 14/\sqrt{1-0{,}16} \approx \pm 30\). Con esa banda, la jefatura decide cuántos médicos de refuerzo dejar de guardia: planifica para el percentil 90, no para la media.</p>
+
+      <h2 id="arima-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>Simulamos 240 semanas de precios de un insumo con un ARIMA(2,1,0) y recorremos el ciclo de Box-Jenkins completo, como si no conociéramos el modelo: decidir \(d\), identificar con ACF y PACF, comparar candidatos por AIC, revisar residuos y pronosticar.</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
@@ -266,9 +367,9 @@ f; <span class="f">plot</span>(f)
 <span class="c"># La búsqueda automática debería llegar a algo parecido</span>
 <span class="f">auto.arima</span>(y, seasonal = <span class="k">FALSE</span>)</code></pre>
 </div>
-      <p>Qué deberías ver: el ADF no descarta la raíz unitaria en el nivel pero sí en los cambios, así que \(d = 1\). La PACF de los cambios tiene dos barras grandes (0,63 y 0,26) y luego se apaga, mientras la ACF decae poco a poco: firma de un AR(2). El AIC lo confirma, con el ARIMA(1,1,1) muy cerca (menos de 1 punto), un recordatorio de que varios modelos pueden describir igual de bien los mismos datos. Los coeficientes estimados (0,46 y 0,26) están cerca de los verdaderos, Ljung-Box no detecta autocorrelación en los residuos y el intervalo se abre rápido porque los cambios son persistentes.</p>
+      <p>Qué deberías ver: el ADF no descarta la raíz unitaria en el nivel (p ≈ 0,21) pero sí en los cambios (p ≈ 0,003), así que \(d = 1\). La PACF de los cambios tiene dos barras grandes (0,63 y 0,26) y luego se apaga, mientras la ACF decae poco a poco: firma de un AR(2). El AIC lo confirma, con el ARIMA(1,1,1) muy cerca (menos de 1 punto), un recordatorio de que varios modelos pueden describir igual de bien los mismos datos. Los coeficientes estimados (0,46 y 0,26) están cerca de los verdaderos, Ljung-Box no detecta autocorrelación en los residuos (p ≈ 0,37) y el intervalo se abre rápido porque los cambios son persistentes: de unas ±3,8 unidades a una semana a unas ±25 a ocho semanas. Con eso, el área de compras puede decidir si le conviene asegurar el precio con un contrato a plazo.</p>
 
-      <h2 id="arima-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <h2 id="arima-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Tras una diferencia, una ACF cortada en el rezago 1 con PACF que decae es la firma de un MA(1). Con d = 1, eso es un ARIMA(0,1,1)." data-wrong="Recuerda la tabla: ¿qué función se corta en un MA(q) y cuál en un AR(p)? Y no olvides contar la diferencia que ya aplicaste.">
         <h3>Diferencias una serie una vez. La ACF de la diferencia tiene una sola barra significativa, en el rezago 1, y la PACF decae gradualmente. ¿Qué modelo propones?</h3>
         <div class="opts">
@@ -299,42 +400,47 @@ f; <span class="f">plot</span>(f)
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="φ₁ + φ₂ = 1,1 es mayor que 1, así que se viola una de las tres condiciones del triángulo: una raíz queda dentro del círculo unitario y el proceso explota." data-wrong="No mires los coeficientes por separado. Revisa las tres condiciones del triángulo: φ₁ + φ₂ menor que 1, φ₂ − φ₁ menor que 1 y |φ₂| menor que 1.">
+        <h3>Un AR(2) tiene φ₁ = 0,6 y φ₂ = 0,5. ¿Es estacionario?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Sí, porque ambos coeficientes son menores que 1</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Sí, pero con pseudo-ciclos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>No, porque φ₁ + φ₂ es mayor que 1</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No se puede saber sin simular</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El ARIMA(0,1,1) equivale al SES con α = 1 + θ = 1 − 0,7 = 0,3: el pronóstico es plano y pondera la última observación con 0,3." data-wrong="Recuerda la equivalencia con el suavizamiento exponencial simple: α = 1 + θ.">
+        <h3>Ajustas un ARIMA(0,1,1) sin constante y obtienes θ = −0,7. ¿Cómo se comporta su pronóstico?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Vuelve a la media de la serie</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Es plano, como un SES con α = 0,3</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Es una recta con pendiente −0,7</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Es plano, como un SES con α = 0,7</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="arima-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
-      <p>Puedes comprobar los dos primeros con el laboratorio del § 4.</p>
+      <h2 id="arima-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Cada pregunta pide una derivación, un cálculo con datos o una simulación. Intenta resolverla antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Considera el AR(2) \(y_t = 0{,}5\,y_{t-1} + 0{,}3\,y_{t-2} + \varepsilon_t\). (a) ¿Es estacionario? (b) Calcula \(\rho_1\), \(\rho_2\) y \(\rho_3\). (c) ¿Sus raíces son reales o complejas?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para el ARMA(1,1) \(y_t = \phi y_{t-1} + \varepsilon_t + \theta\varepsilon_{t-1}\) estacionario e invertible: (a) deriva \(\gamma_0\), \(\gamma_1\) y la recursión de \(\gamma_k\) para \(k \ge 2\); (b) muestra que \(\rho_1 = \frac{(1+\phi\theta)(\phi+\theta)}{1 + 2\phi\theta + \theta^2}\); (c) evalúa con \(\phi = 0{,}7\), \(\theta = 0{,}4\) y explica por qué la ACF "decae desde el rezago 1".</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) \(\phi_1 + \phi_2 = 0{,}8 &lt; 1\), \(\phi_2 - \phi_1 = -0{,}2 &lt; 1\) y \(|\phi_2| = 0{,}3 &lt; 1\): <b>sí</b> es estacionario.</p>
-            <p>(b) \(\rho_1 = 0{,}5/(1 - 0{,}3) \approx 0{,}714\). Con Yule-Walker: \(\rho_2 = 0{,}5 \cdot 0{,}714 + 0{,}3 \cdot 1 \approx 0{,}657\) y \(\rho_3 = 0{,}5 \cdot 0{,}657 + 0{,}3 \cdot 0{,}714 \approx 0{,}543\). La ACF decae lento, sin oscilar.</p>
-            <p>(c) \(\phi_1^2 + 4\phi_2 = 0{,}25 + 1{,}2 = 1{,}45 &gt; 0\): raíces <b>reales</b>, por eso no hay pseudo-ciclos.</p>
+            <p>(a) Usa \(E[y_t\varepsilon_t] = \sigma^2\) y \(E[y_t \varepsilon_{t-1}] = \phi\sigma^2 + \theta\sigma^2 = (\phi+\theta)\sigma^2\). Multiplicando la ecuación por \(y_t\) y por \(y_{t-1}\) y tomando esperanzas:</p>
+            <div class="eq">\[ \gamma_0 = \phi\gamma_1 + \sigma^2 + \theta(\phi+\theta)\sigma^2, \qquad \gamma_1 = \phi\gamma_0 + \theta\sigma^2 \]</div>
+            <p>Sustituyendo la segunda en la primera: \(\gamma_0(1-\phi^2) = \sigma^2(1 + 2\phi\theta + \theta^2)\), así que \(\gamma_0 = \sigma^2\frac{1 + 2\phi\theta + \theta^2}{1-\phi^2}\). Para \(k \ge 2\), \(y_{t-k}\) no está correlacionado con \(\varepsilon_t\) ni con \(\varepsilon_{t-1}\), y queda \(\gamma_k = \phi\gamma_{k-1}\).</p>
+            <p>(b) \(\gamma_1 = \phi\gamma_0 + \theta\sigma^2 = \frac{\sigma^2}{1-\phi^2}\big[\phi(1 + 2\phi\theta + \theta^2) + \theta(1-\phi^2)\big] = \frac{\sigma^2}{1-\phi^2}(\phi + \theta)(1 + \phi\theta)\). Dividiendo por \(\gamma_0\) se obtiene la fórmula.</p>
+            <p>(c) \(\rho_1 = (1{,}28)(1{,}1)/(1 + 0{,}56 + 0{,}16) = 1{,}408/1{,}72 \approx 0{,}819\); luego \(\rho_2 = 0{,}573\), \(\rho_3 = 0{,}401\). El primer valor lo fija la combinación de ambas partes; desde ahí la caída es geométrica con razón \(\phi\), igual que en un AR(1), pero arrancando de un \(\rho_1\) distinto de \(\phi\). Esa es la firma "decae desde el rezago \(q = 1\)".</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Ajustas un ARIMA(1,1,1) a 150 observaciones y la prueba de Ljung-Box con \(h = 12\) sobre los residuos da \(Q = 24{,}1\). ¿Cuántos grados de libertad tiene la prueba? ¿Qué concluyes al 5 %? ¿Qué harías después?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Grados de libertad: \(h - p - q = 12 - 1 - 1 = 10\). El valor crítico es \(\chi^2_{10;\,0{,}95} \approx 18{,}31\), y \(24{,}1 &gt; 18{,}31\) (valor p ≈ 0,007): se <b>rechaza</b> que los residuos sean ruido blanco.</p>
-            <p>Queda dependencia sin explicar. Mira la ACF de los residuos para ver dónde: si el pico está en un rezago corto, sube \(p\) o \(q\); si está en un rezago como 12 en datos mensuales, falta un componente estacional (próxima sesión). Vuelve a estimar y a diagnosticar.</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Un ARIMA(1,1,0) sin constante tiene \(\phi = 0{,}4\) y \(\sigma = 2\). Los dos últimos datos son \(y_{T-1} = 47\) y \(y_T = 50\). (a) Pronostica \(y_{T+1}\) y \(y_{T+2}\). (b) Calcula sus intervalos al 95 %. (c) ¿A qué valor converge el pronóstico?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) El último cambio es 3. \(\hat y_{T+1} = 50 + 0{,}4 \cdot 3 = 51{,}2\); el cambio pronosticado siguiente es \(0{,}4 \cdot 1{,}2 = 0{,}48\), así que \(\hat y_{T+2} = 51{,}68\).</p>
-            <p>(b) Los pesos de la serie integrada son sumas acumuladas de \(\phi^j\): \(\psi_0 = 1\), \(\psi_1 = 1 + 0{,}4 = 1{,}4\). Varianza a 1 paso: \(4\); a 2 pasos: \(4(1 + 1{,}96) = 11{,}84\), desviación ≈ 3,44. Intervalos: \(51{,}2 \pm 3{,}92 = [47{,}28;\ 55{,}12]\) y \(51{,}68 \pm 6{,}74 = [44{,}94;\ 58{,}42]\).</p>
-            <p>(c) Los cambios pronosticados forman una serie geométrica \(3(0{,}4 + 0{,}4^2 + \dots) = 3 \cdot 0{,}4/0{,}6 = 2\): el pronóstico se aplana en <b>52</b>.</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
           <p>(a) Muestra que los pesos de Wold de un ARMA(1,1) son \(\psi_j = (\phi + \theta)\,\phi^{\,j-1}\) para \(j \ge 1\). (b) ¿Qué pasa cuando \(\theta = -\phi\)? (c) Simula 300 valores de ruido blanco, ajústales un ARMA(1,1) sin constante y explica lo que ves en los coeficientes, sus errores estándar y el AIC.</p>
           <details><summary>Ver solución</summary><div class="sol">
             <p>(a) Con la recursión \(\psi_j = \theta_j + \phi\,\psi_{j-1}\): \(\psi_1 = \theta + \phi\), y para \(j \ge 2\) ya no hay \(\theta_j\), así que \(\psi_j = \phi\,\psi_{j-1} = (\phi + \theta)\phi^{\,j-1}\).</p>
-            <p>(b) Todos los \(\psi_j\) con \(j \ge 1\) valen 0: el proceso es ruido blanco. Es la redundancia de parámetros: \((1 - \phi B)\,y_t = (1 - \phi B)\,\varepsilon_t\) se simplifica a \(y_t = \varepsilon_t\), y los datos no pueden identificar \(\phi\).</p>
+            <p>(b) Todos los \(\psi_j\) con \(j \ge 1\) valen 0: el proceso es ruido blanco. Es la redundancia de parámetros: \((1 - \phi B)\,y_t = (1 - \phi B)\,\varepsilon_t\) se simplifica a \(y_t = \varepsilon_t\), y los datos no pueden identificar \(\phi\). La verosimilitud es casi plana a lo largo de la recta \(\theta = -\phi\).</p>
             <p>(c) La estimación da coeficientes casi opuestos con errores estándar enormes, y el ruido blanco tiene menor AIC:</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
@@ -359,6 +465,80 @@ arma                      <span class="c"># φ y θ de signo opuesto y errores e
 ruido &lt;- <span class="f">arima</span>(e, order = <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>), include.mean = <span class="k">FALSE</span>)
 <span class="f">c</span>(<span class="f">AIC</span>(ruido), <span class="f">AIC</span>(arma))  <span class="c"># el ruido blanco suele tener menor AIC</span></code></pre>
 </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para un ARIMA(1,1,0) sin constante con \(|\phi| &lt; 1\): (a) demuestra que el pronóstico converge a \(y_T + \frac{\phi}{1-\phi}(y_T - y_{T-1})\); (b) obtén los pesos \(\psi_j\) de la serie integrada y muestra que \(\psi_j \to 1/(1-\phi)\); (c) deduce que, para \(h\) grande, \(\sigma_h \approx \frac{\sigma\sqrt h}{1-\phi}\). (d) Con \(\phi = 0{,}4\), \(\sigma = 2\), ¿cuánto mide la semiamplitud del IC al 95 % a 25 pasos?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Sea \(w_t = y_t - y_{t-1}\). Su pronóstico es \(\hat w_{T+j} = \phi^j w_T\). El nivel es \(\hat y_{T+h} = y_T + \sum_{j=1}^{h}\phi^j w_T\), y la suma geométrica converge a \(\phi/(1-\phi)\).</p>
+            <p>(b) Los pesos del AR(1) en \(w_t\) son \(\phi^j\); los de \(y_t\) son sus sumas acumuladas: \(\psi_j = \sum_{i=0}^{j}\phi^i = \frac{1-\phi^{j+1}}{1-\phi} \to \frac{1}{1-\phi}\).</p>
+            <p>(c) \(\sigma_h^2 = \sigma^2\sum_{j=0}^{h-1}\psi_j^2\). Como \(\psi_j^2 \to 1/(1-\phi)^2\), la suma crece como \(h/(1-\phi)^2\) más un término acotado, y \(\sigma_h \approx \sigma\sqrt h/(1-\phi)\).</p>
+            <p>(d) Aproximación: \(1{,}96 \cdot 2 \cdot 5/0{,}6 \approx 32{,}7\). El cálculo exacto con la suma da un poco menos, porque los primeros pesos son menores que el límite:</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+phi, sigma, h = <span class="n">0.4</span>, <span class="n">2.0</span>, <span class="n">25</span>
+psi = (<span class="n">1</span> - phi ** np.<span class="f">arange</span>(<span class="n">1</span>, h + <span class="n">1</span>)) / (<span class="n">1</span> - phi)    <span class="c"># ψ_0 … ψ_24</span>
+sd_h = sigma * np.<span class="f">sqrt</span>(np.<span class="f">sum</span>(psi ** <span class="n">2</span>))
+<span class="f">print</span>(<span class="f">round</span>(<span class="n">1.96</span> * sd_h, <span class="n">1</span>))                         <span class="c"># 31.9</span>
+<span class="f">print</span>(<span class="f">round</span>(<span class="n">1.96</span> * sigma * np.<span class="f">sqrt</span>(h) / (<span class="n">1</span> - phi), <span class="n">1</span>))   <span class="c"># 32.7, la aproximación</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>phi &lt;- <span class="n">0.4</span>; sigma &lt;- <span class="n">2</span>; h &lt;- <span class="n">25</span>
+psi &lt;- (<span class="n">1</span> - phi^(<span class="n">1</span>:h)) / (<span class="n">1</span> - phi)                <span class="c"># ψ_0 … ψ_24</span>
+<span class="n">1.96</span> * sigma * <span class="f">sqrt</span>(<span class="f">sum</span>(psi^<span class="n">2</span>))                   <span class="c"># 31.9</span>
+<span class="c"># comprobación con la función de pesos de stats (para el ARMA de los cambios)</span>
+<span class="f">cumsum</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="f">ARMAtoMA</span>(ar = phi, lag.max = h - <span class="n">1</span>)))[<span class="n">1</span>:<span class="n">5</span>]   <span class="c"># 1 1.4 1.56 1.624 1.6496</span></code></pre>
+</div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Demuestra que el ARIMA(0,1,1) \(y_t = y_{t-1} + \varepsilon_t + \theta\varepsilon_{t-1}\) con \(-1 &lt; \theta &lt; 0\) produce el mismo pronóstico que el suavizamiento exponencial simple con \(\alpha = 1 + \theta\), y que su varianza de error a \(h\) pasos es \(\sigma^2[1 + (h-1)\alpha^2]\). Interpreta qué significa \(\theta\) cercano a \(-1\) y cercano a 0.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>Pronóstico.</b> Con las reglas del § 6: \(\hat y_{T+1} = y_T + \theta\varepsilon_T\), y el residuo es \(\varepsilon_T = y_T - \hat y_{T\mid T-1}\). Entonces \(\hat y_{T+1} = y_T + \theta(y_T - \hat y_T) = (1+\theta)\,y_T - \theta\,\hat y_T = \alpha y_T + (1-\alpha)\hat y_T\), que es la ecuación del SES. Para \(h \ge 2\), los choques futuros valen 0 y \(\hat y_{T+h} = \hat y_{T+1}\): pronóstico plano.</p>
+            <p><b>Varianza.</b> Los pesos de \(\nabla y_t\) son \(1, \theta, 0, \dots\); los de \(y_t\) son sus sumas acumuladas: \(\psi_0 = 1\) y \(\psi_j = 1 + \theta = \alpha\) para \(j \ge 1\). Así, \(\sigma_h^2 = \sigma^2(1 + (h-1)\alpha^2)\).</p>
+            <p><b>Interpretación.</b> \(\alpha\) es la fracción de cada choque que se vuelve permanente. Con \(\theta \to -1\) (\(\alpha \to 0\)), casi todo es ruido transitorio alrededor de un nivel estable, y el modelo se acerca a "media constante". Con \(\theta \to 0\) (\(\alpha \to 1\)), todo choque es permanente: paseo aleatorio, y el mejor pronóstico es el último dato.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudio de Monte Carlo. Para un AR(1) con media estimada, el estimador de mínimos cuadrados de \(\phi\) está sesgado hacia abajo en muestras cortas, con sesgo aproximado \(-(1+3\phi)/T\) (Kendall, 1954). (a) Simula 5 000 series con \(\phi \in \{0{,}5;\ 0{,}9\}\) y \(T \in \{50;\ 200\}\) y compara el sesgo empírico con la fórmula. (b) ¿Qué consecuencia tiene este sesgo para el pronóstico a largo plazo y para una prueba de raíz unitaria?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">2024</span>)
+
+<span class="k">def</span> <span class="f">sim_ar1</span>(phi, n, burn=<span class="n">200</span>):
+    e = rng.<span class="f">normal</span>(size=n + burn)
+    y = np.<span class="f">zeros</span>(n + burn)
+    <span class="k">for</span> t <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, n + burn):
+        y[t] = phi * y[t - <span class="n">1</span>] + e[t]
+    <span class="k">return</span> y[burn:]
+
+<span class="k">def</span> <span class="f">ols_phi</span>(y):                     <span class="c"># regresión de y_t sobre y_{t-1} con constante</span>
+    x, z = y[:-<span class="n">1</span>] - y[:-<span class="n">1</span>].<span class="f">mean</span>(), y[<span class="n">1</span>:] - y[<span class="n">1</span>:].<span class="f">mean</span>()
+    <span class="k">return</span> (x @ z) / (x @ x)
+
+<span class="k">for</span> phi <span class="k">in</span> [<span class="n">0.5</span>, <span class="n">0.9</span>]:
+    <span class="k">for</span> n <span class="k">in</span> [<span class="n">50</span>, <span class="n">200</span>]:
+        est = np.<span class="f">array</span>([<span class="f">ols_phi</span>(<span class="f">sim_ar1</span>(phi, n)) <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">5000</span>)])
+        <span class="f">print</span>(phi, n, <span class="s">"sesgo ="</span>, <span class="f">round</span>(est.<span class="f">mean</span>() - phi, <span class="n">3</span>),
+              <span class="s">"Kendall ="</span>, <span class="f">round</span>(-(<span class="n">1</span> + <span class="n">3</span> * phi) / n, <span class="n">3</span>))
+<span class="c"># 0.5  50  sesgo ≈ -0.049  Kendall = -0.05</span>
+<span class="c"># 0.5 200  sesgo ≈ -0.012  Kendall = -0.013</span>
+<span class="c"># 0.9  50  sesgo ≈ -0.082  Kendall = -0.074</span>
+<span class="c"># 0.9 200  sesgo ≈ -0.020  Kendall = -0.019</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">2024</span>)
+ols_phi &lt;- <span class="k">function</span>(y) <span class="f">coef</span>(<span class="f">lm</span>(y[-<span class="n">1</span>] ~ y[-<span class="f">length</span>(y)]))[<span class="n">2</span>]
+<span class="k">for</span> (phi <span class="k">in</span> <span class="f">c</span>(<span class="n">0.5</span>, <span class="n">0.9</span>)) <span class="k">for</span> (n <span class="k">in</span> <span class="f">c</span>(<span class="n">50</span>, <span class="n">200</span>)) {
+  est &lt;- <span class="f">replicate</span>(<span class="n">5000</span>, <span class="f">ols_phi</span>(<span class="f">arima.sim</span>(<span class="f">list</span>(ar = phi), n = n)))
+  <span class="f">cat</span>(phi, n, <span class="s">"sesgo ="</span>, <span class="f">round</span>(<span class="f">mean</span>(est) - phi, <span class="n">3</span>),
+      <span class="s">"Kendall ="</span>, <span class="f">round</span>(-(<span class="n">1</span> + <span class="n">3</span> * phi) / n, <span class="n">3</span>), <span class="s">"\n"</span>)
+}   <span class="c"># sesgos ≈ los de la fórmula</span></code></pre>
+</div>
+            <p>(a) La fórmula acierta muy bien con \(\phi = 0{,}5\) y algo peor con \(\phi = 0{,}9\) y \(T = 50\), donde la aproximación de primer orden pierde precisión cerca de la raíz unitaria. El sesgo cae como \(1/T\): con \(T = 200\) es cuatro veces menor.</p>
+            <p>(b) Un \(\hat\phi\) sesgado hacia abajo hace que el pronóstico vuelva a la media más rápido de lo que debería y subestima la persistencia de los choques, y los intervalos a largo plazo salen demasiado estrechos. En una prueba de raíz unitaria, el mismo sesgo explica por qué el estadístico no sigue una \(t\): bajo \(\phi = 1\) la distribución de \(\hat\phi\) está desplazada a la izquierda, y por eso las tablas de Dickey-Fuller tienen valores críticos más negativos.</p>
           </div></details>
         </div>
       </div>

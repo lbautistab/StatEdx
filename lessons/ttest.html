@@ -6,30 +6,33 @@
       <div class="crumbs"></div>
       <h1>Pruebas t para una y dos medias</h1>
       <p>¿La app de reparto tarda más de lo que promete? ¿El método nuevo de estudio sube las notas? ¿El tratamiento baja la presión? Las tres preguntas comparan medias con pocos datos y σ desconocida, y las tres se responden con la misma herramienta: la prueba t, en sus versiones para una muestra, dos muestras independientes y muestras pareadas.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel intermedio</span><span>Requiere: pruebas de hipótesis</span><span>R · Python</span></div>
+      <div class="lmeta"><span>90 min</span><span>Nivel intermedio</span><span>Requiere: pruebas de hipótesis</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#ttest-idea" data-sec="ttest-idea">La idea</a></li>
-        <li><a href="#ttest-dist" data-sec="ttest-dist">La distribución t</a></li>
-        <li><a href="#ttest-una" data-sec="ttest-una">Una muestra</a></li>
-        <li><a href="#ttest-dos" data-sec="ttest-dos">Dos muestras independientes</a></li>
-        <li><a href="#ttest-par" data-sec="ttest-par">Muestras pareadas</a></li>
-        <li><a href="#ttest-lab" data-sec="ttest-lab">Laboratorio</a></li>
-        <li><a href="#ttest-efecto" data-sec="ttest-efecto">Tamaño del efecto</a></li>
-        <li><a href="#ttest-supuestos" data-sec="ttest-supuestos">Supuestos y errores comunes</a></li>
+        <li><a href="#ttest-intro" data-sec="ttest-intro">Introducción</a></li>
+        <li><a href="#ttest-def" data-sec="ttest-def">Definición</a></li>
+        <li><a href="#ttest-dist" data-sec="ttest-dist">La distribución t de Student</a></li>
+        <li><a href="#ttest-una" data-sec="ttest-una">Prueba t para una muestra</a></li>
+        <li><a href="#ttest-dos" data-sec="ttest-dos">Dos muestras: Student y Welch</a></li>
+        <li><a href="#ttest-par" data-sec="ttest-par">Pareadas, efecto y potencia</a></li>
+        <li><a href="#ttest-prop" data-sec="ttest-prop">Propiedades</a></li>
+        <li><a href="#ttest-lab" data-sec="ttest-lab">Ejercicios de simulación</a></li>
+        <li><a href="#ttest-apl" data-sec="ttest-apl">Aplicaciones reales</a></li>
         <li><a href="#ttest-code" data-sec="ttest-code">En R y Python</a></li>
-        <li><a href="#ttest-quiz" data-sec="ttest-quiz">Comprueba</a></li>
-        <li><a href="#ttest-ej" data-sec="ttest-ej">Ejercicios</a></li>
+        <li><a href="#ttest-quiz" data-sec="ttest-quiz">Quiz</a></li>
+        <li><a href="#ttest-ej" data-sec="ttest-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="ttest-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="ttest-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una app de reparto promete entregas en 30 minutos. Pides comida 10 veces y cronometras: 32, 35, 29, 38, 31, 34, 36, 30, 33 y 37 minutos. El promedio es 33,5. ¿La app incumple su promesa, o tuviste mala suerte con esas 10 entregas?</p>
-      <p>Para responder necesitas comparar la diferencia observada (3,5 minutos) con lo que cabría esperar por puro azar. El problema es que no conoces la desviación típica \(\sigma\) de todos los tiempos de entrega: solo tienes la de tu muestra. Esa incertidumbre extra es justamente lo que resuelve la prueba t, que aparece en tres situaciones:</p>
+      <p>Para responder necesitas comparar la diferencia observada (3,5 minutos) con lo que cabría esperar por puro azar. El problema es que no conoces la desviación típica \(\sigma\) de todos los tiempos de entrega: solo tienes la de tu muestra. Si usaras la normal como si \(s\) fuera \(\sigma\), te mostrarías más seguro de lo que tus datos permiten. Esa incertidumbre extra es justamente lo que resuelve la prueba t.</p>
+      <p><b>Un poco de historia.</b> A comienzos del siglo XX, William Sealy Gosset trabajaba como químico en la cervecería Guinness de Dublín. Debía decidir con muy pocas mediciones (a veces 4 o 5 lotes de cebada o de lúpulo) si una variedad era mejor que otra. Los métodos de la época, pensados por Karl Pearson para muestras grandes, trataban \(s\) como si fuera \(\sigma\), y con muestras tan chicas eso fallaba. Gosset dedujo la distribución correcta del cociente y la publicó en 1908 en la revista <i>Biometrika</i> con el artículo “The probable error of a mean”, firmado con el seudónimo <b>Student</b> porque Guinness no dejaba publicar a sus empleados. Años después, Ronald Fisher le dio la forma actual, introdujo el concepto de grados de libertad y extendió la idea a dos muestras y a la regresión.</p>
+      <p>Hoy la prueba t aparece en tres situaciones:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Situación</th><th>Pregunta</th><th>Ejemplo de esta clase</th></tr></thead>
         <tbody>
@@ -38,31 +41,91 @@
           <tr><td><b>Muestras pareadas</b></td><td>¿Cambia la media en las mismas unidades medidas dos veces?</td><td>Presión arterial de 8 pacientes antes y después de un tratamiento</td></tr>
         </tbody>
       </table></div>
-      <div class="callout"><b>La pregunta de fondo siempre es la misma:</b> ¿la diferencia entre lo observado y lo esperado es grande comparada con su error estándar? La prueba t mide esa diferencia en “errores estándar” y la compara con la distribución t.</div>
-
-      <h2 id="ttest-dist"><span class="sec">§ 2</span>La distribución t</h2>
-      <p>Si conocieras \(\sigma\), el estadístico \(z = (\bar x - \mu_0)/(\sigma/\sqrt n)\) seguiría una normal estándar. Como no la conoces, la reemplazas por la desviación típica muestral \(s\). Ese cambio tiene un costo: \(s\) también varía de muestra en muestra, así que el cociente varía más que una normal.</p>
-      <div class="eq">\[ t = \frac{\bar x - \mu_0}{s/\sqrt{n}} \;\sim\; t_{n-1} \quad\text{bajo } H_0, \qquad s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)^2} \]
-        <div class="note">William Gosset la publicó en 1908 con el seudónimo “Student” mientras controlaba la calidad de la cerveza en Guinness, donde las muestras eran pequeñas. Supone que los datos vienen de una población normal.</div>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Definir la distribución t a partir de la normal y la chi-cuadrado, y explicar por qué tiene colas más pesadas.</li>
+          <li>Plantear y resolver a mano las pruebas t de una muestra, de dos muestras (Student y Welch) y pareada, con su intervalo de confianza.</li>
+          <li>Derivar la varianza agrupada y los grados de libertad de Welch-Satterthwaite.</li>
+          <li>Elegir la prueba correcta según el diseño del estudio, no según los datos.</li>
+          <li>Reportar tamaño del efecto (d de Cohen, g de Hedges, d<sub>z</sub>) y calcular la potencia y el tamaño de muestra.</li>
+          <li>Reconocer cuándo los supuestos fallan y qué alternativa usar.</li>
+        </ul>
       </div>
-      <p>La distribución \(t\) tiene forma de campana, es simétrica alrededor de 0 y tiene <b>colas más pesadas</b> que la normal. Su único parámetro son los <b>grados de libertad</b> (gl), que en una muestra valen \(n - 1\): estimar la media “gasta” un grado de libertad. Con más datos, \(s\) se parece cada vez más a \(\sigma\) y la t se acerca a la normal:</p>
+
+      <h2 id="ttest-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Todo empieza con dos ingredientes que ya conoces de las sesiones de <a href="#normal">distribución normal</a> y <a href="#continuas">distribuciones continuas</a>: una normal estándar \(Z\) y una chi-cuadrado \(V\) con \(\nu\) grados de libertad.</p>
+      <div class="callout"><b>Definición (distribución t de Student).</b> Si \(Z \sim N(0,1)\) y \(V \sim \chi^2_\nu\) son <b>independientes</b>, la variable
+        \[ T = \frac{Z}{\sqrt{V/\nu}} \]
+        sigue una distribución <b>t con \(\nu\) grados de libertad</b>, que se escribe \(T \sim t_\nu\). Su densidad es
+        \[ f(t) = \frac{\Gamma\!\left(\frac{\nu+1}{2}\right)}{\sqrt{\nu\pi}\;\Gamma\!\left(\frac{\nu}{2}\right)}\left(1 + \frac{t^2}{\nu}\right)^{-\frac{\nu+1}{2}}, \qquad t \in \mathbb{R}. \]
+      </div>
+      <p>Cada pieza tiene un papel:</p>
+      <ul>
+        <li>\(Z\) es la parte “señal”: la distancia entre lo observado y lo esperado, medida con el error estándar verdadero.</li>
+        <li>\(V/\nu\) es un promedio de \(\nu\) cuadrados de normales estándar. Su media es 1, pero fluctúa. Dividir por \(\sqrt{V/\nu}\) representa el hecho de que el error estándar también se estima.</li>
+        <li>\(\nu\) (los <b>grados de libertad</b>) cuenta cuánta información independiente hay para estimar la variabilidad. En una muestra de tamaño \(n\), \(\nu = n - 1\), porque la media muestral ya “usó” una restricción: las desviaciones \(x_i - \bar x\) siempre suman cero.</li>
+      </ul>
+      <p><b>Ejemplo numérico pequeño.</b> Supón que en una realización \(Z = 1{,}2\) y \(V = 6\) con \(\nu = 4\). Entonces \(T = 1{,}2/\sqrt{6/4} = 1{,}2/1{,}225 = 0{,}98\). Si en otra realización \(V\) hubiera salido pequeño, digamos \(V = 1\), el mismo \(Z\) daría \(T = 1{,}2/\sqrt{0{,}25} = 2{,}4\). Ese segundo caso es el que engorda las colas: un denominador pequeño por azar infla el estadístico.</p>
+      <p>En la práctica nunca calculas \(Z\) y \(V\) por separado. Lo que calculas es el <b>estadístico t</b>, que tiene siempre la misma forma:</p>
+      <div class="eq">\[ t = \frac{\text{estimación} - \text{valor bajo } H_0}{\text{error estándar estimado}}, \qquad \text{por ejemplo}\quad t = \frac{\bar x - \mu_0}{s/\sqrt{n}},\quad s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)^2} \]
+        <div class="note">Con los tiempos de entrega: \(\bar x = 33{,}5\), \(s = 3{,}03\), \(n = 10\), así que \(t = 3{,}5/(3{,}03/\sqrt{10}) = 3{,}66\) con 9 grados de libertad.</div>
+      </div>
+      <p>La <b>prueba t</b> es el procedimiento que compara ese valor con la distribución \(t_\nu\): si cae en las colas (valor p pequeño), los datos son poco compatibles con \(H_0\). Recuerda de la sesión de <a href="#ph">pruebas de hipótesis</a> que el valor p es la probabilidad, calculada suponiendo \(H_0\), de obtener un estadístico al menos tan extremo como el observado.</p>
+
+      <h2 id="ttest-dist"><span class="sec">§ 3</span>La distribución t de Student</h2>
+      <p><b>Supuestos.</b> \(X_1, \dots, X_n\) son independientes e idénticamente distribuidas como \(N(\mu, \sigma^2)\). Bajo ese modelo hay un resultado central, conocido como teorema de Cochran en su versión general:</p>
+      <div class="callout"><b>Teorema.</b> Si \(X_1,\dots,X_n \overset{iid}{\sim} N(\mu,\sigma^2)\), entonces (a) \(\bar X \sim N(\mu, \sigma^2/n)\); (b) \((n-1)S^2/\sigma^2 \sim \chi^2_{n-1}\); y (c) \(\bar X\) y \(S^2\) son <b>independientes</b>.</div>
+      <p><b>Derivación del estadístico.</b> Con esas tres piezas el resultado sale en tres pasos:</p>
+      <ol>
+        <li>Estandarizas la media: \(Z = \dfrac{\bar X - \mu}{\sigma/\sqrt n} \sim N(0,1)\).</li>
+        <li>Llamas \(V = (n-1)S^2/\sigma^2 \sim \chi^2_{n-1}\), independiente de \(Z\) por (c).</li>
+        <li>Formas el cociente de la definición con \(\nu = n-1\):
+          \[ T = \frac{Z}{\sqrt{V/(n-1)}} = \frac{(\bar X - \mu)\big/(\sigma/\sqrt n)}{\sqrt{S^2/\sigma^2}} = \frac{\bar X - \mu}{S/\sqrt n} \sim t_{n-1}. \]
+          La \(\sigma\) desconocida se cancela: ese es el truco de Gosset. El estadístico ya no depende de ningún parámetro desconocido salvo \(\mu\), que es justamente lo que pruebas.</li>
+      </ol>
+      <p><b>Forma y momentos.</b> La densidad es simétrica alrededor de 0 y tiene forma de campana, pero sus colas decaen como una potencia \(|t|^{-(\nu+1)}\), mucho más lento que el \(e^{-t^2/2}\) de la normal. Por eso:</p>
+      <ul>
+        <li>\(E[T] = 0\) si \(\nu &gt; 1\) (con \(\nu = 1\), la distribución de Cauchy, la media ni siquiera existe).</li>
+        <li>\(\operatorname{Var}(T) = \dfrac{\nu}{\nu-2}\) si \(\nu &gt; 2\). Con \(\nu = 5\) la varianza es 1,67; con \(\nu = 30\), 1,07; tiende a 1.</li>
+        <li>Cuando \(\nu \to \infty\), \(V/\nu \to 1\) por la ley de los grandes números, así que \(T \to N(0,1)\) en distribución.</li>
+      </ul>
+      <p>La tabla de valores críticos muestra el costo de no conocer \(\sigma\):</p>
       <div class="tablewrap"><table>
-        <thead><tr><th>gl</th><td>2</td><td>5</td><td>10</td><td>30</td><td>∞ (normal)</td></tr></thead>
-        <tbody><tr><th>\(t_{0{,}025}\)</th><td>4,303</td><td>2,571</td><td>2,228</td><td>2,042</td><td>1,960</td></tr></tbody>
+        <thead><tr><th>gl</th><td>1</td><td>2</td><td>5</td><td>10</td><td>30</td><td>100</td><td>∞ (normal)</td></tr></thead>
+        <tbody>
+          <tr><th>\(t_{0{,}025}\)</th><td>12,706</td><td>4,303</td><td>2,571</td><td>2,228</td><td>2,042</td><td>1,984</td><td>1,960</td></tr>
+          <tr><th>\(\operatorname{Var}(T)\)</th><td>no existe</td><td>∞</td><td>1,667</td><td>1,250</td><td>1,071</td><td>1,020</td><td>1</td></tr>
+        </tbody>
       </table></div>
-      <p>Con muestras pequeñas el valor crítico es bastante mayor que 1,96: hace falta más evidencia para rechazar, que es la forma honesta de pagar por no conocer \(\sigma\).</p>
+      <p><b>Interpretación.</b> Con muestras pequeñas el valor crítico es bastante mayor que 1,96: hace falta más evidencia para rechazar, que es la forma honesta de pagar por estimar \(\sigma\). A partir de unos 30 grados de libertad la diferencia con la normal es de centésimas, y por eso muchos textos dicen que “con n grande da igual”. Lo que no da igual es la normalidad de los datos cuando \(n\) es chico, como verás en las propiedades.</p>
+      <p><b>Relación con otras sesiones.</b> La misma construcción “normal entre raíz de chi-cuadrado” aparece en los intervalos para la media (<a href="#ic">intervalos de confianza</a>), en los coeficientes de <a href="#reg">regresión</a> (con \(n-2\) gl) y, elevada al cuadrado, en la F del <a href="#anova">ANOVA</a>.</p>
 
-      <h2 id="ttest-una"><span class="sec">§ 3</span>Prueba t para una muestra</h2>
-      <p>Planteas \(H_0: \mu = \mu_0\) frente a \(H_1: \mu \neq \mu_0\) (bilateral) o \(H_1: \mu &gt; \mu_0\) (unilateral, solo si la dirección se decidió antes de ver los datos). Con los 10 tiempos de entrega y \(\mu_0 = 30\):</p>
-      <div class="eq">\[ \bar x = 33{,}5,\quad s = 3{,}03,\quad SE = \frac{3{,}03}{\sqrt{10}} = 0{,}957,\qquad t = \frac{33{,}5 - 30}{0{,}957} = 3{,}66 \text{ con } 9 \text{ gl} \]
-        <div class="note">El valor p bilateral es \(P(|T_9| \ge 3{,}66) = 0{,}0053\). Como \(3{,}66 &gt; t_{0{,}025;\,9} = 2{,}262\), se rechaza \(H_0\) con \(\alpha = 0{,}05\).</div>
-      </div>
-      <p>El intervalo de confianza del 95 % para la media usa el mismo cuantil y cuenta la historia completa:</p>
+      <h2 id="ttest-una"><span class="sec">§ 4</span>Prueba t para una muestra</h2>
+      <p>Planteas \(H_0: \mu = \mu_0\) frente a una de tres alternativas, decididas <b>antes</b> de ver los datos:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Alternativa</th><th>Región de rechazo al nivel α</th><th>Valor p</th></tr></thead>
+        <tbody>
+          <tr><td>\(H_1: \mu \neq \mu_0\) (bilateral)</td><td>\(|t| &gt; t_{\alpha/2,\,n-1}\)</td><td>\(2\,P(T_{n-1} \ge |t|)\)</td></tr>
+          <tr><td>\(H_1: \mu &gt; \mu_0\)</td><td>\(t &gt; t_{\alpha,\,n-1}\)</td><td>\(P(T_{n-1} \ge t)\)</td></tr>
+          <tr><td>\(H_1: \mu &lt; \mu_0\)</td><td>\(t &lt; -t_{\alpha,\,n-1}\)</td><td>\(P(T_{n-1} \le t)\)</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Ejemplo resuelto a mano.</b> Con los 10 tiempos de entrega y \(\mu_0 = 30\):</p>
+      <ol>
+        <li>Media: \(\bar x = (32+35+29+38+31+34+36+30+33+37)/10 = 335/10 = 33{,}5\).</li>
+        <li>Desviaciones al cuadrado: \(2{,}25;\ 2{,}25;\ 20{,}25;\ 20{,}25;\ 6{,}25;\ 0{,}25;\ 6{,}25;\ 12{,}25;\ 0{,}25;\ 12{,}25\). Suman 82,5.</li>
+        <li>Varianza y desviación: \(s^2 = 82{,}5/9 = 9{,}167\) y \(s = 3{,}03\).</li>
+        <li>Error estándar: \(SE = 3{,}03/\sqrt{10} = 0{,}957\).</li>
+        <li>Estadístico: \(t = (33{,}5 - 30)/0{,}957 = 3{,}66\) con 9 gl.</li>
+        <li>Decisión: \(t_{0{,}025;\,9} = 2{,}262\). Como \(3{,}66 &gt; 2{,}262\), se rechaza \(H_0\) con \(\alpha = 0{,}05\); el valor p bilateral es \(P(|T_9| \ge 3{,}66) = 0{,}0053\).</li>
+      </ol>
+      <p><b>Dualidad con el intervalo.</b> El intervalo de confianza al \(1-\alpha\) contiene exactamente los valores \(\mu_0\) que la prueba bilateral no rechazaría:</p>
       <div class="eq">\[ \bar x \pm t_{\alpha/2,\,n-1}\,\frac{s}{\sqrt n} = 33{,}5 \pm 2{,}262 \cdot 0{,}957 = [31{,}3;\ 35{,}7] \text{ minutos} \]
-        <div class="note">El 30 queda fuera del intervalo, lo que equivale a rechazar \(H_0\) al 5 % en la prueba bilateral. Además el intervalo dice cuánto se pasa la app: entre 1,3 y 5,7 minutos en promedio.</div>
+        <div class="note">El 30 queda fuera del intervalo, lo que equivale a rechazar \(H_0\) al 5 %. Además el intervalo dice cuánto se pasa la app: entre 1,3 y 5,7 minutos en promedio. El intervalo informa más que la decisión.</div>
       </div>
+      <p><b>¿Por qué funciona la dualidad?</b> Porque \(|\bar x - \mu_0|/SE \le t_{\alpha/2}\) es lo mismo que \(\bar x - t_{\alpha/2}SE \le \mu_0 \le \bar x + t_{\alpha/2}SE\). No es una coincidencia sino la misma desigualdad despejada de dos maneras.</p>
 
-      <h2 id="ttest-dos"><span class="sec">§ 4</span>Dos muestras independientes: Student y Welch</h2>
+      <h2 id="ttest-dos"><span class="sec">§ 5</span>Dos muestras independientes: Student y Welch</h2>
       <p>Una escuela compara dos formas de enseñar el mismo tema. Un grupo de 12 estudiantes recibe clase tradicional y otro de 10 recibe clase con práctica guiada. Los grupos son distintas personas, así que las muestras son <b>independientes</b>.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Grupo</th><th>n</th><th>Media</th><th>Desv. típica</th></tr></thead>
@@ -71,19 +134,31 @@
           <tr><td>Con práctica: 74, 80, 69, 85, 77, 72, 88, 76, 79, 70</td><td>10</td><td>77,00</td><td>6,20</td></tr>
         </tbody>
       </table></div>
-      <p>La hipótesis nula es \(H_0: \mu_1 = \mu_2\). El estadístico siempre tiene la forma “diferencia de medias entre su error estándar”; lo que cambia es cómo se estima ese error estándar.</p>
-      <p><b>Student (varianzas iguales).</b> Si supones \(\sigma_1 = \sigma_2\), combinas ambas muestras en una varianza agrupada:</p>
+      <p><b>Modelo.</b> \(X_{11},\dots,X_{1n_1} \overset{iid}{\sim} N(\mu_1,\sigma_1^2)\) y \(X_{21},\dots,X_{2n_2} \overset{iid}{\sim} N(\mu_2,\sigma_2^2)\), con los dos grupos independientes entre sí. La hipótesis nula es \(H_0: \mu_1 = \mu_2\). Como las medias son independientes,</p>
+      <div class="eq">\[ \operatorname{Var}(\bar X_1 - \bar X_2) = \frac{\sigma_1^2}{n_1} + \frac{\sigma_2^2}{n_2}. \]
+        <div class="note">El estadístico siempre es “diferencia de medias entre su error estándar”; lo que cambia entre Student y Welch es cómo se estima esa varianza.</div>
+      </div>
+      <p><b>Student (varianzas iguales).</b> Si supones \(\sigma_1 = \sigma_2 = \sigma\), las dos varianzas muestrales estiman lo mismo y conviene combinarlas, ponderando por sus grados de libertad:</p>
       <div class="eq">\[ s_p^2 = \frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1+n_2-2}, \qquad t = \frac{\bar x_1 - \bar x_2}{s_p\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}} \sim t_{n_1+n_2-2} \]
-        <div class="note">En el ejemplo, \(s_p = 5{,}27\), \(t = 8{,}83/2{,}26 = 3{,}91\) con 20 gl y \(p = 0{,}0009\).</div>
+        <div class="note">Derivación: \((n_1-1)S_1^2/\sigma^2 \sim \chi^2_{n_1-1}\) y \((n_2-1)S_2^2/\sigma^2 \sim \chi^2_{n_2-1}\) son independientes, y la suma de chi-cuadrados independientes es chi-cuadrado con gl sumados: \((n_1+n_2-2)S_p^2/\sigma^2 \sim \chi^2_{n_1+n_2-2}\). Al dividir la diferencia estandarizada por \(\sqrt{S_p^2/\sigma^2}\), la \(\sigma\) se cancela.</div>
       </div>
-      <p><b>Welch (varianzas distintas).</b> No supone nada sobre las varianzas: cada grupo aporta su propio error, y los grados de libertad se aproximan con la fórmula de Welch-Satterthwaite (casi nunca son enteros):</p>
+      <p>En el ejemplo: \(s_p^2 = (11 \cdot 4{,}37^2 + 9 \cdot 6{,}20^2)/20 = (209{,}7 + 346{,}0)/20 = 27{,}78\), \(s_p = 5{,}27\), \(SE = 5{,}27\sqrt{1/12 + 1/10} = 2{,}26\) y \(t = 8{,}83/2{,}26 = 3{,}91\) con 20 gl, \(p = 0{,}0009\).</p>
+      <p><b>Welch (varianzas distintas).</b> Sin suponer nada sobre las varianzas, cada grupo aporta su propio error:</p>
       <div class="eq">\[ t = \frac{\bar x_1 - \bar x_2}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}}, \qquad \nu = \frac{\left(\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}\right)^2}{\frac{(s_1^2/n_1)^2}{n_1-1}+\frac{(s_2^2/n_2)^2}{n_2-1}} \]
-        <div class="note">En el ejemplo, \(SE = \sqrt{4{,}37^2/12 + 6{,}20^2/10} = 2{,}33\), \(t = 8{,}83/2{,}33 = 3{,}79\), \(\nu = 15{,}8\) y \(p = 0{,}0016\). IC 95 % para la diferencia: \([3{,}9;\ 13{,}8]\) puntos.</div>
+        <div class="note">En el ejemplo, \(SE = \sqrt{4{,}37^2/12 + 6{,}20^2/10} = \sqrt{1{,}59 + 3{,}84} = 2{,}33\), \(t = 8{,}83/2{,}33 = 3{,}79\), \(\nu = 15{,}8\) y \(p = 0{,}0016\). IC 95 % para la diferencia: \([3{,}9;\ 13{,}8]\) puntos.</div>
       </div>
-      <div class="callout"><b>Usa Welch por defecto.</b> Cuando las varianzas son iguales, Welch pierde muy poca potencia frente a Student. Cuando no lo son, y sobre todo si además los tamaños de los grupos difieren, Student puede dar valores p muy equivocados. Por eso R usa Welch en <code>t.test()</code> salvo que pidas <code>var.equal = TRUE</code>. Hacer antes una prueba de igualdad de varianzas para decidir no es buena práctica: añade un paso con sus propios errores.</div>
+      <p><b>De dónde sale \(\nu\): la aproximación de Satterthwaite.</b> El denominador \(W = S_1^2/n_1 + S_2^2/n_2\) no es exactamente una chi-cuadrado escalada (este es el famoso problema de Behrens-Fisher, que no tiene solución exacta sencilla). La idea de Satterthwaite (1946) es buscar una \(a\,\chi^2_\nu\) con la <b>misma media y varianza</b> que \(W\):</p>
+      <ol>
+        <li>Media: \(E[W] = \sigma_1^2/n_1 + \sigma_2^2/n_2 =: \theta\). Para \(a\chi^2_\nu\), la media es \(a\nu\).</li>
+        <li>Varianza: como \(\operatorname{Var}(S_i^2) = 2\sigma_i^4/(n_i-1)\) bajo normalidad, \(\operatorname{Var}(W) = \sum_i 2(\sigma_i^2/n_i)^2/(n_i-1)\). Para \(a\chi^2_\nu\), la varianza es \(2a^2\nu\).</li>
+        <li>Igualando: \(a = \theta/\nu\) y \(2a^2\nu = 2\theta^2/\nu = \operatorname{Var}(W)\), de donde \(\nu = \theta^2\big/\sum_i (\sigma_i^2/n_i)^2/(n_i-1)\).</li>
+        <li>Reemplazas las \(\sigma_i^2\) por \(s_i^2\) y obtienes la fórmula de arriba.</li>
+      </ol>
+      <p>Siempre se cumple \(\min(n_1,n_2) - 1 \le \nu \le n_1 + n_2 - 2\): si un grupo domina la varianza, Welch se comporta como si solo tuvieras ese grupo.</p>
+      <div class="callout"><b>Usa Welch por defecto.</b> Cuando las varianzas son iguales, Welch pierde muy poca potencia frente a Student. Cuando no lo son, y sobre todo si además los tamaños de los grupos difieren, Student puede dar valores p muy equivocados (en una simulación con \(n_1 = 40\), \(n_2 = 5\) y \(\sigma_2 = 3\sigma_1\), Student rechaza una \(H_0\) verdadera cerca del 37 % de las veces en lugar del 5 %). Por eso R usa Welch en <code>t.test()</code> salvo que pidas <code>var.equal = TRUE</code>. Hacer antes una prueba de igualdad de varianzas para decidir no es buena práctica: añade un paso con sus propios errores.</div>
 
-      <h2 id="ttest-par"><span class="sec">§ 5</span>Muestras pareadas</h2>
-      <p>Ahora mides la presión sistólica de 8 pacientes antes y después de un mes de tratamiento. Cada paciente aparece dos veces: las mediciones están <b>emparejadas</b>. El truco es trabajar con las diferencias \(d_i = \text{antes}_i - \text{después}_i\) y aplicar una prueba t de una muestra sobre ellas.</p>
+      <h2 id="ttest-par"><span class="sec">§ 6</span>Muestras pareadas, tamaño del efecto y potencia</h2>
+      <p>Ahora mides la presión sistólica de 8 pacientes antes y después de un mes de tratamiento. Cada paciente aparece dos veces: las mediciones están <b>emparejadas</b>. El truco es trabajar con las diferencias \(d_i = \text{antes}_i - \text{después}_i\) y aplicar una prueba t de una muestra sobre ellas, con \(H_0: \mu_d = 0\).</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Paciente</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td></tr></thead>
         <tbody>
@@ -92,16 +167,55 @@
           <tr><th>\(d_i\)</th><td>7</td><td>2</td><td>9</td><td>3</td><td>9</td><td>4</td><td>2</td><td>9</td></tr>
         </tbody>
       </table></div>
-      <div class="eq">\[ t = \frac{\bar d - 0}{s_d/\sqrt n} = \frac{5{,}625}{3{,}20/\sqrt 8} = 4{,}97 \text{ con } 7 \text{ gl},\qquad p = 0{,}0016 \]
+      <div class="eq">\[ \bar d = \frac{45}{8} = 5{,}625,\quad s_d = 3{,}20,\quad t = \frac{\bar d - 0}{s_d/\sqrt n} = \frac{5{,}625}{3{,}20/\sqrt 8} = 4{,}97 \text{ con } 7 \text{ gl},\qquad p = 0{,}0016 \]
         <div class="note">IC 95 % para la reducción media: \(5{,}625 \pm 2{,}365 \cdot 1{,}133 = [2{,}9;\ 8{,}3]\) mmHg.</div>
       </div>
       <p>¿Y si te equivocas y tratas las dos columnas como grupos independientes? Obtienes \(t = 1{,}75\) y \(p = 0{,}10\): ¡no significativo! La razón está en la varianza de una diferencia:</p>
       <div class="eq">\[ \operatorname{Var}(X_1 - X_2) = \sigma_1^2 + \sigma_2^2 - 2\rho\,\sigma_1\sigma_2 \]
-        <div class="note">Los pacientes difieren mucho entre sí (de 139 a 160), pero cada uno se parece mucho a sí mismo: la correlación antes-después es \(\rho = 0{,}95\). Restar elimina la variabilidad entre personas y deja solo el cambio, que es lo que interesa.</div>
+        <div class="note">Los pacientes difieren mucho entre sí (de 139 a 160), pero cada uno se parece mucho a sí mismo: la correlación antes-después es \(\rho = 0{,}95\). Con \(\sigma_1 = \sigma_2 = \sigma\), la varianza de la diferencia es \(2\sigma^2(1-\rho)\), es decir, solo el 10 % de lo que sería sin emparejar. Restar elimina la variabilidad entre personas y deja solo el cambio.</div>
       </div>
       <div class="callout"><b>El diseño decide la prueba, no los datos.</b> Pareado significa que cada observación de un grupo tiene una pareja natural en el otro: la misma persona, gemelos, el mismo terreno dividido en dos parcelas, el mismo producto en dos tiendas. Si las parejas existen, ignorarlas desperdicia información; si no existen, inventarlas es un error.</div>
+      <p><b>Tamaño del efecto.</b> El valor p responde “¿hay evidencia de alguna diferencia?”, pero no “¿es grande?”. Con miles de datos, una diferencia de 0,3 puntos en un examen sale significativa aunque no le importe a nadie. Por eso siempre reportas también el tamaño del efecto y el intervalo de la diferencia:</p>
+      <div class="eq">\[ d = \frac{\bar x_1 - \bar x_2}{s_p}, \qquad g = d\left(1 - \frac{3}{4(n_1+n_2)-9}\right), \qquad d_z = \frac{\bar d}{s_d} \ \ \text{(pareado)} \]
+        <div class="note">La \(d\) de Cohen mide la diferencia en desviaciones típicas. La \(g\) de Hedges corrige el sesgo hacia arriba de \(d\) en muestras pequeñas. En el ejemplo de las clases, \(d = 8{,}83/5{,}27 = 1{,}68\) y \(g = 1{,}68\,(1 - 3/79) = 1{,}61\); en el pareado, \(d_z = 5{,}625/3{,}20 = 1{,}76\).</div>
+      </div>
+      <p>Como referencia muy general, Cohen propuso 0,2 (pequeño), 0,5 (mediano) y 0,8 (grande). Úsalo con criterio: en medicina, un efecto de 0,2 sobre la mortalidad puede ser enorme, y en educación un efecto de 1,7 como el del ejemplo sería sospechosamente bueno y pediría replicar el estudio. Ojo también con comparar \(d\) y \(d_z\): miden cosas distintas, porque \(d_z = d/\sqrt{2(1-\rho)}\) depende de la correlación entre mediciones.</p>
+      <p><b>Potencia y tamaño de muestra.</b> Bajo \(H_1\), el estadístico de dos muestras ya no está centrado en 0: sigue una t no central con parámetro de no centralidad \(\delta = d\sqrt{n/2}\) (con \(n\) por grupo). Usando la aproximación normal, la potencia bilateral es \(1-\beta \approx \Phi(\delta - z_{\alpha/2})\), y despejando \(n\):</p>
+      <div class="eq">\[ n \approx \frac{2\,(z_{\alpha/2} + z_{\beta})^2}{d^2} \quad\text{por grupo} \]
+        <div class="note">Para detectar \(d = 0{,}5\) con potencia del 80 %: \(n \approx 2(1{,}96 + 0{,}84)^2/0{,}25 \approx 63\) por grupo; el cálculo exacto con la t no central da 63,8, es decir, 64. La sesión de <a href="#tamano">tamaño de muestra</a> desarrolla esta idea para encuestas.</div>
+      </div>
 
-      <h2 id="ttest-lab"><span class="sec">§ 6</span>Laboratorio</h2>
+      <h2 id="ttest-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Simetría y media cero.</b> \(f(-t) = f(t)\) y \(E[T] = 0\) para \(\nu &gt; 1\). Justificación: \(Z\) es simétrica e independiente de \(V\), así que \(T\) y \(-T\) tienen la misma distribución.</li>
+        <li><b>Varianza mayor que 1.</b> \(\operatorname{Var}(T) = \nu/(\nu-2)\) para \(\nu &gt; 2\). Demostración: \(E[T^2] = E[Z^2]\,E[\nu/V] = \nu\,E[1/V]\), y para \(V \sim \chi^2_\nu\), \(E[1/V] = \Gamma(\nu/2-1)/(2\Gamma(\nu/2)) = 1/(\nu-2)\).</li>
+        <li><b>Límite normal.</b> \(t_\nu \xrightarrow{d} N(0,1)\) cuando \(\nu \to \infty\). Justificación: \(V/\nu\) es un promedio de \(\nu\) cuadrados de normales con media 1; por la ley de los grandes números \(V/\nu \to 1\) y por el lema de Slutsky \(T \to Z\).</li>
+        <li><b>Relación con la F.</b> \(T^2 \sim F_{1,\nu}\). Justificación: \(T^2 = (Z^2/1)/(V/\nu)\) y \(Z^2 \sim \chi^2_1\). Consecuencia: la prueba t de Student bilateral con dos grupos es idéntica al <a href="#anova">ANOVA</a> de un factor con \(k = 2\) (en el ejemplo, \(F = 3{,}91^2 = 15{,}3\) con el mismo valor p).</li>
+        <li><b>Equivalencia con la regresión.</b> En el modelo \(y_i = \beta_0 + \beta_1 D_i + \varepsilon_i\), con \(D_i = 1\) en el grupo 2, \(\hat\beta_1 = \bar y_2 - \bar y_1\) y el estadístico t de \(\hat\beta_1\) es exactamente el de Student. Así puedes añadir covariables (<a href="#regmult">regresión múltiple</a>) y seguir comparando medias.</li>
+        <li><b>Insesgamiento de la varianza agrupada.</b> \(E[S_p^2] = \sigma^2\) si \(\sigma_1 = \sigma_2\). Demostración: \(E[(n_1-1)S_1^2 + (n_2-1)S_2^2] = (n_1-1)\sigma^2 + (n_2-1)\sigma^2 = (n_1+n_2-2)\sigma^2\).</li>
+        <li><b>Robustez asintótica.</b> Si los datos no son normales pero tienen varianza finita, el <a href="#tlc">TLC</a> y Slutsky garantizan que \(t \to N(0,1)\) bajo \(H_0\). La convergencia es lenta con asimetría fuerte: con datos lognormales \((0,1)\), un IC “del 95 %” cubre la media real cerca del 84 % de las veces con \(n = 10\), el 89 % con \(n = 30\) y el 92 % con \(n = 100\).</li>
+        <li><b>Grados de libertad de Welch acotados.</b> \(\min(n_1,n_2)-1 \le \nu \le n_1+n_2-2\), con la cota superior alcanzada cuando \(s_1^2/n_1 = s_2^2/n_2\) y \(n_1 = n_2\). Justificación: \(\nu\) es una media armónica ponderada de los gl de cada grupo.</li>
+      </ol>
+      <p><b>Supuestos en la práctica.</b></p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Supuesto</th><th>Qué pide</th><th>Qué tan grave es que falle</th><th>Alternativa</th></tr></thead>
+        <tbody>
+          <tr><td>Independencia</td><td>Observaciones independientes dentro de cada grupo (y entre grupos, salvo en el pareado)</td><td>Muy grave: los errores estándar salen demasiado pequeños</td><td>Modelos mixtos, datos agrupados, series de tiempo</td></tr>
+          <tr><td>Normalidad</td><td>Población normal (en el pareado, de las diferencias)</td><td>Leve con n ≥ 30 por el TLC, salvo asimetría extrema o atípicos fuertes</td><td>Wilcoxon (pareado), Mann-Whitney (independientes), bootstrap, transformar con log</td></tr>
+          <tr><td>Varianzas iguales</td><td>Solo para Student</td><td>Grave si además los tamaños son distintos</td><td>Welch</td></tr>
+          <tr><td>Escala</td><td>Variable cuantitativa donde la media tiene sentido</td><td>Con escalas ordinales cortas (1 a 5) la media se interpreta con cuidado</td><td>Pruebas de rangos, modelos ordinales</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li><b>Analizar como independientes datos pareados</b>: pierdes potencia, como viste con la presión arterial. El error contrario (parear datos independientes) es igual de malo.</li>
+        <li><b>Hacer muchas pruebas t para comparar varios grupos</b>: con 5 grupos hay 10 comparaciones y la probabilidad de algún falso positivo sube a cerca del 40 %. Para eso está el <a href="#anova">ANOVA</a>.</li>
+        <li><b>Leer “no significativo” como “son iguales”</b>: con n pequeño la prueba tiene poca potencia. Mira el intervalo: si va de −2 a 15 puntos, los datos son compatibles con una diferencia nula y también con una enorme.</li>
+        <li><b>Elegir la cola después de ver los datos</b>: pasar a una prueba unilateral porque la bilateral dio 0,08 es hacer trampa con el α.</li>
+        <li><b>Usar Student con varianzas y tamaños muy distintos</b>: el error tipo I real puede alejarse mucho del nominal, hacia arriba o hacia abajo según qué grupo sea el más disperso.</li>
+      </ul>
+
+      <h2 id="ttest-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
       <p>Genera dos grupos con una diferencia real \(\Delta\) entre sus medias. A la izquierda ves los datos y sus medias; a la derecha, la distribución t bajo \(H_0\) con el estadístico observado y las colas que forman el valor p. Cambia el diseño para comparar Welch, Student y la prueba pareada con los mismos ingredientes.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · prueba t</span><span class="num" id="ttest-head">–</span></div>
@@ -145,37 +259,30 @@
         </div>
         <figcaption>Pon Δ = 4, σ = 10 y ρ = 0,9. En “Welch” el valor p suele ser grande; cambia a “Pareada” con los mismos datos y mira cómo se dispara t. Después elige n de A = 40, n de B = 5 y σ de B / σ de A = 3: Student y Welch dejan de coincidir, y Student es el que se equivoca.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Fija Δ = 0, σ = 6, n = 10 en ambos grupos y diseño Welch. Pulsa “Nueva muestra” 20 veces y anota cuántas veces el valor p sale menor que 0,05.
+          <details><summary>Qué deberías observar</summary><p>Con \(H_0\) verdadera, el valor p se distribuye uniforme entre 0 y 1, así que esperas en promedio 1 rechazo de cada 20 (el 5 %). Puede que te salgan 0, 1, 2 o incluso 3: el número de rechazos es binomial con n = 20 y p = 0,05. Eso es exactamente el error tipo I.</p></details></li>
+        <li>Pon Δ = 4, σ = 10 y ρ = 0,9. Alterna entre “Welch” y “Pareada” sin pedir muestra nueva.
+          <details><summary>Qué deberías observar</summary><p>Con Welch el t suele quedar cerca de 1 y el valor p es grande, porque la diferencia de 4 se pierde entre la dispersión de 10 entre unidades. En pareada, la desviación de las diferencias es \(10\sqrt{2(1-0{,}9)} \approx 4{,}5\), así que el t se multiplica por algo más de 3 y el valor p cae mucho. El d de Cohen apenas cambia porque mide el efecto respecto a la dispersión de los datos, no de las diferencias.</p></details></li>
+        <li>Fija Δ = 0, n de A = 40, n de B = 5 y σ de B / σ de A = 3. Compara Student y Welch en varias muestras nuevas.
+          <details><summary>Qué deberías observar</summary><p>Student da 43 gl y estadísticos t mucho más grandes en valor absoluto que Welch, que da unos 4 a 5 gl. Como \(H_0\) es verdadera, los rechazos de Student son falsos positivos: la varianza agrupada está dominada por el grupo grande y estable, y subestima la variabilidad de la media del grupo pequeño y disperso. Invierte los tamaños (A = 5, B = 40) y verás el efecto contrario: Student se vuelve demasiado conservador.</p></details></li>
+        <li>Fija Δ = 3, σ = 6 y diseño Welch. Sube n de ambos grupos de 5 a 20 y luego a 60.
+          <details><summary>Qué deberías observar</summary><p>El tamaño del efecto d se queda alrededor de 0,5 (fluctúa más con n pequeño), mientras que t crece aproximadamente como \(\sqrt{n/2}\cdot d\): cerca de 0,8 con n = 5, 1,6 con n = 20 y 2,7 con n = 60. El valor p baja porque con más datos el error estándar se achica, no porque el efecto cambie. Por eso el valor p no mide la importancia de un efecto.</p></details></li>
+      </ol>
 
-      <h2 id="ttest-efecto"><span class="sec">§ 7</span>Tamaño del efecto e intervalos</h2>
-      <p>El valor p responde “¿hay evidencia de alguna diferencia?”, pero no “¿es grande?”. Con miles de datos, una diferencia de 0,3 puntos en un examen sale significativa aunque no le importe a nadie. Por eso siempre reportas también el <b>tamaño del efecto</b> y el intervalo de confianza de la diferencia.</p>
-      <div class="eq">\[ d = \frac{\bar x_1 - \bar x_2}{s_p}, \qquad g = d\left(1 - \frac{3}{4(n_1+n_2)-9}\right), \qquad d_z = \frac{\bar d}{s_d} \ \ \text{(pareado)} \]
-        <div class="note">La \(d\) de Cohen mide la diferencia en desviaciones típicas. La \(g\) de Hedges corrige el leve sesgo de \(d\) en muestras pequeñas. En el ejemplo de las clases, \(d = 8{,}83/5{,}27 = 1{,}68\) y \(g = 1{,}61\); en el pareado, \(d_z = 5{,}625/3{,}20 = 1{,}76\).</div>
-      </div>
-      <p>Como referencia muy general, Cohen propuso 0,2 (pequeño), 0,5 (mediano) y 0,8 (grande). Úsalo con criterio: en medicina, un efecto de 0,2 sobre la mortalidad puede ser enorme, y en educación un efecto de 1,7 como el del ejemplo sería sospechosamente bueno y pediría replicar el estudio. Ojo también con comparar \(d\) y \(d_z\): miden cosas distintas, porque \(d_z\) depende de la correlación entre las mediciones.</p>
-      <p>Ese mismo tamaño del efecto es el que usas para planificar un estudio. Con \(\alpha = 0{,}05\) bilateral y potencia \(1-\beta\), el número aproximado de observaciones por grupo en dos muestras independientes es:</p>
-      <div class="eq">\[ n \approx \frac{2\,(z_{\alpha/2} + z_{\beta})^2}{d^2} \]
-        <div class="note">Para detectar \(d = 0{,}5\) con potencia del 80 %: \(n \approx 2(1{,}96 + 0{,}84)^2/0{,}25 \approx 63\) por grupo; el cálculo exacto con la t da 64.</div>
-      </div>
+      <h2 id="ttest-apl"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: los datos de sueño que analizó Student</h3>
+      <p>En su artículo de 1908, Gosset usó datos de Cushny y Peebles (1905) sobre horas de sueño adicional que lograban 10 pacientes con dos hipnóticos. Están en R como el dataset <code>sleep</code>. Cada paciente probó ambos fármacos, así que el diseño es pareado. La diferencia media (fármaco 2 menos fármaco 1) es 1,58 horas, con \(s_d = 1{,}23\); el estadístico es \(t = 1{,}58/(1{,}23/\sqrt{10}) = 4{,}06\) con 9 gl, \(p = 0{,}0028\), e IC 95 % \([0{,}70;\ 2{,}46]\) horas. Si alguien ignorara el pareo, Welch daría \(t = 1{,}86\) y \(p = 0{,}079\). <b>Decisión:</b> el segundo fármaco produce más sueño adicional, con una ventaja de entre 0,7 y 2,5 horas; la conclusión depende de respetar el diseño.</p>
+      <h3>Agricultura: el maíz de Darwin</h3>
+      <p>Charles Darwin cultivó 15 pares de plantas de maíz, una por cruzamiento y otra por autofecundación, en la misma maceta, y midió sus alturas. Fisher reanalizó los datos en <i>The Design of Experiments</i> (1935); hoy están en el paquete <code>HistData</code> como <code>ZeaMays</code>. Las diferencias de altura (en octavos de pulgada) tienen media 20,93 y \(s_d = 37{,}74\), así que \(t = 20{,}93/(37{,}74/\sqrt{15}) = 2{,}15\) con 14 gl y \(p = 0{,}0497\), con IC 95 % \([0{,}03;\ 41{,}8]\). <b>Decisión:</b> la evidencia a favor de la ventaja del cruzamiento existe pero es justa: dos pares con diferencias muy negativas (−67 y −48) pesan mucho. Fisher usó este caso para mostrar que una prueba de permutación da prácticamente el mismo resultado, lo que respalda la t.</p>
+      <h3>Industria: control de llenado</h3>
+      <p>Una envasadora declara 500 g por bolsa. Control de calidad pesa 20 bolsas de un turno: \(\bar x = 498{,}2\) g y \(s = 3{,}1\) g. Con \(H_0: \mu = 500\), \(t = -1{,}8/(3{,}1/\sqrt{20}) = -2{,}60\) con 19 gl, \(p = 0{,}018\) bilateral, e IC 95 % \([496{,}7;\ 499{,}7]\) g. <b>Decisión:</b> recalibrar la llenadora. El intervalo además dice cuánto subir el punto de ajuste (entre 0,3 y 3,3 g) y permite estimar el costo de regalar producto si se sobrecorrige.</p>
+      <h3>Tecnología: prueba A/B con muestras grandes</h3>
+      <p>Una app compara dos diseños de pantalla de inicio con 4 000 usuarios por brazo. El tiempo medio de sesión es 12,4 min (s = 9,8) frente a 11,9 min (s = 9,1). Welch da \(SE = \sqrt{9{,}8^2/4000 + 9{,}1^2/4000} = 0{,}211\), \(t = 2{,}36\) y \(p = 0{,}018\), con IC 95 % \([0{,}09;\ 0{,}92]\) minutos. Pero \(d = 0{,}5/9{,}46 = 0{,}05\): un efecto minúsculo. Los tiempos de sesión son muy asimétricos, pero con 4 000 datos por grupo el TLC hace confiable la t. <b>Decisión:</b> la diferencia es real pero pequeña; el equipo decide si 30 segundos más por sesión justifican el cambio, mirando el intervalo y no solo el valor p.</p>
 
-      <h2 id="ttest-supuestos"><span class="sec">§ 8</span>Supuestos y errores comunes</h2>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Supuesto</th><th>Qué pide</th><th>Qué tan grave es que falle</th><th>Alternativa</th></tr></thead>
-        <tbody>
-          <tr><td>Independencia</td><td>Observaciones independientes dentro de cada grupo (y entre grupos, salvo en el pareado)</td><td>Muy grave: los errores estándar salen demasiado pequeños</td><td>Modelos mixtos, datos agrupados, series de tiempo</td></tr>
-          <tr><td>Normalidad</td><td>Población normal (en el pareado, de las diferencias)</td><td>Leve con n ≥ 30 por el TLC, salvo asimetría extrema o atípicos fuertes</td><td>Wilcoxon (pareado), Mann-Whitney (independientes), bootstrap, transformar con log</td></tr>
-          <tr><td>Varianzas iguales</td><td>Solo para Student</td><td>Grave si además los tamaños son distintos</td><td>Welch</td></tr>
-          <tr><td>Escala</td><td>Variable cuantitativa donde la media tiene sentido</td><td>Con escalas ordinales cortas (1 a 5) la media se interpreta con cuidado</td><td>Pruebas de rangos, modelos ordinales</td></tr>
-        </tbody>
-      </table></div>
-      <ul>
-        <li><b>Analizar como independientes datos pareados</b>: pierdes potencia, como viste con la presión arterial. El error contrario (parear datos independientes) es igual de malo.</li>
-        <li><b>Hacer muchas pruebas t para comparar varios grupos</b>: con 5 grupos hay 10 comparaciones y la probabilidad de algún falso positivo sube mucho. Para eso está el ANOVA, la siguiente sesión.</li>
-        <li><b>Leer “no significativo” como “son iguales”</b>: con n pequeño la prueba tiene poca potencia. Mira el intervalo: si va de −2 a 15 puntos, los datos son compatibles con una diferencia nula y también con una enorme.</li>
-        <li><b>Elegir la cola después de ver los datos</b>: pasar a una prueba unilateral porque la bilateral dio 0,08 es hacer trampa con el α.</li>
-      </ul>
-
-      <h2 id="ttest-code"><span class="sec">§ 9</span>En R y Python</h2>
-      <p>Las tres pruebas con los datos de la clase, con intervalos y tamaño del efecto.</p>
+      <h2 id="ttest-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>Las tres pruebas con los datos de la clase, con intervalos y tamaño del efecto, más el análisis del dataset <code>sleep</code> de Student.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
@@ -195,10 +302,12 @@ welch = stats.<span class="f">ttest_ind</span>(prac, trad, equal_var=<span class
 <span class="f">print</span>(welch.<span class="f">confidence_interval</span>())             <span class="c"># ≈ (3.89, 13.78)</span>
 <span class="f">print</span>(stats.<span class="f">ttest_ind</span>(prac, trad).pvalue)         <span class="c"># Student ≈ 0.00086</span>
 
-<span class="c"># d de Cohen con la desviación agrupada</span>
+<span class="c"># d de Cohen y g de Hedges con la desviación agrupada</span>
 n1, n2 = <span class="f">len</span>(prac), <span class="f">len</span>(trad)
 sp = np.<span class="f">sqrt</span>(((n1 - <span class="n">1</span>) * prac.<span class="f">var</span>(ddof=<span class="n">1</span>) + (n2 - <span class="n">1</span>) * trad.<span class="f">var</span>(ddof=<span class="n">1</span>)) / (n1 + n2 - <span class="n">2</span>))
-<span class="f">print</span>((prac.<span class="f">mean</span>() - trad.<span class="f">mean</span>()) / sp)          <span class="c"># ≈ 1.68</span>
+d = (prac.<span class="f">mean</span>() - trad.<span class="f">mean</span>()) / sp
+g = d * (<span class="n">1</span> - <span class="n">3</span> / (<span class="n">4</span> * (n1 + n2) - <span class="n">9</span>))
+<span class="f">print</span>(<span class="f">round</span>(d, <span class="n">2</span>), <span class="f">round</span>(g, <span class="n">2</span>))                  <span class="c"># ≈ 1.68  1.61</span>
 
 <span class="c"># 3) pareada: presión antes y después</span>
 antes   = np.<span class="f">array</span>([<span class="n">148</span>, <span class="n">142</span>, <span class="n">155</span>, <span class="n">139</span>, <span class="n">160</span>, <span class="n">151</span>, <span class="n">145</span>, <span class="n">158</span>])
@@ -207,9 +316,16 @@ r3 = stats.<span class="f">ttest_rel</span>(antes, despues)
 <span class="f">print</span>(r3.statistic, r3.pvalue)             <span class="c"># ≈ 4.97  0.0016</span>
 <span class="f">print</span>(r3.<span class="f">confidence_interval</span>())           <span class="c"># ≈ (2.95, 8.30)</span>
 <span class="f">print</span>(stats.<span class="f">ttest_ind</span>(antes, despues).pvalue)   <span class="c"># error típico: ≈ 0.10</span>
+<span class="f">print</span>(stats.<span class="f">wilcoxon</span>(antes, despues).pvalue)    <span class="c"># alternativa no paramétrica</span>
 
-<span class="c"># alternativa no paramétrica para el pareado</span>
-<span class="f">print</span>(stats.<span class="f">wilcoxon</span>(antes, despues).pvalue)</code></pre>
+<span class="c"># 4) caso aplicado: dataset sleep (Cushny y Peebles, analizado por Student)</span>
+f1 = np.<span class="f">array</span>([<span class="n">0.7</span>, -<span class="n">1.6</span>, -<span class="n">0.2</span>, -<span class="n">1.2</span>, -<span class="n">0.1</span>, <span class="n">3.4</span>, <span class="n">3.7</span>, <span class="n">0.8</span>, <span class="n">0.0</span>, <span class="n">2.0</span>])
+f2 = np.<span class="f">array</span>([<span class="n">1.9</span>, <span class="n">0.8</span>, <span class="n">1.1</span>, <span class="n">0.1</span>, -<span class="n">0.1</span>, <span class="n">4.4</span>, <span class="n">5.5</span>, <span class="n">1.6</span>, <span class="n">4.6</span>, <span class="n">3.4</span>])
+rs = stats.<span class="f">ttest_rel</span>(f2, f1)
+dif = f2 - f1
+<span class="f">print</span>(rs.statistic, rs.pvalue)             <span class="c"># ≈ 4.06  0.0028</span>
+<span class="f">print</span>(rs.<span class="f">confidence_interval</span>())           <span class="c"># ≈ (0.70, 2.46)</span>
+<span class="f">print</span>(dif.<span class="f">mean</span>() / dif.<span class="f">std</span>(ddof=<span class="n">1</span>))          <span class="c"># d_z ≈ 1.28</span></code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="c"># 1) una muestra: tiempos de entrega frente a 30 minutos</span>
 entrega &lt;- <span class="f">c</span>(<span class="n">32</span>, <span class="n">35</span>, <span class="n">29</span>, <span class="n">38</span>, <span class="n">31</span>, <span class="n">34</span>, <span class="n">36</span>, <span class="n">30</span>, <span class="n">33</span>, <span class="n">37</span>)
 <span class="f">t.test</span>(entrega, mu = <span class="n">30</span>)          <span class="c"># t ≈ 3.66, df = 9, p ≈ 0.0053, IC ≈ [31.33, 35.67]</span>
@@ -220,22 +336,27 @@ prac &lt;- <span class="f">c</span>(<span class="n">74</span>, <span class="n">8
 <span class="f">t.test</span>(prac, trad)                    <span class="c"># Welch: t ≈ 3.79, df ≈ 15.77, p ≈ 0.0016</span>
 <span class="f">t.test</span>(prac, trad, var.equal = <span class="k">TRUE</span>) <span class="c"># Student: t ≈ 3.91, df = 20, p ≈ 0.00086</span>
 
-<span class="c"># d de Cohen con la desviación agrupada</span>
+<span class="c"># d de Cohen y g de Hedges con la desviación agrupada</span>
 n1 &lt;- <span class="f">length</span>(prac); n2 &lt;- <span class="f">length</span>(trad)
 sp &lt;- <span class="f">sqrt</span>(((n1 - <span class="n">1</span>) * <span class="f">var</span>(prac) + (n2 - <span class="n">1</span>) * <span class="f">var</span>(trad)) / (n1 + n2 - <span class="n">2</span>))
-(<span class="f">mean</span>(prac) - <span class="f">mean</span>(trad)) / sp       <span class="c"># ≈ 1.68</span>
+d &lt;- (<span class="f">mean</span>(prac) - <span class="f">mean</span>(trad)) / sp
+<span class="f">c</span>(d = d, g = d * (<span class="n">1</span> - <span class="n">3</span> / (<span class="n">4</span> * (n1 + n2) - <span class="n">9</span>)))   <span class="c"># ≈ 1.68  1.61</span>
 
 <span class="c"># 3) pareada: presión antes y después</span>
 antes   &lt;- <span class="f">c</span>(<span class="n">148</span>, <span class="n">142</span>, <span class="n">155</span>, <span class="n">139</span>, <span class="n">160</span>, <span class="n">151</span>, <span class="n">145</span>, <span class="n">158</span>)
 despues &lt;- <span class="f">c</span>(<span class="n">141</span>, <span class="n">140</span>, <span class="n">146</span>, <span class="n">136</span>, <span class="n">151</span>, <span class="n">147</span>, <span class="n">143</span>, <span class="n">149</span>)
 <span class="f">t.test</span>(antes, despues, paired = <span class="k">TRUE</span>)   <span class="c"># t ≈ 4.97, df = 7, p ≈ 0.0016, IC ≈ [2.95, 8.30]</span>
 <span class="f">t.test</span>(antes, despues)$p.value           <span class="c"># error típico: ≈ 0.10</span>
+<span class="f">wilcox.test</span>(antes, despues, paired = <span class="k">TRUE</span>)   <span class="c"># alternativa no paramétrica</span>
 
-<span class="c"># alternativa no paramétrica para el pareado</span>
-<span class="f">wilcox.test</span>(antes, despues, paired = <span class="k">TRUE</span>)</code></pre>
+<span class="c"># 4) caso aplicado: dataset sleep (viene con R)</span>
+f1 &lt;- sleep$extra[sleep$group == <span class="s">"1"</span>]
+f2 &lt;- sleep$extra[sleep$group == <span class="s">"2"</span>]
+<span class="f">t.test</span>(f2, f1, paired = <span class="k">TRUE</span>)          <span class="c"># t ≈ 4.06, df = 9, p ≈ 0.0028, IC ≈ [0.70, 2.46]</span>
+<span class="f">mean</span>(f2 - f1) / <span class="f">sd</span>(f2 - f1)             <span class="c"># d_z ≈ 1.28</span></code></pre>
       </div>
 
-      <h2 id="ttest-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <h2 id="ttest-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Los mismos estudiantes aparecen en las dos mediciones, así que cada nota de marzo tiene su pareja en junio. Se calculan las diferencias y se aplica una t de una muestra sobre ellas." data-wrong="Pregúntate si cada observación del primer grupo tiene una pareja natural en el segundo. ¿Son personas distintas o las mismas medidas dos veces?">
         <h3>Mides la comprensión lectora de 25 estudiantes en marzo y otra vez en junio. ¿Qué prueba corresponde?</h3>
         <div class="opts">
@@ -266,32 +387,45 @@ despues &lt;- <span class="f">c</span>(<span class="n">141</span>, <span class="
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Var(T) = ν/(ν − 2) = 5/3 ≈ 1,67. Es mayor que 1 porque el denominador estimado fluctúa y produce colas más pesadas que la normal." data-wrong="Usa la fórmula de la varianza de la t: ν dividido entre ν − 2, válida para ν mayor que 2.">
+        <h3>¿Cuál es la varianza de una variable con distribución t con 5 grados de libertad?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>1, como la normal estándar</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>5/3 ≈ 1,67</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>5/4 = 1,25</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No existe con 5 grados de libertad</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con 4 000 usuarios por grupo casi cualquier diferencia sale significativa. d ≈ 0,05 indica un efecto muy pequeño: la decisión depende de si ese tamaño, visto en el intervalo, compensa el costo del cambio." data-wrong="Separa dos preguntas: si hay evidencia de una diferencia (valor p) y si la diferencia es grande (tamaño del efecto e intervalo). Con n enorme la primera es fácil de responder que sí.">
+        <h3>Una prueba A/B con 4 000 usuarios por grupo da p = 0,018 y d = 0,05. ¿Qué interpretación es la correcta?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El efecto es grande porque el valor p es pequeño</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>El resultado es inválido porque n es demasiado grande</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Hay evidencia de una diferencia, pero es muy pequeña; hay que juzgar si importa</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La probabilidad de que H₀ sea cierta es 1,8 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="ttest-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <h2 id="ttest-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una tostadora vende bolsas de café de 250 g. Una inspectora pesa 16 bolsas y obtiene \(\bar x = 246\) g y \(s = 8\) g. ¿Hay evidencia, con \(\alpha = 0{,}05\) bilateral, de que el peso medio es distinto de 250 g? Calcula también el IC del 95 %.</p>
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Demostración.</b> Sea \(X_1,\dots,X_n \overset{iid}{\sim} N(\mu,\sigma^2)\). (a) Usando el teorema de Cochran, demuestra que \(T = (\bar X - \mu)/(S/\sqrt n) \sim t_{n-1}\). (b) Demuestra que \(\operatorname{Var}(T) = \nu/(\nu-2)\) para \(\nu = n-1 &gt; 2\). (c) Explica por qué el intervalo \(\bar x \pm t_{\alpha/2,n-1}\,s/\sqrt n\) tiene cobertura exacta \(1-\alpha\) para todo \(n \ge 2\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>\(SE = 8/\sqrt{16} = 2\) y \(t = (246 - 250)/2 = -2{,}0\) con 15 gl. El valor crítico es \(t_{0{,}025;\,15} = 2{,}131\); como \(|-2{,}0| &lt; 2{,}131\), <b>no se rechaza</b> \(H_0\) (p ≈ 0,064).</p>
-            <p>IC 95 %: \(246 \pm 2{,}131 \cdot 2 = [241{,}7;\ 250{,}3]\) g. Incluye 250, coherente con la prueba. Ojo: no prueba que las bolsas pesen 250 g; con 16 bolsas, una falta media de hasta 8 g también es compatible con los datos.</p>
+            <p><b>(a)</b> \(Z = (\bar X - \mu)/(\sigma/\sqrt n) \sim N(0,1)\) y \(V = (n-1)S^2/\sigma^2 \sim \chi^2_{n-1}\), independientes por Cochran. Entonces \(Z/\sqrt{V/(n-1)} = \dfrac{(\bar X-\mu)\sqrt n/\sigma}{S/\sigma} = \dfrac{\bar X-\mu}{S/\sqrt n}\), que por definición es \(t_{n-1}\).</p>
+            <p><b>(b)</b> Por independencia, \(E[T^2] = E[Z^2]\,\nu\,E[V^{-1}]\). Con la densidad de la chi-cuadrado, \(E[V^{-1}] = \int_0^\infty v^{-1}\frac{v^{\nu/2-1}e^{-v/2}}{2^{\nu/2}\Gamma(\nu/2)}dv = \frac{2^{\nu/2-1}\Gamma(\nu/2-1)}{2^{\nu/2}\Gamma(\nu/2)} = \frac{1}{2(\nu/2-1)} = \frac{1}{\nu-2}\). Como \(E[T] = 0\), \(\operatorname{Var}(T) = \nu/(\nu-2)\). La integral converge solo si \(\nu &gt; 2\).</p>
+            <p><b>(c)</b> \(T\) es un <b>pivote</b>: su distribución \(t_{n-1}\) no depende de \(\mu\) ni de \(\sigma\). Así \(P(-t_{\alpha/2} \le T \le t_{\alpha/2}) = 1-\alpha\) exactamente, y despejar \(\mu\) da el intervalo. La exactitud depende de la normalidad; sin ella la cobertura solo es asintótica.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Seis corredores hacen 1 km con sus zapatillas viejas y con un modelo nuevo. La mejora en segundos (vieja − nueva) de cada uno es 12, 8, 15, 5, 10 y 9. ¿Las zapatillas nuevas mejoran el tiempo medio? Calcula t, el valor p y el tamaño del efecto \(d_z\).</p>
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Derivación y aplicación de Welch.</b> (a) Deriva la fórmula de Welch-Satterthwaite igualando la media y la varianza de \(W = S_1^2/n_1 + S_2^2/n_2\) con las de \(a\chi^2_\nu\). (b) Dos sucursales registran el tiempo de atención (minutos). Sucursal 1: \(n_1 = 15\), \(\bar x_1 = 52\), \(s_1 = 4\). Sucursal 2: \(n_2 = 25\), \(\bar x_2 = 48\), \(s_2 = 10\). Haz las pruebas de Welch y de Student y explica por qué difieren.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Es un diseño pareado: trabajas con las 6 diferencias. \(\bar d = 9{,}83\) s, \(s_d = 3{,}43\) s, \(SE = 3{,}43/\sqrt 6 = 1{,}40\) y \(t = 9{,}83/1{,}40 = 7{,}02\) con 5 gl, \(p \approx 0{,}0009\). Se rechaza \(H_0\).</p>
-            <p>IC 95 %: \(9{,}83 \pm 2{,}571 \cdot 1{,}40 = [6{,}2;\ 13{,}4]\) s. Tamaño del efecto: \(d_z = 9{,}83/3{,}43 = 2{,}87\), muy grande. Antes de anunciarlo, pregúntate si el orden (primero vieja, luego nueva) podría explicar parte de la mejora por cansancio o calentamiento: lo ideal es aleatorizar el orden.</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Dos sucursales registran el tiempo de atención (minutos). Sucursal 1: \(n_1 = 15\), \(\bar x_1 = 52\), \(s_1 = 4\). Sucursal 2: \(n_2 = 25\), \(\bar x_2 = 48\), \(s_2 = 10\). Haz la prueba de Welch y la de Student. ¿Por qué dan resultados distintos y cuál reportas?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p><b>Welch:</b> \(SE = \sqrt{16/15 + 100/25} = \sqrt{1{,}067 + 4} = 2{,}25\), \(t = 4/2{,}25 = 1{,}78\). Grados de libertad: \(\nu = 5{,}067^2/(1{,}067^2/14 + 4^2/24) = 34{,}3\). Valor p ≈ 0,084.</p>
-            <p><b>Student:</b> \(s_p = \sqrt{(14 \cdot 16 + 24 \cdot 100)/38} = 8{,}31\), \(SE = 8{,}31\sqrt{1/15 + 1/25} = 2{,}71\), \(t = 1{,}47\) con 38 gl, p ≈ 0,149.</p>
-            <p>La varianza agrupada está dominada por la sucursal 2 (más grande y más dispersa) y le asigna su dispersión también a la sucursal 1, que en realidad es mucho más estable. El error estándar sale inflado. Reportas <b>Welch</b>; en ambos casos no se rechaza \(H_0\) al 5 %, pero la diferencia en el valor p muestra cuánto puede importar el supuesto.</p>
+            <p><b>(a)</b> \(E[W] = \theta = \sigma_1^2/n_1 + \sigma_2^2/n_2\). Como \((n_i-1)S_i^2/\sigma_i^2 \sim \chi^2_{n_i-1}\), \(\operatorname{Var}(S_i^2) = 2\sigma_i^4/(n_i-1)\), y por independencia \(\operatorname{Var}(W) = \sum_i 2\sigma_i^4/(n_i^2(n_i-1))\). Igualando con \(a\nu\) y \(2a^2\nu\): \(\nu = 2\theta^2/\operatorname{Var}(W) = \theta^2\big/\sum_i (\sigma_i^2/n_i)^2/(n_i-1)\). Se sustituyen las \(\sigma_i^2\) por \(s_i^2\).</p>
+            <p><b>(b) Welch:</b> \(v_1 = 16/15 = 1{,}067\), \(v_2 = 100/25 = 4\), \(SE = \sqrt{5{,}067} = 2{,}25\), \(t = 4/2{,}25 = 1{,}78\), \(\nu = 5{,}067^2/(1{,}067^2/14 + 4^2/24) = 34{,}3\), \(p \approx 0{,}084\). <b>Student:</b> \(s_p = \sqrt{(14 \cdot 16 + 24 \cdot 100)/38} = 8{,}31\), \(SE = 8{,}31\sqrt{1/15 + 1/25} = 2{,}71\), \(t = 1{,}47\) con 38 gl, \(p \approx 0{,}149\).</p>
+            <p>La varianza agrupada está dominada por la sucursal 2 (más grande y más dispersa) y le asigna su dispersión a la sucursal 1, que en realidad es mucho más estable: el error estándar sale inflado. Reportas Welch. Ninguna rechaza al 5 %, pero la diferencia en el valor p muestra cuánto puede importar el supuesto.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
@@ -305,11 +439,68 @@ nu &lt;- (v1 + v2)^<span class="n">2</span> / (v1^<span class="n">2</span> / <sp
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Vas a comparar dos versiones de una app de meditación midiendo el estrés con una escala. Esperas un efecto de \(d = 0{,}5\). ¿Cuántas personas necesitas por grupo para tener potencia del 80 % con \(\alpha = 0{,}05\) bilateral? ¿Qué potencia tendrías con solo 30 por grupo? Si pudieras medir a las mismas personas con ambas versiones y la correlación entre mediciones fuera 0,6, ¿qué \(d_z\) esperarías?</p>
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Tres caminos, un resultado.</b> Con los datos de la clase tradicional y con práctica, demuestra (algebraicamente y con código) que: (a) el estadístico t de \(\hat\beta_1\) en la regresión \(y_i = \beta_0 + \beta_1 D_i + \varepsilon_i\) coincide con el t de Student; (b) el F del ANOVA de un factor con dos grupos es igual a \(t^2\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Aproximación normal: \(n \approx 2(1{,}96 + 0{,}842)^2/0{,}5^2 = 62{,}8\). El cálculo exacto con la distribución t da 63,8, así que necesitas <b>64 por grupo</b> (128 en total). Con 30 por grupo la potencia cae a cerca del <b>48 %</b>: sería casi lanzar una moneda.</p>
-            <p>En el diseño pareado, si ambas mediciones tienen la misma \(\sigma\), \(\sigma_d = \sigma\sqrt{2(1-\rho)} = \sigma\sqrt{0{,}8} = 0{,}894\,\sigma\), de modo que \(d_z = 0{,}5/0{,}894 \approx 0{,}56\). Además cada persona aporta dos mediciones: con potencia del 80 % bastan unas 28 personas en total (27,1 redondeado hacia arriba). Esa es la gran ventaja de los diseños intra-sujeto, siempre que controles el orden.</p>
+            <p><b>(a)</b> Con un regresor binario, los mínimos cuadrados dan \(\hat\beta_0 = \bar y_1\) y \(\hat\beta_1 = \bar y_2 - \bar y_1\). Los residuos son \(y_{ij} - \bar y_j\), así que \(\hat\sigma^2 = SCE/(n-2) = s_p^2\). Además \(\sum (D_i - \bar D)^2 = n_1 n_2/n\), de modo que \(SE(\hat\beta_1) = s_p\sqrt{n/(n_1 n_2)} = s_p\sqrt{1/n_1 + 1/n_2}\). El cociente es el t de Student: \(8{,}83/2{,}26 = 3{,}91\).</p>
+            <p><b>(b)</b> Con \(k = 2\), \(SCE_{entre} = n_1(\bar y_1 - \bar y)^2 + n_2(\bar y_2 - \bar y)^2 = \frac{n_1n_2}{n}(\bar y_1 - \bar y_2)^2\) y \(CM_{dentro} = s_p^2\). Entonces \(F = \frac{(\bar y_1 - \bar y_2)^2}{s_p^2(1/n_1 + 1/n_2)} = t^2 = 15{,}3\), con el mismo valor p (0,00086), porque \(T^2 \sim F_{1,\nu}\).</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np, statsmodels.api <span class="k">as</span> sm
+<span class="k">from</span> scipy <span class="k">import</span> stats
+trad = np.<span class="f">array</span>([<span class="n">68</span>, <span class="n">72</span>, <span class="n">61</span>, <span class="n">75</span>, <span class="n">70</span>, <span class="n">66</span>, <span class="n">73</span>, <span class="n">64</span>, <span class="n">69</span>, <span class="n">71</span>, <span class="n">62</span>, <span class="n">67</span>])
+prac = np.<span class="f">array</span>([<span class="n">74</span>, <span class="n">80</span>, <span class="n">69</span>, <span class="n">85</span>, <span class="n">77</span>, <span class="n">72</span>, <span class="n">88</span>, <span class="n">76</span>, <span class="n">79</span>, <span class="n">70</span>])
+y = np.<span class="f">r_</span>[trad, prac]; D = np.<span class="f">r_</span>[np.<span class="f">zeros</span>(<span class="n">12</span>), np.<span class="f">ones</span>(<span class="n">10</span>)]
+m = sm.<span class="f">OLS</span>(y, sm.<span class="f">add_constant</span>(D)).<span class="f">fit</span>()
+<span class="f">print</span>(m.params[<span class="n">1</span>], m.tvalues[<span class="n">1</span>])                  <span class="c"># ≈ 8.83  3.91</span>
+<span class="f">print</span>(stats.<span class="f">f_oneway</span>(trad, prac))                  <span class="c"># F ≈ 15.32, p ≈ 0.00086</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>trad &lt;- <span class="f">c</span>(<span class="n">68</span>, <span class="n">72</span>, <span class="n">61</span>, <span class="n">75</span>, <span class="n">70</span>, <span class="n">66</span>, <span class="n">73</span>, <span class="n">64</span>, <span class="n">69</span>, <span class="n">71</span>, <span class="n">62</span>, <span class="n">67</span>)
+prac &lt;- <span class="f">c</span>(<span class="n">74</span>, <span class="n">80</span>, <span class="n">69</span>, <span class="n">85</span>, <span class="n">77</span>, <span class="n">72</span>, <span class="n">88</span>, <span class="n">76</span>, <span class="n">79</span>, <span class="n">70</span>)
+y &lt;- <span class="f">c</span>(trad, prac); D &lt;- <span class="f">rep</span>(<span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>), <span class="f">c</span>(<span class="n">12</span>, <span class="n">10</span>))
+<span class="f">summary</span>(<span class="f">lm</span>(y ~ D))$coefficients          <span class="c"># D: 8.83, t ≈ 3.91</span>
+<span class="f">summary</span>(<span class="f">aov</span>(y ~ <span class="f">factor</span>(D)))              <span class="c"># F ≈ 15.32, p ≈ 0.00086</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Simulación del error tipo I.</b> Escribe una simulación de Monte Carlo (al menos 20 000 réplicas) que estime la tasa real de rechazo al 5 % de Student y de Welch cuando \(H_0\) es verdadera, en tres escenarios: (i) \(n_1 = 40, n_2 = 5, \sigma_1 = 1, \sigma_2 = 3\); (ii) \(n_1 = 5, n_2 = 40\) con las mismas σ; (iii) \(n_1 = n_2 = 10\), \(\sigma_1 = 1, \sigma_2 = 3\). Explica el patrón con la fórmula de la varianza agrupada.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Resultados aproximados: (i) Student ≈ 0,37, Welch ≈ 0,05; (ii) Student ≈ 0,0001, Welch ≈ 0,05; (iii) Student ≈ 0,06, Welch ≈ 0,05.</p>
+            <p>En (i), \(s_p^2 \approx (39 \cdot 1 + 4 \cdot 9)/43 = 1{,}74\), y Student estima \(\operatorname{Var}(\bar X_1 - \bar X_2) \approx 1{,}74(1/40 + 1/5) = 0{,}39\), cuando la verdadera es \(1/40 + 9/5 = 1{,}83\): el error estándar sale 2,2 veces menor y el t se infla. En (ii) pasa lo contrario: \(s_p^2 \approx 8{,}4\), estimación \(8{,}4(1/5+1/40) = 1{,}89\) frente a la real \(1/5 + 9/40 = 0{,}43\), y Student casi nunca rechaza. Con tamaños iguales (iii) los pesos se compensan y Student solo se desvía un poco.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+<span class="k">def</span> <span class="f">tasa</span>(n1, n2, s1, s2, R=<span class="n">20000</span>):
+    a = rng.<span class="f">normal</span>(<span class="n">0</span>, s1, (R, n1)); b = rng.<span class="f">normal</span>(<span class="n">0</span>, s2, (R, n2))
+    ps = stats.<span class="f">ttest_ind</span>(a, b, axis=<span class="n">1</span>).pvalue
+    pw = stats.<span class="f">ttest_ind</span>(a, b, axis=<span class="n">1</span>, equal_var=<span class="k">False</span>).pvalue
+    <span class="k">return</span> (ps &lt; <span class="n">0.05</span>).<span class="f">mean</span>(), (pw &lt; <span class="n">0.05</span>).<span class="f">mean</span>()
+<span class="k">for</span> esc <span class="k">in</span> [(<span class="n">40</span>, <span class="n">5</span>, <span class="n">1</span>, <span class="n">3</span>), (<span class="n">5</span>, <span class="n">40</span>, <span class="n">1</span>, <span class="n">3</span>), (<span class="n">10</span>, <span class="n">10</span>, <span class="n">1</span>, <span class="n">3</span>)]:
+    <span class="f">print</span>(esc, <span class="f">tasa</span>(*esc))   <span class="c"># ≈ (0.37, 0.05), (0.0001, 0.05), (0.06, 0.05)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
+tasa &lt;- <span class="k">function</span>(n1, n2, s1, s2, R = <span class="n">20000</span>) {
+  p &lt;- <span class="f">replicate</span>(R, {
+    a &lt;- <span class="f">rnorm</span>(n1, <span class="n">0</span>, s1); b &lt;- <span class="f">rnorm</span>(n2, <span class="n">0</span>, s2)
+    <span class="f">c</span>(<span class="f">t.test</span>(a, b, var.equal = <span class="k">TRUE</span>)$p.value, <span class="f">t.test</span>(a, b)$p.value)
+  })
+  <span class="f">rowMeans</span>(p &lt; <span class="n">0.05</span>)   <span class="c"># Student, Welch</span>
+}
+<span class="f">tasa</span>(<span class="n">40</span>, <span class="n">5</span>, <span class="n">1</span>, <span class="n">3</span>)    <span class="c"># ≈ 0.37  0.05</span>
+<span class="f">tasa</span>(<span class="n">5</span>, <span class="n">40</span>, <span class="n">1</span>, <span class="n">3</span>)    <span class="c"># ≈ 0.0001  0.05</span>
+<span class="f">tasa</span>(<span class="n">10</span>, <span class="n">10</span>, <span class="n">1</span>, <span class="n">3</span>)   <span class="c"># ≈ 0.06  0.05</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Planificación e interpretación crítica.</b> Vas a comparar dos versiones de una app de meditación midiendo el estrés con una escala. Un estudio piloto con 15 personas por grupo reportó \(d = 0{,}9\) y \(p = 0{,}02\), pero tú planificas con \(d = 0{,}5\). (a) ¿Cuántas personas necesitas por grupo para potencia del 80 % con \(\alpha = 0{,}05\) bilateral? (b) ¿Qué potencia tendrías con 30 por grupo? (c) Si pudieras medir a las mismas personas con ambas versiones y la correlación fuera 0,6, ¿qué \(d_z\) esperarías y cuántas personas bastarían? (d) ¿Por qué es prudente no planificar con el \(d = 0{,}9\) del piloto?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> Aproximación normal: \(n \approx 2(1{,}96 + 0{,}842)^2/0{,}5^2 = 62{,}8\); el cálculo exacto con la t no central da 63,8, así que <b>64 por grupo</b>. <b>(b)</b> Con 30 por grupo, \(\delta = 0{,}5\sqrt{15} = 1{,}94\) y la potencia es ≈ 0,48: casi lanzar una moneda.</p>
+            <p><b>(c)</b> Con la misma σ en ambas mediciones, \(\sigma_d = \sigma\sqrt{2(1-\rho)} = 0{,}894\,\sigma\), así que \(d_z = 0{,}5/0{,}894 \approx 0{,}56\). Bastan unas 28 personas en total (27,1 redondeado hacia arriba), siempre que contrabalancees el orden de las versiones.</p>
+            <p><b>(d)</b> Un piloto chico solo resulta “significativo” cuando el azar infló el efecto: con 15 por grupo, rechazar exige \(|d| \gtrsim 0{,}75\). Condicionar a \(p &lt; 0{,}05\) sesga hacia arriba el efecto estimado (la “maldición del ganador”), y planificar con él da estudios con poca potencia.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">from</span> statsmodels.stats.power <span class="k">import</span> TTestIndPower, TTestPower

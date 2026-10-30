@@ -5,58 +5,90 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Medidas de forma: asimetría y curtosis</h1>
-      <p>Dos conjuntos de datos pueden tener la misma media y la misma desviación típica y, aun así, verse completamente distintos. La asimetría dice hacia qué lado se estira la distribución; la curtosis, qué tan pesadas son sus colas. Aquí aprendes a calcularlas, a interpretarlas sin caer en los mitos habituales y a saber cuándo creerles.</p>
-      <div class="lmeta"><span>35 min</span><span>Nivel básico</span><span>Requiere: medidas de tendencia central y dispersión</span><span>R · Python</span></div>
+      <p>Dos conjuntos de datos pueden tener la misma media y la misma desviación típica y, aun así, parecerse muy poco: uno simétrico y tranquilo, otro con una cola larga de valores extremos. La asimetría y la curtosis describen esa forma. Aquí aprendes a calcularlas, a demostrar qué miden de verdad, a medir cuánto ruido tienen y a usarlas para decidir si una variable se parece a una normal.</p>
+      <div class="lmeta"><span>85 min</span><span>Nivel básico</span><span>Requiere: tendencia central y dispersión</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#forma-idea" data-sec="forma-idea">La idea</a></li>
-        <li><a href="#forma-asim" data-sec="forma-asim">Momentos y asimetría</a></li>
-        <li><a href="#forma-curt" data-sec="forma-curt">Curtosis</a></li>
-        <li><a href="#forma-lab" data-sec="forma-lab">Laboratorio</a></li>
-        <li><a href="#forma-cuidado" data-sec="forma-cuidado">Precisión y cuidados</a></li>
+        <li><a href="#forma-intro" data-sec="forma-intro">Introducción</a></li>
+        <li><a href="#forma-def" data-sec="forma-def">Definición</a></li>
+        <li><a href="#forma-asim" data-sec="forma-asim">Asimetría</a></li>
+        <li><a href="#forma-curt" data-sec="forma-curt">Curtosis: qué mide de verdad</a></li>
+        <li><a href="#forma-cuidado" data-sec="forma-cuidado">Precisión, pruebas y transformaciones</a></li>
+        <li><a href="#forma-prop" data-sec="forma-prop">Propiedades</a></li>
+        <li><a href="#forma-lab" data-sec="forma-lab">Ejercicios de simulación</a></li>
+        <li><a href="#forma-apl" data-sec="forma-apl">Aplicaciones reales</a></li>
         <li><a href="#forma-code" data-sec="forma-code">En R y Python</a></li>
-        <li><a href="#forma-quiz" data-sec="forma-quiz">Comprueba</a></li>
-        <li><a href="#forma-ej" data-sec="forma-ej">Ejercicios</a></li>
+        <li><a href="#forma-quiz" data-sec="forma-quiz">Quiz</a></li>
+        <li><a href="#forma-ej" data-sec="forma-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="forma-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="forma-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Dos sucursales de un banco reportan el mismo tiempo de espera promedio, 10 minutos, con la misma desviación típica, unos 7 minutos. En la primera los tiempos se reparten de forma pareja alrededor de 10: casi nadie espera menos de 2 o más de 20. En la segunda la mayoría espera 5 o 6 minutos, pero de vez en cuando alguien queda atrapado media hora. Para la gerencia son situaciones muy distintas, y ni la media ni la desviación lo muestran.</p>
       <p>Estos son 20 tiempos de espera (minutos) de la segunda sucursal, ya ordenados:</p>
       <div class="eq" style="font-size:15px">2,1 · 3,4 · 4,0 · 4,5 · 5,2 · 5,8 · 6,1 · 6,6 · 7,0 · 7,5 · 8,2 · 8,8 · 9,5 · 10,4 · 11,8 · 13,0 · 15,5 · 18,2 · 22,6 · 29,3</div>
-      <p>La media es 9,98 y la mediana 7,85: la media queda arrastrada hacia la derecha por los pocos clientes que esperaron mucho. Esa cola larga es lo que miden las <b>medidas de forma</b>. Son la tercera capa de la descripción de una variable, después del centro y la dispersión.</p>
+      <p>La media es 9,98 y la mediana 7,85: la media queda arrastrada hacia la derecha por los pocos clientes que esperaron mucho. Esa cola larga es lo que miden las <b>medidas de forma</b>, la tercera capa de la descripción de una variable, después del centro y la dispersión (ver <a href="#desc">tendencia central y dispersión</a>).</p>
+      <p>La historia empieza con Karl Pearson. A fines del siglo XIX, al estudiar mediciones biológicas que no seguían la curva normal, Pearson introdujo la palabra <i>skewness</i> (asimetría) y en 1905 el término <i>kurtosis</i>, junto con “leptocúrtica” y “platicúrtica”. Arthur Bowley propuso en 1901 su medida basada en cuartiles, y Ronald Fisher (1930) desarrolló las versiones corregidas por sesgo que usan hoy SPSS, Excel y pandas. En 1980 Carlos Jarque y Anil Bera combinaron asimetría y curtosis en una prueba de normalidad que se volvió estándar en econometría. Y la interpretación de la curtosis fue corregida hace poco: Peter Westfall (2014, <i>The American Statistician</i>) mostró que la idea de “apuntamiento” que se repetía en los libros es incorrecta.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a definir momentos, asimetría y curtosis en la población y en la muestra, y a calcularlos a mano;</li>
+          <li>medidas de asimetría basadas en cuantiles (Bowley, Pearson) y cuándo preferirlas;</li>
+          <li>a demostrar que la curtosis mide colas, no apuntamiento, y que siempre cumple \(\gamma_2 \ge \gamma_1^2 - 2\);</li>
+          <li>cuánto ruido tienen \(g_1\) y \(g_2\), cómo usar Jarque-Bera y Shapiro-Wilk y cómo leer un gráfico Q-Q;</li>
+          <li>cuándo un logaritmo corrige la asimetría y qué resumen reportar después.</li>
+        </ul>
+      </div>
       <div class="callout"><b>Por qué importa:</b> la forma decide qué resumen usar (media o mediana), si un intervalo “media ± 2 desviaciones” tiene sentido, si conviene transformar la variable y qué tan probables son los valores extremos, que muchas veces son los que más cuestan.</div>
 
-      <h2 id="forma-asim"><span class="sec">§ 2</span>Momentos y asimetría</h2>
-      <p>Las medidas de forma se construyen con los <b>momentos centrales</b> de la muestra: promedios de las desviaciones a la media elevadas a una potencia.</p>
-      <div class="eq">\[ m_k = \frac{1}{n}\sum_{i=1}^{n}(x_i - \bar x)^k, \qquad m_2 = \text{varianza (con } n\text{)}, \qquad g_1 = \frac{m_3}{m_2^{3/2}} \]
-        <div class="note">\(g_1\) es el <b>coeficiente de asimetría</b> de Fisher. Al elevar al cubo, las desviaciones conservan su signo y las grandes pesan muchísimo: una cola larga a la derecha produce cubos positivos enormes que dominan la suma. Dividir por \(m_2^{3/2}\) (la desviación al cubo) lo vuelve adimensional: no cambia si pasas de minutos a segundos.</div>
-      </div>
+      <h2 id="forma-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Las medidas de forma se construyen con <b>momentos</b>. Para una variable aleatoria \(X\) con media \(\mu\) y desviación \(\sigma\), el momento central de orden \(k\) es \(\mu_k = \mathbb E[(X - \mu)^k]\). Su versión muestral promedia las desviaciones a la media:</p>
+      <div class="eq">\[ m_k = \frac{1}{n}\sum_{i=1}^{n}(x_i - \bar x)^k, \qquad m_1 = 0, \qquad m_2 = \text{varianza con divisor } n \]</div>
+      <div class="callout"><b>Definición (asimetría y curtosis).</b> Si \(Z = (X - \mu)/\sigma\) es la variable estandarizada,
+        \[ \gamma_1 = \mathbb E[Z^3] = \frac{\mu_3}{\sigma^3}, \qquad \kappa = \mathbb E[Z^4] = \frac{\mu_4}{\sigma^4}, \qquad \gamma_2 = \kappa - 3. \]
+        \(\gamma_1\) es el <b>coeficiente de asimetría</b>, \(\kappa\) la <b>curtosis</b> y \(\gamma_2\) el <b>exceso de curtosis</b> (se resta 3 porque es el valor de la normal). Sus estimadores muestrales son \(g_1 = m_3/m_2^{3/2}\) y \(g_2 = m_4/m_2^2 - 3\).</div>
       <ul>
-        <li>\(g_1 &gt; 0\): <b>asimetría positiva</b> o cola a la derecha. Ingresos, tiempos de espera, precios de viviendas, tamaño de archivos.</li>
-        <li>\(g_1 \approx 0\): distribución simétrica (o con colas que se compensan).</li>
-        <li>\(g_1 &lt; 0\): <b>asimetría negativa</b> o cola a la izquierda. Notas de un examen fácil, edad al morir en países ricos, vida útil de piezas con desgaste.</li>
+        <li>\(\gamma_1 &gt; 0\): <b>asimetría positiva</b> o cola a la derecha. Ingresos, tiempos de espera, precios de viviendas, tamaño de archivos.</li>
+        <li>\(\gamma_1 \approx 0\): distribución simétrica (o con colas que se compensan).</li>
+        <li>\(\gamma_1 &lt; 0\): <b>asimetría negativa</b> o cola a la izquierda. Notas de un examen fácil, edad al morir en países ricos, vida útil de piezas con desgaste.</li>
+        <li>\(\gamma_2 &gt; 0\): <b>leptocúrtica</b>, colas más pesadas que la normal. \(\gamma_2 \approx 0\): <b>mesocúrtica</b>. \(\gamma_2 &lt; 0\): <b>platicúrtica</b>, colas más livianas (uniforme, bimodal).</li>
       </ul>
-      <p>Para los 20 tiempos de espera: \(m_2 = 45{,}05\), \(m_3 = 425{,}6\) y \(g_1 = 425{,}6/45{,}05^{1{,}5} = 1{,}41\). Una asimetría positiva clara.</p>
-      <p>El parámetro poblacional es \(\gamma_1 = E[(X-\mu)^3]/\sigma^3\), y \(g_1\) es un estimador sesgado de él en muestras pequeñas. Por eso muchos programas reportan la versión ajustada:</p>
+      <p>Al elevar al cubo, las desviaciones conservan su signo y las grandes pesan muchísimo: una cola larga a la derecha produce cubos positivos enormes que dominan la suma. Dividir por \(m_2^{3/2}\) (la desviación al cubo) vuelve la medida adimensional: no cambia si pasas de minutos a segundos.</p>
+      <p><b>Ejemplo numérico.</b> Datos 2, 3, 5, 6, 14. La media es 6 y las desviaciones son −4, −3, −1, 0, 8. Sumas de potencias: \(\sum d^2 = 16 + 9 + 1 + 0 + 64 = 90\), \(\sum d^3 = -64 - 27 - 1 + 0 + 512 = 420\), \(\sum d^4 = 256 + 81 + 1 + 0 + 4\,096 = 4\,434\). Momentos: \(m_2 = 18\), \(m_3 = 84\), \(m_4 = 886{,}8\).</p>
+      <div class="eq">\[ g_1 = \frac{84}{18^{3/2}} = \frac{84}{76{,}37} = 1{,}10, \qquad g_2 = \frac{886{,}8}{18^2} - 3 = 2{,}74 - 3 = -0{,}26 \]
+        <div class="note">El 14 estira la cola derecha y \(g_1\) lo detecta. Pero \(g_2\) es negativo: con solo 5 datos la curtosis muestral no puede ser grande (propiedad 7). Con muestras tan chicas, la curtosis casi no informa.</div>
+      </div>
+
+      <h2 id="forma-asim"><span class="sec">§ 3</span>Asimetría: momentos, cuantiles y corrección de sesgo</h2>
+      <p>Para los 20 tiempos de espera: \(m_2 = 45{,}05\), \(m_3 = 425{,}6\) y \(g_1 = 425{,}6/45{,}05^{1{,}5} = 425{,}6/302{,}4 = 1{,}41\). Una asimetría positiva clara.</p>
+      <p><b>Un caso exacto: la exponencial.</b> Si \(X \sim \operatorname{Exp}(1)\), sus momentos son \(\mathbb E[X^k] = k!\), así que \(\mu = 1\), \(\sigma^2 = 2 - 1 = 1\) y</p>
+      <div class="eq">\[ \mu_3 = \mathbb E[(X-1)^3] = \mathbb E[X^3] - 3\mathbb E[X^2] + 3\mathbb E[X] - 1 = 6 - 6 + 3 - 1 = 2 \quad\Rightarrow\quad \gamma_1 = 2 \]
+        <div class="note">Del mismo modo, \(\mu_4 = 24 - 4\cdot 6 + 6 \cdot 2 - 4 + 1 = 9\), así que \(\kappa = 9\) y \(\gamma_2 = 6\). Los tiempos de espera “puros” entre llegadas al azar tienen esta forma (ver <a href="#continuas">variables continuas</a>).</div>
+      </div>
+      <p><b>Corrección de sesgo.</b> El parámetro es \(\gamma_1\), y \(g_1\) es un estimador sesgado de él en muestras pequeñas. Fisher propuso usar los <b>k-estadísticos</b>, insesgados para los cumulantes, que llevan a la versión ajustada:</p>
       <div class="eq">\[ G_1 = \frac{\sqrt{n(n-1)}}{n-2}\; g_1 \qquad\quad \text{(con } n = 20:\ G_1 = 1{,}083 \cdot 1{,}41 = 1{,}52\text{)} \]
         <div class="note">Excel (<code>COEFICIENTE.ASIMETRIA</code>), SPSS y pandas (<code>skew()</code>) usan \(G_1\); <code>scipy.stats.skew</code> usa \(g_1\) salvo que pongas <code>bias=False</code>. Con \(n\) grande la diferencia desaparece. Cuando compares resultados entre programas, revisa cuál usa cada uno.</div>
       </div>
-      <p>Hay medidas de asimetría que no usan momentos y por eso son mucho menos sensibles a valores extremos:</p>
-      <div class="eq">\[ \underbrace{A_P = \frac{3(\bar x - \mathrm{Me})}{s}}_{\text{Pearson}} \qquad\qquad \underbrace{A_B = \frac{Q_3 + Q_1 - 2\,\mathrm{Me}}{Q_3 - Q_1}}_{\text{Bowley}} \]
-        <div class="note">Bowley compara las distancias de los cuartiles a la mediana: vale 0 si \(Q_1\) y \(Q_3\) están a la misma distancia y siempre queda entre −1 y 1. Para los tiempos de espera, \(Q_1 = 5{,}65\), \(\mathrm{Me} = 7{,}85\), \(Q_3 = 12{,}1\): \(A_B = (12{,}1 + 5{,}65 - 15{,}7)/6{,}45 = 0{,}32\). Pearson da \(3(9{,}98 - 7{,}85)/6{,}89 = 0{,}93\).</div>
+      <p><b>Medidas basadas en cuantiles.</b> No usan potencias de las desviaciones y por eso son mucho menos sensibles a valores extremos:</p>
+      <div class="eq">\[ \underbrace{A_P = \frac{3(\bar x - \mathrm{Me})}{s}}_{\text{Pearson}} \qquad\qquad \underbrace{A_B = \frac{(Q_3 - \mathrm{Me}) - (\mathrm{Me} - Q_1)}{Q_3 - Q_1} = \frac{Q_3 + Q_1 - 2\,\mathrm{Me}}{Q_3 - Q_1}}_{\text{Bowley}} \]
+        <div class="note">Bowley compara las distancias de los cuartiles a la mediana: vale 0 si \(Q_1\) y \(Q_3\) están a la misma distancia. Como el numerador es la diferencia de dos números no negativos cuya suma es el denominador, siempre queda entre −1 y 1. Para los tiempos de espera, \(Q_1 = 5{,}65\), \(\mathrm{Me} = 7{,}85\), \(Q_3 = 12{,}1\): \(A_B = (12{,}1 + 5{,}65 - 15{,}7)/6{,}45 = 0{,}32\). Pearson da \(3(9{,}98 - 7{,}85)/6{,}89 = 0{,}93\).</div>
       </div>
+      <p>La medida de Pearson está acotada: como \(|\mu - \operatorname{Me}| \le \sigma\) (demostrado en <a href="#desc">la sesión anterior</a>), \(|A_P| \le 3\). Bowley mira solo el 50 % central; \(g_1\) mira sobre todo las colas. Que discrepen no es una contradicción: describen partes distintas de la distribución.</p>
 
-      <h2 id="forma-curt"><span class="sec">§ 3</span>Curtosis</h2>
-      <p>El cuarto momento, estandarizado, da la <b>curtosis</b>. Se suele restar 3, que es el valor de la normal, para obtener el <b>exceso de curtosis</b>:</p>
-      <div class="eq">\[ g_2 = \frac{m_4}{m_2^{2}} - 3, \qquad \gamma_2 = \frac{E[(X-\mu)^4]}{\sigma^4} - 3 \]
-        <div class="note">\(g_2 &gt; 0\): <b>leptocúrtica</b>, colas más pesadas que la normal. \(g_2 \approx 0\): <b>mesocúrtica</b>, como la normal. \(g_2 &lt; 0\): <b>platicúrtica</b>, colas más livianas (uniforme, bimodal). Para los tiempos de espera, \(m_4 = 8\,984\) y \(g_2 = 8\,984/45{,}05^2 - 3 = 1{,}43\).</div>
+      <h2 id="forma-curt"><span class="sec">§ 4</span>Curtosis: qué mide de verdad</h2>
+      <p>Para los tiempos de espera, \(m_4 = 8\,984\) y \(g_2 = 8\,984/45{,}05^2 - 3 = 4{,}43 - 3 = 1{,}43\). ¿Qué significa ese número?</p>
+      <p>Un mito muy extendido dice que la curtosis mide qué tan “puntiaguda” es la distribución. No es así. La forma más limpia de verlo es una identidad de Moors (1986):</p>
+      <div class="eq">\[ \kappa = \mathbb E[Z^4] = \operatorname{Var}(Z^2) + \big(\mathbb E[Z^2]\big)^2 = \operatorname{Var}(Z^2) + 1 \]
+        <div class="note">La curtosis es 1 más la varianza de \(Z^2\): mide qué tan dispersos están los cuadrados de las distancias estandarizadas alrededor de 1. Si todos los datos están a la misma distancia de la media (\(|Z| = 1\)), \(\kappa = 1\), el mínimo posible. Si unos pocos están muy lejos, \(Z^2\) varía mucho y \(\kappa\) es grande.</div>
       </div>
-      <p>Un mito muy extendido dice que la curtosis mide qué tan “puntiaguda” es la distribución. No es así. Al elevar a la cuarta potencia, las observaciones a menos de una desviación de la media aportan casi nada (\(0{,}5^4 = 0{,}06\)) y las que están a 3 o 4 desviaciones aportan muchísimo (\(3^4 = 81\), \(4^4 = 256\)). La curtosis mide, casi por completo, <b>cuánta masa hay en las colas</b>: la propensión a producir valores extremos.</p>
+      <p>Westfall lo cuantificó: la región \(|Z| \le 1\) (el “pico”) aporta a lo sumo 1 a \(\kappa\), porque allí \(Z^4 \le 1\) y la probabilidad es a lo sumo 1. Las observaciones a 3 o 4 desviaciones, en cambio, aportan \(3^4 = 81\) o \(4^4 = 256\) veces su probabilidad. La curtosis mide, casi por completo, <b>cuánta masa hay en las colas</b>: la propensión a producir valores extremos.</p>
+      <p><b>Teorema (desigualdad de Pearson).</b> Para cualquier distribución con cuarto momento finito, \(\kappa \ge \gamma_1^2 + 1\), es decir, \(\gamma_2 \ge \gamma_1^2 - 2\).</p>
+      <p><i>Demostración.</i> Por la identidad de Moors, basta ver que \(\operatorname{Var}(Z^2) \ge \gamma_1^2\). Por la desigualdad de Cauchy-Schwarz aplicada a la covarianza, \(\operatorname{Cov}(Z, Z^2)^2 \le \operatorname{Var}(Z)\operatorname{Var}(Z^2)\). Como \(\mathbb E[Z] = 0\) y \(\operatorname{Var}(Z) = 1\), \(\operatorname{Cov}(Z, Z^2) = \mathbb E[Z^3] = \gamma_1\). Entonces \(\gamma_1^2 \le \operatorname{Var}(Z^2) = \kappa - 1\). \(\square\)</p>
+      <p>Consecuencia práctica: una distribución muy asimétrica tiene, por fuerza, colas pesadas. Con \(\gamma_1 = 2\) (exponencial), \(\gamma_2 \ge 2\); de hecho vale 6. La igualdad se alcanza solo en distribuciones de dos puntos, como la Bernoulli, que con \(p = 0{,}5\) tiene \(\gamma_2 = -2\), el mínimo absoluto.</p>
+      <p><b>Ejemplo resuelto: la uniforme.</b> Si \(X \sim U(-a, a)\), \(\sigma^2 = a^2/3\) y \(\mu_4 = \frac{1}{2a}\int_{-a}^{a} x^4 dx = a^4/5\). Entonces \(\kappa = (a^4/5)/(a^4/9) = 9/5 = 1{,}8\) y \(\gamma_2 = -1{,}2\): colas más livianas que la normal (no tiene colas: está acotada).</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Distribución</th><th>Asimetría \(\gamma_1\)</th><th>Exceso de curtosis \(\gamma_2\)</th></tr></thead>
         <tbody>
@@ -67,12 +99,48 @@
           <tr><td>t de Student con \(\nu\) grados de libertad</td><td>0 (\(\nu &gt; 3\))</td><td>\(6/(\nu - 4)\) (\(\nu &gt; 4\))</td></tr>
           <tr><td>Exponencial</td><td>2</td><td>6</td></tr>
           <tr><td>Gamma con forma \(k\)</td><td>\(2/\sqrt{k}\)</td><td>\(6/k\)</td></tr>
+          <tr><td>Mezcla 50/50 de \(\mathcal N(\pm d, 1)\)</td><td>0</td><td>\(-2d^4/(1+d^2)^2\)</td></tr>
         </tbody>
       </table></div>
-      <p>Dos hechos útiles. Primero, asimetría y curtosis no son independientes: siempre se cumple \(\gamma_2 \ge \gamma_1^2 - 2\), así que una distribución muy asimétrica tiene, por fuerza, colas pesadas. Segundo, una t con 5 grados de libertad tiene exceso 6, y con \(\nu \le 4\) el cuarto momento ni siquiera existe: la curtosis muestral no se estabiliza por más datos que juntes.</p>
+      <p>Una t con 5 grados de libertad tiene exceso 6, y con \(\nu \le 4\) el cuarto momento ni siquiera existe: la curtosis muestral no se estabiliza por más datos que juntes.</p>
 
-      <h2 id="forma-lab"><span class="sec">§ 4</span>Laboratorio</h2>
-      <p>Elige una familia de distribuciones y mueve su parámetro. Todas están estandarizadas (media 0 y desviación 1), así que lo único que cambia es la forma. A la izquierda, el histograma de la muestra con la densidad verdadera y la normal punteada; a la derecha, el <b>gráfico Q-Q normal</b>: si los puntos siguen la diagonal, la muestra se parece a una normal.</p>
+      <h2 id="forma-cuidado"><span class="sec">§ 5</span>Precisión, pruebas de normalidad y transformaciones</h2>
+      <p>Asimetría y curtosis muestrales son estimadores <b>muy ruidosos</b>. Si los datos vinieran de una normal, sus errores estándar aproximados (para \(n\) grande) serían:</p>
+      <div class="eq">\[ SE(g_1) \approx \sqrt{\frac{6}{n}}, \qquad SE(g_2) \approx \sqrt{\frac{24}{n}}, \qquad JB = \frac{n}{6}\left(g_1^2 + \frac{g_2^2}{4}\right) \;\overset{H_0}{\sim}\; \chi^2_2 \]
+        <div class="note">Con \(n = 20\), \(SE(g_1) \approx 0{,}55\) y \(SE(g_2) \approx 1{,}10\): una asimetría de 0,8 en 20 datos puede ser pura casualidad. El estadístico de <b>Jarque-Bera</b> suma los cuadrados de los dos puntajes z, \((g_1/SE_1)^2 + (g_2/SE_2)^2\), que bajo normalidad son normales estándar independientes en el límite: por eso la referencia es una \(\chi^2\) con 2 grados de libertad. Para los tiempos de espera, \(JB = \tfrac{20}{6}(1{,}41^2 + 1{,}43^2/4) = 8{,}30\), con valor p \(= e^{-8{,}30/2} \approx 0{,}016\).</div>
+      </div>
+      <p><b>El gráfico Q-Q normal.</b> Ordena los datos y grafica \(x_{(i)}\) contra el cuantil normal \(\Phi^{-1}\big((i - 0{,}5)/n\big)\). Si los datos son normales, los puntos siguen una recta de pendiente \(\sigma\) y ordenada \(\mu\). Una cola a la derecha curva el extremo derecho hacia arriba (forma de banana); colas pesadas hacen una S con los dos extremos alejándose de la recta; colas livianas o bimodalidad, una S invertida. El Q-Q muestra <i>dónde</i> está la discrepancia, algo que un único número no puede.</p>
+      <p>Cuidados al usar estas medidas:</p>
+      <ul>
+        <li><b>Un dato puede dominar todo.</b> Si en los tiempos de espera el 29,3 fuera un 60, ese único valor aportaría el 99 % de \(\sum (x_i-\bar x)^4\): \(g_1\) pasaría de 1,41 a 3,09 y \(g_2\) de 1,43 a 9,52. Antes de interpretar una curtosis alta, busca atípicos (ver <a href="#atipicos">atípicos</a>).</li>
+        <li><b>Con \(n\) chico, mira el gráfico.</b> Bowley o la comparación media-mediana son más estables. Jarque-Bera es una prueba asintótica: con menos de unos 50 datos conviene Shapiro-Wilk (Shapiro y Wilk, 1965), que para los tiempos de espera da \(W = 0{,}859\), \(p = 0{,}008\).</li>
+        <li><b>Con \(n\) enorme, todo es “significativo”.</b> Con un millón de datos, una asimetría de 0,01 rechaza la normalidad. Importa el tamaño de la desviación, no solo el valor p.</li>
+        <li><b>Reglas prácticas</b> (orientativas): \(|g_1| &lt; 0{,}5\) casi simétrica, entre 0,5 y 1 moderada, más de 1 fuerte.</li>
+      </ul>
+      <p><b>Transformaciones.</b> Si la asimetría es fuerte y positiva, el logaritmo suele arreglarla, porque comprime más los valores grandes que los pequeños. Con los tiempos de espera, \(\log x\) tiene \(g_1 = 0{,}04\) y \(g_2 = -0{,}32\): prácticamente simétrico. La media de los logaritmos, devuelta con \(e^{\bar y}\), es la media geométrica (8,15 minutos), un buen “valor típico” para datos así. La familia Box-Cox generaliza esta idea y se estudia en <a href="#transform">transformación de variables</a>.</p>
+
+      <h2 id="forma-prop"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>Invariancia afín.</b> Si \(Y = a + bX\) con \(b &gt; 0\), \(\gamma_1(Y) = \gamma_1(X)\) y \(\gamma_2(Y) = \gamma_2(X)\); si \(b &lt; 0\), la asimetría cambia de signo y la curtosis no. <i>Demostración:</i> \(Z_Y = \operatorname{sign}(b)\,Z_X\), y \(\mathbb E[Z^3]\) cambia de signo con \(Z\) mientras que \(\mathbb E[Z^4]\) no.</li>
+        <li><b>Simetría implica \(\gamma_1 = 0\).</b> Si \(X - \mu\) y \(\mu - X\) tienen la misma distribución, \(\mu_3 = -\mu_3\), así que \(\mu_3 = 0\). El recíproco es falso: hay distribuciones asimétricas con \(\gamma_1 = 0\).</li>
+        <li><b>Identidad de Moors.</b> \(\kappa = 1 + \operatorname{Var}(Z^2) \ge 1\), con igualdad solo si \(|Z| = 1\) casi seguramente. <i>Demostración:</i> \(\mathbb E[Z^4] = \operatorname{Var}(Z^2) + (\mathbb E Z^2)^2\) y \(\mathbb E Z^2 = 1\).</li>
+        <li><b>Desigualdad de Pearson.</b> \(\gamma_2 \ge \gamma_1^2 - 2\). <i>Demostración:</i> sección 4, con Cauchy-Schwarz.</li>
+        <li><b>Promedios y forma.</b> Si \(\bar X\) es la media de \(n\) independientes con la misma distribución, \(\gamma_1(\bar X) = \gamma_1/\sqrt n\) y \(\gamma_2(\bar X) = \gamma_2/n\). <i>Demostración:</i> los cumulantes \(\kappa_r\) se suman para variables independientes: \(\kappa_r(S_n) = n\kappa_r\). Como \(\gamma_1 = \kappa_3/\kappa_2^{3/2}\) y \(\gamma_2 = \kappa_4/\kappa_2^2\), sale \(n\kappa_3/(n\kappa_2)^{3/2} = \gamma_1/\sqrt n\) y \(n\kappa_4/(n\kappa_2)^2 = \gamma_2/n\). Es una forma cuantitativa del <a href="#tlc">teorema del límite central</a>.</li>
+        <li><b>Normalidad de los estimadores.</b> Bajo normalidad, \(\sqrt n\,g_1 \to \mathcal N(0, 6)\) y \(\sqrt n\,g_2 \to \mathcal N(0, 24)\), asintóticamente independientes. <i>Justificación:</i> método delta aplicado a \((m_2, m_3, m_4)\); de ahí sale Jarque-Bera.</li>
+        <li><b>Cota muestral.</b> Para cualquier muestra de tamaño \(n\), \(m_4/m_2^2 \le n - 2 + \frac{1}{n-1}\), y \(|g_1| \le (n-2)/\sqrt{n-1}\). <i>Justificación:</i> el máximo se alcanza con un dato lejos y \(n-1\) iguales. Con \(n = 5\), \(g_2 \le 0{,}25\).</li>
+        <li><b>Bowley acotada.</b> \(-1 \le A_B \le 1\). <i>Demostración:</i> \(A_B = (u - v)/(u + v)\) con \(u = Q_3 - \mathrm{Me} \ge 0\) y \(v = \mathrm{Me} - Q_1 \ge 0\).</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li><b>Decir que la curtosis mide el “apuntamiento”.</b> Mide colas. Una distribución puede ser muy puntiaguda y tener curtosis baja, o plana en el centro y curtosis alta.</li>
+        <li><b>Comparar asimetrías de programas distintos sin revisar la fórmula.</b> \(g_1\) frente a \(G_1\), curtosis frente a exceso de curtosis: pandas da \(G_2 = 2{,}23\) donde scipy da \(g_2 = 1{,}43\).</li>
+        <li><b>Interpretar \(g_2\) con 20 datos.</b> Su error estándar es mayor que 1.</li>
+        <li><b>Rechazar la normalidad con \(n\) enorme y concluir que el modelo no sirve.</b> Mira el tamaño de la desviación y el Q-Q.</li>
+        <li><b>Transformar con logaritmo datos con ceros o negativos.</b> El logaritmo no está definido ahí; usa \(\log(x + c)\) con cuidado o Yeo-Johnson.</li>
+      </ul>
+
+      <h2 id="forma-lab"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
+      <p>Elige una familia de distribuciones y mueve su parámetro. Todas están estandarizadas (media 0 y desviación 1), así que lo único que cambia es la forma. A la izquierda, el histograma de la muestra con la densidad verdadera y la normal punteada; a la derecha, el <b>gráfico Q-Q normal</b>: si los puntos siguen la diagonal, la muestra se parece a una normal. La familia “Asimétrica” es una gamma con forma \(k = 4/\gamma_1^2\), así que \(\gamma_2 = 6/k = 1{,}5\,\gamma_1^2\).</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · asimetría y colas</span><span class="num" id="forma-head">–</span></div>
         <div class="lab-body">
@@ -117,89 +185,122 @@
         </div>
         <figcaption>En el Q-Q, una cola a la derecha curva los puntos hacia arriba en el extremo derecho (forma de banana); colas pesadas hacen una S con los extremos alejándose de la diagonal; la bimodal hace una S al revés. Prueba “Colas pesadas” con ν = 5 y n = 100, y pide varias muestras: g₂ salta muchísimo de una muestra a otra. Después agrega un valor extremo y mira cómo un solo dato cambia g₂.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>En “Asimétrica”, fija γ₁ = 1 y n = 500 y pide cinco muestras nuevas. Luego lleva γ₁ a −2.
+          <details><summary>Qué deberías observar</summary><p>Con γ₁ = 1, \(g_1\) varía alrededor de 1 (con \(n = 500\), su error es de una o dos décimas) y \(g_2\) alrededor del teórico 1,5. En el Q-Q, el extremo derecho se curva hacia arriba. Con γ₁ = −2 la banana se invierte: el extremo izquierdo cae por debajo de la recta, y el exceso teórico sube a 6, como exige \(\gamma_2 \ge \gamma_1^2 - 2 = 2\).</p></details></li>
+        <li>Pasa a “Colas pesadas” con ν = 5 y n = 100 y pide varias muestras. Después sube ν a 60.
+          <details><summary>Qué deberías observar</summary><p>Con ν = 5 el exceso teórico es 6, pero \(g_2\) salta muchísimo de una muestra a otra (puede dar 1 o 10): el cuarto momento de la muestra depende de uno o dos datos extremos. El Q-Q muestra una S con los extremos alejándose. Con ν = 60 el teórico es 0,11 y el gráfico casi no se distingue de una normal.</p></details></li>
+        <li>Elige “Bimodal” con d = 2 y luego con d = 0.
+          <details><summary>Qué deberías observar</summary><p>Con d = 2 el exceso teórico es \(-2\cdot 16/25 = -1{,}28\): curtosis negativa, aunque el histograma tiene dos “picos”. El Q-Q dibuja una S invertida (colas más cortas que la normal). Con d = 0 la mezcla es una normal y ambas medidas valen 0. La curtosis no ve los picos; ve las colas.</p></details></li>
+        <li>Vuelve a “Asimétrica” con γ₁ = 0 (normal), n = 100, y activa “Un valor extremo”. Repite con n = 500.
+          <details><summary>Qué deberías observar</summary><p>Un solo dato en z = 6 lleva \(g_2\) de cerca de 0 a unos 5 o 6 con \(n = 100\), y \(g_1\) a más de 1, aunque los otros 99 datos sean normales. Con \(n = 500\) el efecto se diluye (\(g_2\) cerca de 2), y Jarque-Bera, en la cabecera, igual rechaza. Es la propiedad que hace a estas medidas útiles para detectar colas y peligrosas para describir el grueso de los datos.</p></details></li>
+      </ol>
 
-      <h2 id="forma-cuidado"><span class="sec">§ 5</span>Precisión, pruebas y cuidados</h2>
-      <p>Asimetría y curtosis muestrales son estimadores <b>muy ruidosos</b>. Si los datos vinieran de una normal, sus errores estándar aproximados serían:</p>
-      <div class="eq">\[ SE(g_1) \approx \sqrt{\frac{6}{n}}, \qquad SE(g_2) \approx \sqrt{\frac{24}{n}}, \qquad JB = \frac{n}{6}\left(g_1^2 + \frac{g_2^2}{4}\right) \;\overset{H_0}{\sim}\; \chi^2_2 \]
-        <div class="note">Con \(n = 20\), \(SE(g_1) \approx 0{,}55\) y \(SE(g_2) \approx 1{,}10\): una asimetría de 0,8 en 20 datos puede ser pura casualidad. El estadístico de <b>Jarque-Bera</b> combina ambos para contrastar la normalidad. Para los tiempos de espera, \(JB = \tfrac{20}{6}(1{,}41^2 + 1{,}43^2/4) = 8{,}30\), con valor p \(= e^{-8{,}30/2} \approx 0{,}016\): hay evidencia de que no son normales.</div>
-      </div>
-      <p>Cuidados al usarlas:</p>
-      <ul>
-        <li><b>Un dato puede dominar todo.</b> Si en los tiempos de espera el 29,3 fuera un 60, ese único valor aportaría el 99 % de \(\sum (x_i-\bar x)^4\): \(g_1\) pasaría de 1,41 a 3,09 y \(g_2\) de 1,43 a 9,52. Antes de interpretar una curtosis alta, busca atípicos.</li>
-        <li><b>Con \(n\) chico, mira el gráfico.</b> Bowley o la comparación media-mediana son más estables. Jarque-Bera es una prueba asintótica: con menos de unos 50 datos conviene Shapiro-Wilk.</li>
-        <li><b>Con \(n\) enorme, todo es “significativo”.</b> Con un millón de datos, una asimetría de 0,01 rechaza la normalidad. Importa el tamaño de la desviación, no solo el valor p.</li>
-        <li><b>Reglas prácticas</b> (orientativas): \(|g_1| &lt; 0{,}5\) casi simétrica, entre 0,5 y 1 moderada, más de 1 fuerte.</li>
-      </ul>
-      <div class="callout"><b>Si la asimetría es fuerte y positiva,</b> el logaritmo suele arreglarla. Con los tiempos de espera, \(\log x\) tiene \(g_1 = 0{,}04\) y \(g_2 = -0{,}32\): prácticamente simétrico. La media de los logaritmos, devuelta con \(e^{\bar y}\), es la media geométrica, un buen “valor típico” para datos así.</div>
+      <h2 id="forma-apl"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Finanzas: las colas de los rendimientos</h3>
+      <p>Los rendimientos diarios de los índices bursátiles tienen asimetría ligeramente negativa y un exceso de curtosis grande: en series largas del S&amp;P 500 suele superar 10. La consecuencia es práctica. El 19 de octubre de 1987 (el “lunes negro”) el S&amp;P 500 cayó cerca de 20 % en un día, con una desviación diaria típica cercana al 1 %: más de 20 desviaciones, un evento con probabilidad prácticamente nula bajo una normal. Los gestores de riesgo que calculan el valor en riesgo (VaR) suponiendo normalidad subestiman las pérdidas extremas; por eso se usan distribuciones t, simulación histórica o modelos de volatilidad (GARCH), que generan curtosis. Medir \(g_2\) es el primer diagnóstico.</p>
+      <h3>Seguros: siniestros con cola larga</h3>
+      <p>Los montos de los siniestros de incendio son muy asimétricos: la mayoría son pequeños y unos pocos, enormes. El conjunto clásico <i>danish</i> (pérdidas por incendio de una aseguradora danesa entre 1980 y 1990, disponible en paquetes de R para valores extremos) tiene la media muy por encima de la mediana y una asimetría que se dispara con cada siniestro grande. La aseguradora no puede fijar la prima solo con la media: necesita la cola. La decisión típica es contratar <b>reaseguro</b> por encima de cierto umbral, que se elige mirando cuánto de la asimetría y la curtosis proviene de los siniestros más grandes, exactamente el ejercicio de “qué fracción de \(\sum d^4\) aporta un dato”.</p>
+      <h3>Salud: días de hospitalización</h3>
+      <p>La duración de la estancia hospitalaria tiene cola a la derecha: muchos pacientes se van en 2 a 5 días y unos pocos con complicaciones se quedan semanas. En un servicio con mediana de 4 días es habitual una media de 6 o 7 y una asimetría mayor que 2. Para el <b>presupuesto</b> importa la media (los días totales son \(n \cdot \bar x\)); para describir al paciente típico, la mediana; y para comparar dos tratamientos con un modelo, se suele trabajar con el logaritmo de los días, cuya forma es mucho más cercana a la normal. Las tres decisiones se toman a partir de la forma.</p>
+      <h3>Ambiente: el índice estandarizado de precipitación</h3>
+      <p>La lluvia acumulada en uno o tres meses es asimétrica a la derecha, sobre todo en climas secos. El <b>índice estandarizado de precipitación</b> (SPI, McKee y colaboradores, 1993), que la Organización Meteorológica Mundial recomienda para monitorear sequías, no usa un puntaje z directo: primero ajusta una distribución gamma (precisamente porque la lluvia tiene \(\gamma_1 &gt; 0\)) y después transforma su probabilidad acumulada al cuantil normal. Un SPI de −2 significa “tan seco como el percentil 2,3”. Si se usara \(z = (x - \bar x)/s\) sobre la lluvia cruda, la asimetría haría que las sequías parecieran menos extremas de lo que son.</p>
 
-      <h2 id="forma-code"><span class="sec">§ 6</span>En R y Python</h2>
-      <p>Las medidas de forma de los 20 tiempos de espera, con las fórmulas a mano y con las funciones de cada lenguaje.</p>
+      <h2 id="forma-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Caso completo con los 20 tiempos de espera: momentos a mano, versiones sesgada y ajustada, medidas basadas en cuantiles, un intervalo bootstrap para \(g_1\) (que muestra cuánto ruido tiene con 20 datos), las pruebas de normalidad y el efecto del logaritmo, con gráficos Q-Q.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
 <span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">import</span> matplotlib.pyplot <span class="k">as</span> plt
 
 x = np.<span class="f">array</span>([<span class="n">2.1</span>, <span class="n">3.4</span>, <span class="n">4.0</span>, <span class="n">4.5</span>, <span class="n">5.2</span>, <span class="n">5.8</span>, <span class="n">6.1</span>, <span class="n">6.6</span>, <span class="n">7.0</span>, <span class="n">7.5</span>,
-              <span class="n">8.2</span>, <span class="n">8.8</span>, <span class="n">9.5</span>, <span class="n">10.4</span>, <span class="n">11.8</span>, <span class="n">13.0</span>, <span class="n">15.5</span>, <span class="n">18.2</span>, <span class="n">22.6</span>, <span class="n">29.3</span>])
+              <span class="n">8.2</span>, <span class="n">8.8</span>, <span class="n">9.5</span>, <span class="n">10.4</span>, <span class="n">11.8</span>, <span class="n">13.0</span>, <span class="n">15.5</span>, <span class="n">18.2</span>, <span class="n">22.6</span>, <span class="n">29.3</span>])   <span class="c"># minutos de espera</span>
+n = <span class="f">len</span>(x)
 
-<span class="c"># a mano, con momentos centrales</span>
+<span class="c"># 1. a mano, con momentos centrales</span>
 d = x - x.<span class="f">mean</span>()
 m2, m3, m4 = (d**<span class="n">2</span>).<span class="f">mean</span>(), (d**<span class="n">3</span>).<span class="f">mean</span>(), (d**<span class="n">4</span>).<span class="f">mean</span>()
-<span class="f">print</span>(m3 / m2**<span class="n">1.5</span>, m4 / m2**<span class="n">2</span> - <span class="n">3</span>)               <span class="c"># g1 ≈ 1.407, g2 ≈ 1.427</span>
+g1, g2 = m3 / m2**<span class="n">1.5</span>, m4 / m2**<span class="n">2</span> - <span class="n">3</span>
+<span class="f">print</span>(<span class="f">round</span>(g1, <span class="n">3</span>), <span class="f">round</span>(g2, <span class="n">3</span>))                 <span class="c"># 1.407  1.427</span>
 
-<span class="c"># scipy: sesgadas por defecto; bias=False da las ajustadas</span>
-<span class="f">print</span>(stats.<span class="f">skew</span>(x), stats.<span class="f">kurtosis</span>(x))          <span class="c"># ≈ 1.407  ≈ 1.427</span>
+<span class="c"># 2. funciones: scipy usa g por defecto; pandas usa las versiones ajustadas G</span>
+<span class="f">print</span>(stats.<span class="f">skew</span>(x), stats.<span class="f">kurtosis</span>(x))           <span class="c"># ≈ 1.407  ≈ 1.427</span>
 <span class="f">print</span>(stats.<span class="f">skew</span>(x, bias=<span class="k">False</span>))                  <span class="c"># G1 ≈ 1.524</span>
-<span class="f">print</span>(pd.<span class="f">Series</span>(x).<span class="f">skew</span>(), pd.<span class="f">Series</span>(x).<span class="f">kurt</span>())  <span class="c"># ≈ 1.524  ≈ 2.233 (ajustadas)</span>
+<span class="f">print</span>(pd.<span class="f">Series</span>(x).<span class="f">skew</span>(), pd.<span class="f">Series</span>(x).<span class="f">kurt</span>())   <span class="c"># ≈ 1.524  ≈ 2.233</span>
 
-<span class="c"># asimetría de Bowley con cuartiles</span>
+<span class="c"># 3. medidas basadas en cuantiles (robustas)</span>
 q1, me, q3 = np.<span class="f">percentile</span>(x, [<span class="n">25</span>, <span class="n">50</span>, <span class="n">75</span>])
-<span class="f">print</span>((q3 + q1 - <span class="n">2</span> * me) / (q3 - q1))                <span class="c"># ≈ 0.318</span>
+<span class="f">print</span>((q3 + q1 - <span class="n">2</span> * me) / (q3 - q1))             <span class="c"># Bowley ≈ 0.318</span>
+<span class="f">print</span>(<span class="n">3</span> * (x.<span class="f">mean</span>() - me) / x.<span class="f">std</span>(ddof=<span class="n">1</span>))        <span class="c"># Pearson ≈ 0.93</span>
 
-<span class="c"># pruebas de normalidad</span>
+<span class="c"># 4. ¿cuánto ruido tiene g1? intervalo bootstrap percentil</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">2024</span>)
+boot = np.<span class="f">array</span>([stats.<span class="f">skew</span>(rng.<span class="f">choice</span>(x, n)) <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">5000</span>)])
+<span class="f">print</span>(np.<span class="f">percentile</span>(boot, [<span class="n">2.5</span>, <span class="n">97.5</span>]))           <span class="c"># ≈ [0.3, 2.3]: muy ancho, pero no incluye 0</span>
+
+<span class="c"># 5. pruebas de normalidad</span>
 <span class="f">print</span>(stats.<span class="f">jarque_bera</span>(x))                       <span class="c"># JB ≈ 8.30, p ≈ 0.016</span>
 <span class="f">print</span>(stats.<span class="f">shapiro</span>(x))                           <span class="c"># W ≈ 0.859, p ≈ 0.008</span>
 
-<span class="c"># el logaritmo corrige la asimetría</span>
-<span class="f">print</span>(stats.<span class="f">skew</span>(np.<span class="f">log</span>(x)), np.<span class="f">exp</span>(np.<span class="f">log</span>(x).<span class="f">mean</span>()))   <span class="c"># ≈ 0.04, media geométrica ≈ 8.15</span>
+<span class="c"># 6. el logaritmo corrige la asimetría</span>
+lx = np.<span class="f">log</span>(x)
+<span class="f">print</span>(stats.<span class="f">skew</span>(lx), stats.<span class="f">kurtosis</span>(lx))         <span class="c"># ≈ 0.04  ≈ -0.32</span>
+<span class="f">print</span>(np.<span class="f">exp</span>(lx.<span class="f">mean</span>()))                          <span class="c"># media geométrica ≈ 8.15</span>
+<span class="f">print</span>(stats.<span class="f">shapiro</span>(lx).pvalue)                   <span class="c"># ≈ 1.0: compatible con normal</span>
 
-<span class="c"># gráfico Q-Q normal</span>
-<span class="k">import</span> matplotlib.pyplot <span class="k">as</span> plt
-stats.<span class="f">probplot</span>(x, dist=<span class="s">"norm"</span>, plot=plt); plt.<span class="f">show</span>()</code></pre>
+<span class="c"># 7. gráficos Q-Q normal, original y en logaritmo</span>
+fig, ax = plt.<span class="f">subplots</span>(<span class="n">1</span>, <span class="n">2</span>, figsize=(<span class="n">8</span>, <span class="n">3.5</span>))
+stats.<span class="f">probplot</span>(x, dist=<span class="s">"norm"</span>, plot=ax[<span class="n">0</span>]); ax[<span class="n">0</span>].<span class="f">set_title</span>(<span class="s">"minutos"</span>)
+stats.<span class="f">probplot</span>(lx, dist=<span class="s">"norm"</span>, plot=ax[<span class="n">1</span>]); ax[<span class="n">1</span>].<span class="f">set_title</span>(<span class="s">"log(minutos)"</span>)
+plt.<span class="f">show</span>()</code></pre>
 <pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">2.1</span>, <span class="n">3.4</span>, <span class="n">4.0</span>, <span class="n">4.5</span>, <span class="n">5.2</span>, <span class="n">5.8</span>, <span class="n">6.1</span>, <span class="n">6.6</span>, <span class="n">7.0</span>, <span class="n">7.5</span>,
-       <span class="n">8.2</span>, <span class="n">8.8</span>, <span class="n">9.5</span>, <span class="n">10.4</span>, <span class="n">11.8</span>, <span class="n">13.0</span>, <span class="n">15.5</span>, <span class="n">18.2</span>, <span class="n">22.6</span>, <span class="n">29.3</span>)
-
-<span class="c"># a mano, con momentos centrales (base R no trae skewness)</span>
-d &lt;- x - <span class="f">mean</span>(x)
-m2 &lt;- <span class="f">mean</span>(d^<span class="n">2</span>); m3 &lt;- <span class="f">mean</span>(d^<span class="n">3</span>); m4 &lt;- <span class="f">mean</span>(d^<span class="n">4</span>)
-g1 &lt;- m3 / m2^<span class="n">1.5</span>; g2 &lt;- m4 / m2^<span class="n">2</span> - <span class="n">3</span>
-<span class="f">c</span>(g1, g2)                                         <span class="c"># ≈ 1.407  ≈ 1.427</span>
+       <span class="n">8.2</span>, <span class="n">8.8</span>, <span class="n">9.5</span>, <span class="n">10.4</span>, <span class="n">11.8</span>, <span class="n">13.0</span>, <span class="n">15.5</span>, <span class="n">18.2</span>, <span class="n">22.6</span>, <span class="n">29.3</span>)   <span class="c"># minutos de espera</span>
 n &lt;- <span class="f">length</span>(x)
-<span class="f">sqrt</span>(n * (n - <span class="n">1</span>)) / (n - <span class="n">2</span>) * g1                    <span class="c"># G1 ≈ 1.524</span>
 
-<span class="c"># con el paquete e1071: type = 1 es g, type = 2 es G (como SPSS)</span>
+<span class="c"># 1. a mano, con momentos centrales (base R no trae skewness)</span>
+forma &lt;- <span class="k">function</span>(v) {
+  d &lt;- v - <span class="f">mean</span>(v); m2 &lt;- <span class="f">mean</span>(d^<span class="n">2</span>)
+  <span class="f">c</span>(g1 = <span class="f">mean</span>(d^<span class="n">3</span>) / m2^<span class="n">1.5</span>, g2 = <span class="f">mean</span>(d^<span class="n">4</span>) / m2^<span class="n">2</span> - <span class="n">3</span>)
+}
+g &lt;- <span class="f">forma</span>(x); g                                  <span class="c"># g1 ≈ 1.407  g2 ≈ 1.427</span>
+<span class="f">sqrt</span>(n * (n - <span class="n">1</span>)) / (n - <span class="n">2</span>) * g[[<span class="s">"g1"</span>]]           <span class="c"># G1 ≈ 1.524</span>
+
+<span class="c"># 2. con el paquete e1071: type = 1 es g, type = 2 es G (como SPSS y pandas)</span>
 <span class="k">library</span>(e1071)
-<span class="f">skewness</span>(x, type = <span class="n">1</span>); <span class="f">kurtosis</span>(x, type = <span class="n">1</span>)       <span class="c"># ≈ 1.407  ≈ 1.427</span>
-<span class="f">skewness</span>(x, type = <span class="n">2</span>); <span class="f">kurtosis</span>(x, type = <span class="n">2</span>)       <span class="c"># ≈ 1.524  ≈ 2.233</span>
+<span class="f">c</span>(<span class="f">skewness</span>(x, type = <span class="n">2</span>), <span class="f">kurtosis</span>(x, type = <span class="n">2</span>))   <span class="c"># ≈ 1.524  ≈ 2.233</span>
 
-<span class="c"># asimetría de Bowley</span>
+<span class="c"># 3. medidas basadas en cuantiles</span>
 q &lt;- <span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.5</span>, <span class="n">0.75</span>))
-(q[<span class="n">3</span>] + q[<span class="n">1</span>] - <span class="n">2</span> * q[<span class="n">2</span>]) / (q[<span class="n">3</span>] - q[<span class="n">1</span>])            <span class="c"># ≈ 0.318</span>
+<span class="f">unname</span>((q[<span class="n">3</span>] + q[<span class="n">1</span>] - <span class="n">2</span> * q[<span class="n">2</span>]) / (q[<span class="n">3</span>] - q[<span class="n">1</span>]))  <span class="c"># Bowley ≈ 0.318</span>
+<span class="n">3</span> * (<span class="f">mean</span>(x) - <span class="f">median</span>(x)) / <span class="f">sd</span>(x)                 <span class="c"># Pearson ≈ 0.93</span>
 
-<span class="c"># pruebas de normalidad</span>
-JB &lt;- n / <span class="n">6</span> * (g1^<span class="n">2</span> + g2^<span class="n">2</span> / <span class="n">4</span>)
-<span class="f">c</span>(JB, <span class="f">pchisq</span>(JB, df = <span class="n">2</span>, lower.tail = <span class="k">FALSE</span>))    <span class="c"># ≈ 8.30  ≈ 0.016</span>
-<span class="f">shapiro.test</span>(x)                                  <span class="c"># W ≈ 0.859, p ≈ 0.008</span>
+<span class="c"># 4. intervalo bootstrap percentil para g1</span>
+<span class="f">set.seed</span>(<span class="n">2024</span>)
+boot &lt;- <span class="f">replicate</span>(<span class="n">5000</span>, <span class="f">forma</span>(<span class="f">sample</span>(x, replace = <span class="k">TRUE</span>))[[<span class="s">"g1"</span>]])
+<span class="f">quantile</span>(boot, <span class="f">c</span>(<span class="n">0.025</span>, <span class="n">0.975</span>))                   <span class="c"># muy ancho, sin incluir 0 (≈ 0.3 a 2.3)</span>
 
-<span class="c"># el logaritmo corrige la asimetría; gráfico Q-Q</span>
-<span class="f">skewness</span>(<span class="f">log</span>(x), type = <span class="n">1</span>)                         <span class="c"># ≈ 0.04</span>
-<span class="f">qqnorm</span>(x); <span class="f">qqline</span>(x)</code></pre>
+<span class="c"># 5. pruebas de normalidad</span>
+JB &lt;- n / <span class="n">6</span> * (g[[<span class="s">"g1"</span>]]^<span class="n">2</span> + g[[<span class="s">"g2"</span>]]^<span class="n">2</span> / <span class="n">4</span>)
+<span class="f">c</span>(JB = JB, p = <span class="f">pchisq</span>(JB, df = <span class="n">2</span>, lower.tail = <span class="k">FALSE</span>))   <span class="c"># ≈ 8.30  ≈ 0.016</span>
+<span class="f">shapiro.test</span>(x)                                   <span class="c"># W ≈ 0.859, p ≈ 0.008</span>
+
+<span class="c"># 6. el logaritmo corrige la asimetría</span>
+<span class="f">forma</span>(<span class="f">log</span>(x))                                     <span class="c"># ≈ 0.04  ≈ -0.32</span>
+<span class="f">exp</span>(<span class="f">mean</span>(<span class="f">log</span>(x)))                                 <span class="c"># media geométrica ≈ 8.15</span>
+
+<span class="c"># 7. gráficos Q-Q normal</span>
+<span class="f">par</span>(mfrow = <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>))
+<span class="f">qqnorm</span>(x, main = <span class="s">"minutos"</span>); <span class="f">qqline</span>(x)
+<span class="f">qqnorm</span>(<span class="f">log</span>(x), main = <span class="s">"log(minutos)"</span>); <span class="f">qqline</span>(<span class="f">log</span>(x))</code></pre>
       </div>
+      <p>El bootstrap remuestrea los 20 datos con reposición y recalcula \(g_1\) miles de veces: el intervalo resultante, de 0,3 a 2,3, es muy ancho. La asimetría es positiva, pero su magnitud está mal determinada con tan pocos datos.</p>
 
-      <h2 id="forma-quiz"><span class="sec">§ 7</span>Comprueba</h2>
+      <h2 id="forma-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="Con cola a la derecha, unos pocos valores muy altos tiran la media hacia arriba, mientras la mediana casi no se mueve. Por eso en ingresos la media suele superar a la mediana y la asimetría es positiva." data-wrong="Piensa en hacia dónde se estira la distribución de ingresos: hay pocos ingresos muy altos. ¿Qué medida de centro se deja arrastrar por esos valores?">
-        <h3>En una distribución de ingresos con g₁ = 2,3, lo más probable es que…</h3>
+        <h3>1. En una distribución de ingresos con g₁ = 2,3, lo más probable es que…</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>la mediana sea mayor que la media</button>
           <button class="opt" type="button" data-ok="1"><span class="letter">B</span>la media sea mayor que la mediana</button>
@@ -209,7 +310,7 @@ JB &lt;- n / <span class="n">6</span> * (g1^<span class="n">2</span> + g2^<span 
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Al elevar a la cuarta potencia, los valores cercanos a la media casi no aportan y los extremos dominan la suma. Una curtosis alta indica colas pesadas: más valores extremos de los que daría una normal con la misma σ." data-wrong="Revisa qué observaciones dominan la suma de (x − x̄)⁴: ¿las que están cerca de la media o las que están lejos?">
-        <h3>Los rendimientos diarios de una acción tienen exceso de curtosis g₂ = 7. ¿Qué significa?</h3>
+        <h3>2. Los rendimientos diarios de una acción tienen exceso de curtosis g₂ = 7. ¿Qué significa?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Que la distribución es muy asimétrica a la derecha</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Que casi todos los rendimientos son iguales</button>
@@ -219,7 +320,7 @@ JB &lt;- n / <span class="n">6</span> * (g1^<span class="n">2</span> + g2^<span 
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Con n = 24, SE(g₁) ≈ √(6/24) = 0,5. Una asimetría de 0,6 está a poco más de un error estándar de cero: es compatible con una población simétrica. Conviene mirar el gráfico y no sobreinterpretar." data-wrong="Calcula el error estándar aproximado √(6/n) con n = 24 y compáralo con 0,6. ¿A cuántos errores estándar de cero está?">
-        <h3>Una muestra de 24 datos tiene g₁ = 0,6. ¿Qué concluyes?</h3>
+        <h3>3. Una muestra de 24 datos tiene g₁ = 0,6. ¿Qué concluyes?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La población es claramente asimétrica a la derecha</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La población es claramente normal</button>
@@ -228,41 +329,100 @@ JB &lt;- n / <span class="n">6</span> * (g1^<span class="n">2</span> + g2^<span 
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Por la desigualdad de Pearson, γ₂ ≥ γ₁² − 2 = 9 − 2 = 7. Un exceso de 1 con asimetría 3 es imposible: hay un error de cálculo o de fórmula." data-wrong="Recuerda la desigualdad que liga asimetría y curtosis: γ₂ ≥ γ₁² − 2. ¿Qué valor mínimo exige γ₁ = 3?">
+        <h3>4. Un informe dice que una población tiene asimetría γ₁ = 3 y exceso de curtosis γ₂ = 1. ¿Qué opinas?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Es una distribución asimétrica con colas livianas</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Es imposible: con γ₁ = 3 el exceso debe ser al menos 7</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Es una distribución casi normal</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Es posible solo si n es pequeño</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La asimetría de una suma de n independientes iguales es γ₁/√n. Con γ₁ = 2 y n = 100 queda 2/10 = 0,2: el promedio es mucho más simétrico que cada dato, como anticipa el TLC." data-wrong="Los cumulantes se suman para variables independientes. ¿Cómo escala κ₃/κ₂^(3/2) cuando ambos se multiplican por n?">
+        <h3>5. Los tiempos entre llegadas son exponenciales (γ₁ = 2). ¿Cuál es la asimetría del promedio de 100 tiempos independientes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>2, igual que cada tiempo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,02</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>0,2</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>0, porque el promedio es normal</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="forma-ej"><span class="sec">§ 8</span>Ejercicios propuestos</h2>
+      <h2 id="forma-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Calcula a mano \(g_1\) y \(g_2\) para los datos 2, 3, 5, 6, 14. ¿Qué dice cada uno? ¿Te sorprende el signo de \(g_2\)?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra la desigualdad de Pearson \(\kappa \ge \gamma_1^2 + 1\) usando la regresión lineal de \(Z^2\) sobre \(Z\): escribe \(Z^2 = 1 + \gamma_1 Z + e\), con \(e\) no correlacionado con \(Z\), y calcula \(\operatorname{Var}(Z^2)\). (b) Muestra que la igualdad ocurre si y solo si \(Z\) toma exactamente dos valores. (c) Verifica la igualdad para una Bernoulli con \(p\) cualquiera.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>\(\bar x = 6\). Desviaciones: −4, −3, −1, 0, 8. Sumas: \(\sum d^2 = 90\), \(\sum d^3 = 420\), \(\sum d^4 = 4\,434\). Momentos: \(m_2 = 18\), \(m_3 = 84\), \(m_4 = 886{,}8\).</p>
-            <p>\(g_1 = 84/18^{1{,}5} = 84/76{,}37 = 1{,}10\): asimetría positiva, el 14 estira la cola derecha. \(g_2 = 886{,}8/18^2 - 3 = 2{,}74 - 3 = -0{,}26\). Aunque el 14 parece un valor extremo, con solo 5 datos la curtosis muestral no puede ser grande: \(m_4/m_2^2\) nunca supera \((n^2 - 3n + 3)/(n - 1)\), que con \(n = 5\) vale 3,25, así que \(g_2 \le 0{,}25\). Con muestras tan chicas, la curtosis casi no informa.</p>
+            <p>(a) El mejor predictor lineal de \(Z^2\) a partir de \(Z\) tiene pendiente \(\operatorname{Cov}(Z, Z^2)/\operatorname{Var}(Z) = \gamma_1\) e intercepto \(\mathbb E[Z^2] - \gamma_1 \mathbb E[Z] = 1\). Con \(e = Z^2 - 1 - \gamma_1 Z\), por construcción \(\operatorname{Cov}(Z, e) = 0\), así que \(\operatorname{Var}(Z^2) = \gamma_1^2 \operatorname{Var}(Z) + \operatorname{Var}(e) = \gamma_1^2 + \operatorname{Var}(e) \ge \gamma_1^2\). Con Moors, \(\kappa = 1 + \operatorname{Var}(Z^2) \ge 1 + \gamma_1^2\).</p>
+            <p>(b) La igualdad exige \(\operatorname{Var}(e) = 0\): \(Z^2 = 1 + \gamma_1 Z\) casi seguramente. Esa ecuación cuadrática tiene a lo sumo dos raíces, así que \(Z\) toma a lo sumo dos valores (y no puede tomar uno solo porque \(\operatorname{Var}(Z) = 1\)).</p>
+            <p>(c) Bernoulli: \(\gamma_1 = (1 - 2p)/\sqrt{p(1-p)}\) y \(\kappa = \frac{1 - 3p(1-p)}{p(1-p)}\). Entonces \(\gamma_1^2 + 1 = \frac{(1-2p)^2 + p(1-p)}{p(1-p)} = \frac{1 - 3p + 3p^2}{p(1-p)} = \kappa\). Con \(p = 0{,}5\), \(\kappa = 1\) y \(\gamma_2 = -2\).</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Las notas de un examen (sobre 60) tienen \(Q_1 = 40\), mediana 48 y \(Q_3 = 52\), con media 45,5 y desviación 9. Calcula la asimetría de Bowley y la de Pearson. ¿Hacia dónde está la cola?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Usando que los cumulantes de la gamma con forma \(k\) y escala \(\theta\) son \(\kappa_r = k\,(r-1)!\,\theta^r\), deduce \(\gamma_1 = 2/\sqrt k\) y \(\gamma_2 = 6/k\). (b) Explica por qué la suma de \(n\) exponenciales independientes es una gamma con \(k = n\) y deduce otra vez la propiedad 5. (c) Comprueba por simulación la asimetría y la curtosis de la media de 30 exponenciales.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Bowley: \((52 + 40 - 2 \cdot 48)/(52 - 40) = -4/12 = -0{,}33\). Pearson: \(3(45{,}5 - 48)/9 = -0{,}83\). Ambas negativas: la cola está a la <b>izquierda</b>. La mediana está más cerca de \(Q_3\) que de \(Q_1\), y la media queda por debajo de la mediana: el examen fue fácil para la mayoría y unos pocos sacaron notas muy bajas.</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Una muestra de 200 tiempos de reacción da \(g_1 = 0{,}35\) y \(g_2 = 0{,}9\). Calcula los errores estándar aproximados, el estadístico de Jarque-Bera y su valor p. ¿Es razonable suponer normalidad?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>\(SE(g_1) \approx \sqrt{6/200} = 0{,}173\), así que \(z_1 = 0{,}35/0{,}173 = 2{,}02\). \(SE(g_2) \approx \sqrt{24/200} = 0{,}346\) y \(z_2 = 0{,}9/0{,}346 = 2{,}60\).</p>
-            <p>\(JB = \tfrac{200}{6}(0{,}35^2 + 0{,}9^2/4) = 33{,}3 \cdot 0{,}325 = 10{,}83\). Con 2 grados de libertad, \(p = e^{-10{,}83/2} \approx 0{,}0044\). Se rechaza la normalidad, sobre todo por las colas. Aun así, las desviaciones son moderadas: para un intervalo de confianza para la media con \(n = 200\), el TLC hace que esto importe poco; para predecir tiempos extremos, sí importa.</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Toma los 20 tiempos de espera de la clase y cambia el 29,3 por 60. Recalcula \(g_1\), \(g_2\) y el valor p de Jarque-Bera, y calcula qué fracción de \(\sum(x_i - \bar x)^4\) aporta ese único dato. Repite con \(\log x\). ¿Qué concluyes sobre la curtosis como descripción de los datos?</p>
-          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\kappa_2 = k\theta^2\), \(\kappa_3 = 2k\theta^3\), \(\kappa_4 = 6k\theta^4\). Entonces \(\gamma_1 = 2k\theta^3/(k\theta^2)^{3/2} = 2/\sqrt k\) y \(\gamma_2 = 6k\theta^4/(k\theta^2)^2 = 6/k\). La escala \(\theta\) se cancela, como debe ser (propiedad 1).</p>
+            <p>(b) La exponencial es la gamma con \(k = 1\); la función generadora de momentos de la gamma es \((1 - \theta t)^{-k}\), y el producto de \(n\) factores \((1 - \theta t)^{-1}\) da \((1-\theta t)^{-n}\): una gamma con \(k = n\). Así \(\gamma_1 = 2/\sqrt n = \gamma_1^{\text{exp}}/\sqrt n\) y \(\gamma_2 = 6/n = \gamma_2^{\text{exp}}/n\). Con \(n = 30\): 0,365 y 0,20. Para que la media sea “casi normal” en asimetría (por ejemplo \(\gamma_1 &lt; 0{,}1\)) harían falta 400 datos: el TLC es lento con distribuciones asimétricas.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> scipy <span class="k">import</span> stats
-
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+M = rng.<span class="f">exponential</span>(size=(100_000, <span class="n">30</span>)).<span class="f">mean</span>(axis=<span class="n">1</span>)   <span class="c"># medias de 30 exponenciales</span>
+<span class="f">print</span>(stats.<span class="f">skew</span>(M), <span class="n">2</span> / np.<span class="f">sqrt</span>(<span class="n">30</span>))                  <span class="c"># ≈ 0.36 frente a 0.365</span>
+<span class="f">print</span>(stats.<span class="f">kurtosis</span>(M), <span class="n">6</span> / <span class="n">30</span>)                       <span class="c"># ≈ 0.20 frente a 0.20</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">1</span>)
+M &lt;- <span class="f">replicate</span>(<span class="n">100000</span>, <span class="f">mean</span>(<span class="f">rexp</span>(<span class="n">30</span>)))
+d &lt;- M - <span class="f">mean</span>(M); m2 &lt;- <span class="f">mean</span>(d^<span class="n">2</span>)
+<span class="f">c</span>(g1 = <span class="f">mean</span>(d^<span class="n">3</span>) / m2^<span class="n">1.5</span>, teorico = <span class="n">2</span> / <span class="f">sqrt</span>(<span class="n">30</span>))   <span class="c"># ≈ 0.36  0.365</span>
+<span class="f">c</span>(g2 = <span class="f">mean</span>(d^<span class="n">4</span>) / m2^<span class="n">2</span> - <span class="n">3</span>, teorico = <span class="n">6</span> / <span class="n">30</span>)       <span class="c"># ≈ 0.20  0.20</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudia por simulación la distribución muestral de \(g_1\) y \(g_2\) bajo normalidad para \(n = 20, 100, 500\): su desviación estándar frente a las aproximaciones \(\sqrt{6/n}\) y \(\sqrt{24/n}\), y la media de \(g_2\). ¿Desde qué \(n\) son confiables las aproximaciones? ¿Qué implica para Jarque-Bera con 20 datos?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con \(n = 20\): \(\operatorname{sd}(g_1) \approx 0{,}47\) frente a 0,55, y \(\operatorname{sd}(g_2) \approx 0{,}76\) frente a 1,10; además \(g_2\) está sesgado hacia abajo (media ≈ −0,29, porque la curtosis muestral está acotada). La varianza exacta de \(G_1\) es \(\frac{6n(n-1)}{(n-2)(n+1)(n+3)}\), cuya raíz con \(n = 20\) es 0,51. Con \(n = 100\) las aproximaciones ya están cerca y con \(n = 500\) coinciden. Para Jarque-Bera, eso significa que con 20 datos la referencia \(\chi^2_2\) no es exacta (la prueba es conservadora y poco potente): conviene Shapiro-Wilk o calibrar el valor p por simulación.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+rng = np.random.<span class="f">default_rng</span>(<span class="n">5</span>)
+R = 100_000
+<span class="k">for</span> n <span class="k">in</span> (<span class="n">20</span>, <span class="n">100</span>, <span class="n">500</span>):
+    X = rng.<span class="f">normal</span>(size=(R, n))
+    g1, g2 = stats.<span class="f">skew</span>(X, axis=<span class="n">1</span>), stats.<span class="f">kurtosis</span>(X, axis=<span class="n">1</span>)
+    <span class="f">print</span>(n, <span class="f">round</span>(g1.<span class="f">std</span>(), <span class="n">3</span>), <span class="f">round</span>(np.<span class="f">sqrt</span>(<span class="n">6</span> / n), <span class="n">3</span>),
+          <span class="f">round</span>(g2.<span class="f">std</span>(), <span class="n">3</span>), <span class="f">round</span>(np.<span class="f">sqrt</span>(<span class="n">24</span> / n), <span class="n">3</span>), <span class="f">round</span>(g2.<span class="f">mean</span>(), <span class="n">3</span>))
+<span class="c"># n = 20: sd(g1) ≈ 0.47 frente a 0.55; sd(g2) ≈ 0.76 frente a 1.10; media de g2 ≈ -0.29</span>
+<span class="c"># con n = 500 las aproximaciones ya funcionan bien</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">5</span>)
+R &lt;- <span class="n">20000</span>
+forma &lt;- <span class="k">function</span>(v) { d &lt;- v - <span class="f">mean</span>(v); m2 &lt;- <span class="f">mean</span>(d^<span class="n">2</span>); <span class="f">c</span>(<span class="f">mean</span>(d^<span class="n">3</span>) / m2^<span class="n">1.5</span>, <span class="f">mean</span>(d^<span class="n">4</span>) / m2^<span class="n">2</span> - <span class="n">3</span>) }
+<span class="k">for</span> (n <span class="k">in</span> <span class="f">c</span>(<span class="n">20</span>, <span class="n">100</span>, <span class="n">500</span>)) {
+  G &lt;- <span class="f">replicate</span>(R, <span class="f">forma</span>(<span class="f">rnorm</span>(n)))
+  <span class="f">cat</span>(n, <span class="f">round</span>(<span class="f">sd</span>(G[<span class="n">1</span>, ]), <span class="n">3</span>), <span class="f">round</span>(<span class="f">sqrt</span>(<span class="n">6</span> / n), <span class="n">3</span>),
+      <span class="f">round</span>(<span class="f">sd</span>(G[<span class="n">2</span>, ]), <span class="n">3</span>), <span class="f">round</span>(<span class="f">sqrt</span>(<span class="n">24</span> / n), <span class="n">3</span>), <span class="f">round</span>(<span class="f">mean</span>(G[<span class="n">2</span>, ]), <span class="n">3</span>), <span class="s">"\n"</span>)
+}
+<span class="c"># n = 20: ≈ 0.47 0.55 0.76 1.10 -0.29 · n = 500: ≈ 0.11 0.11 0.21 0.22 -0.01</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Toma los 20 tiempos de espera de la clase y cambia el 29,3 por 60. Recalcula \(g_1\), \(g_2\) y el valor p de Jarque-Bera, calcula qué fracción de \(\sum(x_i - \bar x)^4\) aporta ese único dato y compara con la asimetría de Bowley. Repite con \(\log x\). Escribe una conclusión crítica sobre la curtosis como descripción de los datos.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con el 60: \(g_1 \approx 3{,}09\), \(g_2 \approx 9{,}52\) y \(p \approx 5 \times 10^{-24}\). El dato aporta el 99,3 % de la suma de cuartas potencias. Bowley no cambia (0,318), porque los cuartiles y la mediana no se mueven. En escala logarítmica, \(g_1 = 0{,}66\), \(g_2 = 0{,}90\) y \(p = 0{,}35\).</p>
+            <p>Conclusión: \(g_2 = 9{,}52\) describe a ese cliente, no a la sucursal. Cuando la curtosis es alta, primero identifica qué observaciones la producen; si es un error, corrígelo; si es real, repórtalo como un hallazgo sobre las colas (“1 de cada 20 clientes espera más de media hora”), acompañado de medidas robustas para el resto.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
 x = np.<span class="f">array</span>([<span class="n">2.1</span>, <span class="n">3.4</span>, <span class="n">4.0</span>, <span class="n">4.5</span>, <span class="n">5.2</span>, <span class="n">5.8</span>, <span class="n">6.1</span>, <span class="n">6.6</span>, <span class="n">7.0</span>, <span class="n">7.5</span>,
               <span class="n">8.2</span>, <span class="n">8.8</span>, <span class="n">9.5</span>, <span class="n">10.4</span>, <span class="n">11.8</span>, <span class="n">13.0</span>, <span class="n">15.5</span>, <span class="n">18.2</span>, <span class="n">22.6</span>, <span class="n">60.0</span>])
 <span class="k">for</span> v <span class="k">in</span> (x, np.<span class="f">log</span>(x)):
@@ -270,7 +430,9 @@ x = np.<span class="f">array</span>([<span class="n">2.1</span>, <span class="n"
 <span class="c"># x:      ≈ 3.09  ≈ 9.52  p ≈ 5e-24</span>
 <span class="c"># log(x): ≈ 0.66  ≈ 0.90  p ≈ 0.35</span>
 d4 = (x - x.<span class="f">mean</span>())**<span class="n">4</span>
-<span class="f">print</span>(d4[-<span class="n">1</span>] / d4.<span class="f">sum</span>())                              <span class="c"># ≈ 0.993</span></code></pre>
+<span class="f">print</span>(d4[-<span class="n">1</span>] / d4.<span class="f">sum</span>())                                <span class="c"># ≈ 0.993</span>
+q1, me, q3 = np.<span class="f">percentile</span>(x, [<span class="n">25</span>, <span class="n">50</span>, <span class="n">75</span>])
+<span class="f">print</span>((q3 + q1 - <span class="n">2</span> * me) / (q3 - q1))                   <span class="c"># Bowley ≈ 0.318: no cambia</span></code></pre>
 <pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">2.1</span>, <span class="n">3.4</span>, <span class="n">4.0</span>, <span class="n">4.5</span>, <span class="n">5.2</span>, <span class="n">5.8</span>, <span class="n">6.1</span>, <span class="n">6.6</span>, <span class="n">7.0</span>, <span class="n">7.5</span>,
        <span class="n">8.2</span>, <span class="n">8.8</span>, <span class="n">9.5</span>, <span class="n">10.4</span>, <span class="n">11.8</span>, <span class="n">13.0</span>, <span class="n">15.5</span>, <span class="n">18.2</span>, <span class="n">22.6</span>, <span class="n">60.0</span>)
 forma &lt;- <span class="k">function</span>(v) {
@@ -282,9 +444,19 @@ forma &lt;- <span class="k">function</span>(v) {
 <span class="f">forma</span>(x)        <span class="c"># ≈ 3.09  9.52  5e-24</span>
 <span class="f">forma</span>(<span class="f">log</span>(x))   <span class="c"># ≈ 0.66  0.90  0.35</span>
 d4 &lt;- (x - <span class="f">mean</span>(x))^<span class="n">4</span>
-d4[<span class="n">20</span>] / <span class="f">sum</span>(d4)  <span class="c"># ≈ 0.993</span></code></pre>
+d4[<span class="n">20</span>] / <span class="f">sum</span>(d4)  <span class="c"># ≈ 0.993</span>
+q &lt;- <span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.5</span>, <span class="n">0.75</span>))
+<span class="f">unname</span>((q[<span class="n">3</span>] + q[<span class="n">1</span>] - <span class="n">2</span> * q[<span class="n">2</span>]) / (q[<span class="n">3</span>] - q[<span class="n">1</span>]))   <span class="c"># Bowley ≈ 0.318</span></code></pre>
             </div>
-            <p>Un solo dato aporta el 99,3 % de la suma de cuartas potencias: \(g_2 = 9{,}52\) describe a ese cliente, no a la sucursal. La asimetría también se triplica. En escala logarítmica el efecto es mucho menor (\(g_1 = 0{,}66\), \(g_2 = 0{,}90\)) y Jarque-Bera ya no rechaza la normalidad. Conclusión: cuando la curtosis es alta, primero identifica qué observaciones la producen; si es un error, corrígelo; si es real, repórtalo como un hallazgo sobre las colas, no como una propiedad del “centro” de los datos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para la mezcla \(X = \pm d + \varepsilon\), con signo equiprobable y \(\varepsilon \sim \mathcal N(0,1)\) independiente: (a) demuestra que \(\gamma_2 = -2d^4/(1+d^2)^2\). (b) Halla su límite cuando \(d \to \infty\) y relaciónalo con la Bernoulli. (c) Explica por qué una distribución con dos picos marcados tiene curtosis negativa, y qué dice eso del mito del “apuntamiento”.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Sea \(S = \pm d\). \(\mathbb E[X] = 0\), \(\mathbb E[X^2] = d^2 + 1\). \(\mathbb E[X^4] = \mathbb E[S^4] + 6\mathbb E[S^2]\mathbb E[\varepsilon^2] + \mathbb E[\varepsilon^4] = d^4 + 6d^2 + 3\) (los términos impares se anulan). Entonces \(\kappa = \frac{d^4 + 6d^2 + 3}{(1+d^2)^2}\) y \(\gamma_2 = \frac{d^4 + 6d^2 + 3 - 3(1 + 2d^2 + d^4)}{(1+d^2)^2} = \frac{-2d^4}{(1+d^2)^2}\).</p>
+            <p>(b) Cuando \(d \to \infty\), \(\gamma_2 \to -2\): la mezcla se parece cada vez más a una variable de dos puntos \(\pm d\) (una Bernoulli con \(p = 0{,}5\) reescalada), que alcanza el mínimo absoluto de la desigualdad de Pearson.</p>
+            <p>(c) Con dos picos lejanos, casi toda la masa está a distancia \(\approx d\) del centro: \(|Z| \approx 1\) para casi todos los datos, \(\operatorname{Var}(Z^2)\) es pequeña y \(\kappa\) cerca de 1. No hay colas largas en relación con la escala. Una distribución con dos picos “agudos” tiene curtosis mínima: la curtosis no mide picos.</p>
           </div></details>
         </div>
       </div>

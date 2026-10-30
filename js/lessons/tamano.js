@@ -96,6 +96,78 @@
   segBind('tamano-conf', b => { S.conf = b.dataset.c; render(); });
   segBind('tamano-N', b => { S.N = +b.dataset.n; render(); });
 
-  M.draw['tamano'] = render;
-  M.init.push(render);
+  // ---------- laboratorio 2: encuestas simuladas ----------
+  const Q = { n: 400, p: 50, deff: 1, est: [] };
+  const qn = $('tamano-s-n'), qp = $('tamano-s-p'), qd = $('tamano-s-deff');
+  const MCL = 10, REPS = 600;
+  function gammaR(k) {
+    if (k < 1) return gammaR(k + 1) * Math.pow(Math.random(), 1 / k);
+    const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) {
+      let x, v; do { x = M.randn(); v = 1 + c * x; } while (v <= 0);
+      v = v * v * v; const u = Math.random();
+      if (u < 1 - 0.0331 * x ** 4 || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+    }
+  }
+  function simulate() {
+    const P = Q.p / 100, a = Math.max(2, Math.round(Q.n / MCL)), n = a * MCL;
+    const rho = (Q.deff - 1) / (MCL - 1), s = rho > 0 ? 1 / rho - 1 : 0;
+    Q.est = [];
+    for (let r = 0; r < REPS; r++) {
+      let yes = 0;
+      for (let i = 0; i < a; i++) {
+        let pi = P;
+        if (rho > 0) { const g1 = gammaR(P * s), g2 = gammaR((1 - P) * s); pi = g1 / (g1 + g2); }
+        for (let j = 0; j < MCL; j++) if (Math.random() < pi) yes++;
+      }
+      Q.est.push(yes / n);
+    }
+    Q.nreal = n; renderSim();
+  }
+  function renderSim() {
+    if (!Q.est.length) return;
+    const P = Q.p / 100, n = Q.nreal || Q.n, z = 1.959964;
+    const eN = z * Math.sqrt(P * (1 - P) / n), eD = eN * Math.sqrt(Q.deff);
+    const inN = Q.est.filter(v => Math.abs(v - P) <= eN).length / Q.est.length;
+    const inD = Q.est.filter(v => Math.abs(v - P) <= eD).length / Q.est.length;
+    $('tamano-s-n-v').textContent = miles(Q.n); $('tamano-s-p-v').textContent = Q.p + ' %'; $('tamano-s-deff-v').textContent = fmt(Q.deff, 1);
+    $('tamano-s-r1').textContent = '±' + fmt(100 * eN, 1);
+    $('tamano-s-r2').textContent = '±' + fmt(100 * eD, 1);
+    $('tamano-s-r3').textContent = fmt(100 * inN, 1) + ' %';
+    $('tamano-s-r4').textContent = fmt(100 * inD, 1) + ' %';
+    $('tamano-s-head').textContent = `n = ${miles(n)} · ${n / MCL} manzanas`;
+    drawSim(P, eN, eD);
+  }
+  function drawSim(P, eN, eD) {
+    const c = fit($('tamano-c-sim')); if (!c) return; const { ctx, w, h } = c;
+    ctx.clearRect(0, 0, w, h);
+    const accent = tok('--accent'), muted = tok('--muted'), ink = tok('--ink'), line = tok('--line'), hot = tok('--hot');
+    const pad = { l: 14, r: 14, t: 18, b: 28 };
+    const half = Math.max(2.6 * eD, 0.01), lo = Math.max(0, P - half), hi = Math.min(1, P + half);
+    const X = v => pad.l + (v - lo) / (hi - lo) * (w - pad.l - pad.r);
+    const nb = Math.max(20, Math.min(50, Math.floor((w - pad.l - pad.r) / 9))), bw = (hi - lo) / nb, cnt = new Array(nb).fill(0);
+    for (const v of Q.est) { const b = Math.floor((v - lo) / bw); if (b >= 0 && b < nb) cnt[b]++; }
+    const cmax = Math.max(...cnt, 1) * 1.12;
+    const Y = k => h - pad.b - k / cmax * (h - pad.t - pad.b);
+    ctx.fillStyle = accent; ctx.globalAlpha = 0.08; ctx.fillRect(X(P - eD), pad.t, X(P + eD) - X(P - eD), h - pad.t - pad.b);
+    ctx.globalAlpha = 0.75;
+    for (let b = 0; b < nb; b++) if (cnt[b]) { const x0 = X(lo + b * bw), x1 = X(lo + (b + 1) * bw); ctx.fillRect(x0, Y(cnt[b]), Math.max(1, x1 - x0 - 1), h - pad.b - Y(cnt[b])); }
+    ctx.globalAlpha = 1;
+    const vline = (v, col, dash, lw) => { const x = Math.round(X(v)) + .5; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h - pad.b); ctx.stroke(); ctx.setLineDash([]); };
+    vline(P - eN, muted, [5, 4], 1.6); vline(P + eN, muted, [5, 4], 1.6);
+    vline(P - eD, ink, [], 1.4); vline(P + eD, ink, [], 1.4);
+    vline(P, hot, [], 2);
+    ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, h - pad.b + .5); ctx.lineTo(w - pad.r, h - pad.b + .5); ctx.stroke();
+    const span = 100 * (hi - lo), raw = span / 5, mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 5, 10].map(k => k * mag).find(s => s >= raw);
+    ctx.fillStyle = muted; ctx.font = mono(); ctx.textAlign = 'center';
+    for (let v = Math.ceil(100 * lo / step) * step; v <= 100 * hi + 1e-9; v += step) { const x = X(v / 100); if (x > pad.l + 10 && x < w - pad.r - 10) ctx.fillText(fmt(v, step < 1 ? 1 : 0), x, h - 9); }
+    ctx.textAlign = 'left'; ctx.fillText('p̂ (%)', pad.l + 2, pad.t - 5);
+  }
+  qn.addEventListener('input', () => { Q.n = +qn.value; simulate(); });
+  qp.addEventListener('input', () => { Q.p = +qp.value; simulate(); });
+  qd.addEventListener('input', () => { Q.deff = +qd.value; simulate(); });
+  $('tamano-s-again').addEventListener('click', simulate);
+
+  M.draw['tamano'] = () => { render(); renderSim(); };
+  M.init.push(render, simulate);
 })();

@@ -5,29 +5,30 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Regresión lineal múltiple</h1>
-      <p>El precio de un departamento no depende solo de su tamaño: también de su antigüedad, de la zona y de muchas cosas más. La regresión múltiple pone varios predictores en el mismo modelo para responder la pregunta que de verdad interesa: cuánto cambia la respuesta cuando cambia una variable y las demás se mantienen fijas.</p>
-      <div class="lmeta"><span>55 min</span><span>Nivel intermedio</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
+      <p>El precio de un departamento no depende solo de su tamaño: también de su antigüedad, de la zona y de muchas cosas más. La regresión múltiple pone varios predictores en el mismo modelo para responder la pregunta que de verdad interesa: cuánto cambia la respuesta cuando cambia una variable y las demás se mantienen fijas. Aquí la formulas en matrices, demuestras sus propiedades y aprendes a usar variables categóricas, interacciones y pruebas F sin caer en la multicolinealidad.</p>
+      <div class="lmeta"><span>100 min</span><span>Nivel intermedio</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#regmult-idea" data-sec="regmult-idea">La idea</a></li>
-        <li><a href="#regmult-modelo" data-sec="regmult-modelo">El modelo en forma matricial</a></li>
-        <li><a href="#regmult-cp" data-sec="regmult-cp">Ceteris paribus y variables omitidas</a></li>
-        <li><a href="#regmult-lab" data-sec="regmult-lab">Laboratorio: confusión y colinealidad</a></li>
-        <li><a href="#regmult-cat" data-sec="regmult-cat">Variables categóricas</a></li>
-        <li><a href="#regmult-inter" data-sec="regmult-inter">Interacciones</a></li>
-        <li><a href="#regmult-inf" data-sec="regmult-inf">Ajuste e inferencia</a></li>
-        <li><a href="#regmult-vif" data-sec="regmult-vif">Multicolinealidad</a></li>
+        <li><a href="#regmult-idea" data-sec="regmult-idea">Introducción</a></li>
+        <li><a href="#regmult-def" data-sec="regmult-def">Definición</a></li>
+        <li><a href="#regmult-modelo" data-sec="regmult-modelo">MCO en forma matricial</a></li>
+        <li><a href="#regmult-cp" data-sec="regmult-cp">Ceteris paribus y omitidas</a></li>
+        <li><a href="#regmult-cat" data-sec="regmult-cat">Categóricas e interacciones</a></li>
+        <li><a href="#regmult-inf" data-sec="regmult-inf">Inferencia y multicolinealidad</a></li>
+        <li><a href="#regmult-prop" data-sec="regmult-prop">Propiedades</a></li>
+        <li><a href="#regmult-lab" data-sec="regmult-lab">Ejercicios de simulación</a></li>
+        <li><a href="#regmult-apps" data-sec="regmult-apps">Aplicaciones reales</a></li>
         <li><a href="#regmult-code" data-sec="regmult-code">En R y Python</a></li>
-        <li><a href="#regmult-quiz" data-sec="regmult-quiz">Comprueba</a></li>
-        <li><a href="#regmult-ej" data-sec="regmult-ej">Ejercicios</a></li>
+        <li><a href="#regmult-quiz" data-sec="regmult-quiz">Quiz</a></li>
+        <li><a href="#regmult-ej" data-sec="regmult-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="regmult-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="regmult-idea"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una inmobiliaria registra 16 departamentos vendidos: precio (miles de dólares), superficie (m²), antigüedad (años) y zona (centro o afueras). Una regresión simple del precio sobre la antigüedad da una pendiente <b>positiva</b>: \(\hat y = 121{,}3 + 1{,}06\cdot\text{antig}\). ¿Los departamentos ganan 1 060 dólares de valor por cada año que envejecen?</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Zona</th><th>n</th><th>Precio medio</th><th>Superficie media</th><th>Antigüedad media</th></tr></thead>
@@ -40,34 +41,120 @@
       <div class="eq">\[ \widehat{\text{precio}} = 16{,}2 + 1{,}53\,\text{m}^2 - 0{,}69\,\text{antig} + 52{,}6\,\text{centro} \]
         <div class="note">Entre departamentos de la misma zona y la misma superficie, cada año extra de antigüedad se asocia con 690 dólares <b>menos</b>. El signo cambió porque ahora la comparación es justa.</div>
       </div>
+      <p>Un poco de historia. Galton y Pearson trabajaron con una variable explicativa; fue George Udny Yule quien, a finales del siglo XIX, usó regresiones con varias variables para estudiar si la ayuda a los pobres aumentaba la pobreza en Inglaterra, controlando por otros factores. Ronald Fisher dio en los años veinte la teoría de las pruebas F y del análisis de varianza, y la notación matricial se generalizó a mediados del siglo XX. En 1933, Ragnar Frisch y Frederick Waugh demostraron el resultado que explica qué significa “controlar por” una variable, y Michael Lovell lo generalizó en 1963.</p>
       <div class="callout"><b>Lo que aporta la regresión múltiple:</b> separar el efecto de cada variable del de las demás que incluiste en el modelo. No resuelve la confusión por variables que no mediste, pero es la herramienta básica para controlar las que sí tienes.</div>
-
-      <h2 id="regmult-modelo"><span class="sec">§ 2</span>El modelo en forma matricial</h2>
-      <p>Con \(p\) predictores, el modelo para la observación \(i\) es:</p>
-      <div class="eq">\[ y_i = \beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \cdots + \beta_p x_{ip} + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2) \text{ independientes} \]
-        <div class="note">Ya no hay una recta sino un plano (con dos predictores) o un hiperplano. \(E[y \mid x_1, \dots, x_p]\) es lineal en los parámetros \(\beta_j\); los predictores pueden ser transformaciones como \(x^2\) o \(\log x\).</div>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>A escribir el modelo en forma matricial y derivar \(\hat{\boldsymbol\beta} = (X^\top X)^{-1}X^\top\mathbf y\).</li>
+          <li>A interpretar coeficientes ceteris paribus y entenderlos con el teorema de Frisch, Waugh y Lovell.</li>
+          <li>A cuantificar el sesgo por variables omitidas.</li>
+          <li>A incluir variables categóricas e interacciones e interpretarlas bien.</li>
+          <li>A usar pruebas t, F global y F parcial, y el \(R^2\) ajustado.</li>
+          <li>A diagnosticar la multicolinealidad con el VIF y decidir qué hacer.</li>
+        </ul>
       </div>
-      <p>Apilando las \(n\) ecuaciones, \(\mathbf y = X\boldsymbol\beta + \boldsymbol\varepsilon\), donde \(X\) es la matriz de diseño de \(n \times (p+1)\) con una primera columna de unos. Mínimos cuadrados minimiza \(\lVert \mathbf y - X\mathbf b\rVert^2\), y la solución sale de las <b>ecuaciones normales</b> \(X^\top X\,\mathbf b = X^\top \mathbf y\):</p>
+
+      <h2 id="regmult-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> El <b>modelo de regresión lineal múltiple</b> con \(p\) predictores es \[ y_i = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} + \varepsilon_i,\quad i = 1,\dots,n, \] o en forma matricial \(\mathbf y = X\boldsymbol\beta + \boldsymbol\varepsilon\), con \(E(\boldsymbol\varepsilon) = \mathbf 0\) y \(\operatorname{Var}(\boldsymbol\varepsilon) = \sigma^2 I_n\). La matriz de diseño \(X\) es \(n \times (p+1)\), su primera columna es de unos y se supone de <b>rango completo</b> \(p + 1\). Para inferencia exacta, \(\boldsymbol\varepsilon \sim \mathcal N(\mathbf 0, \sigma^2 I)\).</div>
+      <ul>
+        <li>\(\mathbf y\): vector \(n\times 1\) de respuestas; \(\boldsymbol\beta = (\beta_0,\dots,\beta_p)^\top\): coeficientes desconocidos.</li>
+        <li>“Lineal” se refiere a los <b>parámetros</b>: los predictores pueden ser \(x^2\), \(\log x\), indicadoras o productos.</li>
+        <li>\(\beta_j\): cambio esperado en \(y\) cuando \(x_j\) sube una unidad y los demás predictores del modelo quedan fijos.</li>
+        <li>\(H = X(X^\top X)^{-1}X^\top\): matriz <b>sombrero</b>, porque \(\hat{\mathbf y} = H\mathbf y\) “le pone el sombrero” a \(\mathbf y\).</li>
+        <li>\(\mathbf e = \mathbf y - \hat{\mathbf y} = (I - H)\mathbf y\): residuos; \(SSE = \mathbf e^\top\mathbf e\).</li>
+      </ul>
+      <p><b>Ejemplo numérico pequeño.</b> Cuatro observaciones con \(x_1 = (0, 1, 0, 1)\), \(x_2 = (0, 0, 1, 1)\) y \(y = (1, 3, 2, 5)\). Las columnas de \(X\) son \(\mathbf 1\), \(x_1\), \(x_2\), y \(X^\top X = \begin{pmatrix} 4 &amp; 2 &amp; 2 \\ 2 &amp; 2 &amp; 1 \\ 2 &amp; 1 &amp; 2\end{pmatrix}\), \(X^\top\mathbf y = (11, 8, 7)^\top\). Resolviendo, \(\hat{\boldsymbol\beta} = (0{,}75;\ 2{,}5;\ 1{,}5)\). Ajustados: 0,75; 3,25; 2,25; 4,75. Residuos: 0,25; −0,25; −0,25; 0,25, que suman cero y son ortogonales a \(x_1\) y a \(x_2\).</p>
+
+      <h2 id="regmult-modelo"><span class="sec">§ 3</span>Mínimos cuadrados en forma matricial</h2>
+      <p>Mínimos cuadrados minimiza \(Q(\mathbf b) = (\mathbf y - X\mathbf b)^\top(\mathbf y - X\mathbf b) = \mathbf y^\top\mathbf y - 2\mathbf b^\top X^\top\mathbf y + \mathbf b^\top X^\top X\mathbf b\). <b>Derivación.</b> El gradiente es \(\nabla Q = -2X^\top\mathbf y + 2X^\top X\mathbf b\); igualarlo a cero da las <b>ecuaciones normales</b> \(X^\top X\,\mathbf b = X^\top\mathbf y\). La hessiana \(2X^\top X\) es definida positiva cuando \(X\) tiene rango completo, así que la solución es el mínimo único:</p>
       <div class="eq">\[ \hat{\boldsymbol\beta} = (X^\top X)^{-1}X^\top \mathbf y, \qquad \widehat{\operatorname{Var}}(\hat{\boldsymbol\beta}) = s^2 (X^\top X)^{-1}, \qquad s^2 = \frac{SSE}{n - p - 1} \]
         <div class="note">Se divide entre \(n - p - 1\) porque estimaste \(p + 1\) coeficientes. Los errores estándar son las raíces de la diagonal de esa matriz. \((X^\top X)^{-1}\) existe solo si ninguna columna es combinación lineal exacta de las otras.</div>
       </div>
-      <p>Geométricamente, \(\hat{\mathbf y} = X\hat{\boldsymbol\beta}\) es la proyección ortogonal de \(\mathbf y\) sobre el espacio que generan las columnas de \(X\), y los residuos son perpendiculares a todas ellas: suman cero y no están correlacionados con ningún predictor del modelo.</p>
+      <p><b>Propiedades del estimador.</b> Sustituyendo \(\mathbf y = X\boldsymbol\beta + \boldsymbol\varepsilon\): \(\hat{\boldsymbol\beta} = \boldsymbol\beta + (X^\top X)^{-1}X^\top\boldsymbol\varepsilon\). Por lo tanto \(E(\hat{\boldsymbol\beta}) = \boldsymbol\beta\) y \(\operatorname{Var}(\hat{\boldsymbol\beta}) = (X^\top X)^{-1}X^\top(\sigma^2I)X(X^\top X)^{-1} = \sigma^2(X^\top X)^{-1}\). El teorema de <b>Gauss y Markov</b> se extiende tal cual: para cualquier vector \(\mathbf c\), \(\mathbf c^\top\hat{\boldsymbol\beta}\) es el estimador lineal insesgado de menor varianza de \(\mathbf c^\top\boldsymbol\beta\).</p>
+      <p><b>Geometría.</b> \(\hat{\mathbf y} = X\hat{\boldsymbol\beta} = H\mathbf y\) es la proyección ortogonal de \(\mathbf y\) sobre el espacio que generan las columnas de \(X\). \(H\) es simétrica e idempotente (\(H^2 = H\)), y \(\operatorname{tr}(H) = \operatorname{tr}\big((X^\top X)^{-1}X^\top X\big) = p+1\). Los residuos son perpendiculares a todas las columnas (\(X^\top\mathbf e = \mathbf 0\)): suman cero y no están correlacionados con ningún predictor del modelo. Además \(E(SSE) = \sigma^2\operatorname{tr}(I - H) = (n - p - 1)\sigma^2\), lo que justifica el divisor de \(s^2\).</p>
+      <p>Con un solo predictor, todo esto se reduce a las fórmulas de la <a href="#reg">regresión simple</a>. Los diagonales \(h_{ii}\) de \(H\) son los apalancamientos que usarás en <a href="#diag">diagnóstico</a>.</p>
 
-      <h2 id="regmult-cp"><span class="sec">§ 3</span>Ceteris paribus y sesgo por variables omitidas</h2>
+      <h2 id="regmult-cp"><span class="sec">§ 4</span>Ceteris paribus y sesgo por variables omitidas</h2>
       <p>El coeficiente \(\beta_j\) es el cambio esperado en \(y\) cuando \(x_j\) aumenta en una unidad <b>manteniendo constantes los demás predictores del modelo</b> (ceteris paribus, “lo demás igual”). Con los departamentos:</p>
       <ul>
         <li>\(\hat\beta_{\text{m}^2} = 1{,}53\): entre departamentos con la misma antigüedad y en la misma zona, cada m² extra se asocia con 1 530 dólares más.</li>
         <li>\(\hat\beta_{\text{antig}} = -0{,}69\): con igual superficie y zona, cada año extra resta en promedio 690 dólares.</li>
         <li>\(\hat\beta_{\text{centro}} = 52{,}6\): a igual superficie y antigüedad, un departamento del centro cuesta en promedio 52 600 dólares más que uno de las afueras.</li>
       </ul>
-      <p>El teorema de <b>Frisch-Waugh-Lovell</b> precisa qué significa “mantener constante”: \(\hat\beta_j\) es la pendiente de una regresión simple de \(y\) sobre la parte de \(x_j\) que no explican los demás predictores (los residuos de regresar \(x_j\) sobre ellos). Por eso cada coeficiente usa solo la variación “propia” de su variable.</p>
-      <p>¿Y si omites una variable relevante? Supón que el modelo verdadero es \(y = \beta_0 + \beta_1x_1 + \beta_2x_2 + \varepsilon\) y ajustas solo \(y\) sobre \(x_1\). La pendiente que obtienes estima:</p>
+      <p><b>Teorema de Frisch, Waugh y Lovell.</b> Parte \(X = [X_1\ \ \mathbf x_j]\). Sea \(\tilde{\mathbf x}_j = (I - H_1)\mathbf x_j\) el residuo de regresar \(x_j\) sobre las demás columnas. Entonces \(\hat\beta_j = \tilde{\mathbf x}_j^\top\mathbf y/\tilde{\mathbf x}_j^\top\tilde{\mathbf x}_j\): es la pendiente de una regresión simple de \(y\) sobre la parte de \(x_j\) que no explican los demás predictores. <i>Idea de la prueba:</i> escribe \(\mathbf y = X_1\hat{\boldsymbol\beta}_1 + \mathbf x_j\hat\beta_j + \mathbf e\) y multiplica por \(\tilde{\mathbf x}_j^\top\). Como \(\tilde{\mathbf x}_j\) es ortogonal a \(X_1\) y a \(\mathbf e\), queda \(\tilde{\mathbf x}_j^\top\mathbf y = \tilde{\mathbf x}_j^\top\mathbf x_j\hat\beta_j = \tilde{\mathbf x}_j^\top\tilde{\mathbf x}_j\hat\beta_j\). Por eso cada coeficiente usa solo la variación “propia” de su variable.</p>
+      <p>¿Y si omites una variable relevante? Supón que el modelo verdadero es \(y = \beta_0 + \beta_1x_1 + \beta_2x_2 + \varepsilon\) y ajustas solo \(y\) sobre \(x_1\). La pendiente simple es \(\tilde\beta_1 = S_{x_1y}/S_{x_1x_1}\); sustituyendo \(y\) por el modelo verdadero y tomando esperanza:</p>
       <div class="eq">\[ E[\tilde\beta_1] = \beta_1 + \beta_2\,\delta, \qquad \delta = \frac{\operatorname{Cov}(x_1, x_2)}{\operatorname{Var}(x_1)} \]
-        <div class="note">\(\delta\) es la pendiente de regresar \(x_2\) sobre \(x_1\). Hay sesgo si la variable omitida afecta a \(y\) (\(\beta_2 \ne 0\)) <b>y</b> está correlacionada con \(x_1\) (\(\delta \ne 0\)). En los departamentos, \(-0{,}69 + 52{,}6 \cdot 0{,}032 + 1{,}53 \cdot 0{,}033 = 1{,}06\): la zona omitida explica casi todo el cambio de signo.</div>
+        <div class="note">\(\delta\) es la pendiente de regresar \(x_2\) sobre \(x_1\). Hay sesgo si la variable omitida afecta a \(y\) (\(\beta_2 \ne 0\)) <b>y</b> está correlacionada con \(x_1\) (\(\delta \ne 0\)). En los departamentos, \(-0{,}69 + 52{,}6 \cdot 0{,}032 + 1{,}53 \cdot 0{,}033 = 1{,}06\): la zona omitida explica casi todo el cambio de signo. En la muestra la identidad \(\tilde\beta_1 = \hat\beta_1 + \hat\beta_2\hat\delta\) es exacta, no solo en esperanza.</div>
+      </div>
+      <p>El signo del sesgo es el signo de \(\beta_2\delta\). Ejemplo clásico: el retorno de la educación en salarios, si omites la habilidad (que sube el salario y se correlaciona con la educación), queda sobrestimado. Al revés, incluir una variable <b>irrelevante</b> no sesga nada, pero si está correlacionada con \(x_1\) infla la varianza de \(\hat\beta_1\). Y cuidado con controlar por un <b>mediador</b> (una variable causada por \(x_1\) que a su vez afecta a \(y\)): eso elimina parte del efecto que querías medir.</p>
+
+      <h2 id="regmult-cat"><span class="sec">§ 5</span>Variables categóricas e interacciones</h2>
+      <p>Una variable categórica con \(k\) niveles entra al modelo como \(k - 1\) <b>variables indicadoras</b> (dummies) que valen 1 o 0. El nivel sin indicadora es la <b>categoría de referencia</b>, y cada coeficiente compara su nivel con ella, manteniendo fijo lo demás.</p>
+      <div class="eq">\[ \text{centro}_i = \begin{cases} 1 &amp; \text{si el departamento está en el centro} \\ 0 &amp; \text{si está en las afueras (referencia)} \end{cases} \qquad \hat y = (16{,}2 + 52{,}6\cdot\text{centro}) + 1{,}53\,\text{m}^2 - 0{,}69\,\text{antig} \]
+        <div class="note">La indicadora solo mueve el intercepto: dos planos paralelos separados por 52,6. Si la zona tuviera tres niveles (centro, intermedia, afueras), usarías dos indicadoras y cada una se compararía con las afueras.</div>
+      </div>
+      <ul>
+        <li><b>Trampa de las variables ficticias:</b> si incluyes las \(k\) indicadoras más el intercepto, suman la columna de unos y \(X^\top X\) no se puede invertir. R y Python eliminan una automáticamente.</li>
+        <li><b>Cambiar la referencia</b> cambia los coeficientes pero no las predicciones ni el ajuste, porque las columnas generan el mismo espacio. Elige la que haga más legible la interpretación (un grupo control, el nivel más común).</li>
+        <li>Para saber si la variable categórica <i>en conjunto</i> importa, no mires cada indicadora por separado: usa una prueba F parcial (§ 6). Un modelo solo con indicadoras es exactamente el <a href="#anova">ANOVA de un factor</a>.</li>
+        <li>Nunca codifiques una categoría nominal como 1, 2, 3 en una sola columna: el modelo supondría que pasar de 1 a 2 tiene el mismo efecto que de 2 a 3.</li>
+      </ul>
+      <p>El modelo aditivo supone que el efecto de cada variable es el mismo para cualquier valor de las demás: el m² vale lo mismo en el centro que en las afueras. Si sospechas que no, agregas un término de <b>interacción</b>, el producto de las dos variables:</p>
+      <div class="eq">\[ y = \beta_0 + \beta_1 x + \beta_2 D + \beta_3\,(x \cdot D) + \varepsilon \quad\Longrightarrow\quad \frac{\partial E[y]}{\partial x} = \beta_1 + \beta_3 D \]
+        <div class="note">Con \(D\) indicadora: la pendiente de \(x\) es \(\beta_1\) en la referencia y \(\beta_1 + \beta_3\) en el otro grupo. \(\beta_3\) es la <b>diferencia de pendientes</b>, y \(\beta_2\) pasa a ser la diferencia entre grupos solo cuando \(x = 0\).</div>
+      </div>
+      <p>En los departamentos, la interacción m² × centro vale −0,05 con \(p = 0{,}85\): no hay evidencia de que el m² se pague distinto en cada zona, y el modelo aditivo basta. Dos reglas al usar interacciones: si incluyes \(x\cdot D\), incluye también \(x\) y \(D\) por separado (principio jerárquico), y centra las variables continuas (resta su media) para que los efectos principales se lean en un punto con sentido en lugar de en \(x = 0\). Con dos variables continuas, \(\partial E[y]/\partial x_1 = \beta_1 + \beta_3x_2\): el efecto de \(x_1\) cambia linealmente con \(x_2\).</p>
+
+      <h2 id="regmult-inf"><span class="sec">§ 6</span>Inferencia, ajuste y multicolinealidad</h2>
+      <p>El \(R^2\) sigue siendo \(1 - SSE/SST\), pero tiene un defecto: <b>nunca baja</b> al agregar un predictor, aunque sea ruido puro, porque minimizar sobre un espacio más grande no puede dar una SSE mayor. El \(R^2\) ajustado compara varianzas estimadas en lugar de sumas de cuadrados:</p>
+      <div class="eq">\[ R^2_{\text{aj}} = 1 - \frac{SSE/(n-p-1)}{SST/(n-1)} = 1 - (1 - R^2)\,\frac{n-1}{n-p-1} \]
+        <div class="note">Departamentos: \(R^2 = 0{,}974\) y \(R^2_{\text{aj}} = 0{,}967\), con \(n = 16\) y \(p = 3\). Al agregar la interacción inútil, \(R^2\) sube a 0,974 (por milésimas) y \(R^2_{\text{aj}}\) baja a 0,964.</div>
+      </div>
+      <p>Bajo normalidad, \(\hat{\boldsymbol\beta} \sim \mathcal N(\boldsymbol\beta, \sigma^2(X^\top X)^{-1})\) y \(SSE/\sigma^2 \sim \chi^2_{n-p-1}\), independientes. De ahí salen tres niveles de pruebas, que responden preguntas distintas:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Prueba</th><th>Hipótesis nula</th><th>Estadístico</th><th>Departamentos</th></tr></thead>
+        <tbody>
+          <tr><td>t individual</td><td>\(\beta_j = 0\), con los demás predictores en el modelo</td><td>\(t = \hat\beta_j/SE(\hat\beta_j) \sim t_{n-p-1}\)</td><td>antig: \(t = -2{,}70\), \(p = 0{,}019\)</td></tr>
+          <tr><td>F global</td><td>\(\beta_1 = \cdots = \beta_p = 0\)</td><td>\(F = \dfrac{SSR/p}{SSE/(n-p-1)}\)</td><td>\(F = 148{,}5\) con 3 y 12 gl, \(p &lt; 0{,}0001\)</td></tr>
+          <tr><td>F parcial (modelos anidados)</td><td>Los \(q\) coeficientes extra del modelo grande valen 0</td><td>\(F = \dfrac{(SSE_r - SSE_c)/q}{SSE_c/(n-p_c-1)}\)</td><td>interacción: \(F = 0{,}04\), \(p = 0{,}85\)</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Ejemplo resuelto (F parcial).</b> El modelo aditivo tiene \(SSE_r = 573{,}6\) con 12 gl; el de interacción, \(SSE_c = 571{,}7\) con 11 gl. \(F = \frac{(573{,}6 - 571{,}7)/1}{571{,}7/11} = \frac{1{,}86}{51{,}98} = 0{,}036\), con \(p = 0{,}85\). Con \(q = 1\), la F parcial es el cuadrado de la t de la interacción.</p>
+      <div class="callout"><b>Un predictor no significativo no es inútil por sí solo.</b> La t individual pregunta si \(x_j\) aporta algo <i>después</i> de los demás. Dos predictores muy correlacionados pueden salir ambos no significativos por separado y, sin embargo, ser muy significativos en conjunto según la F. Por eso nunca elimines varias variables a la vez mirando solo sus valores p individuales.</div>
+      <p><b>Multicolinealidad.</b> Cuando los predictores están muy correlacionados entre sí, el modelo tiene poca información para separar sus efectos. Por Frisch, Waugh y Lovell, \(V(\hat\beta_j) = \sigma^2/\tilde{\mathbf x}_j^\top\tilde{\mathbf x}_j\), y la suma de cuadrados residual de \(x_j\) sobre los demás es \((n-1)s_{x_j}^2(1 - R_j^2)\). Resultado:</p>
+      <div class="eq">\[ \operatorname{Var}(\hat\beta_j) = \frac{\sigma^2}{(n-1)\,s_{x_j}^2}\cdot\underbrace{\frac{1}{1 - R_j^2}}_{VIF_j} \]
+        <div class="note">\(R_j^2\) es el \(R^2\) de regresar \(x_j\) sobre los demás predictores. Con \(R_j^2 = 0{,}9\), \(VIF = 10\) y el error estándar se multiplica por \(\sqrt{10} \approx 3{,}2\). Con dos predictores, \(R_j^2 = \rho^2\).</div>
+      </div>
+      <p>En los departamentos, los VIF son 1,15 (m²), 3,67 (antigüedad) y 3,85 (centro): la antigüedad y la zona están bastante asociadas (\(r = 0{,}84\)), pero no tanto como para impedir la estimación. Reglas prácticas: VIF mayor que 5 merece atención, mayor que 10 es un problema serio para interpretar coeficientes.</p>
+      <ul>
+        <li>La multicolinealidad <b>no sesga</b> los coeficientes ni empeora las predicciones dentro del rango de los datos: solo hace imprecisos los coeficientes individuales y los vuelve inestables (cambian mucho al quitar unos pocos datos).</li>
+        <li>Síntomas típicos: F global significativa con todas las t no significativas, signos absurdos, coeficientes que saltan al agregar una variable.</li>
+        <li>Remedios: quitar uno de los predictores redundantes, combinarlos en un índice (por ejemplo con <a href="#pca">componentes principales</a>), conseguir más datos o con más variación independiente, o usar regularización (ridge).</li>
+      </ul>
+
+      <h2 id="regmult-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Insesgadez.</b> \(E(\hat{\boldsymbol\beta}) = \boldsymbol\beta\), porque \(\hat{\boldsymbol\beta} - \boldsymbol\beta = (X^\top X)^{-1}X^\top\boldsymbol\varepsilon\) y \(E(\boldsymbol\varepsilon) = \mathbf 0\).</li>
+        <li><b>Varianza.</b> \(\operatorname{Var}(\hat{\boldsymbol\beta}) = \sigma^2(X^\top X)^{-1}\), aplicando \(\operatorname{Var}(A\boldsymbol\varepsilon) = A\operatorname{Var}(\boldsymbol\varepsilon)A^\top\).</li>
+        <li><b>Proyección.</b> \(H\) es simétrica e idempotente con \(\operatorname{tr}(H) = p + 1\); \(X^\top\mathbf e = \mathbf 0\).</li>
+        <li><b>Estimador de \(\sigma^2\).</b> \(E(SSE) = \sigma^2(n - p - 1)\), porque \(SSE = \boldsymbol\varepsilon^\top(I-H)\boldsymbol\varepsilon\) y \(E(\boldsymbol\varepsilon^\top A\boldsymbol\varepsilon) = \sigma^2\operatorname{tr}(A)\).</li>
+        <li><b>Frisch, Waugh y Lovell.</b> \(\hat\beta_j\) es la pendiente de \(y\) sobre el residuo de \(x_j\) dados los demás predictores.</li>
+        <li><b>Variables omitidas.</b> \(\tilde\beta_1 = \hat\beta_1 + \hat\beta_2\hat\delta\) exactamente en la muestra; en esperanza, sesgo \(\beta_2\delta\).</li>
+        <li><b>VIF.</b> \(V(\hat\beta_j) = \frac{\sigma^2}{(n-1)s_{x_j}^2}\cdot\frac{1}{1-R_j^2}\), por FWL.</li>
+        <li><b>Invarianza a la referencia.</b> Reparametrizar las indicadoras (o reescalar predictores) cambia \(\hat{\boldsymbol\beta}\) pero no \(\hat{\mathbf y}\), \(SSE\) ni \(R^2\), porque el espacio columna de \(X\) es el mismo.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Interpretar un coeficiente sin decir qué se mantiene fijo, o como si fuera causal.</li>
+          <li>Leer \(\beta_2\) como “el efecto de D” en un modelo con interacción, cuando es el efecto en \(x = 0\).</li>
+          <li>Eliminar varias variables a la vez por sus valores p individuales.</li>
+          <li>Comparar modelos con distinto número de predictores usando \(R^2\) en lugar de \(R^2_{\text{aj}}\), F parcial o validación.</li>
+          <li>Controlar por una variable que es consecuencia del predictor de interés (un mediador o un colisionador).</li>
+        </ul>
       </div>
 
-      <h2 id="regmult-lab"><span class="sec">§ 4</span>Laboratorio: confusión y colinealidad</h2>
-      <p>El modelo real es \(y = 1\cdot x_1 + \beta_2 x_2 + \varepsilon\), con \(x_1\) y \(x_2\) correlacionadas. A la izquierda ves una muestra: los puntos están coloreados según \(x_2\), la recta roja es la regresión simple de \(y\) sobre \(x_1\) y la azul es la pendiente de \(x_1\) en la regresión múltiple. A la derecha, las pendientes estimadas de \(x_1\) en 200 muestras repetidas, con la verdadera (\(\beta_1 = 1\)) marcada.</p>
+      <h2 id="regmult-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>Primer laboratorio. El modelo real es \(y = 1\cdot x_1 + \beta_2 x_2 + \varepsilon\), con \(x_1\) y \(x_2\) correlacionadas. A la izquierda ves una muestra: los puntos están coloreados según \(x_2\), la recta roja es la regresión simple de \(y\) sobre \(x_1\) y la azul es la pendiente de \(x_1\) en la regresión múltiple. A la derecha, las pendientes estimadas de \(x_1\) en 200 muestras repetidas, con la verdadera (\(\beta_1 = 1\)) marcada.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · variable omitida y VIF</span><span class="num" id="regmult-head">–</span></div>
         <div class="lab-body">
@@ -97,25 +184,18 @@
         </div>
         <figcaption>Con ρ = 0 las dos regresiones aciertan en promedio: omitir x₂ solo cuesta precisión. Con ρ y β₂ distintos de cero la simple se desplaza en β₂·ρ. Lleva ρ a 0,95: la múltiple sigue centrada en 1, pero su distribución se ensancha unas 3 veces. Eso es la multicolinealidad.</figcaption>
       </figure>
-
-      <h2 id="regmult-cat"><span class="sec">§ 5</span>Variables categóricas</h2>
-      <p>Una variable categórica con \(k\) niveles entra al modelo como \(k - 1\) <b>variables indicadoras</b> (dummies) que valen 1 o 0. El nivel sin indicadora es la <b>categoría de referencia</b>, y cada coeficiente compara su nivel con ella, manteniendo fijo lo demás.</p>
-      <div class="eq">\[ \text{centro}_i = \begin{cases} 1 & \text{si el departamento está en el centro} \\ 0 & \text{si está en las afueras (referencia)} \end{cases} \qquad \hat y = (16{,}2 + 52{,}6\cdot\text{centro}) + 1{,}53\,\text{m}^2 - 0{,}69\,\text{antig} \]
-        <div class="note">La indicadora solo mueve el intercepto: dos planos paralelos separados por 52,6. Si la zona tuviera tres niveles (centro, intermedia, afueras), usarías dos indicadoras y cada una se compararía con las afueras.</div>
-      </div>
-      <ul>
-        <li><b>Trampa de las variables ficticias:</b> si incluyes las \(k\) indicadoras más el intercepto, suman la columna de unos y \(X^\top X\) no se puede invertir. R y Python eliminan una automáticamente.</li>
-        <li><b>Cambiar la referencia</b> cambia los coeficientes pero no las predicciones ni el ajuste. Elige la que haga más legible la interpretación (un grupo control, el nivel más común).</li>
-        <li>Para saber si la variable categórica <i>en conjunto</i> importa, no mires cada indicadora por separado: usa una prueba F parcial (§ 7).</li>
-        <li>Nunca codifiques una categoría nominal como 1, 2, 3 en una sola columna: el modelo supondría que pasar de 1 a 2 tiene el mismo efecto que de 2 a 3.</li>
-      </ul>
-
-      <h2 id="regmult-inter"><span class="sec">§ 6</span>Interacciones</h2>
-      <p>El modelo aditivo supone que el efecto de cada variable es el mismo para cualquier valor de las demás: el m² vale lo mismo en el centro que en las afueras. Si sospechas que no, agregas un término de <b>interacción</b>, el producto de las dos variables:</p>
-      <div class="eq">\[ y = \beta_0 + \beta_1 x + \beta_2 D + \beta_3\,(x \cdot D) + \varepsilon \quad\Longrightarrow\quad \frac{\partial E[y]}{\partial x} = \beta_1 + \beta_3 D \]
-        <div class="note">Con \(D\) indicadora: la pendiente de \(x\) es \(\beta_1\) en la referencia y \(\beta_1 + \beta_3\) en el otro grupo. \(\beta_3\) es la <b>diferencia de pendientes</b>, y \(\beta_2\) pasa a ser la diferencia entre grupos solo cuando \(x = 0\).</div>
-      </div>
-      <p>En los departamentos, la interacción m² × centro vale −0,05 con \(p = 0{,}85\): no hay evidencia de que el m² se pague distinto en cada zona, y el modelo aditivo basta. Dos reglas al usar interacciones: si incluyes \(x\cdot D\), incluye también \(x\) y \(D\) por separado (principio jerárquico), y centra las variables continuas (resta su media) para que los efectos principales se lean en un punto con sentido en lugar de en \(x = 0\).</p>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Pon ρ = 0 con β₂ = 1,5. Compara la media de las pendientes simple y múltiple.
+          <details><summary>Qué deberías observar</summary><p>Ambas quedan cerca de 1. Si \(x_2\) no está correlacionada con \(x_1\), omitirla no sesga: solo agrega ruido, y la distribución de la simple es algo más ancha.</p></details></li>
+        <li>Vuelve a ρ = 0,6 y β₂ = 1,5. Predice la media de la pendiente simple antes de mirar.
+          <details><summary>Qué deberías observar</summary><p>Con varianzas unitarias, \(\delta = \rho = 0{,}6\), así que la simple debería promediar \(1 + 1{,}5\cdot 0{,}6 = 1{,}9\). La múltiple sigue en 1.</p></details></li>
+        <li>Pon β₂ = −1,5 con ρ = 0,6.
+          <details><summary>Qué deberías observar</summary><p>El sesgo cambia de signo: la simple promedia \(1 - 0{,}9 = 0{,}1\). Con β₂ = −1,7 se acercaría a 0 y podrías concluir que \(x_1\) no importa, cuando su efecto real es 1.</p></details></li>
+        <li>Lleva ρ a 0,95 y luego sube n de 50 a 400.
+          <details><summary>Qué deberías observar</summary><p>Con ρ = 0,95 el VIF es \(1/(1 - 0{,}9025) \approx 10{,}3\) y el error estándar de la múltiple se infla unas 3,2 veces. Subir n reduce la dispersión, pero el VIF no cambia: es una propiedad de la correlación entre predictores, no del tamaño de muestra.</p></details></li>
+      </ol>
+      <p>Segundo laboratorio: interacción entre una variable continua y una indicadora.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · interacción</span><span class="num" id="regmult-i-head">–</span></div>
         <div class="lab-body">
@@ -142,36 +222,29 @@
         </div>
         <figcaption>Con β₃ = 0 ambos modelos dan casi lo mismo. Con β₃ = 1,2, el modelo aditivo obliga a dos rectas paralelas que se equivocan en los extremos; el de interacción deja que cada zona tenga su pendiente.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Pon β₃ = 0 y alterna entre “Aditivo” y “Con interacción”.
+          <details><summary>Qué deberías observar</summary><p>Las rectas casi no cambian y el valor p de la interacción suele ser grande. El R² ajustado del modelo con interacción tiende a ser un poco menor: un parámetro inútil se paga.</p></details></li>
+        <li>Pon β₃ = 1,2 y ajusta el modelo aditivo.
+          <details><summary>Qué deberías observar</summary><p>El aditivo fuerza dos rectas paralelas con una pendiente intermedia: subestima el precio de los departamentos grandes del centro y sobrestima los chicos. Con interacción, cada zona tiene su pendiente y el valor p es muy pequeño.</p></details></li>
+        <li>Con β₃ = 0,3, pulsa “Nueva muestra” varias veces y mira el valor p.
+          <details><summary>Qué deberías observar</summary><p>A veces sale significativo y a veces no: con una interacción pequeña la potencia es baja. Detectar diferencias de pendientes requiere más datos que detectar diferencias de interceptos.</p></details></li>
+        <li>Pon β₃ = −1,5.
+          <details><summary>Qué deberías observar</summary><p>Las rectas pueden cruzarse: el centro es más caro para departamentos chicos y más barato para los grandes. En ese caso “el efecto de la zona” no existe como un solo número: depende de la superficie.</p></details></li>
+      </ol>
 
-      <h2 id="regmult-inf"><span class="sec">§ 7</span>Ajuste e inferencia</h2>
-      <p>El \(R^2\) sigue siendo \(1 - SSE/SST\), pero tiene un defecto: <b>nunca baja</b> al agregar un predictor, aunque sea ruido puro. El \(R^2\) ajustado penaliza el número de predictores:</p>
-      <div class="eq">\[ R^2_{\text{aj}} = 1 - (1 - R^2)\,\frac{n-1}{n-p-1} \]
-        <div class="note">Departamentos: \(R^2 = 0{,}974\) y \(R^2_{\text{aj}} = 0{,}967\), con \(n = 16\) y \(p = 3\). Al agregar la interacción inútil, \(R^2\) sube a 0,974 (por milésimas) y \(R^2_{\text{aj}}\) baja a 0,964.</div>
-      </div>
-      <p>Hay tres niveles de pruebas, y responden preguntas distintas:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Prueba</th><th>Hipótesis nula</th><th>Estadístico</th><th>Departamentos</th></tr></thead>
-        <tbody>
-          <tr><td>t individual</td><td>\(\beta_j = 0\), con los demás predictores en el modelo</td><td>\(t = \hat\beta_j/SE(\hat\beta_j) \sim t_{n-p-1}\)</td><td>antig: \(t = -2{,}70\), \(p = 0{,}019\)</td></tr>
-          <tr><td>F global</td><td>\(\beta_1 = \cdots = \beta_p = 0\)</td><td>\(F = \dfrac{SSR/p}{SSE/(n-p-1)}\)</td><td>\(F = 148{,}5\) con 3 y 12 gl, \(p &lt; 0{,}0001\)</td></tr>
-          <tr><td>F parcial (modelos anidados)</td><td>Los \(q\) coeficientes extra del modelo grande valen 0</td><td>\(F = \dfrac{(SSE_r - SSE_c)/q}{SSE_c/(n-p_c-1)}\)</td><td>interacción: \(F = 0{,}04\), \(p = 0{,}85\)</td></tr>
-        </tbody>
-      </table></div>
-      <div class="callout"><b>Un predictor no significativo no es inútil por sí solo.</b> La t individual pregunta si \(x_j\) aporta algo <i>después</i> de los demás. Dos predictores muy correlacionados pueden salir ambos no significativos por separado y, sin embargo, ser muy significativos en conjunto según la F. Por eso nunca elimines varias variables a la vez mirando solo sus valores p individuales.</div>
+      <h2 id="regmult-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Economía: la ecuación de salarios de Mincer</h3>
+      <p>Jacob Mincer (1974) propuso \(\log(\text{salario}) = \beta_0 + \beta_1\,\text{educ} + \beta_2\,\text{exper} + \beta_3\,\text{exper}^2 + \varepsilon\). Es probablemente la regresión múltiple más estimada del mundo. Con datos de muchos países, \(\hat\beta_1\) ronda 0,08 a 0,10: cada año de educación se asocia con un salario de 8 a 10 % mayor, a igual experiencia, y \(\beta_3 &lt; 0\) recoge que la experiencia rinde cada vez menos. La crítica central es justo el sesgo por variable omitida (habilidad), que motivó décadas de estudios con gemelos y variables instrumentales. La decisión: evaluar el retorno de invertir en educación.</p>
+      <h3>Salud: peso al nacer y tabaquismo</h3>
+      <p>El conjunto <code>birthwt</code> del paquete MASS de R (189 nacimientos de un hospital de Springfield, Massachusetts, en 1986) registra el peso del bebé, si la madre fumó durante el embarazo, su peso, su raza, antecedentes de hipertensión y otras variables. La diferencia bruta de peso medio entre hijos de fumadoras y no fumadoras es de unos 280 g. Una regresión múltiple que ajusta por peso materno, raza e hipertensión permite ver si esa diferencia se mantiene cuando se comparan madres parecidas en esas características. La decisión: priorizar programas para dejar de fumar en el control prenatal.</p>
+      <h3>Ambiente: precios hedónicos y aire limpio</h3>
+      <p>Harrison y Rubinfeld (1978) usaron los datos de vivienda de Boston (506 secciones censales) para regresar el precio medio de la vivienda sobre el número de habitaciones, la criminalidad, la distancia a centros de empleo y la concentración de óxidos de nitrógeno, entre otros. El coeficiente del contaminante, a igual resto, se interpreta como la disposición a pagar por aire más limpio. La decisión: valorar en dinero los beneficios de una regulación ambiental.</p>
+      <h3>Industria: consumo de combustible</h3>
+      <p>En el conjunto <code>mtcars</code> de R (32 autos de 1973-74), \(\widehat{\text{mpg}} = 37{,}2 - 3{,}88\,\text{wt} - 0{,}032\,\text{hp}\), con \(R^2 \approx 0{,}83\): a igual potencia, cada 1 000 libras extra de peso restan casi 3,9 millas por galón. Peso y potencia están correlacionados (\(r \approx 0{,}66\)), y la regresión simple de mpg sobre hp exagera el efecto de la potencia porque en parte refleja el peso. La decisión: priorizar la reducción de peso en el diseño de vehículos eficientes.</p>
 
-      <h2 id="regmult-vif"><span class="sec">§ 8</span>Multicolinealidad</h2>
-      <p>Cuando los predictores están muy correlacionados entre sí, el modelo tiene poca información para separar sus efectos: si casi siempre suben juntos, ¿a cuál le atribuyes el cambio en \(y\)? La varianza de cada coeficiente se infla según el <b>factor de inflación de la varianza</b>:</p>
-      <div class="eq">\[ \operatorname{Var}(\hat\beta_j) = \frac{\sigma^2}{(n-1)\,s_{x_j}^2}\cdot\underbrace{\frac{1}{1 - R_j^2}}_{VIF_j} \]
-        <div class="note">\(R_j^2\) es el \(R^2\) de regresar \(x_j\) sobre los demás predictores. Con \(R_j^2 = 0{,}9\), \(VIF = 10\) y el error estándar se multiplica por \(\sqrt{10} \approx 3{,}2\). Con dos predictores, \(R_j^2 = \rho^2\).</div>
-      </div>
-      <p>En los departamentos, los VIF son 1,15 (m²), 3,67 (antigüedad) y 3,85 (centro): la antigüedad y la zona están bastante asociadas (\(r = 0{,}84\)), pero no tanto como para impedir la estimación. Reglas prácticas: VIF mayor que 5 merece atención, mayor que 10 es un problema serio para interpretar coeficientes.</p>
-      <ul>
-        <li>La multicolinealidad <b>no sesga</b> los coeficientes ni empeora las predicciones dentro del rango de los datos: solo hace imprecisos los coeficientes individuales y los vuelve inestables (cambian mucho al quitar unos pocos datos).</li>
-        <li>Síntomas típicos: F global significativa con todas las t no significativas, signos absurdos, coeficientes que saltan al agregar una variable.</li>
-        <li>Remedios: quitar uno de los predictores redundantes, combinarlos en un índice, conseguir más datos o con más variación independiente, o usar regularización (ridge), que verás más adelante.</li>
-      </ul>
-
-      <h2 id="regmult-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <h2 id="regmult-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>Los 16 departamentos: regresión simple y múltiple, interacción, prueba F parcial, VIF y predicción.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
@@ -235,8 +308,9 @@ car::<span class="f">vif</span>(m)       <span class="c"># m2 ≈ 1.15, antig �
 <span class="f">predict</span>(m, <span class="f">data.frame</span>(m2 = <span class="n">80</span>, antig = <span class="n">10</span>, zona = <span class="s">"afueras"</span>),
         interval = <span class="s">"prediction"</span>)               <span class="c"># ≈ 131.5 [115.5, 147.6]</span></code></pre>
       </div>
+      <p>Observa en la salida que \(SSE_r = 573{,}6\) y \(SSE_c = 571{,}7\): son los números del ejemplo resuelto de la F parcial. La predicción para un departamento de 80 m², 10 años, en las afueras, es de 131,5 mil dólares, con un intervalo de predicción individual de [115,5; 147,6].</p>
 
-      <h2 id="regmult-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <h2 id="regmult-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="En regresión múltiple cada coeficiente se interpreta manteniendo fijos los demás predictores del modelo. Aquí: a igual experiencia, cada año de educación se asocia con 1,2 mil más de salario promedio." data-wrong="Recuerda que el coeficiente de una variable en un modelo múltiple ya descuenta a las demás variables incluidas. ¿Qué se mantiene constante al leer 1,2?">
         <h3>En salario = 8 + 1,2·educación + 0,4·experiencia (miles por año), ¿qué significa 1,2?</h3>
         <div class="opts">
@@ -267,37 +341,48 @@ car::<span class="f">vif</span>(m)       <span class="c"># m2 ≈ 1.15, antig �
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Sesgo = β₂·δ = 2 · 0,5 = 1. La pendiente simple estima en promedio 3 + 1 = 4: exagera el efecto porque absorbe parte del de x₂." data-wrong="Usa E[β̃₁] = β₁ + β₂·δ, con δ la pendiente de x₂ sobre x₁.">
+        <h3>El modelo real es y = 3x₁ + 2x₂ + ε y la pendiente de regresar x₂ sobre x₁ es 0,5. Si omites x₂, ¿qué estima en promedio la pendiente simple de x₁?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>3</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>5</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>3,5</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con interacción, el coeficiente de D es la diferencia entre grupos cuando x = 0. La diferencia en x = 10 es β₂ + 10·β₃." data-wrong="Escribe la recta de cada grupo. ¿En qué valor de x la diferencia entre ellas es exactamente β₂?">
+        <h3>En y = β₀ + β₁x + β₂D + β₃xD, el coeficiente β₂ representa:</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El efecto promedio del grupo D sobre y</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La diferencia de pendientes entre grupos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>La diferencia entre grupos cuando x = 0</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>El efecto de x en el grupo de referencia</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="regmult-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <h2 id="regmult-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un estudio estima \(\widehat{\text{salario}} = 8 + 1{,}2\,\text{educ} + 0{,}4\,\text{exper} + 2{,}5\,\text{público}\) (miles de dólares al año), donde público vale 1 si la persona trabaja en el sector público. Predice el salario de alguien con 16 años de educación y 5 de experiencia en el sector privado, e interpreta el coeficiente 2,5.</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>\(\hat y = 8 + 1{,}2 \cdot 16 + 0{,}4 \cdot 5 + 2{,}5 \cdot 0 = 8 + 19{,}2 + 2 = 29{,}2\) mil dólares.</p>
-            <p>2,5: entre personas con la misma educación y experiencia, quienes trabajan en el sector público ganan en promedio 2 500 dólares más al año que en el privado (la referencia). Es una asociación ajustada por esas dos variables, no por otras como la ocupación o la región.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Demuestra que (a) \(H = X(X^\top X)^{-1}X^\top\) es simétrica e idempotente, (b) \(\operatorname{tr}(H) = p+1\), (c) \(E(SSE) = (n-p-1)\sigma^2\), y (d) \(\operatorname{Var}(\mathbf e) = \sigma^2(I - H)\). ¿Qué implica (d) para comparar residuos de puntos con distinto apalancamiento?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(H^\top = X[(X^\top X)^{-1}]^\top X^\top = H\) porque \(X^\top X\) es simétrica. \(H^2 = X(X^\top X)^{-1}X^\top X(X^\top X)^{-1}X^\top = H\).</p><p>(b) \(\operatorname{tr}(H) = \operatorname{tr}((X^\top X)^{-1}X^\top X) = \operatorname{tr}(I_{p+1}) = p+1\), usando \(\operatorname{tr}(AB) = \operatorname{tr}(BA)\).</p><p>(c) \(\mathbf e = (I-H)\mathbf y = (I-H)\boldsymbol\varepsilon\) porque \((I-H)X = 0\). Entonces \(SSE = \boldsymbol\varepsilon^\top(I-H)\boldsymbol\varepsilon\) (por idempotencia) y \(E(SSE) = \operatorname{tr}((I-H)\sigma^2I) = \sigma^2(n - p - 1)\).</p><p>(d) \(\operatorname{Var}(\mathbf e) = (I-H)\sigma^2(I-H)^\top = \sigma^2(I-H)\). Así \(V(e_i) = \sigma^2(1 - h_{ii})\): los puntos con alto apalancamiento tienen residuos más chicos por construcción. Para compararlos hay que estandarizarlos, \(r_i = e_i/(s\sqrt{1-h_{ii}})\), como se hace en <a href="#diag">diagnóstico</a>.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Un modelo con \(n = 50\) observaciones y \(p = 4\) predictores tiene \(R^2 = 0{,}62\). Calcula el \(R^2\) ajustado. Si uno de los predictores tiene \(R_j^2 = 0{,}9\) al regresarlo sobre los otros tres, ¿cuánto vale su VIF y cuánto se infla su error estándar?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>\(R^2_{\text{aj}} = 1 - 0{,}38 \cdot 49/45 = 1 - 0{,}414 = 0{,}586\).</p>
-            <p>\(VIF = 1/(1 - 0{,}9) = 10\). El error estándar se multiplica por \(\sqrt{10} \approx 3{,}16\) respecto de un predictor no correlacionado con los demás: su intervalo de confianza es unas tres veces más ancho.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra la identidad muestral exacta de la variable omitida: si \(\hat y = \hat\beta_0 + \hat\beta_1x_1 + \hat\beta_2x_2\) y \(\hat\delta\) es la pendiente de \(x_2\) sobre \(x_1\), entonces la pendiente simple de \(y\) sobre \(x_1\) es \(\tilde\beta_1 = \hat\beta_1 + \hat\beta_2\hat\delta\). (b) Un estudio de salarios omite la habilidad, que tiene efecto positivo en el salario y correlación positiva con la educación. ¿En qué dirección está sesgado el retorno de la educación? (c) ¿Y si la variable omitida fuera “vive en zona rural”, que baja el salario y se asocia con menos educación?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Escribe \(y_i = \hat\beta_0 + \hat\beta_1x_{i1} + \hat\beta_2x_{i2} + e_i\). Entonces \(S_{x_1y} = \hat\beta_1S_{x_1x_1} + \hat\beta_2S_{x_1x_2} + S_{x_1e}\), y \(S_{x_1e} = \sum(x_{i1} - \bar x_1)e_i = 0\) por las ecuaciones normales. Dividiendo entre \(S_{x_1x_1}\): \(\tilde\beta_1 = \hat\beta_1 + \hat\beta_2\,S_{x_1x_2}/S_{x_1x_1} = \hat\beta_1 + \hat\beta_2\hat\delta\).</p><p>(b) \(\beta_2 &gt; 0\) y \(\delta &gt; 0\): sesgo positivo, el retorno queda sobrestimado.</p><p>(c) Rural reduce el salario (\(\beta_2 &lt; 0\)) y se asocia negativamente con la educación (\(\delta &lt; 0\)): el producto es positivo, también sobrestima. Omitirla atribuye a la educación parte de la ventaja salarial urbana.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Un modelo de rendimiento de un cultivo es \(\hat y = 50 + 2x + 10D + 1{,}5\,xD\), donde \(x\) es la dosis de riego (litros por m²) y \(D = 1\) para una variedad mejorada. Escribe la recta de cada variedad, interpreta \(\beta_3 = 1{,}5\) y calcula cuánto más rinde la variedad mejorada con \(x = 0\) y con \(x = 10\).</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Variedad común (\(D = 0\)): \(\hat y = 50 + 2x\). Mejorada (\(D = 1\)): \(\hat y = 60 + 3{,}5x\).</p>
-            <p>\(\beta_3 = 1{,}5\): cada litro adicional de riego rinde 1,5 unidades más en la variedad mejorada que en la común. La ventaja de la mejorada depende de la dosis: \(10 + 1{,}5x\). Con \(x = 0\) es 10; con \(x = 10\) es \(10 + 15 = 25\).</p>
-            <p>Por eso, con interacción, el coeficiente 10 de \(D\) <b>no</b> es “el efecto de la variedad” en general: es el efecto cuando \(x = 0\). Si centras \(x\) en su media, el coeficiente de \(D\) pasa a ser la ventaja con un riego típico.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Usando Frisch, Waugh y Lovell, demuestra la fórmula del VIF. (b) Con dos predictores estandarizados de correlación \(\rho\), calcula \((X^\top X)^{-1}\) para la parte de las pendientes y verifica que \(V(\hat\beta_1) = \frac{\sigma^2}{n-1}\cdot\frac{1}{1-\rho^2}\). (c) ¿Qué pasa con \(\mathrm{Cov}(\hat\beta_1,\hat\beta_2)\) cuando \(\rho \to 1\)? Interpreta.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Por FWL, \(\hat\beta_j = \tilde{\mathbf x}_j^\top\mathbf y/\tilde{\mathbf x}_j^\top\tilde{\mathbf x}_j\), una combinación lineal de \(\mathbf y\) con pesos \(\tilde{\mathbf x}_j/\lVert\tilde{\mathbf x}_j\rVert^2\). Su varianza es \(\sigma^2/\lVert\tilde{\mathbf x}_j\rVert^2\). Y \(\lVert\tilde{\mathbf x}_j\rVert^2\) es la SSE de regresar \(x_j\) sobre los demás, que vale \(SST_j(1 - R_j^2) = (n-1)s_{x_j}^2(1-R_j^2)\).</p><p>(b) Con variables centradas y de varianza 1, la parte de pendientes de \(X^\top X\) es \((n-1)\begin{pmatrix}1 &amp; \rho\\ \rho &amp; 1\end{pmatrix}\), cuya inversa es \(\frac{1}{(n-1)(1-\rho^2)}\begin{pmatrix}1 &amp; -\rho\\ -\rho &amp; 1\end{pmatrix}\). El elemento (1,1) multiplicado por \(\sigma^2\) da la fórmula.</p><p>(c) \(\mathrm{Cov}(\hat\beta_1,\hat\beta_2) = -\rho\sigma^2/[(n-1)(1-\rho^2)] \to -\infty\) en valor absoluto. La correlación entre los estimadores es \(-\rho \to -1\): si uno sale alto, el otro sale bajo. Los datos identifican bien la <i>suma</i> \(\beta_1 + \beta_2\) pero casi nada la diferencia: \(V(\hat\beta_1 + \hat\beta_2) = 2\sigma^2/[(n-1)(1+\rho)]\), que no explota.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Con los 16 departamentos, verifica numéricamente la fórmula del sesgo por variables omitidas: obtén la pendiente simple de la antigüedad (1,06) a partir de los coeficientes del modelo múltiple y de las regresiones auxiliares de cada variable omitida sobre la antigüedad. Después comprueba el teorema de Frisch-Waugh-Lovell: la pendiente de \(y\) sobre los residuos de antig ~ m2 + zona es −0,69.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con los 16 departamentos, verifica numéricamente la fórmula del sesgo por variables omitidas: obtén la pendiente simple de la antigüedad (1,06) a partir de los coeficientes del modelo múltiple y de las regresiones auxiliares de cada variable omitida sobre la antigüedad. Después comprueba el teorema de Frisch, Waugh y Lovell: la pendiente de \(y\) sobre los residuos de antig ~ m2 + zona es −0,69.</p>
           <details><summary>Ver solución</summary><div class="sol">
             <p>Regresiones auxiliares: centro ~ antig da pendiente \(\delta_1 = 0{,}0324\) y m2 ~ antig da \(\delta_2 = 0{,}0330\). Entonces \(\tilde\beta_{\text{antig}} = -0{,}692 + 52{,}56 \cdot 0{,}0324 + 1{,}529 \cdot 0{,}0330 = -0{,}692 + 1{,}705 + 0{,}050 = 1{,}063\). En la muestra la identidad es exacta, no solo en esperanza.</p>
             <p>Casi todo el sesgo viene de la zona: tiene un efecto grande (52,6) y los edificios del centro son mucho más viejos. La superficie apenas aporta porque casi no está correlacionada con la antigüedad.</p>
@@ -330,6 +415,41 @@ r_antig &lt;- <span class="f">resid</span>(<span class="f">lm</span>(antig ~ m2 
 <span class="f">coef</span>(<span class="f">lm</span>(df$precio ~ r_antig))[<span class="n">2</span>]               <span class="c"># ≈ -0.692</span></code></pre>
             </div>
           </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación. Con \(n = 50\), \(x_1, x_2\) normales estándar con correlación 0,6, y \(y = x_1 + 1{,}5x_2 + \varepsilon\), \(\varepsilon \sim \mathcal N(0,1)\): (a) estima en 4 000 réplicas la media de la pendiente de \(x_1\) con y sin \(x_2\). (b) Ahora haz \(y = x_1 + \varepsilon\) (con \(x_2\) irrelevante) y compara la varianza de \(\hat\beta_1\) con y sin \(x_2\) en el modelo. Relaciona con el VIF. (c) ¿Qué regla práctica sale de (a) y (b)?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Sin \(x_2\), la media es ≈ 1,90 \(= 1 + 1{,}5\cdot 0{,}6\); con \(x_2\), ≈ 1,00. (b) Con \(x_2\) irrelevante, ambos estimadores son insesgados (≈ 1,00), pero la varianza con \(x_2\) es unas 1,6 veces mayor, cercana al VIF \(1/(1-0{,}36) = 1{,}56\) (la pequeña diferencia viene de los grados de libertad y del error de simulación). (c) Omitir una variable relevante y correlacionada sesga; incluir una irrelevante y correlacionada solo cuesta precisión. Ante la duda, los controles relevantes se incluyen; las variables sin justificación teórica que están muy correlacionadas con el predictor de interés, no.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">5</span>)
+n, R, rho = <span class="n">50</span>, <span class="n">4000</span>, <span class="n">0.6</span>
+L = np.linalg.<span class="f">cholesky</span>([[<span class="n">1</span>, rho], [rho, <span class="n">1</span>]])
+ols = <span class="k">lambda</span> X, y: np.linalg.<span class="f">lstsq</span>(X, y, rcond=<span class="k">None</span>)[<span class="n">0</span>][<span class="n">1</span>]
+sim, mul, irr = [], [], []
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(R):
+    x1, x2 = L @ rng.<span class="f">standard_normal</span>((<span class="n">2</span>, n)); one = np.<span class="f">ones</span>(n)
+    y = x1 + <span class="n">1.5</span> * x2 + rng.<span class="f">standard_normal</span>(n)
+    sim.<span class="f">append</span>(<span class="f">ols</span>(np.c_[one, x1], y)); mul.<span class="f">append</span>(<span class="f">ols</span>(np.c_[one, x1, x2], y))
+    y0 = x1 + rng.<span class="f">standard_normal</span>(n)                 <span class="c"># x2 irrelevante</span>
+    irr.<span class="f">append</span>([<span class="f">ols</span>(np.c_[one, x1], y0), <span class="f">ols</span>(np.c_[one, x1, x2], y0)])
+irr = np.<span class="f">array</span>(irr)
+<span class="f">print</span>(np.<span class="f">mean</span>(sim), np.<span class="f">mean</span>(mul))                <span class="c"># ≈ 1.90  1.00</span>
+v = irr.<span class="f">var</span>(axis=<span class="n">0</span>, ddof=<span class="n">1</span>)
+<span class="f">print</span>(irr.<span class="f">mean</span>(axis=<span class="n">0</span>), v[<span class="n">1</span>] / v[<span class="n">0</span>], <span class="n">1</span> / (<span class="n">1</span> - rho**<span class="n">2</span>))  <span class="c"># ≈ [1.00 1.00]  1.66  1.56</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(MASS)
+<span class="f">set.seed</span>(<span class="n">5</span>)
+n &lt;- <span class="n">50</span>; R &lt;- <span class="n">4000</span>; rho &lt;- <span class="n">0.6</span>; S &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, rho, rho, <span class="n">1</span>), <span class="n">2</span>)
+res &lt;- <span class="f">replicate</span>(R, {
+  X &lt;- <span class="f">mvrnorm</span>(n, <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>), S); x1 &lt;- X[, <span class="n">1</span>]; x2 &lt;- X[, <span class="n">2</span>]
+  y &lt;- x1 + <span class="n">1.5</span> * x2 + <span class="f">rnorm</span>(n); y0 &lt;- x1 + <span class="f">rnorm</span>(n)
+  <span class="f">c</span>(<span class="f">coef</span>(<span class="f">lm</span>(y ~ x1))[<span class="n">2</span>], <span class="f">coef</span>(<span class="f">lm</span>(y ~ x1 + x2))[<span class="n">2</span>],
+    <span class="f">coef</span>(<span class="f">lm</span>(y0 ~ x1))[<span class="n">2</span>], <span class="f">coef</span>(<span class="f">lm</span>(y0 ~ x1 + x2))[<span class="n">2</span>])
+})
+<span class="f">rowMeans</span>(res)                                    <span class="c"># ≈ 1.90 1.00 1.00 1.00</span>
+<span class="f">var</span>(res[<span class="n">4</span>, ]) / <span class="f">var</span>(res[<span class="n">3</span>, ])                       <span class="c"># ≈ 1.6, VIF = 1.56</span></code></pre>
+</div></div></details>
         </div>
       </div>
 

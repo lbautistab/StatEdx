@@ -5,65 +5,152 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Regresión lineal simple</h1>
-      <p>¿Cuántos puntos sube la calificación por cada hora extra de estudio? La regresión lineal responde con una recta: mide la relación entre dos variables, la resume en dos números y te dice qué tan confiable es ese resumen.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza</span><span>R · Python</span></div>
+      <p>¿Cuántos puntos sube la calificación por cada hora extra de estudio? La regresión lineal responde con una recta: mide la relación entre dos variables, la resume en dos números y te dice qué tan confiable es ese resumen. Aquí derivas los estimadores de mínimos cuadrados, demuestras sus propiedades, haces inferencia y aprendes a no engañarte con extrapolaciones ni con puntos influyentes.</p>
+      <div class="lmeta"><span>95 min</span><span>Nivel intermedio</span><span>Requiere: intervalos de confianza</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#reg-idea" data-sec="reg-idea">La idea</a></li>
-        <li><a href="#reg-cor" data-sec="reg-cor">Covarianza y correlación</a></li>
-        <li><a href="#reg-modelo" data-sec="reg-modelo">El modelo y la recta</a></li>
-        <li><a href="#reg-lab" data-sec="reg-lab">Laboratorio</a></li>
-        <li><a href="#reg-r2" data-sec="reg-r2">Interpretar y medir el ajuste</a></li>
-        <li><a href="#reg-supuestos" data-sec="reg-supuestos">Residuos y supuestos</a></li>
-        <li><a href="#reg-inf" data-sec="reg-inf">Inferencia sobre β₁</a></li>
-        <li><a href="#reg-pred" data-sec="reg-pred">Predecir sin extrapolar</a></li>
-        <li><a href="#reg-causa" data-sec="reg-causa">Causalidad e influyentes</a></li>
+        <li><a href="#reg-idea" data-sec="reg-idea">Introducción</a></li>
+        <li><a href="#reg-def" data-sec="reg-def">Definición</a></li>
+        <li><a href="#reg-modelo" data-sec="reg-modelo">Mínimos cuadrados</a></li>
+        <li><a href="#reg-r2" data-sec="reg-r2">Ajuste e interpretación</a></li>
+        <li><a href="#reg-inf" data-sec="reg-inf">Inferencia y predicción</a></li>
+        <li><a href="#reg-supuestos" data-sec="reg-supuestos">Supuestos e influyentes</a></li>
+        <li><a href="#reg-prop" data-sec="reg-prop">Propiedades</a></li>
+        <li><a href="#reg-lab" data-sec="reg-lab">Ejercicios de simulación</a></li>
+        <li><a href="#reg-apps" data-sec="reg-apps">Aplicaciones reales</a></li>
         <li><a href="#reg-code" data-sec="reg-code">En R y Python</a></li>
-        <li><a href="#reg-quiz" data-sec="reg-quiz">Comprueba</a></li>
-        <li><a href="#reg-ej" data-sec="reg-ej">Ejercicios</a></li>
+        <li><a href="#reg-quiz" data-sec="reg-quiz">Quiz</a></li>
+        <li><a href="#reg-ej" data-sec="reg-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="reg-idea"><span class="sec">§ 1</span>La idea</h2>
-      <p>Una profesora anota cuántas horas estudió cada uno de sus 12 estudiantes para el examen final y qué calificación sacó (sobre 100). Si pones las horas en el eje horizontal y la calificación en el vertical, cada estudiante es un punto: eso es un <b>diagrama de dispersión</b>, el primer gráfico que debes hacer antes de cualquier modelo.</p>
+      <h2 id="reg-idea"><span class="sec">§ 1</span>Introducción</h2>
+      <p>Una profesora anota cuántas horas estudió cada uno de sus 12 estudiantes para el examen final y qué calificación sacó (sobre 100). Si pones las horas en el eje horizontal y la calificación en el vertical, cada estudiante es un punto: eso es un <b>diagrama de dispersión</b>, el primer gráfico que debes hacer antes de cualquier modelo (ver <a href="#bivar">análisis bivariado</a>).</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Horas</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td></tr></thead>
         <tbody><tr><th>Nota</th><td>52</td><td>61</td><td>55</td><td>64</td><td>68</td><td>62</td><td>74</td><td>71</td><td>79</td><td>76</td><td>85</td><td>82</td></tr></tbody>
       </table></div>
       <p>Los puntos suben de izquierda a derecha, con algo de ruido: no todos los que estudian 8 horas sacan lo mismo. La regresión lineal simple busca la recta que mejor resume esa tendencia y la usa para dos cosas: <b>describir</b> la relación (“cada hora extra se asocia con unos 2,8 puntos más”) y <b>predecir</b> (“con 7 horas, espera alrededor de 70”).</p>
+      <p>Un poco de historia. El método de <b>mínimos cuadrados</b> lo publicó Adrien-Marie Legendre en 1805 para calcular órbitas de cometas, y Carl Friedrich Gauss afirmó haberlo usado desde 1795; en 1809 Gauss lo justificó suponiendo errores normales. La palabra <b>regresión</b> es posterior: Francis Galton, en 1886, observó que los hijos de padres muy altos son, en promedio, más altos que la media pero menos que sus padres. Llamó a ese fenómeno “regresión hacia la mediocridad”, y el nombre se quedó para toda la técnica. Karl Pearson formalizó después el coeficiente de correlación.</p>
       <div class="callout"><b>Vocabulario:</b> \(y\) es la variable <i>respuesta</i> (o dependiente) y \(x\) la variable <i>explicativa</i> (o predictora). Elegir cuál es cuál no es simétrico: la recta de \(y\) sobre \(x\) no es la misma que la de \(x\) sobre \(y\).</div>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>A medir la asociación lineal con covarianza y correlación, y a reconocer sus límites.</li>
+          <li>A derivar los estimadores de mínimos cuadrados a partir de las ecuaciones normales.</li>
+          <li>A interpretar pendiente, intercepto y \(R^2\), y a demostrar que \(R^2 = r^2\).</li>
+          <li>A hacer inferencia sobre \(\beta_1\) y construir intervalos de confianza y de predicción.</li>
+          <li>A revisar los supuestos LINE con residuos y a detectar puntos influyentes.</li>
+          <li>A distinguir asociación de causalidad y a no extrapolar.</li>
+        </ul>
+      </div>
 
-      <h2 id="reg-cor"><span class="sec">§ 2</span>Covarianza y correlación</h2>
-      <p>La <b>covarianza</b> mide si dos variables se mueven juntas. Cada punto aporta el producto de sus desvíos respecto de las medias: positivo si está arriba a la derecha o abajo a la izquierda de \((\bar x, \bar y)\), negativo en los otros dos cuadrantes.</p>
-      <div class="eq">\[ s_{xy} = \frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)(y_i-\bar y), \qquad r = \frac{s_{xy}}{s_x\,s_y} = \frac{\sum (x_i-\bar x)(y_i-\bar y)}{\sqrt{\sum (x_i-\bar x)^2\,\sum (y_i-\bar y)^2}} \]
+      <h2 id="reg-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> El <b>modelo de regresión lineal simple</b> postula que, para \(i = 1, \dots, n\), \[ y_i = \beta_0 + \beta_1 x_i + \varepsilon_i, \qquad E(\varepsilon_i) = 0,\quad V(\varepsilon_i) = \sigma^2,\quad \mathrm{Cov}(\varepsilon_i,\varepsilon_j) = 0 \ (i\neq j), \] con \(x_i\) fijos (o condicionando en ellos). Para inferencia exacta se añade \(\varepsilon_i \sim \mathcal N(0,\sigma^2)\). Equivale a decir que la media condicional es una recta: \(E[y \mid x] = \beta_0 + \beta_1 x\).</div>
+      <ul>
+        <li>\(\beta_0\) (intercepto): media de \(y\) cuando \(x = 0\). \(\beta_1\) (pendiente): cambio en la media de \(y\) por cada unidad de \(x\).</li>
+        <li>\(\sigma\): desviación estándar de los errores, cuánto se dispersan los puntos alrededor de la recta.</li>
+        <li>\(\hat y_i = \hat\beta_0 + \hat\beta_1 x_i\): valor <b>ajustado</b>; \(e_i = y_i - \hat y_i\): <b>residuo</b>, la versión observable del error \(\varepsilon_i\).</li>
+        <li>\(S_{xx} = \sum (x_i - \bar x)^2\), \(S_{yy} = \sum (y_i - \bar y)^2\), \(S_{xy} = \sum (x_i-\bar x)(y_i - \bar y)\): sumas de cuadrados y de productos cruzados.</li>
+      </ul>
+      <p>Dos medidas descriptivas preceden al modelo. La <b>covarianza</b> mide si dos variables se mueven juntas: cada punto aporta el producto de sus desvíos respecto de las medias, positivo si está arriba a la derecha o abajo a la izquierda de \((\bar x, \bar y)\), negativo en los otros dos cuadrantes. La <b>correlación de Pearson</b> la estandariza:</p>
+      <div class="eq">\[ s_{xy} = \frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)(y_i-\bar y), \qquad r = \frac{s_{xy}}{s_x\,s_y} = \frac{S_{xy}}{\sqrt{S_{xx}\,S_{yy}}} \]
         <div class="note">Con los datos del ejemplo: \(s_{xy} = 35{,}86\), \(s_x = 3{,}61\) h y \(s_y = 10{,}56\) puntos, así que \(r = 35{,}86 / (3{,}61 \cdot 10{,}56) \approx 0{,}94\).</div>
       </div>
-      <p>La covarianza depende de las unidades (horas × puntos), por eso es difícil de interpretar. La <b>correlación de Pearson</b> \(r\) la estandariza y tiene propiedades muy útiles:</p>
+      <p><b>Ejemplo numérico pequeño.</b> Con tres puntos \((1, 2)\), \((2, 3)\), \((3, 7)\): \(\bar x = 2\), \(\bar y = 4\), desvíos de \(x\): −1, 0, 1; de \(y\): −2, −1, 3. \(S_{xy} = 2 + 0 + 3 = 5\), \(S_{xx} = 2\), \(S_{yy} = 14\). Pendiente \(\hat\beta_1 = 5/2 = 2{,}5\), intercepto \(\hat\beta_0 = 4 - 2{,}5\cdot 2 = -1\), recta \(\hat y = -1 + 2{,}5x\). Ajustados: 1,5; 4; 6,5. Residuos: 0,5; −1; 0,5, que suman cero. \(r = 5/\sqrt{28} \approx 0{,}945\).</p>
+      <p>Propiedades de \(r\): siempre está entre −1 y 1 (por la desigualdad de Cauchy y Schwarz) y vale ±1 solo si todos los puntos caen en una recta; no tiene unidades y no cambia si reescalas las variables con factores positivos; es simétrica; mide solo relación <b>lineal</b> (una U perfecta puede tener \(r \approx 0\)); y es muy sensible a valores atípicos.</p>
+      <div class="callout"><b>Siempre grafica:</b> el famoso cuarteto de Anscombe (1973) son cuatro conjuntos de datos con la misma media, varianza, correlación (0,82) y recta de regresión, pero con formas completamente distintas: una nube lineal, una curva, una recta con un atípico y un solo punto que fabrica toda la relación.</div>
+
+      <h2 id="reg-modelo"><span class="sec">§ 3</span>Mínimos cuadrados: derivación y geometría</h2>
+      <p>Para estimar los parámetros usamos <b>mínimos cuadrados ordinarios</b> (MCO): de todas las rectas posibles, elegimos la que hace más pequeña la suma de los residuos al cuadrado, \(Q(b_0, b_1) = \sum (y_i - b_0 - b_1 x_i)^2\). \(Q\) es una función cuadrática convexa, así que su mínimo está donde se anulan las derivadas parciales. Esas son las <b>ecuaciones normales</b>:</p>
+      <div class="eq">\[ \frac{\partial Q}{\partial b_0} = -2\sum (y_i - b_0 - b_1x_i) = 0, \qquad \frac{\partial Q}{\partial b_1} = -2\sum x_i(y_i - b_0 - b_1x_i) = 0 \]</div>
+      <p><b>Paso 1.</b> La primera ecuación, dividida entre \(n\), da \(\bar y - b_0 - b_1\bar x = 0\), es decir \(\hat\beta_0 = \bar y - \hat\beta_1\bar x\). <b>Paso 2.</b> Sustituyendo en la segunda: \(\sum x_i\big[(y_i - \bar y) - b_1(x_i - \bar x)\big] = 0\). Como \(\sum \bar x (y_i - \bar y) = 0\) y \(\sum \bar x(x_i - \bar x) = 0\), puedes cambiar \(x_i\) por \(x_i - \bar x\) en el factor de fuera: \(S_{xy} - b_1 S_{xx} = 0\). <b>Resultado:</b></p>
+      <div class="eq">\[ \hat\beta_1 = \frac{S_{xy}}{S_{xx}} = r\,\frac{s_y}{s_x}, \qquad \hat\beta_0 = \bar y - \hat\beta_1\,\bar x \]
+        <div class="note">En el ejemplo: \(\hat\beta_1 = 394{,}5 / 143 = 2{,}76\) y \(\hat\beta_0 = 69{,}08 - 2{,}76 \cdot 6{,}5 = 51{,}15\). La recta ajustada es \(\hat y = 51{,}15 + 2{,}76\,x\).</div>
+      </div>
+      <p>Las dos ecuaciones normales dicen, leídas al revés, que \(\sum e_i = 0\) y \(\sum x_i e_i = 0\): los residuos suman cero y no están correlacionados con \(x\). De ahí salen tres propiedades geométricas: la recta pasa por \((\bar x, \bar y)\); los residuos son ortogonales a los ajustados (\(\sum \hat y_i e_i = 0\)); y la pendiente tiene el signo de \(r\). En lenguaje matricial, que usarás en <a href="#regmult">regresión múltiple</a>, \(\hat y\) es la proyección ortogonal de \(y\) sobre el plano generado por la columna de unos y la columna \(x\).</p>
+      <p>¿Por qué cuadrados y no valores absolutos? Los cuadrados dan una solución cerrada y única, se conectan con la varianza, y bajo errores normales MCO coincide con el estimador de máxima verosimilitud. El precio: elevar al cuadrado castiga mucho los errores grandes, por eso MCO es sensible a puntos alejados. La alternativa con valores absolutos (regresión de mediana) es más robusta pero no tiene fórmula cerrada.</p>
+      <div class="callout"><b>Regresión hacia la media.</b> Estandariza ambas variables: \(z_y = r\,z_x\). Como \(|r| \le 1\), quien está a 2 desviaciones de la media en \(x\) se predice a solo \(2|r|\) desviaciones en \(y\). Es la observación de Galton, y explica por qué los alumnos con peores notas en un primer examen suelen “mejorar” en el segundo aunque nada haya cambiado.</div>
+
+      <h2 id="reg-r2"><span class="sec">§ 4</span>Interpretar los coeficientes y medir el ajuste</h2>
       <ul>
-        <li>Siempre está entre −1 y 1. Vale ±1 solo si todos los puntos caen exactamente en una recta.</li>
-        <li>No tiene unidades y no cambia si reescalas las variables (horas a minutos, notas sobre 100 a notas sobre 10).</li>
-        <li>Es simétrica: la correlación de \(x\) con \(y\) es la misma que la de \(y\) con \(x\).</li>
-        <li>Mide solo relación <b>lineal</b>. Una relación en forma de U perfecta puede tener \(r \approx 0\).</li>
-        <li>Es muy sensible a valores atípicos: un solo punto puede subirla o bajarla mucho.</li>
+        <li><b>Pendiente</b> \(\hat\beta_1 = 2{,}76\): por cada hora adicional de estudio, la calificación <i>promedio</i> es 2,76 puntos mayor. Habla de promedios, no de cada estudiante, y está en unidades de \(y\) por unidad de \(x\).</li>
+        <li><b>Intercepto</b> \(\hat\beta_0 = 51{,}15\): la calificación promedio predicha con 0 horas. Solo tiene sentido si \(x = 0\) está dentro del rango observado o es razonable; en muchos problemas es solo un ancla matemática de la recta. Centrar \(x\) (usar \(x - \bar x\)) hace que el intercepto sea la media de \(y\).</li>
       </ul>
-      <div class="callout"><b>Siempre grafica:</b> el famoso cuarteto de Anscombe son cuatro conjuntos de datos con la misma media, varianza, correlación (0,82) y recta de regresión, pero con formas completamente distintas: una nube lineal, una curva, una recta con un atípico y un solo punto que fabrica toda la relación.</div>
-
-      <h2 id="reg-modelo"><span class="sec">§ 3</span>El modelo y la recta de mínimos cuadrados</h2>
-      <p>El modelo de regresión lineal simple supone que, para cada valor de \(x\), la respuesta es una recta más un error aleatorio:</p>
-      <div class="eq">\[ y_i = \beta_0 + \beta_1 x_i + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2) \text{ independientes} \]
-        <div class="note">\(\beta_0\) (intercepto) y \(\beta_1\) (pendiente) son parámetros desconocidos de la población; \(\sigma\) mide cuánto se dispersan los puntos alrededor de la recta. Equivale a decir que la media de \(y\) dado \(x\) es \(E[y \mid x] = \beta_0 + \beta_1 x\).</div>
+      <p>¿Qué tan bien resume la recta los datos? Escribe \(y_i - \bar y = (\hat y_i - \bar y) + e_i\), eleva al cuadrado y suma. El término cruzado es \(2\sum(\hat y_i - \bar y)e_i = 2\hat\beta_1\sum(x_i - \bar x)e_i = 0\) por las ecuaciones normales. Queda la descomposición:</p>
+      <div class="eq">\[ \underbrace{\sum (y_i-\bar y)^2}_{SST} = \underbrace{\sum (\hat y_i-\bar y)^2}_{SSR} + \underbrace{\sum (y_i-\hat y_i)^2}_{SSE}, \qquad R^2 = \frac{SSR}{SST} = 1 - \frac{SSE}{SST} \]
+        <div class="note">En el ejemplo, \(SST = 1\,226{,}9\) y \(SSE = 138{,}6\), así que \(R^2 = 1 - 138{,}6/1\,226{,}9 = 0{,}887\). En regresión simple, \(R^2 = r^2\): \(0{,}942^2 \approx 0{,}887\).</div>
       </div>
-      <p>Para estimar los parámetros usamos <b>mínimos cuadrados ordinarios</b> (MCO): de todas las rectas posibles, elegimos la que hace más pequeña la suma de los <b>residuos</b> al cuadrado, donde el residuo \(e_i = y_i - \hat y_i\) es la distancia vertical entre el punto y la recta.</p>
-      <div class="eq">\[ \min_{b_0,\,b_1}\ \sum_{i=1}^{n}\big(y_i - b_0 - b_1 x_i\big)^2 \quad\Longrightarrow\quad \hat\beta_1 = \frac{S_{xy}}{S_{xx}} = r\,\frac{s_y}{s_x}, \qquad \hat\beta_0 = \bar y - \hat\beta_1\,\bar x \]
-        <div class="note">\(S_{xy} = \sum (x_i-\bar x)(y_i-\bar y)\) y \(S_{xx} = \sum (x_i - \bar x)^2\). En el ejemplo: \(\hat\beta_1 = 394{,}5 / 143 = 2{,}76\) y \(\hat\beta_0 = 69{,}08 - 2{,}76 \cdot 6{,}5 = 51{,}15\). La recta ajustada es \(\hat y = 51{,}15 + 2{,}76\,x\).</div>
-      </div>
-      <p>Tres propiedades que salen directo de las fórmulas: la recta siempre pasa por el punto \((\bar x, \bar y)\); los residuos suman cero; y la pendiente tiene el mismo signo que \(r\). Elevar al cuadrado castiga mucho los errores grandes, por eso MCO es sensible a puntos alejados.</p>
+      <p><b>Teorema.</b> En regresión simple \(R^2 = r^2\). <i>Prueba:</i> \(\hat y_i - \bar y = \hat\beta_1(x_i - \bar x)\), así que \(SSR = \hat\beta_1^2 S_{xx} = S_{xy}^2/S_{xx}\) y \(R^2 = S_{xy}^2/(S_{xx}S_{yy}) = r^2\).</p>
+      <p>Se lee así: el 88,7 % de la variación en las calificaciones se explica por su relación lineal con las horas de estudio. El 11,3 % restante se debe a todo lo demás (sueño, conocimientos previos, suerte en el examen).</p>
+      <div class="callout"><b>Cuidado con R²:</b> un R² alto no prueba que el modelo sea correcto (una curva puede dar R² alto con una recta) ni que haya causalidad, y un R² bajo no significa que la pendiente sea inútil: en ciencias sociales, relaciones reales y relevantes suelen tener R² de 0,1 o 0,2. R² siempre se lee junto con el gráfico de residuos.</div>
 
-      <h2 id="reg-lab"><span class="sec">§ 4</span>Laboratorio</h2>
+      <h2 id="reg-inf"><span class="sec">§ 5</span>Inferencia y predicción</h2>
+      <p><b>El estimador es lineal en \(y\).</b> Como \(\sum(x_i - \bar x)\bar y = 0\), \(\hat\beta_1 = \sum k_i y_i\) con \(k_i = (x_i - \bar x)/S_{xx}\). Los pesos cumplen \(\sum k_i = 0\), \(\sum k_i x_i = 1\) y \(\sum k_i^2 = 1/S_{xx}\). De ahí, en dos líneas:</p>
+      <div class="eq">\[ E(\hat\beta_1) = \sum k_i(\beta_0 + \beta_1 x_i) = \beta_1, \qquad V(\hat\beta_1) = \sigma^2\sum k_i^2 = \frac{\sigma^2}{S_{xx}} \]
+        <div class="note">Del mismo modo \(E(\hat\beta_0) = \beta_0\) y \(V(\hat\beta_0) = \sigma^2\big(\tfrac1n + \tfrac{\bar x^2}{S_{xx}}\big)\). La precisión de la pendiente mejora con menos ruido, más datos o valores de \(x\) más dispersos.</div>
+      </div>
+      <p><b>Teorema de Gauss y Markov.</b> Bajo los supuestos de la definición (sin necesidad de normalidad), \(\hat\beta_1\) tiene la menor varianza entre todos los estimadores lineales e insesgados: es <b>MELI</b>. <i>Idea de la prueba:</i> cualquier otro estimador lineal \(\tilde\beta_1 = \sum c_i y_i\) insesgado debe cumplir \(\sum c_i = 0\) y \(\sum c_i x_i = 1\). Escribe \(c_i = k_i + d_i\); entonces \(\sum d_i = \sum d_i x_i = 0\), lo que implica \(\sum k_id_i = 0\), y \(V(\tilde\beta_1) = \sigma^2(\sum k_i^2 + \sum d_i^2) \ge V(\hat\beta_1)\).</p>
+      <p>Como \(\sigma\) es desconocido, se estima con los residuos. Se divide entre \(n - 2\) porque estimamos dos parámetros y los residuos cumplen dos restricciones; así \(E(s^2) = \sigma^2\). Bajo normalidad, \((n-2)s^2/\sigma^2 \sim \chi^2_{n-2}\), independiente de \(\hat\beta_1\), y el cociente estandarizado sigue una \(t\):</p>
+      <div class="eq">\[ s = \sqrt{\frac{SSE}{n-2}}, \qquad SE(\hat\beta_1) = \frac{s}{\sqrt{S_{xx}}}, \qquad t = \frac{\hat\beta_1 - 0}{SE(\hat\beta_1)} \sim t_{n-2} \text{ bajo } H_0\!:\ \beta_1 = 0 \]
+        <div class="note">En el ejemplo: \(s = \sqrt{138{,}6/10} = 3{,}72\) puntos y \(SE(\hat\beta_1) = 3{,}72/\sqrt{143} = 0{,}311\).</div>
+      </div>
+      <p>La prueba de \(H_0: \beta_1 = 0\) pregunta si hay relación lineal en la población. Aquí \(t = 2{,}76 / 0{,}311 = 8{,}86\) con 10 grados de libertad, un valor p menor que 0,001. En regresión simple, \(t^2 = F\) del <a href="#anova">ANOVA</a> de la regresión: \(8{,}86^2 \approx 78{,}5\). El intervalo de confianza del 95 % usa el cuantil \(t_{0{,}025;\,10} = 2{,}228\):</p>
+      <div class="eq">\[ \hat\beta_1 \pm t_{\alpha/2,\,n-2}\,SE(\hat\beta_1) = 2{,}76 \pm 2{,}228 \cdot 0{,}311 = [2{,}07;\ 3{,}45] \]
+        <div class="note">Con 95 % de confianza, cada hora extra se asocia con entre 2,1 y 3,5 puntos más en promedio.</div>
+      </div>
+      <p><b>Predicción.</b> Para un nuevo valor \(x_0\), la recta da \(\hat y_0 = \hat\beta_0 + \hat\beta_1 x_0 = \bar y + \hat\beta_1(x_0 - \bar x)\). Como \(\bar y\) y \(\hat\beta_1\) son incorrelacionados, \(V(\hat y_0) = \sigma^2\big[\tfrac1n + \tfrac{(x_0-\bar x)^2}{S_{xx}}\big]\). Para un <i>individuo</i> nuevo hay que sumar su propio error \(\varepsilon_0\), de varianza \(\sigma^2\). Dos preguntas, dos intervalos:</p>
+      <div class="eq">\[ \text{media en } x_0:\ \hat y_0 \pm t\, s\sqrt{\tfrac{1}{n} + \tfrac{(x_0-\bar x)^2}{S_{xx}}} \qquad\quad \text{un individuo:}\ \hat y_0 \pm t\, s\sqrt{1 + \tfrac{1}{n} + \tfrac{(x_0-\bar x)^2}{S_{xx}}} \]
+        <div class="note">Con \(x_0 = 7\) h: \(\hat y_0 = 70{,}5\). El intervalo para la nota <b>promedio</b> de todos los que estudian 7 horas es \([68{,}0;\ 72{,}9]\); el intervalo de <b>predicción</b> para un estudiante concreto es \([61{,}8;\ 79{,}1]\), mucho más ancho porque suma el ruido individual \(\sigma\).</div>
+      </div>
+      <p>Ambos intervalos se ensanchan cuando \(x_0\) se aleja de \(\bar x\). Y fuera del rango observado aparece un peligro mayor: la <b>extrapolación</b>. Nada garantiza que la relación siga siendo lineal donde no tienes datos. Con 20 horas, la recta predice 106,3 puntos en un examen sobre 100: un resultado imposible que delata que el modelo solo vale entre 1 y 12 horas.</p>
+
+      <h2 id="reg-supuestos"><span class="sec">§ 6</span>Supuestos, causalidad y puntos influyentes</h2>
+      <p>Las fórmulas de MCO funcionan con cualquier nube de puntos, pero los errores estándar, intervalos y valores p dependen de cuatro supuestos. Una regla para recordarlos es <b>LINE</b>:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Supuesto</th><th>Qué significa</th><th>Cómo revisarlo</th><th>Si falla</th></tr></thead>
+        <tbody>
+          <tr><td><b>L</b>inealidad</td><td>La media de \(y\) cambia en línea recta con \(x\)</td><td>Residuos vs ajustados sin patrón curvo</td><td>Transformar \(x\) o \(y\), agregar \(x^2\)</td></tr>
+          <tr><td><b>I</b>ndependencia</td><td>Los errores no están relacionados entre sí</td><td>Diseño del estudio; residuos vs tiempo u orden</td><td>Modelos para series de tiempo o datos agrupados</td></tr>
+          <tr><td><b>N</b>ormalidad</td><td>Los errores siguen una normal</td><td>Gráfico Q-Q de residuos, histograma</td><td>Con n grande importa poco (TLC); si no, bootstrap</td></tr>
+          <tr><td><b>E</b>qual varianza (homocedasticidad)</td><td>La dispersión es la misma para todo \(x\)</td><td>Residuos vs ajustados sin forma de embudo</td><td>Transformar \(y\) (log), errores robustos, mínimos cuadrados ponderados</td></tr>
+        </tbody>
+      </table></div>
+      <p>El gráfico de residuos contra ajustados ideal es una franja horizontal sin forma alrededor de cero. Una <b>curva</b> en los residuos indica que la relación no es lineal; un <b>embudo</b> indica heterocedasticidad. Ojo con el orden de importancia: si falla la linealidad, \(\hat\beta_1\) estima algo que no es lo que crees; si falla la homocedasticidad o la independencia, \(\hat\beta_1\) sigue siendo insesgado pero sus errores estándar están mal; la normalidad es la menos crítica con \(n\) moderado. En el ejemplo de las horas de estudio los residuos van de −5,7 a 4,3 sin patrón visible, y la prueba de Shapiro-Wilk no rechaza la normalidad (p ≈ 0,09). El diagnóstico detallado lo verás en <a href="#diag">diagnóstico de regresión</a>.</p>
+      <p><b>Causalidad.</b> Una pendiente significativa dice que \(x\) y \(y\) se mueven juntos, no que \(x\) cause \(y\). Las ventas de helado y los ahogamientos están correlacionados porque ambos suben en verano: el calor es una <b>variable de confusión</b>. También puede haber causalidad inversa o pura coincidencia en datos con muchas variables. Para hablar de causa necesitas un experimento aleatorizado o un diseño que controle las confusiones (ver <a href="#regmult">regresión múltiple</a>).</p>
+      <p>Respecto de los puntos raros, conviene distinguir tres ideas:</p>
+      <ul>
+        <li><b>Atípico</b>: un punto con residuo grande, lejos de la recta en dirección vertical.</li>
+        <li><b>Alto apalancamiento</b>: un punto con \(x\) muy alejado de \(\bar x\). Se mide con \(h_{ii} = \tfrac{1}{n} + \tfrac{(x_i - \bar x)^2}{S_{xx}}\), que va de \(1/n\) a 1, y \(\sum h_{ii} = 2\). Además \(V(e_i) = \sigma^2(1 - h_{ii})\): los puntos con mucho apalancamiento “jalan” la recta y tienen residuos pequeños.</li>
+        <li><b>Influyente</b>: un punto que, si lo quitas, cambia mucho la recta. Suele combinar apalancamiento y residuo grande. Se mide con la <b>distancia de Cook</b> \(D_i = \frac{e_i^2}{2 s^2}\cdot\frac{h_{ii}}{(1-h_{ii})^2}\); valores mayores que 1 (o que \(4/n\), según el criterio) merecen revisión.</li>
+      </ul>
+      <div class="callout"><b>No borres puntos por comodidad:</b> un punto influyente puede ser un error de captura (corrígelo) o el dato más informativo que tienes. Reporta el análisis con y sin él, y explica la decisión.</div>
+
+      <h2 id="reg-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Residuos centrados y ortogonales.</b> \(\sum e_i = 0\), \(\sum x_ie_i = 0\), \(\sum \hat y_i e_i = 0\). Son las ecuaciones normales.</li>
+        <li><b>La recta pasa por las medias.</b> \(\hat\beta_0 + \hat\beta_1\bar x = \bar y\), por la primera ecuación normal.</li>
+        <li><b>Insesgadez.</b> \(E(\hat\beta_1) = \beta_1\), \(E(\hat\beta_0) = \beta_0\), porque \(\hat\beta_1 = \sum k_iy_i\) con \(\sum k_i = 0\) y \(\sum k_ix_i = 1\).</li>
+        <li><b>Varianza.</b> \(V(\hat\beta_1) = \sigma^2/S_{xx}\), por independencia de los errores y \(\sum k_i^2 = 1/S_{xx}\).</li>
+        <li><b>Gauss y Markov.</b> MCO es el estimador lineal insesgado de menor varianza (MELI), sin necesidad de normalidad.</li>
+        <li><b>Descomposición.</b> \(SST = SSR + SSE\), porque el término cruzado se anula; y \(R^2 = r^2\), porque \(SSR = S_{xy}^2/S_{xx}\).</li>
+        <li><b>Estimador insesgado de \(\sigma^2\).</b> \(E(SSE) = (n-2)\sigma^2\), así que \(s^2 = SSE/(n-2)\) es insesgado.</li>
+        <li><b>Equivalencia de pruebas.</b> \(t^2 = F\) y \(t = r\sqrt{n-2}/\sqrt{1 - r^2}\): la prueba de la pendiente y la de la correlación son la misma.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Interpretar la pendiente como efecto causal sin un diseño que lo justifique.</li>
+          <li>Extrapolar fuera del rango de \(x\) observado.</li>
+          <li>Leer R² sin mirar los residuos, o creer que un R² bajo invalida la pendiente.</li>
+          <li>Usar el intervalo de confianza de la media cuando la pregunta es sobre un individuo.</li>
+          <li>Borrar puntos influyentes sin justificación ni reportar ambos análisis.</li>
+        </ul>
+      </div>
+
+      <h2 id="reg-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
       <p>El simulador genera estudiantes con una pendiente real y un nivel de ruido que tú eliges. La recta de color es la de mínimos cuadrados, la punteada es la verdadera y los segmentos son los residuos. A la derecha está el gráfico de residuos contra valores ajustados, la herramienta principal para revisar supuestos.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · mínimos cuadrados</span><span class="num" id="reg-head">–</span></div>
@@ -99,7 +186,7 @@
               <canvas class="plot" id="reg-c-xy" height="250" aria-label="Diagrama de dispersión con la recta de mínimos cuadrados y los residuos"></canvas>
             </div>
             <div>
-              <div class="plot-label"><span>Residuos vs ajustados</span><span>— cero</span></div>
+              <div class="plot-label"><span>Residuos vs ajustados</span><span>─ cero</span></div>
               <canvas class="plot" id="reg-c-res" height="250" aria-label="Gráfico de residuos contra valores ajustados"></canvas>
             </div>
           </div>
@@ -113,58 +200,27 @@
         </div>
         <figcaption>Elige “Lejos en x” y baja la nota del atípico: un solo estudiante con 22 horas tumba la pendiente. El mismo punto “En el centro” apenas la mueve. Luego prueba “Curva” y “Embudo”: la recta se sigue ajustando, pero los residuos delatan el problema.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Fija n = 10 y σ = 10, y pulsa “Nuevos estudiantes” varias veces. Anota la pendiente estimada. Repite con n = 120.
+          <details><summary>Qué deberías observar</summary><p>Con n = 10 la pendiente estimada salta mucho alrededor de 2,8 (a veces 1,5, a veces 4); con n = 120 se queda cerca. Es \(V(\hat\beta_1) = \sigma^2/S_{xx}\): \(S_{xx}\) crece con \(n\).</p></details></li>
+        <li>Con la relación lineal, pon σ = 0 y luego σ = 20, sin cambiar n.
+          <details><summary>Qué deberías observar</summary><p>Con σ = 0 los puntos caen exactos en la recta y R² = 1. Con σ = 20 el R² baja mucho, pero la pendiente estimada sigue alrededor de la real: un R² bajo no significa que la pendiente esté mal estimada, solo que hay mucho ruido.</p></details></li>
+        <li>Elige “Lejos en x” y baja la nota del atípico a 0. Después cambia a “En el centro” con la misma nota.
+          <details><summary>Qué deberías observar</summary><p>Lejos en x, un solo estudiante con 22 horas tumba la pendiente (alto apalancamiento y residuo grande: influyente). En el centro, el mismo punto apenas mueve la pendiente, solo sube un poco el intercepto: tiene residuo grande pero apalancamiento bajo.</p></details></li>
+        <li>Prueba “Curva” y luego “Embudo” con n = 120 y mira el panel de residuos.
+          <details><summary>Qué deberías observar</summary><p>En “Curva” los residuos forman una U: falla la linealidad aunque el R² sea alto. En “Embudo” se abren hacia la derecha: heterocedasticidad. La recta de la izquierda no te avisa; el gráfico de residuos sí.</p></details></li>
+      </ol>
 
-      <h2 id="reg-r2"><span class="sec">§ 5</span>Interpretar los coeficientes y medir el ajuste</h2>
-      <ul>
-        <li><b>Pendiente</b> \(\hat\beta_1 = 2{,}76\): por cada hora adicional de estudio, la calificación <i>promedio</i> es 2,76 puntos mayor. Habla de promedios, no de cada estudiante, y está en unidades de \(y\) por unidad de \(x\).</li>
-        <li><b>Intercepto</b> \(\hat\beta_0 = 51{,}15\): la calificación promedio predicha con 0 horas. Solo tiene sentido si \(x = 0\) está dentro del rango observado o es razonable; en muchos problemas es solo un ancla matemática de la recta.</li>
-      </ul>
-      <p>¿Qué tan bien resume la recta los datos? La variabilidad total de \(y\) se descompone en una parte explicada por la recta y una parte residual:</p>
-      <div class="eq">\[ \underbrace{\sum (y_i-\bar y)^2}_{SST} = \underbrace{\sum (\hat y_i-\bar y)^2}_{SSR} + \underbrace{\sum (y_i-\hat y_i)^2}_{SSE}, \qquad R^2 = \frac{SSR}{SST} = 1 - \frac{SSE}{SST} \]
-        <div class="note">En el ejemplo, \(SST = 1\,226{,}9\) y \(SSE = 138{,}6\), así que \(R^2 = 1 - 138{,}6/1\,226{,}9 = 0{,}887\). En regresión simple, \(R^2 = r^2\): \(0{,}942^2 \approx 0{,}887\).</div>
-      </div>
-      <p>Se lee así: el 88,7 % de la variación en las calificaciones se explica por su relación lineal con las horas de estudio. El 11,3 % restante se debe a todo lo demás (sueño, conocimientos previos, suerte en el examen).</p>
-      <div class="callout"><b>Cuidado con R²:</b> un R² alto no prueba que el modelo sea correcto (una curva puede dar R² alto con una recta) ni que haya causalidad, y un R² bajo no significa que la pendiente sea inútil: en ciencias sociales, relaciones reales y relevantes suelen tener R² de 0,1 o 0,2. R² siempre se lee junto con el gráfico de residuos.</div>
-
-      <h2 id="reg-supuestos"><span class="sec">§ 6</span>Residuos y supuestos</h2>
-      <p>Las fórmulas de MCO funcionan con cualquier nube de puntos, pero los errores estándar, intervalos y valores p dependen de cuatro supuestos. Una regla para recordarlos es <b>LINE</b>:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Supuesto</th><th>Qué significa</th><th>Cómo revisarlo</th><th>Si falla</th></tr></thead>
-        <tbody>
-          <tr><td><b>L</b>inealidad</td><td>La media de \(y\) cambia en línea recta con \(x\)</td><td>Residuos vs ajustados sin patrón curvo</td><td>Transformar \(x\) o \(y\), agregar \(x^2\)</td></tr>
-          <tr><td><b>I</b>ndependencia</td><td>Los errores no están relacionados entre sí</td><td>Diseño del estudio; residuos vs tiempo u orden</td><td>Modelos para series de tiempo o datos agrupados</td></tr>
-          <tr><td><b>N</b>ormalidad</td><td>Los errores siguen una normal</td><td>Gráfico Q-Q de residuos, histograma</td><td>Con n grande importa poco (TLC); si no, bootstrap</td></tr>
-          <tr><td><b>E</b>qual varianza (homocedasticidad)</td><td>La dispersión es la misma para todo \(x\)</td><td>Residuos vs ajustados sin forma de embudo</td><td>Transformar \(y\) (log), errores robustos, mínimos cuadrados ponderados</td></tr>
-        </tbody>
-      </table></div>
-      <p>El gráfico de residuos contra ajustados ideal es una franja horizontal sin forma alrededor de cero. Una <b>curva</b> en los residuos indica que la relación no es lineal; un <b>embudo</b> (residuos que se abren o se cierran) indica heterocedasticidad. Ambos patrones los puedes generar en el laboratorio. En el ejemplo de las horas de estudio los residuos van de −5,7 a 4,3 sin patrón visible, y la prueba de Shapiro-Wilk no rechaza la normalidad (p ≈ 0,09).</p>
-
-      <h2 id="reg-inf"><span class="sec">§ 7</span>Inferencia sobre la pendiente</h2>
-      <p>\(\hat\beta_1\) se calculó con una muestra; otra muestra daría otra pendiente. Su variabilidad se mide con el <b>error estándar</b>, que depende del ruido y de qué tan dispersos están los valores de \(x\):</p>
-      <div class="eq">\[ s = \sqrt{\frac{SSE}{n-2}}, \qquad SE(\hat\beta_1) = \frac{s}{\sqrt{S_{xx}}}, \qquad t = \frac{\hat\beta_1 - 0}{SE(\hat\beta_1)} \sim t_{n-2} \text{ bajo } H_0\!:\ \beta_1 = 0 \]
-        <div class="note">Se divide entre \(n-2\) porque estimamos dos parámetros. En el ejemplo: \(s = \sqrt{138{,}6/10} = 3{,}72\) puntos y \(SE(\hat\beta_1) = 3{,}72/\sqrt{143} = 0{,}311\).</div>
-      </div>
-      <p>La prueba de \(H_0: \beta_1 = 0\) pregunta si hay relación lineal en la población. Aquí \(t = 2{,}76 / 0{,}311 = 8{,}86\) con 10 grados de libertad, un valor p menor que 0,001. El intervalo de confianza del 95 % usa el cuantil \(t_{0{,}025;\,10} = 2{,}228\):</p>
-      <div class="eq">\[ \hat\beta_1 \pm t_{\alpha/2,\,n-2}\,SE(\hat\beta_1) = 2{,}76 \pm 2{,}228 \cdot 0{,}311 = [2{,}07;\ 3{,}45] \]
-        <div class="note">Con 95 % de confianza, cada hora extra se asocia con entre 2,1 y 3,5 puntos más en promedio. Para estimar mejor la pendiente: más datos, menos ruido o valores de \(x\) más dispersos (aumentan \(S_{xx}\)).</div>
-      </div>
-
-      <h2 id="reg-pred"><span class="sec">§ 8</span>Predecir sin extrapolar</h2>
-      <p>Para un nuevo valor \(x_0\), la recta da \(\hat y_0 = \hat\beta_0 + \hat\beta_1 x_0\). Pero hay dos preguntas distintas, con dos intervalos distintos:</p>
-      <div class="eq">\[ \text{media en } x_0:\ \hat y_0 \pm t\, s\sqrt{\tfrac{1}{n} + \tfrac{(x_0-\bar x)^2}{S_{xx}}} \qquad\quad \text{un individuo:}\ \hat y_0 \pm t\, s\sqrt{1 + \tfrac{1}{n} + \tfrac{(x_0-\bar x)^2}{S_{xx}}} \]
-        <div class="note">Con \(x_0 = 7\) h: \(\hat y_0 = 70{,}5\). El intervalo para la nota <b>promedio</b> de todos los que estudian 7 horas es \([68{,}0;\ 72{,}9]\); el intervalo de <b>predicción</b> para un estudiante concreto es \([61{,}8;\ 79{,}1]\), mucho más ancho porque suma el ruido individual \(\sigma\).</div>
-      </div>
-      <p>Ambos intervalos se ensanchan cuando \(x_0\) se aleja de \(\bar x\). Y fuera del rango observado aparece un peligro mayor: la <b>extrapolación</b>. Nada garantiza que la relación siga siendo lineal donde no tienes datos. Con 20 horas, la recta predice 106,3 puntos en un examen sobre 100: un resultado imposible que delata que el modelo solo vale entre 1 y 12 horas.</p>
-
-      <h2 id="reg-causa"><span class="sec">§ 9</span>Correlación, causalidad y puntos influyentes</h2>
-      <p>Una pendiente significativa dice que \(x\) y \(y\) se mueven juntos, no que \(x\) cause \(y\). Las ventas de helado y los ahogamientos están correlacionados porque ambos suben en verano: el calor es una <b>variable de confusión</b>. También puede haber causalidad inversa o pura coincidencia en datos con muchas variables. Para hablar de causa necesitas un experimento aleatorizado o un diseño que controle las confusiones (lo verás en regresión múltiple).</p>
-      <p>Respecto de los puntos raros, conviene distinguir tres ideas:</p>
-      <ul>
-        <li><b>Atípico</b>: un punto con residuo grande, lejos de la recta en dirección vertical.</li>
-        <li><b>Alto apalancamiento</b>: un punto con \(x\) muy alejado de \(\bar x\). Se mide con \(h_{ii} = \tfrac{1}{n} + \tfrac{(x_i - \bar x)^2}{S_{xx}}\).</li>
-        <li><b>Influyente</b>: un punto que, si lo quitas, cambia mucho la recta. Suele combinar apalancamiento y residuo grande. Se mide con la <b>distancia de Cook</b> \(D_i\); valores mayores que 1 (o que \(4/n\), según el criterio) merecen revisión.</li>
-      </ul>
-      <div class="callout"><b>No borres puntos por comodidad:</b> un punto influyente puede ser un error de captura (corrígelo) o el dato más informativo que tienes. Reporta el análisis con y sin él, y explica la decisión.</div>
+      <h2 id="reg-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud y biología: estatura de padres e hijos (Galton, 1886)</h3>
+      <p>Galton midió a 928 hijos adultos y a sus padres. Regresó la estatura del hijo sobre la del “padre medio” (promedio de padre y madre, con la de la madre escalada) y obtuvo una pendiente cercana a 2/3, menor que 1. Un padre medio 6 cm por encima del promedio tiene hijos que, en promedio, están solo unos 4 cm por encima. La decisión que permite hoy: las curvas pediátricas de estatura objetivo según los padres usan exactamente esta lógica para detectar crecimientos anómalos.</p>
+      <h3>Ciencias físicas: la ley de Hubble (1929)</h3>
+      <p>Edwin Hubble ajustó una recta por el origen a la velocidad de recesión de 24 galaxias frente a su distancia: \(v = H_0 d\). Su pendiente fue de unos 500 km/s por megapársec, muy lejos del valor actual cercano a 70, por errores de calibración en las distancias. La relación lineal, en cambio, era real y fue la primera evidencia de que el universo se expande. Es un buen recordatorio de que una pendiente puede estar sesgada por error de medición en \(x\) aunque la forma del modelo sea correcta.</p>
+      <h3>Industria y transporte: distancia de frenado</h3>
+      <p>El conjunto de datos <code>cars</code> de R (50 autos de los años veinte) relaciona velocidad (mph) y distancia de frenado (pies). La regresión da \(\widehat{\text{dist}} = -17{,}6 + 3{,}93\,\text{speed}\), con \(R^2 \approx 0{,}65\). Cada milla por hora adicional se asocia con casi 4 pies más de frenado. Pero el intercepto negativo es imposible y los residuos muestran curvatura: la física dice que la distancia crece con el cuadrado de la velocidad, y un modelo con \(\sqrt{\text{dist}}\) o con \(\text{speed}^2\) ajusta mejor. La decisión: fijar distancias de seguridad sin extrapolar la recta a velocidades altas.</p>
+      <h3>Economía: la ley de Okun</h3>
+      <p>Arthur Okun observó en 1962 que, en Estados Unidos, la variación trimestral del desempleo se relaciona linealmente con el crecimiento del producto. Con datos anuales, una versión de libro de texto estima \(\Delta u \approx -0{,}4\,(g - 3)\), con \(g\) el crecimiento del PIB en %: si el PIB crece 1 % en lugar del 3 % habitual, el desempleo sube unos 0,8 puntos. Los coeficientes varían entre países y periodos, y por eso los bancos centrales la reestiman con datos recientes. La decisión: calibrar cuánto crecimiento hace falta para bajar el desempleo.</p>
 
       <h2 id="reg-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>El ejemplo completo con los 12 estudiantes: correlación, ajuste, inferencia, predicción y diagnóstico.</p>
@@ -218,8 +274,9 @@ nuevo &lt;- <span class="f">data.frame</span>(horas = <span class="n">7</span>)
 <span class="f">plot</span>(modelo)
 <span class="f">max</span>(<span class="f">cooks.distance</span>(modelo))                <span class="c"># ≈ 0.25, sin puntos influyentes</span></code></pre>
       </div>
+      <p>Los dos lenguajes dan los mismos números: \(\hat\beta_1 = 2{,}759\) con EE 0,311, \(R^2 = 0{,}887\), \(F = 78{,}5\) (que es \(t^2\)) y distancia de Cook máxima de 0,25. Si sospechas heterocedasticidad, en Python pide <code>.fit(cov_type="HC3")</code> y en R usa <code>sandwich::vcovHC(modelo, type = "HC3")</code> con <code>lmtest::coeftest</code>: la pendiente no cambia, solo su error estándar.</p>
 
-      <h2 id="reg-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <h2 id="reg-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="La pendiente es el cambio en la nota promedio por cada hora adicional. Describe una asociación en promedio, no una garantía para cada estudiante ni una relación causal." data-wrong="La pendiente está en unidades de y por unidad de x. ¿Qué cambia en la nota promedio cuando x aumenta en 1?">
         <h3>En el modelo ŷ = 51,15 + 2,76 · horas, ¿cómo se interpreta 2,76?</h3>
         <div class="opts">
@@ -250,37 +307,50 @@ nuevo &lt;- <span class="f">data.frame</span>(horas = <span class="n">7</span>)
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="SE(β̂₁) = s/√Sxx. Duplicar la dispersión de x multiplica Sxx por 4, así que el error estándar se reduce a la mitad." data-wrong="Recuerda que SE(β̂₁) = s/√Sxx y que Sxx suma desvíos al cuadrado de x. ¿Qué le pasa a Sxx si cada desvío se duplica?">
+        <h3>Si diseñas un experimento con los mismos n y σ pero con valores de x el doble de dispersos alrededor de su media, el error estándar de la pendiente:</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Se duplica</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>No cambia, porque n es el mismo</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Se reduce a la mitad</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Se reduce a la cuarta parte</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El intervalo de predicción suma la varianza del error individual σ² a la de la recta estimada. Aunque n crezca mucho, nunca baja de ±t·σ." data-wrong="Compara las dos fórmulas: una tiene un 1 + dentro de la raíz. ¿Qué representa ese término y qué le pasa cuando n crece?">
+        <h3>¿Por qué el intervalo de predicción para un estudiante es más ancho que el intervalo de confianza para la nota media en el mismo x₀?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque usa un nivel de confianza mayor</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Porque además de la incertidumbre de la recta incluye el error propio del individuo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque usa n − 1 grados de libertad en lugar de n − 2</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Porque supone que x₀ está fuera del rango</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="reg-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
+      <h2 id="reg-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una tienda registra 8 semanas de gasto en publicidad \(x\) (miles de pesos) y ventas \(y\) (miles de pesos). Obtiene \(\bar x = 5\), \(\bar y = 40\), \(S_{xx} = 42\) y \(S_{xy} = 126\). Calcula la recta de mínimos cuadrados e interpreta la pendiente.</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>\(\hat\beta_1 = S_{xy}/S_{xx} = 126/42 = 3\) y \(\hat\beta_0 = \bar y - \hat\beta_1\bar x = 40 - 3 \cdot 5 = 25\). La recta es \(\hat y = 25 + 3x\).</p>
-            <p>Por cada mil pesos adicionales en publicidad, las ventas promedio semanales son 3 mil pesos mayores, dentro del rango de gasto observado.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Deriva \(\hat\beta_0\) y \(\hat\beta_1\) minimizando \(Q(b_0,b_1)\) y verifica con la matriz hessiana que es un mínimo. (b) Demuestra que \(\sum e_i = 0\), \(\sum x_ie_i = 0\) y \(\sum \hat y_ie_i = 0\). (c) Usa (b) para probar \(SST = SSR + SSE\) y \(R^2 = r^2\).</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Las derivadas parciales dan las ecuaciones normales \(n b_0 + b_1\sum x_i = \sum y_i\) y \(b_0\sum x_i + b_1\sum x_i^2 = \sum x_iy_i\). De la primera, \(b_0 = \bar y - b_1\bar x\); sustituyendo, \(b_1(\sum x_i^2 - n\bar x^2) = \sum x_iy_i - n\bar x\bar y\), es decir \(b_1 = S_{xy}/S_{xx}\). La hessiana es \(2\begin{pmatrix} n &amp; \sum x_i \\ \sum x_i &amp; \sum x_i^2\end{pmatrix}\), con determinante \(4nS_{xx} &gt; 0\) y traza positiva si los \(x_i\) no son todos iguales: definida positiva, mínimo global.</p><p>(b) Las ecuaciones normales son exactamente \(\sum e_i = 0\) y \(\sum x_ie_i = 0\). Entonces \(\sum\hat y_ie_i = \hat\beta_0\sum e_i + \hat\beta_1\sum x_ie_i = 0\).</p><p>(c) \(SST = \sum[(\hat y_i - \bar y) + e_i]^2 = SSR + SSE + 2\sum(\hat y_i - \bar y)e_i\), y el último término es \(2\sum\hat y_ie_i - 2\bar y\sum e_i = 0\). Como \(\hat y_i - \bar y = \hat\beta_1(x_i - \bar x)\), \(SSR = \hat\beta_1^2S_{xx} = S_{xy}^2/S_{xx}\), y \(R^2 = S_{xy}^2/(S_{xx}S_{yy}) = r^2\).</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>En un estudio, la correlación entre la estatura de padres e hijos es \(r = 0{,}5\), con \(s_x = 7\) cm para los padres y \(s_y = 8\) cm para los hijos. Calcula la pendiente de la regresión de la estatura del hijo sobre la del padre y el R². ¿Qué porcentaje de la variación queda sin explicar?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>\(\hat\beta_1 = r\,s_y/s_x = 0{,}5 \cdot 8/7 \approx 0{,}57\): por cada centímetro más de estatura del padre, el hijo mide en promedio 0,57 cm más.</p>
-            <p>\(R^2 = r^2 = 0{,}25\). La estatura del padre explica el 25 % de la variación; el 75 % queda sin explicar. Que la pendiente sea menor que 1 es la “regresión a la media” que le dio nombre al método.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que \(V(\hat\beta_0) = \sigma^2\big(\frac1n + \frac{\bar x^2}{S_{xx}}\big)\) y \(\mathrm{Cov}(\hat\beta_0,\hat\beta_1) = -\bar x\sigma^2/S_{xx}\). (b) Demuestra el teorema de Gauss y Markov para \(\hat\beta_1\). (c) ¿Qué diseño de \(x\) (con \(n\) par, \(x \in [0, 10]\)) minimiza \(V(\hat\beta_1)\)? ¿Por qué no se usa siempre en la práctica?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\hat\beta_0 = \bar y - \hat\beta_1\bar x\). Como \(\mathrm{Cov}(\bar y, \hat\beta_1) = \mathrm{Cov}(\frac1n\sum y_i, \sum k_iy_i) = \frac{\sigma^2}{n}\sum k_i = 0\), se tiene \(V(\hat\beta_0) = \sigma^2/n + \bar x^2\sigma^2/S_{xx}\) y \(\mathrm{Cov}(\hat\beta_0,\hat\beta_1) = -\bar x V(\hat\beta_1) = -\bar x\sigma^2/S_{xx}\).</p><p>(b) Sea \(\tilde\beta_1 = \sum c_iy_i\) insesgado: \(E = \beta_0\sum c_i + \beta_1\sum c_ix_i = \beta_1\) para todo \(\beta\), así que \(\sum c_i = 0\) y \(\sum c_ix_i = 1\). Con \(d_i = c_i - k_i\): \(\sum d_i = 0\), \(\sum d_ix_i = 0\), luego \(\sum k_id_i = \frac{1}{S_{xx}}\sum(x_i - \bar x)d_i = 0\). Entonces \(V(\tilde\beta_1) = \sigma^2\sum(k_i + d_i)^2 = \sigma^2(\sum k_i^2 + \sum d_i^2) \ge \sigma^2/S_{xx}\), con igualdad solo si \(d_i = 0\).</p><p>(c) Maximiza \(S_{xx}\): la mitad de las observaciones en \(x = 0\) y la mitad en \(x = 10\), con \(S_{xx} = 25n\). No se usa siempre porque con solo dos valores de \(x\) es imposible comprobar la linealidad: si la relación es curva, el diseño “óptimo” no lo detecta. En la práctica se añaden puntos intermedios.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Con los 12 estudiantes de la clase, \(\hat\beta_1 = 2{,}759\) y \(SE(\hat\beta_1) = 0{,}311\). Construye el intervalo de confianza del 95 % para \(\beta_1\) y prueba \(H_0: \beta_1 = 0\) con \(\alpha = 0{,}05\). Después, ¿la evidencia es compatible con que cada hora valga 4 puntos?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Grados de libertad: \(n - 2 = 10\), con \(t_{0{,}025;\,10} = 2{,}228\). Intervalo: \(2{,}759 \pm 2{,}228 \cdot 0{,}311 = 2{,}759 \pm 0{,}693 = [2{,}07;\ 3{,}45]\).</p>
-            <p>\(t = 2{,}759/0{,}311 = 8{,}87\), muy por encima de 2,228: se rechaza \(H_0\) (p &lt; 0,001). El valor 4 queda fuera del intervalo, así que una pendiente de 4 puntos por hora no es compatible con los datos al 95 %.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>En regresión simple, demuestra que el estadístico de la pendiente se puede escribir como \(t = r\sqrt{n-2}/\sqrt{1-r^2}\). Úsalo con los 12 estudiantes (\(r = 0{,}942\)) y discute: con \(n = 1\,000\) y \(r = 0{,}08\), ¿la pendiente es significativa? ¿Es importante?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>\(t = \hat\beta_1\sqrt{S_{xx}}/s\). Usa \(\hat\beta_1 = S_{xy}/S_{xx}\) y \(s^2 = SSE/(n-2) = S_{yy}(1 - r^2)/(n-2)\). Entonces \(t = \frac{S_{xy}}{\sqrt{S_{xx}}}\cdot\frac{\sqrt{n-2}}{\sqrt{S_{yy}(1-r^2)}} = \frac{r\sqrt{n-2}}{\sqrt{1-r^2}}\).</p><p>Estudiantes: \(t = 0{,}942\sqrt{10}/\sqrt{1 - 0{,}887} = 2{,}979/0{,}336 \approx 8{,}86\), lo mismo que antes.</p><p>Con \(n = 1\,000\) y \(r = 0{,}08\): \(t = 0{,}08\sqrt{998}/\sqrt{0{,}9936} \approx 2{,}54\), \(p \approx 0{,}011\): significativa al 5 %. Pero \(R^2 = 0{,}0064\): \(x\) explica menos del 1 % de la variación. Con muestras grandes, “significativo” no implica “importante”; hay que mirar el tamaño de la pendiente en unidades del problema.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>La tienda del ejercicio 1 tiene estos datos: publicidad 1, 2, 3, 4, 5, 6, 7, 8 y ventas 28, 31, 36, 37, 41, 44, 48, 50. Una novena semana con una campaña enorme registra publicidad 20 y ventas 45. Ajusta la regresión con y sin esa semana, compara pendiente y R², y calcula su apalancamiento y su distancia de Cook. ¿Qué le recomiendas a la tienda?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Una tienda tiene estos datos: publicidad 1, 2, 3, 4, 5, 6, 7, 8 y ventas 28, 31, 36, 37, 41, 44, 48, 50. Una novena semana con una campaña enorme registra publicidad 20 y ventas 45. Ajusta la regresión con y sin esa semana, compara pendiente y R², calcula a mano el apalancamiento \(h_{99}\) y comprueba la distancia de Cook con software. ¿Qué le recomiendas a la tienda?</p>
           <details><summary>Ver solución</summary><div class="sol">
+            <p>Apalancamiento a mano: con los 9 puntos, \(\bar x = 56/9 = 6{,}22\) y \(S_{xx} = \sum x_i^2 - 9\bar x^2 = 604 - 348{,}4 = 255{,}6\). Entonces \(h_{99} = \frac19 + \frac{(20 - 6{,}22)^2}{255{,}6} = 0{,}111 + 0{,}743 = 0{,}854\).</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
@@ -305,6 +375,46 @@ sin &lt;- <span class="f">lm</span>(ventas ~ pub, data = d[<span class="n">1</sp
             <p>Sin la semana 9, cada mil pesos de publicidad se asocian con unos 3,2 mil pesos más de ventas (R² ≈ 0,99). Con ella, la pendiente cae a 0,83 y el R² a 0,38. Su apalancamiento es 0,85 (casi toda la recta depende de ese punto) y su distancia de Cook ≈ 20, muy por encima de 1: es un punto extremadamente influyente.</p>
             <p>Recomendación: no mezclar ambas situaciones en una sola recta. Los datos sugieren que la relación es lineal hasta 8 mil pesos y que con gastos muy grandes el efecto se satura (rendimientos decrecientes). Para decidir sobre campañas grandes hacen falta más semanas con gastos intermedios, no extrapolar la recta.</p>
           </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación. Con \(n = 40\) valores de \(x\) equiespaciados en \([1, 12]\), \(\beta_0 = 50\), \(\beta_1 = 2\), genera 5 000 muestras en dos escenarios: (i) \(\sigma = 5\) constante y (ii) embudo, \(\sigma_i = 0{,}06\,x_i^2\). (a) En (i), compara la desviación estándar de las 5 000 pendientes con \(\sigma/\sqrt{S_{xx}}\). (b) En ambos, calcula la cobertura del IC del 95 % clásico y del IC con errores robustos HC3. Interpreta.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) La desviación estándar simulada (≈ 0,241) coincide con \(5/\sqrt{S_{xx}} \approx 0{,}243\). (b) Con varianza constante ambos intervalos cubren cerca de 95 %. Con embudo, el clásico baja a cerca de 88 %: subestima la incertidumbre porque los puntos con \(x\) grande, que más pesan en la pendiente, son justo los más ruidosos. HC3 recupera una cobertura cercana a 94 %. La pendiente sigue siendo insesgada en ambos casos: el problema es solo el error estándar.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+n, R, b1 = <span class="n">40</span>, <span class="n">5000</span>, <span class="n">2.0</span>
+x = np.<span class="f">linspace</span>(<span class="n">1</span>, <span class="n">12</span>, n); X = sm.<span class="f">add_constant</span>(x)
+cub = {<span class="s">"homo"</span>: [<span class="n">0</span>, <span class="n">0</span>], <span class="s">"embudo"</span>: [<span class="n">0</span>, <span class="n">0</span>]}; bs = []
+<span class="k">for</span> tipo <span class="k">in</span> cub:
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(R):
+        sd = <span class="n">5</span> <span class="k">if</span> tipo == <span class="s">"homo"</span> <span class="k">else</span> <span class="n">0.06</span> * x**<span class="n">2</span>
+        y = <span class="n">50</span> + b1 * x + rng.<span class="f">normal</span>(<span class="n">0</span>, sd, n)
+        m = sm.<span class="f">OLS</span>(y, X).<span class="f">fit</span>()
+        <span class="k">if</span> tipo == <span class="s">"homo"</span>: bs.<span class="f">append</span>(m.params[<span class="n">1</span>])
+        lo, hi = m.<span class="f">conf_int</span>()[<span class="n">1</span>];  cub[tipo][<span class="n">0</span>] += lo &lt;= b1 &lt;= hi
+        lo, hi = m.<span class="f">get_robustcov_results</span>(<span class="s">"HC3"</span>).<span class="f">conf_int</span>()[<span class="n">1</span>];  cub[tipo][<span class="n">1</span>] += lo &lt;= b1 &lt;= hi
+Sxx = ((x - x.<span class="f">mean</span>())**<span class="n">2</span>).<span class="f">sum</span>()
+<span class="f">print</span>(np.<span class="f">std</span>(bs, ddof=<span class="n">1</span>), <span class="n">5</span> / np.<span class="f">sqrt</span>(Sxx))               <span class="c"># ≈ 0.241  0.243</span>
+<span class="f">print</span>({k: (v[<span class="n">0</span>] / R, v[<span class="n">1</span>] / R) <span class="k">for</span> k, v <span class="k">in</span> cub.<span class="f">items</span>()})
+<span class="c"># homo ≈ (0.95, 0.954), embudo ≈ (0.876, 0.936)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(sandwich); <span class="f">library</span>(lmtest)
+<span class="f">set.seed</span>(<span class="n">1</span>)
+n &lt;- <span class="n">40</span>; R &lt;- <span class="n">5000</span>; b1 &lt;- <span class="n">2</span>
+x &lt;- <span class="f">seq</span>(<span class="n">1</span>, <span class="n">12</span>, length.out = n)
+sim &lt;- <span class="k">function</span>(sdfun) <span class="f">replicate</span>(R, {
+  y &lt;- <span class="n">50</span> + b1 * x + <span class="f">rnorm</span>(n, <span class="n">0</span>, sdfun(x))
+  m &lt;- <span class="f">lm</span>(y ~ x)
+  ci &lt;- <span class="f">confint</span>(m)[<span class="n">2</span>, ]
+  cr &lt;- <span class="f">coefci</span>(m, vcov. = <span class="f">vcovHC</span>(m, type = <span class="s">"HC3"</span>))[<span class="n">2</span>, ]
+  <span class="f">c</span>(<span class="f">coef</span>(m)[<span class="n">2</span>], ci[<span class="n">1</span>] &lt;= b1 &amp;&amp; b1 &lt;= ci[<span class="n">2</span>], cr[<span class="n">1</span>] &lt;= b1 &amp;&amp; b1 &lt;= cr[<span class="n">2</span>])
+})
+homo &lt;- <span class="f">sim</span>(<span class="k">function</span>(x) <span class="n">5</span>); emb &lt;- <span class="f">sim</span>(<span class="k">function</span>(x) <span class="n">0.06</span> * x^<span class="n">2</span>)
+<span class="f">c</span>(<span class="f">sd</span>(homo[<span class="n">1</span>, ]), <span class="n">5</span> / <span class="f">sqrt</span>(<span class="f">sum</span>((x - <span class="f">mean</span>(x))^<span class="n">2</span>)))   <span class="c"># ≈ 0.24  0.243</span>
+<span class="f">rowMeans</span>(homo[<span class="n">2</span>:<span class="n">3</span>, ]); <span class="f">rowMeans</span>(emb[<span class="n">2</span>:<span class="n">3</span>, ])      <span class="c"># ≈ 0.95 0.95 | 0.88 0.94</span></code></pre>
+</div></div></details>
         </div>
       </div>
 

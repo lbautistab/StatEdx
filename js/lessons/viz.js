@@ -1,6 +1,6 @@
-/* StatEdx · clase 12, visualización de datos */
+/* StatEdx · sesión viz: Visualización de datos */
 (() => {
-  const { fit, tok, fmt, pct, segBind } = M;
+  const { fit, tok, fmt, pct, randn, segBind } = M;
 
   // ---------- simulador 1: cuarteto de Anscombe ----------
   const XS = [10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5];
@@ -142,6 +142,66 @@
   segBind('viz-kind', b => { B.kind = b.dataset.k; drawSales(); });
   segBind('viz-axis', b => { B.trunc = b.dataset.z === '1'; drawSales(); });
 
-  M.draw['viz'] = () => { drawAns(); drawSales(); };
-  M.init.push(() => { drawAns(); drawSales(); });
+
+  // ---------- simulador 3: ancho de clase del histograma ----------
+  const H = { dist: 'norm', n: 200, k: 12, xs: [] };
+  const hEl = id => document.getElementById(id);
+  const nFromSlider = v => Math.round(20 * Math.pow(100, v / 100));
+  function hDens(x) {
+    if (H.dist === 'norm') return M.npdf(x, 50, 12);
+    if (H.dist === 'bi') return 0.55 * M.npdf(x, 38, 6) + 0.45 * M.npdf(x, 66, 7);
+    if (x <= 0) return 0; const m = Math.log(30), s = 0.5; return Math.exp(-((Math.log(x) - m) ** 2) / (2 * s * s)) / (x * s * Math.sqrt(2 * Math.PI));
+  }
+  function hDraw1() {
+    if (H.dist === 'norm') return 50 + 12 * randn();
+    if (H.dist === 'bi') return Math.random() < 0.55 ? 38 + 6 * randn() : 66 + 7 * randn();
+    return Math.exp(Math.log(30) + 0.5 * randn());
+  }
+  function hSample() { H.xs = []; for (let i = 0; i < H.n; i++) H.xs.push(hDraw1()); hDrawAll(); }
+  function quant(s, p) { const i = (s.length - 1) * p, a = Math.floor(i), b = Math.ceil(i); return s[a] + (s[b] - s[a]) * (i - a); }
+  function hRules() {
+    const s = H.xs.slice().sort((a, b) => a - b), n = s.length;
+    const m = s.reduce((a, b) => a + b, 0) / n, sd = Math.sqrt(s.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1));
+    const iqr = quant(s, .75) - quant(s, .25);
+    return { scott: 3.49 * sd * Math.pow(n, -1 / 3), fd: 2 * iqr * Math.pow(n, -1 / 3), sturges: Math.ceil(1 + Math.log2(n)) };
+  }
+  const LO = 0, HI = 100;
+  function hDrawAll() {
+    const R = hRules(), bw = (HI - LO) / H.k;
+    hEl('viz-h-n-v').textContent = H.n; hEl('viz-h-k-v').textContent = H.k;
+    hEl('viz-h-n').textContent = H.n; hEl('viz-h-w').textContent = fmt(bw, 2);
+    hEl('viz-h-scott').textContent = fmt(R.scott, 2); hEl('viz-h-fd').textContent = fmt(R.fd, 2);
+    hEl('viz-h-head').textContent = `Sturges sugiere ${R.sturges} clases`;
+    const f = fit(hEl('viz-hcv')); if (!f) return; const { ctx, w, h } = f;
+    const accent = tok('--accent'), ink = tok('--ink'), muted = tok('--muted'), line = tok('--line');
+    ctx.clearRect(0, 0, w, h);
+    const pad = { l: 14, r: 14, t: 14, b: 28 };
+    const X = v => pad.l + (v - LO) / (HI - LO) * (w - pad.l - pad.r);
+    const cnt = new Array(H.k).fill(0); let out = 0;
+    H.xs.forEach(x => { const j = Math.floor((x - LO) / bw); if (j >= 0 && j < H.k) cnt[j]++; else out++; });
+    const dens = cnt.map(c => c / (H.n * bw));
+    let peak = 0; for (let x = LO; x <= HI; x += .5) peak = Math.max(peak, hDens(x));
+    const top = Math.max(peak * 1.15, ...dens) * 1.05;
+    const Y = d => h - pad.b - d / top * (h - pad.t - pad.b);
+    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.globalAlpha = .6;
+    for (let v = 0; v <= 100; v += 20) { const x = Math.round(X(v)) + .5; ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h - pad.b); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    dens.forEach((d, j) => { const x0 = X(LO + j * bw), x1 = X(LO + (j + 1) * bw); ctx.fillStyle = accent; ctx.globalAlpha = .55; ctx.fillRect(x0 + .5, Y(d), Math.max(1, x1 - x0 - 1), Y(0) - Y(d)); });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const x = LO + (HI - LO) * i / 200; const y = Y(hDens(x)); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }
+    ctx.stroke();
+    ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, h - pad.b + .5); ctx.lineTo(w - pad.r, h - pad.b + .5); ctx.stroke();
+    ctx.fillStyle = muted; ctx.font = '11px ' + tok('--f-mono'); ctx.textAlign = 'center';
+    for (let v = 0; v <= 100; v += 20) ctx.fillText(v, Math.min(Math.max(X(v), pad.l + 8), w - pad.r - 8), h - 9);
+    if (out) { ctx.textAlign = 'right'; ctx.fillText(`${out} fuera de [0, 100]`, w - pad.r, pad.t + 10); }
+  }
+  hEl('viz-h-nr').addEventListener('input', e => { H.n = nFromSlider(+e.target.value); hSample(); });
+  hEl('viz-h-kr').addEventListener('input', e => { H.k = +e.target.value; hDrawAll(); });
+  segBind('viz-h-dist', b => { H.dist = b.dataset.d; hSample(); });
+  hEl('viz-h-new').addEventListener('click', hSample);
+  hEl('viz-h-auto').addEventListener('click', () => { const R = hRules(); H.k = Math.max(3, Math.min(80, Math.round((HI - LO) / R.fd))); hEl('viz-h-kr').value = H.k; hDrawAll(); });
+
+  M.draw['viz'] = () => { drawAns(); drawSales(); hDrawAll(); };
+  M.init.push(() => { drawAns(); drawSales(); hSample(); });
 })();

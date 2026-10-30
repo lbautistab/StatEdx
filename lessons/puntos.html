@@ -6,87 +6,154 @@
       <div class="crumbs"></div>
       <h1>Análisis de patrones de puntos</h1>
       <p>Árboles en un bosque, casos de una enfermedad, robos en una ciudad: a veces lo que se estudia no es un valor medido en un lugar, sino el lugar mismo donde ocurre cada evento. Aquí aprendes a contrastar la aleatoriedad espacial completa, a estimar la intensidad y a leer la función K de Ripley para distinguir agrupamiento de regularidad a distintas escalas.</p>
-      <div class="lmeta"><span>45 min</span><span>Nivel avanzado</span><span>Requiere: distribución de Poisson, pruebas de hipótesis</span><span>R · Python</span></div>
+      <div class="lmeta"><span>85 min</span><span>Nivel avanzado</span><span>Requiere: distribución de Poisson, pruebas de hipótesis</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#puntos-idea" data-sec="puntos-idea">La idea</a></li>
-        <li><a href="#puntos-csr" data-sec="puntos-csr">CSR e intensidad</a></li>
+        <li><a href="#puntos-intro" data-sec="puntos-intro">Introducción</a></li>
+        <li><a href="#puntos-def" data-sec="puntos-def">Definición</a></li>
         <li><a href="#puntos-cuad" data-sec="puntos-cuad">Cuadrantes y vecino más cercano</a></li>
         <li><a href="#puntos-k" data-sec="puntos-k">La función K de Ripley</a></li>
-        <li><a href="#puntos-modelos" data-sec="puntos-modelos">Modelos alternativos</a></li>
-        <li><a href="#puntos-lab" data-sec="puntos-lab">Laboratorio</a></li>
+        <li><a href="#puntos-modelos" data-sec="puntos-modelos">Modelos e intensidad variable</a></li>
+        <li><a href="#puntos-prop" data-sec="puntos-prop">Propiedades</a></li>
+        <li><a href="#puntos-sim" data-sec="puntos-sim">Ejercicios de simulación</a></li>
+        <li><a href="#puntos-apps" data-sec="puntos-apps">Aplicaciones reales</a></li>
         <li><a href="#puntos-code" data-sec="puntos-code">En R y Python</a></li>
-        <li><a href="#puntos-quiz" data-sec="puntos-quiz">Comprueba</a></li>
-        <li><a href="#puntos-ej" data-sec="puntos-ej">Ejercicios</a></li>
+        <li><a href="#puntos-quiz" data-sec="puntos-quiz">Quiz</a></li>
+        <li><a href="#puntos-ej" data-sec="puntos-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="puntos-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="puntos-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Un equipo forestal marca con GPS cada ejemplar de una especie de palma en una parcela de 1 hectárea. Al mirar el mapa surgen tres posibilidades. Las palmas pueden estar <b>agrupadas</b>, porque las semillas caen cerca de la madre o porque hay manchones de suelo húmedo. Pueden estar <b>regularmente espaciadas</b>, porque compiten por luz y agua y ninguna sobrevive pegada a otra. O pueden estar <b>al azar</b>, sin ninguna interacción.</p>
       <p>El ojo humano es malo para distinguir estas situaciones: tendemos a ver grupos incluso en datos totalmente aleatorios. El análisis de patrones de puntos da herramientas formales para decidir, y además dice <i>a qué escala</i> ocurre cada cosa: un bosque puede ser agrupado a 50 m y regular a 2 m.</p>
-      <div class="callout"><b>Diferencia con la geoestadística:</b> aquí las ubicaciones son la variable aleatoria. Si en lugar de mapear cada palma midieras la humedad del suelo en sitios elegidos, estarías en el terreno del variograma y el kriging.</div>
+      <p><b>Un poco de historia.</b> Los ecólogos de mediados del siglo XX usaban cuadrantes para estudiar la dispersión de plantas, y Clark y Evans (1954) propusieron su índice del vecino más cercano en <i>Ecology</i>. Brian Ripley introdujo en 1976 la función K, que mira todas las escalas a la vez, y Julian Besag su transformación L (1977). Peter Diggle sistematizó el campo en <i>Statistical Analysis of Spatial Point Patterns</i> (1983) y, con datos de cáncer alrededor de un incinerador en Lancashire, llevó estos métodos a la epidemiología. Hoy el paquete <code>spatstat</code> de Adrian Baddeley, Rolf Turner y Ege Rubak es la referencia.</p>
+      <div class="callout"><b>Diferencia con la geoestadística:</b> aquí las ubicaciones son la variable aleatoria. Si en lugar de mapear cada palma midieras la humedad del suelo en sitios elegidos, estarías en el terreno del <a href="#variograma">variograma</a> y el <a href="#kriging">kriging</a>.</div>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>A definir un proceso puntual, su intensidad y el modelo de referencia: la aleatoriedad espacial completa (CSR).</li>
+          <li>A contrastar CSR con cuadrantes y con el índice de Clark-Evans, derivando la distribución del vecino más cercano.</li>
+          <li>A estimar e interpretar la función K de Ripley, la L de Besag y la correlación de pares, con corrección de borde.</li>
+          <li>A construir envolventes de Monte Carlo y a evitar el error de leerlas como una prueba global.</li>
+          <li>A distinguir agrupamiento por interacción de heterogeneidad de la intensidad, y a ajustar modelos de Thomas.</li>
+        </ul>
+      </div>
 
-      <h2 id="puntos-csr"><span class="sec">§ 2</span>Aleatoriedad espacial completa e intensidad</h2>
-      <p>El modelo de referencia es la <b>aleatoriedad espacial completa</b> (CSR), es decir, el proceso de Poisson homogéneo de intensidad \(\lambda\) en una ventana \(W\). Se define por dos propiedades:</p>
+      <h2 id="puntos-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición (proceso puntual).</b> Un proceso puntual \(X\) en una ventana \(W \subset \mathbb{R}^2\) es un conjunto aleatorio y localmente finito de ubicaciones \(\{\mathbf{s}_1, \dots, \mathbf{s}_N\}\), donde también \(N\) es aleatorio. Para cada región \(A \subseteq W\), \(N(A)\) es el número de puntos que caen en \(A\). La <b>intensidad</b> es la función \(\lambda(\mathbf{s})\) tal que \(\mathbb{E}[N(A)] = \int_A \lambda(\mathbf{s})\,d\mathbf{s}\): el número esperado de puntos por unidad de área cerca de \(\mathbf{s}\).</div>
+      <p>El modelo de referencia es la <b>aleatoriedad espacial completa</b> (CSR), es decir, el proceso de Poisson homogéneo de intensidad \(\lambda\) en \(W\). Se define por dos propiedades:</p>
       <ul>
         <li>El número de puntos en cualquier región \(A \subseteq W\) sigue una Poisson con media proporcional al área: \(N(A) \sim \text{Poisson}(\lambda\,|A|)\).</li>
         <li>Los conteos en regiones disjuntas son independientes. Equivalentemente, dado \(N(W) = n\), los \(n\) puntos son una muestra uniforme e independiente en \(W\).</li>
       </ul>
-      <p>La <b>intensidad</b> \(\lambda\) es el número esperado de puntos por unidad de área. Bajo CSR su estimador es simplemente</p>
+      <p>Bajo CSR el estimador de máxima verosimilitud de la intensidad es simplemente el conteo dividido por el área, y la probabilidad de que una región quede vacía decrece exponencialmente con su área:</p>
       <div class="eq">\[ \hat\lambda = \frac{n}{|W|}, \qquad P\big(N(A) = 0\big) = e^{-\lambda |A|} \]
-        <div class="note">Si en 1 ha hay 95 palmas, \(\hat\lambda = 95\) palmas/ha = 0,0095 palmas/m².</div>
+        <div class="note">La verosimilitud de un Poisson homogéneo es \(L(\lambda) = \lambda^n e^{-\lambda|W|}\); derivando su logaritmo, \(n/\lambda - |W| = 0\). Si en 1 ha hay 95 palmas, \(\hat\lambda = 95\) palmas/ha = 0,0095 palmas/m².</div>
       </div>
-      <p>Si la intensidad cambia con la ubicación, \(\lambda(\mathbf{s})\), el proceso es de Poisson <b>no homogéneo</b>. Se estima con un núcleo (kernel) de ancho \(h\), dividido por una corrección de borde \(e_h(\mathbf{s})\), la fracción del núcleo que cae dentro de la ventana:</p>
-      <div class="eq">\[ \hat\lambda_h(\mathbf{s}) = \frac{1}{e_h(\mathbf{s})}\sum_{i=1}^{n} \frac{1}{h^2}\,\kappa\!\left(\frac{\mathbf{s} - \mathbf{s}_i}{h}\right) \]
-        <div class="note">\(h\) controla el suavizado, como el ancho de banda de un histograma: con \(h\) pequeño la superficie es ruidosa y con \(h\) grande borra los focos. En R, <code>density(X, sigma = h)</code> de spatstat.</div>
-      </div>
-      <div class="callout"><b>Confusión clásica:</b> un patrón de Poisson no homogéneo (por ejemplo, más casos donde vive más gente) se ve agrupado aunque los eventos no interactúen. Agrupamiento por <i>heterogeneidad del entorno</i> y agrupamiento por <i>contagio</i> son indistinguibles con un solo patrón, salvo que modeles \(\lambda(\mathbf{s})\) con covariables (como la población) y uses versiones no homogéneas de K.</div>
+      <p>Si a cada punto le agregas una variable (especie, diámetro, fecha), tienes un <b>patrón marcado</b>; si la intensidad cambia con la ubicación, \(\lambda(\mathbf{s})\), el proceso es de Poisson <b>no homogéneo</b>.</p>
+      <p><b>Ejemplo numérico.</b> En una parcela de 4 ha (40 000 m²) se cuentan 120 árboles. Bajo CSR, \(\hat\lambda = 120/40\,000 = 0{,}003\) árboles/m² (30 por hectárea). En un cuadrado de 10 × 10 m se esperan \(0{,}003 \times 100 = 0{,}3\) árboles, y la probabilidad de que esté vacío es \(e^{-0{,}3} \approx 0{,}741\): casi tres de cada cuatro cuadrados de ese tamaño estarían vacíos sin que eso indique nada raro. Esa es la razón por la que el ojo “ve” grupos en datos al azar: los huecos son muy frecuentes.</p>
 
       <h2 id="puntos-cuad"><span class="sec">§ 3</span>Cuadrantes y vecino más cercano</h2>
-      <p><b>Método de cuadrantes.</b> Divide la ventana en \(k\) celdas iguales y cuenta los puntos \(n_j\) de cada una. Bajo CSR todos los conteos son Poisson con la misma media \(\bar n = n/k\), así que su varianza debería ser igual a su media:</p>
+      <h3>Método de cuadrantes</h3>
+      <p>Divide la ventana en \(k\) celdas iguales y cuenta los puntos \(n_j\) de cada una. Bajo CSR, dado el total \(n\), los conteos son multinomiales con probabilidades iguales, y aproximadamente Poisson con la misma media \(\bar n = n/k\). Como en una Poisson la varianza es igual a la media, se comparan ambas:</p>
       <div class="eq">\[ X^2 = \sum_{j=1}^{k}\frac{(n_j - \bar n)^2}{\bar n} = \frac{(k-1)\,s^2}{\bar n} \;\sim\; \chi^2_{k-1}, \qquad \text{IVM} = \frac{s^2}{\bar n} \]
-        <div class="note">El índice varianza/media (IVM) vale 1 bajo CSR, es mayor que 1 si hay agrupamiento (celdas muy llenas y muy vacías) y menor que 1 si hay regularidad (conteos demasiado parejos). Necesitas \(\bar n \ge 5\) aproximadamente para que la aproximación chi-cuadrado funcione.</div>
+        <div class="note">El índice varianza/media (IVM) vale 1 bajo CSR, es mayor que 1 si hay agrupamiento (celdas muy llenas y muy vacías) y menor que 1 si hay regularidad (conteos demasiado parejos). Necesitas \(\bar n \ge 5\) aproximadamente para que la aproximación chi-cuadrado funcione; si no, usa un valor p de Monte Carlo.</div>
       </div>
+      <p><b>Ejemplo resuelto.</b> Una parcela se divide en 9 cuadrantes y se cuentan 0, 2, 1, 8, 0, 1, 7, 0, 2. Entonces \(n = 21\), \(\bar n = 2{,}33\), \(\sum(n_j - \bar n)^2 = 74\) y \(s^2 = 74/8 = 9{,}25\). El IVM es \(9{,}25/2{,}33 = 3{,}96\) y \(X^2 = 74/2{,}33 = 31{,}7\) con 8 grados de libertad, \(p \approx 0{,}0001\): fuerte evidencia de agrupamiento. Con \(\bar n = 2{,}3\) conviene confirmar con Monte Carlo (simular 9 999 conteos multinomiales con \(n = 21\)), que da \(p \approx 0{,}0003\).</p>
       <p>El problema: el resultado depende del tamaño de la celda y resume todo en una sola escala.</p>
-      <p><b>Índice de Clark y Evans.</b> Sea \(d_i\) la distancia de cada punto a su vecino más cercano. Bajo CSR, \(\mathbb{E}[d] = 1/(2\sqrt{\lambda})\). El cociente</p>
-      <div class="eq">\[ R = \frac{\bar d_{\text{obs}}}{1/(2\sqrt{\hat\lambda})}, \qquad Z = \frac{\bar d_{\text{obs}} - 0{,}5/\sqrt{\hat\lambda}}{0{,}26136/\sqrt{n\hat\lambda}} \]
-        <div class="note">\(R \approx 1\) bajo CSR, \(R &lt; 1\) indica agrupamiento (vecinos más cerca de lo esperado) y \(R &gt; 1\) regularidad. El máximo teórico es 2,149, una red hexagonal perfecta. Sin corrección de borde, \(R\) tiende a salir algo mayor de lo que es, porque los puntos del borde tienen sus vecinos fuera de la ventana.</div>
+      <h3>Distribución del vecino más cercano</h3>
+      <p>Sea \(D\) la distancia de un punto típico a su vecino más cercano. Bajo CSR, \(D > r\) significa que el círculo de radio \(r\) alrededor del punto está vacío, lo que ocurre con probabilidad \(e^{-\lambda\pi r^2}\). Por lo tanto:</p>
+      <div class="eq">\[ G(r) = P(D \le r) = 1 - e^{-\lambda\pi r^2}, \qquad \mathbb{E}[D] = \int_0^\infty e^{-\lambda\pi r^2}\,dr = \frac{1}{2\sqrt\lambda}, \qquad \operatorname{Var}(D) = \frac{4 - \pi}{4\pi\lambda} \]
+        <div class="note">\(D\) tiene distribución de Rayleigh. La integral es la mitad de una gaussiana: \(\int_0^\infty e^{-ar^2}dr = \tfrac12\sqrt{\pi/a}\) con \(a = \lambda\pi\). Y \(\mathbb{E}[D^2] = 1/(\lambda\pi)\), de donde sale la varianza.</div>
       </div>
+      <h3>Índice de Clark y Evans</h3>
+      <p>Con la media \(\bar d\) de las \(n\) distancias al vecino más cercano, el error estándar es \(\sqrt{(4-\pi)/(4\pi\lambda n)} = 0{,}26136/\sqrt{n\lambda}\), y se definen</p>
+      <div class="eq">\[ R = \frac{\bar d_{\text{obs}}}{1/(2\sqrt{\hat\lambda})}, \qquad Z = \frac{\bar d_{\text{obs}} - 0{,}5/\sqrt{\hat\lambda}}{0{,}26136/\sqrt{n\hat\lambda}} \]
+        <div class="note">\(R \approx 1\) bajo CSR, \(R &lt; 1\) indica agrupamiento (vecinos más cerca de lo esperado) y \(R > 1\) regularidad. El máximo teórico es 2,149, una red hexagonal perfecta. Sin corrección de borde, \(R\) tiende a salir algo mayor de lo que es, porque los puntos del borde tienen sus vecinos fuera de la ventana.</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> En 1 km² hay 50 nidos y la distancia media al vecino más cercano es 42 m. Bajo CSR esperarías \(0{,}5/\sqrt{50} = 0{,}0707\) km = 70,7 m, así que \(R = 42/70{,}7 = 0{,}59\). El error estándar es \(0{,}26136/\sqrt{50 \times 50} = 0{,}0052\) km y \(Z = (42 - 70{,}7)/5{,}2 \approx -5{,}5\): los nidos están significativamente agrupados.</p>
+      <p>Las funciones \(G\) (vecino más cercano desde un evento) y \(F\) (punto vacío: distancia desde un lugar arbitrario al evento más cercano) valen ambas \(1 - e^{-\lambda\pi r^2}\) bajo CSR. Su cociente \(J(r) = (1 - G(r))/(1 - F(r))\), de van Lieshout y Baddeley, vale 1 bajo CSR, menos de 1 con agrupamiento y más de 1 con regularidad.</p>
 
       <h2 id="puntos-k"><span class="sec">§ 4</span>La función K de Ripley</h2>
-      <p>La herramienta central es la <b>función K</b> (Ripley, 1976), que mira todas las escalas a la vez:</p>
+      <p>La herramienta central es la <b>función K</b> (Ripley, 1976), que mira todas las escalas a la vez. Para un proceso estacionario e isótropo:</p>
       <div class="eq">\[ K(r) = \frac{1}{\lambda}\,\mathbb{E}\big[\text{número de otros puntos a distancia} \le r \text{ de un punto típico}\big] \]
-        <div class="note">Bajo CSR los vecinos son simplemente \(\lambda\) por unidad de área en un círculo de radio \(r\): \(K(r) = \pi r^2\).</div>
+        <div class="note">Bajo CSR, por la independencia del Poisson, los otros puntos alrededor de un punto típico siguen siendo Poisson de intensidad \(\lambda\): en el círculo de radio \(r\) hay en promedio \(\lambda\pi r^2\), y \(K(r) = \pi r^2\).</div>
       </div>
       <p>Como \(\pi r^2\) es difícil de comparar a simple vista, se usa la transformación \(L\) de Besag, que estabiliza la varianza y convierte la referencia en una recta:</p>
       <div class="eq">\[ L(r) = \sqrt{K(r)/\pi}, \qquad \text{bajo CSR: } L(r) - r = 0 \]
-        <div class="note">\(L(r) - r &gt; 0\): más vecinos de lo esperado a distancia \(r\), es decir, <b>agrupamiento a esa escala</b>. \(L(r) - r &lt; 0\): menos vecinos, <b>regularidad o inhibición</b>.</div>
+        <div class="note">\(L(r) - r > 0\): más vecinos de lo esperado a distancia \(r\), es decir, <b>agrupamiento a esa escala</b>. \(L(r) - r &lt; 0\): menos vecinos, <b>regularidad o inhibición</b>.</div>
       </div>
-      <p>El estimador suma sobre todos los pares, con un peso que corrige el efecto de borde (los círculos de los puntos cercanos al borde se salen de la ventana y verían menos vecinos):</p>
+      <h3>Estimador y corrección de borde</h3>
+      <p>Para estimar \(K\), reemplaza la esperanza por un promedio sobre los \(n\) puntos y \(\lambda\) por \(\hat\lambda\). El problema es que un punto cerca del borde tiene parte de su círculo fuera de la ventana y “ve” menos vecinos. La corrección por traslación pondera cada par por el inverso de la fracción de la ventana en que ese par podría observarse:</p>
       <div class="eq">\[ \hat K(r) = \frac{|W|}{n(n-1)}\sum_{i \ne j} e_{ij}\;\mathbf{1}\{d_{ij} \le r\}, \qquad e_{ij}^{\text{trasl}} = \frac{|W|}{|W \cap (W + \mathbf{s}_j - \mathbf{s}_i)|} \]
-        <div class="note">La corrección por traslación, en una ventana rectangular de lados \(a \times b\), es \(e_{ij} = ab / \big[(a - |\Delta x|)(b - |\Delta y|)\big]\). Calcula \(\hat K\) solo hasta \(r\) de un cuarto del lado menor: más allá, la corrección es inestable.</div>
+        <div class="note">En una ventana rectangular de lados \(a \times b\), \(e_{ij} = ab / \big[(a - |\Delta x|)(b - |\Delta y|)\big]\). Usar \(n(n-1)\) en lugar de \(n^2\) corresponde a estimar \(\lambda^2\) sin sesgo. Calcula \(\hat K\) solo hasta \(r\) de un cuarto del lado menor: más allá, la corrección es inestable.</div>
       </div>
-      <p><b>Envolventes de Monte Carlo.</b> \(\hat K\) tiene una distribución complicada. La solución práctica es simular \(m\) patrones CSR con el mismo \(n\) y la misma ventana, calcular \(\hat L(r) - r\) en cada uno y dibujar el mínimo y el máximo para cada \(r\). Si la curva observada sale de la banda, hay evidencia contra CSR a esa escala. Con \(m = 39\) y una prueba de dos colas, para un \(r\) fijado de antemano, el nivel es \(2/(m+1) = 5\%\).</p>
-      <div class="callout"><b>Trampa de las envolventes:</b> mirar si la curva sale de la banda <i>en algún</i> \(r\) es hacer muchas pruebas a la vez, y el error tipo I real es bastante mayor que 5 %. Para una prueba global con nivel correcto usa envolventes globales (<code>envelope(..., global = TRUE)</code>) o la prueba MAD o DCLF (<code>mad.test</code>, <code>dclf.test</code>).</div>
-      <p>Una función emparentada es la <b>correlación de pares</b> \(g(r) = K'(r)/(2\pi r)\), que vale 1 bajo CSR. K es acumulativa (arrastra lo que pasa a distancias menores), mientras que \(g\) mira cada distancia por separado y localiza mejor la escala de interacción.</p>
+      <p><b>Ejemplo resuelto a mano.</b> Cinco puntos en el cuadrado unidad: (0,2; 0,2), (0,3; 0,25), (0,7; 0,7), (0,75; 0,8) y (0,5; 0,6). Calculemos \(\hat K(0{,}15)\).</p>
+      <ol>
+        <li>Distancias menores que 0,15: solo los pares 1-2 (\(\sqrt{0{,}1^2 + 0{,}05^2} = 0{,}112\)) y 3-4 (0,112). Contando pares ordenados son 4 términos.</li>
+        <li>Corrección: el par 1-2 tiene \(|\Delta x| = 0{,}1\), \(|\Delta y| = 0{,}05\), así que \(e = 1/(0{,}9 \times 0{,}95) = 1{,}170\). El par 3-4 da lo mismo.</li>
+        <li>\(\hat K(0{,}15) = \frac{1}{5 \times 4}\times 4 \times 1{,}170 = 0{,}234\), frente a \(\pi(0{,}15)^2 = 0{,}071\) bajo CSR.</li>
+        <li>\(\hat L(0{,}15) = \sqrt{0{,}234/\pi} = 0{,}273\) y \(\hat L - r = 0{,}123 > 0\): agrupamiento a esa escala (dos parejas).</li>
+      </ol>
+      <p>Con 5 puntos, claro, ninguna prueba tendría potencia: el ejemplo solo muestra la mecánica.</p>
+      <h3>Envolventes de Monte Carlo</h3>
+      <p>\(\hat K\) tiene una distribución complicada. La solución práctica es simular \(m\) patrones CSR con el mismo \(n\) y la misma ventana, calcular \(\hat L(r) - r\) en cada uno y dibujar el mínimo y el máximo para cada \(r\). Si la curva observada sale de la banda, hay evidencia contra CSR a esa escala. Con \(m = 39\) y una prueba de dos colas, para un \(r\) fijado de antemano, el nivel es \(2/(m+1) = 5\%\): bajo la nula, la curva observada es una más entre 40 y tiene probabilidad \(1/40\) de ser la máxima y \(1/40\) de ser la mínima.</p>
+      <div class="callout"><b>Trampa de las envolventes:</b> mirar si la curva sale de la banda <i>en algún</i> \(r\) es hacer muchas pruebas a la vez, y el error tipo I real es bastante mayor que 5 % (con 25 distancias ronda el 35 %, como verás en la pregunta 3). Para una prueba global con nivel correcto usa envolventes globales (<code>envelope(..., global = TRUE)</code>) o la prueba MAD o DCLF (<code>mad.test</code>, <code>dclf.test</code>).</div>
+      <h3>Correlación de pares</h3>
+      <p>Una función emparentada es la <b>correlación de pares</b> \(g(r) = K'(r)/(2\pi r)\), que vale 1 bajo CSR. Su interpretación es directa: \(\lambda^2 g(r)\) es la densidad de pares de puntos a distancia \(r\). \(K\) es acumulativa (arrastra lo que pasa a distancias menores), mientras que \(g\) mira cada distancia por separado y localiza mejor la escala de interacción. A cambio, su estimación necesita un suavizado.</p>
 
-      <h2 id="puntos-modelos"><span class="sec">§ 5</span>Modelos alternativos</h2>
+      <h2 id="puntos-modelos"><span class="sec">§ 5</span>Modelos e intensidad variable</h2>
       <div class="tablewrap"><table>
         <thead><tr><th>Modelo</th><th>Cómo se genera</th><th>Patrón</th><th>\(K(r)\)</th></tr></thead>
         <tbody>
           <tr><td>Poisson homogéneo (CSR)</td><td>Puntos uniformes e independientes</td><td>Aleatorio</td><td>\(\pi r^2\)</td></tr>
           <tr><td>Proceso de Thomas (Neyman-Scott)</td><td>Padres Poisson(\(\kappa\)); cada uno tiene Poisson(\(\mu\)) hijos desplazados con \(\mathcal{N}(0, \sigma^2 I)\)</td><td>Agrupado</td><td>\(\pi r^2 + \frac{1}{\kappa}\big(1 - e^{-r^2/4\sigma^2}\big)\)</td></tr>
           <tr><td>Inhibición secuencial (SSI) o Matérn de núcleo duro</td><td>Se agregan puntos uniformes y se rechaza el que caiga a menos de \(\delta\) de otro</td><td>Regular</td><td>\(0\) para \(r &lt; \delta\)</td></tr>
+          <tr><td>Proceso de Strauss</td><td>Densidad \(\propto \beta^n\gamma^{s(r_0)}\), con \(s\) el número de pares a menos de \(r_0\) y \(0 \le \gamma \le 1\)</td><td>Regular (inhibición suave)</td><td>Sin forma cerrada</td></tr>
           <tr><td>Poisson no homogéneo</td><td>Intensidad \(\lambda(\mathbf{s})\) variable, sin interacción</td><td>Parece agrupado</td><td>Usa \(K_{\text{inhom}}\)</td></tr>
         </tbody>
       </table></div>
-      <p>En el proceso de Thomas, la fórmula de K muestra los dos parámetros: \(\sigma\) es el tamaño de los grupos (la escala donde \(L(r) - r\) alcanza su máximo está en torno a \(2\sigma\) a \(3\sigma\)) y \(1/\kappa\) dice cuánto exceso de vecinos hay. Ajustar el modelo a un patrón real es lo que hace <code>kppm(X ~ 1, "Thomas")</code> en spatstat, por mínimo contraste entre \(\hat K\) y la \(K\) teórica.</p>
+      <h3>De dónde sale la K de Thomas</h3>
+      <p>En el proceso de Thomas, dos hijos del mismo padre están separados por la diferencia de dos desplazamientos \(\mathcal{N}(0, \sigma^2 I)\), que es \(\mathcal{N}(0, 2\sigma^2 I)\). La densidad de esa diferencia, evaluada a distancia \(r\), es \(\frac{1}{4\pi\sigma^2}e^{-r^2/4\sigma^2}\). Como los padres tienen intensidad \(\kappa\), la correlación de pares es</p>
+      <div class="eq">\[ g(r) = 1 + \frac{1}{4\pi\kappa\sigma^2}\,e^{-r^2/4\sigma^2}, \qquad K(r) = \int_0^r 2\pi u\,g(u)\,du = \pi r^2 + \frac{1}{\kappa}\big(1 - e^{-r^2/4\sigma^2}\big) \]
+        <div class="note">La integral del segundo término es \(\frac{2\pi}{4\pi\kappa\sigma^2}\int_0^r u e^{-u^2/4\sigma^2}du = \frac{1}{2\kappa\sigma^2}\cdot 2\sigma^2(1 - e^{-r^2/4\sigma^2})\).</div>
+      </div>
+      <p>La fórmula muestra los dos parámetros: \(\sigma\) es el tamaño de los grupos (la escala donde \(L(r) - r\) alcanza su máximo está en torno a \(2\sigma\) a \(3\sigma\)) y \(1/\kappa\) dice cuánto exceso de vecinos hay: pocos grupos grandes dan mucho exceso. Ajustar el modelo a un patrón real es lo que hace <code>kppm(X ~ 1, "Thomas")</code> en spatstat, por <b>mínimo contraste</b>: se eligen \((\kappa, \sigma)\) que minimizan \(\int_0^{r_{\max}}\big(\hat K(r)^{1/4} - K_\theta(r)^{1/4}\big)^2 dr\).</p>
+      <h3>Intensidad variable</h3>
+      <p>Si la intensidad cambia en el espacio se estima con un núcleo (kernel) de ancho \(h\), dividido por una corrección de borde \(e_h(\mathbf{s})\), la fracción del núcleo que cae dentro de la ventana:</p>
+      <div class="eq">\[ \hat\lambda_h(\mathbf{s}) = \frac{1}{e_h(\mathbf{s})}\sum_{i=1}^{n} \frac{1}{h^2}\,\kappa\!\left(\frac{\mathbf{s} - \mathbf{s}_i}{h}\right) \]
+        <div class="note">\(h\) controla el suavizado, como el ancho de banda de un histograma: con \(h\) pequeño la superficie es ruidosa y con \(h\) grande borra los focos. En R, <code>density(X, sigma = h)</code> de spatstat. Con covariables, el modelo log-lineal \(\log\lambda(\mathbf{s}) = \beta_0 + \beta_1 c(\mathbf{s})\) se ajusta con <code>ppm(X ~ c)</code>, que es en el fondo una <a href="#glm">regresión de Poisson</a>.</div>
+      </div>
+      <p>La K no homogénea pondera cada par por el inverso del producto de las intensidades:</p>
+      <div class="eq">\[ \hat K_{\text{inhom}}(r) = \frac{1}{|W|}\sum_{i\ne j}\frac{e_{ij}\,\mathbf{1}\{d_{ij}\le r\}}{\hat\lambda(\mathbf{s}_i)\,\hat\lambda(\mathbf{s}_j)} \]</div>
+      <p>Si el patrón es un Poisson no homogéneo, \(K_{\text{inhom}}(r) = \pi r^2\) aunque el mapa se vea agrupado.</p>
+      <div class="callout"><b>Confusión clásica:</b> un patrón de Poisson no homogéneo (por ejemplo, más casos donde vive más gente) se ve agrupado aunque los eventos no interactúen. Agrupamiento por <i>heterogeneidad del entorno</i> y agrupamiento por <i>contagio</i> son indistinguibles con un solo patrón, salvo que modeles \(\lambda(\mathbf{s})\) con covariables (como la población) o con un grupo de control, y uses versiones no homogéneas de K.</div>
 
-      <h2 id="puntos-lab"><span class="sec">§ 6</span>Laboratorio</h2>
+      <h2 id="puntos-prop"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>Estimador de la intensidad.</b> Bajo CSR, \(\hat\lambda = n/|W|\) es el estimador de máxima verosimilitud, insesgado, con \(\operatorname{Var}(\hat\lambda) = \lambda/|W|\) (porque \(N(W) \sim \text{Poisson}(\lambda|W|)\)).</li>
+        <li><b>Condicionalidad.</b> Dado \(N(W) = n\), un Poisson homogéneo es una muestra de \(n\) puntos uniformes iid. Por eso las envolventes se simulan con \(n\) fijo: la prueba es condicional y no depende de \(\lambda\).</li>
+        <li><b>Vecino más cercano.</b> \(G(r) = 1 - e^{-\lambda\pi r^2}\), \(\mathbb{E}[D] = 1/(2\sqrt\lambda)\), \(\operatorname{Var}(D) = (4-\pi)/(4\pi\lambda)\): la constante 0,26136 de Clark-Evans es \(\sqrt{(4-\pi)/(4\pi)}\).</li>
+        <li><b>K bajo CSR.</b> \(K(r) = \pi r^2\) y \(L(r) = r\), por la independencia del Poisson (teorema de Slivnyak: condicionar a que hay un punto en \(\mathbf{s}\) no cambia el resto del proceso).</li>
+        <li><b>Relación K y g.</b> \(K(r) = \int_0^r 2\pi u\,g(u)\,du\), así que \(g(r) = K'(r)/(2\pi r)\). Un \(g(r) > 1\) en una distancia hace \(K\) mayor que \(\pi r^2\) desde ahí en adelante.</li>
+        <li><b>Invariancia al adelgazamiento.</b> Si cada punto se conserva al azar con probabilidad \(p\), independientemente, \(\lambda\) pasa a \(p\lambda\) pero \(K\) no cambia. Por eso \(K\) describe la interacción y no la cantidad de puntos.</li>
+        <li><b>Nivel de la envolvente puntual.</b> Con \(m\) simulaciones y un \(r\) fijado de antemano, el nivel es \(2/(m+1)\); para una conclusión sobre todas las distancias hace falta una envolvente global o una prueba de desviación integrada.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes:</b>
+        <ul>
+          <li>Interpretar el agrupamiento como interacción (contagio, atracción) sin descartar una intensidad variable.</li>
+          <li>Ignorar el efecto de borde, o calcular \(\hat K\) para \(r\) mayores que un cuarto del lado de la ventana.</li>
+          <li>Leer la envolvente puntual como una prueba global y declarar significativo cualquier cruce.</li>
+          <li>Usar un \(n\) muy chico en cuadrantes (\(\bar n &lt; 5\)) con la aproximación chi-cuadrado.</li>
+          <li>Comparar patrones en ventanas de forma distinta sin corregir: la forma de la ventana afecta \(\hat K\) y \(R\).</li>
+        </ul>
+      </div>
+
+      <h2 id="puntos-sim"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
+      <h3 id="puntos-lab">Laboratorio: patrones de puntos y L de Ripley</h3>
       <p>Genera un patrón en el cuadrado unidad y compáralo con CSR con los tres métodos. La banda gris de la derecha es la envolvente de 39 patrones CSR con el mismo número de puntos; la curva azul es el patrón observado.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · patrones de puntos y L de Ripley</span><span class="num" id="puntos-head">–</span></div>
@@ -124,19 +191,40 @@
         </div>
         <figcaption>En el patrón agrupado, aumenta σ: los grupos se ensanchan y el máximo de L(r) − r se desplaza a la derecha. En el regular, la curva cae bajo la banda para r menores que la distancia mínima δ. Con CSR, repite varias veces: de vez en cuando la curva roza la banda por puro azar.</figcaption>
       </figure>
+      <ol>
+        <li>Elige <b>CSR</b> con \(\lambda = 100\) y pulsa <b>Nuevo patrón</b> diez veces. ¿Cuántas veces la curva sale de la banda en alguna distancia? ¿Y cuánto vale R?
+          <details><summary>Qué deberías observar</summary><p>R oscila cerca de 1 (algo mayor, por el efecto de borde sin corregir). La curva suele quedar dentro de la banda, pero en 2 a 4 de cada 10 patrones la toca o se sale en algún \(r\): es el error tipo I inflado de mirar todas las distancias.</p></details></li>
+        <li>Elige <b>Agrupado</b> y mueve la escala σ de 1 a 10. ¿Dónde está el máximo de \(L(r) - r\) y qué pasa con R de Clark-Evans?
+          <details><summary>Qué deberías observar</summary><p>El máximo se desplaza a la derecha al crecer σ, aproximadamente a \(2\sigma\) a \(3\sigma\). R sube hacia 1 cuando σ es grande: los grupos anchos se confunden con el azar a la escala del vecino más cercano, aunque K todavía detecta agrupamiento a escalas mayores.</p></details></li>
+        <li>Elige <b>Regular</b>. ¿En qué rango de \(r\) la curva queda bajo la banda? Cambia la escala (ahora la distancia mínima δ) y observa.
+          <details><summary>Qué deberías observar</summary><p>La curva cae bajo la banda para \(r &lt; \delta\), donde no hay ningún par, y vuelve a la banda poco después. R es claramente mayor que 1 y \(X^2\) de cuadrantes es pequeño (conteos parejos, IVM menor que 1).</p></details></li>
+        <li>Con el patrón agrupado, baja \(\lambda\) a 30. ¿Siguen rechazando CSR los tres métodos?
+          <details><summary>Qué deberías observar</summary><p>Con pocos puntos la prueba de cuadrantes (16 celdas, menos de 2 puntos por celda) pierde potencia y a veces no rechaza, mientras que K, que usa todas las distancias entre pares, suele seguir detectando el agrupamiento. La potencia depende de \(n\).</p></details></li>
+      </ol>
 
-      <h2 id="puntos-code"><span class="sec">§ 7</span>En R y Python</h2>
-      <p>Simulamos un proceso de Thomas con \(\kappa = 10\), \(\mu = 8\) y \(\sigma = 0{,}03\), y aplicamos las tres herramientas. En R, <code>spatstat</code> hace todo con funciones propias; en Python lo escribimos con numpy y scipy para ver cada fórmula (el paquete <code>pointpats</code> ofrece versiones listas).</p>
+      <h2 id="puntos-apps"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Ecología tropical: la parcela de Barro Colorado</h3>
+      <p>En la isla de Barro Colorado (Panamá) hay una parcela de 50 ha (1 000 × 500 m) donde se censa cada árbol con diámetro mayor a 1 cm. El conjunto <code>bei</code> de spatstat tiene 3 604 árboles de <i>Beilschmiedia pendula</i>, junto con la elevación y la pendiente del terreno (<code>bei.extra</code>). El patrón está fuertemente agrupado, pero buena parte se explica porque la especie prefiere ciertas pendientes. Un modelo <code>ppm(bei ~ grad)</code> estima cómo cambia la intensidad con la pendiente y, con \(K_{\text{inhom}}\), se evalúa si queda agrupamiento adicional por dispersión de semillas. Distinguir ambos mecanismos orienta la conservación: proteger hábitats o proteger árboles semilleros.</p>
+      <h3>Epidemiología ambiental: cáncer de laringe en Lancashire</h3>
+      <p>El conjunto <code>chorley</code> de spatstat tiene las direcciones de 58 casos de cáncer de laringe y 978 casos de cáncer de pulmón (usados como controles, porque reflejan la distribución de la población en riesgo) en Chorley-Ribble, Inglaterra, entre 1974 y 1983, más la ubicación de un antiguo incinerador. Diggle (1990) comparó la intensidad de los casos con la de los controles y encontró un exceso de riesgo que decrece con la distancia al incinerador. El diseño caso-control es la respuesta práctica a la confusión entre heterogeneidad poblacional y agrupamiento.</p>
+      <h3>Seguridad urbana: focos de delitos</h3>
+      <p>Las policías de muchas ciudades publican la ubicación de cada delito denunciado. Con un estimador de núcleo de la intensidad, con \(h\) de 200 a 400 m, se dibujan mapas de “puntos calientes” para asignar patrullajes. La función K de los robos respecto de los de un mes anterior (K cruzada, o espacio-temporal) mide si un robo eleva el riesgo en las cuadras cercanas durante los días siguientes, lo que se conoce como repetición cercana, y sustenta estrategias de patrullaje preventivo.</p>
+      <h3>Biología celular y materiales</h3>
+      <p>El conjunto <code>cells</code> (42 centros de células en un corte histológico, analizado por Ripley en 1977) es el ejemplo clásico de regularidad: \(L(r) - r\) es negativa a escalas pequeñas porque las células no pueden superponerse, y se ajusta bien con un proceso de Strauss o de núcleo duro. El mismo análisis se usa en ciencia de materiales para la posición de poros o partículas en una aleación, donde una distribución regular indica un proceso de fabricación homogéneo y un agrupamiento anticipa fallas.</p>
+
+      <h2 id="puntos-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Simulamos un proceso de Thomas con \(\kappa = 10\), \(\mu = 8\) y \(\sigma = 0{,}03\), aplicamos las tres pruebas de CSR y terminamos ajustando un modelo de Thomas por mínimo contraste. En R, <code>spatstat</code> hace todo con funciones propias; en Python lo escribimos con numpy y scipy para ver cada fórmula (el paquete <code>pointpats</code> ofrece versiones listas).</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> scipy.spatial <span class="k">import</span> cKDTree
 <span class="k">from</span> scipy.stats <span class="k">import</span> chi2
+<span class="k">from</span> scipy.optimize <span class="k">import</span> minimize
 
 rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
 
 <span class="k">def</span> <span class="f">thomas</span>(kappa, mu, sigma):
-    <span class="s">""</span><span class="s">"Proceso de Thomas en [0,1]²: padres Poisson(kappa), hijos Poisson(mu) alrededor."</span><span class="s">""</span>
+    <span class="s">"""Proceso de Thomas en [0,1]²: padres Poisson(kappa), hijos Poisson(mu) alrededor."""</span>
     padres = rng.<span class="f">uniform</span>(<span class="n">0</span>, <span class="n">1</span>, size=(rng.<span class="f">poisson</span>(kappa), <span class="n">2</span>))
     hijos = np.<span class="f">vstack</span>([p + sigma * rng.<span class="f">standard_normal</span>((rng.<span class="f">poisson</span>(mu), <span class="n">2</span>)) <span class="k">for</span> p <span class="k">in</span> padres])
     <span class="k">return</span> hijos[((hijos &gt;= <span class="n">0</span>) &amp; (hijos &lt;= <span class="n">1</span>)).<span class="f">all</span>(axis=<span class="n">1</span>)]
@@ -151,27 +239,39 @@ rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
     d_nn = <span class="f">cKDTree</span>(pts).<span class="f">query</span>(pts, k=<span class="n">2</span>)[<span class="n">0</span>][:, <span class="n">1</span>]          <span class="c"># distancia al vecino más cercano</span>
     <span class="k">return</span> d_nn.<span class="f">mean</span>() / (<span class="n">0.5</span> / np.<span class="f">sqrt</span>(<span class="f">len</span>(pts) / area))
 
-<span class="k">def</span> <span class="f">L_ripley</span>(pts, r):
+<span class="k">def</span> <span class="f">K_ripley</span>(pts, r):
     n = <span class="f">len</span>(pts)
     dx = np.<span class="f">abs</span>(pts[:, <span class="k">None</span>, <span class="n">0</span>] - pts[<span class="k">None</span>, :, <span class="n">0</span>])
     dy = np.<span class="f">abs</span>(pts[:, <span class="k">None</span>, <span class="n">1</span>] - pts[<span class="k">None</span>, :, <span class="n">1</span>])
     d = np.<span class="f">hypot</span>(dx, dy); np.<span class="f">fill_diagonal</span>(d, np.inf)
     peso = <span class="n">1</span> / ((<span class="n">1</span> - dx) * (<span class="n">1</span> - dy))                       <span class="c"># corrección de borde por traslación</span>
-    K = np.<span class="f">array</span>([(peso * (d &lt;= ri)).<span class="f">sum</span>() <span class="k">for</span> ri <span class="k">in</span> r]) / (n * (n - <span class="n">1</span>))
-    <span class="k">return</span> np.<span class="f">sqrt</span>(K / np.pi)
+    <span class="k">return</span> np.<span class="f">array</span>([(peso * (d &lt;= ri)).<span class="f">sum</span>() <span class="k">for</span> ri <span class="k">in</span> r]) / (n * (n - <span class="n">1</span>))
+
+L_ripley = <span class="k">lambda</span> pts, r: np.<span class="f">sqrt</span>(<span class="f">K_ripley</span>(pts, r) / np.pi)
 
 pts = <span class="f">thomas</span>(kappa=<span class="n">10</span>, mu=<span class="n">8</span>, sigma=<span class="n">0.03</span>)
 r = np.<span class="f">linspace</span>(<span class="n">0.01</span>, <span class="n">0.25</span>, <span class="n">25</span>)
-<span class="f">print</span>(<span class="f">len</span>(pts))
-<span class="f">print</span>(<span class="f">prueba_cuadrantes</span>(pts))
-<span class="f">print</span>(<span class="f">round</span>(<span class="f">clark_evans</span>(pts), <span class="n">2</span>))
+<span class="f">print</span>(<span class="f">len</span>(pts))                         <span class="c"># 95</span>
+<span class="f">print</span>(<span class="f">prueba_cuadrantes</span>(pts))           <span class="c"># X² ≈ 41.3, p ≈ 0.0003</span>
+<span class="f">print</span>(<span class="f">round</span>(<span class="f">clark_evans</span>(pts), <span class="n">2</span>))       <span class="c"># 0.42: agrupado</span>
 
-<span class="c"># envolvente de 39 patrones CSR con el mismo n</span>
+<span class="c"># Envolvente de 39 patrones CSR con el mismo n</span>
 sims = np.<span class="f">array</span>([<span class="f">L_ripley</span>(rng.<span class="f">uniform</span>(size=pts.shape), r) - r <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">39</span>)])
 obs = <span class="f">L_ripley</span>(pts, r) - r
 fuera = (obs &gt; sims.<span class="f">max</span>(<span class="n">0</span>)) | (obs &lt; sims.<span class="f">min</span>(<span class="n">0</span>))
-<span class="f">print</span>(r[fuera].<span class="f">round</span>(<span class="n">2</span>))</code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(spatstat)
+<span class="f">print</span>(r[fuera].<span class="f">round</span>(<span class="n">2</span>))                <span class="c"># todas las distancias evaluadas</span>
+<span class="f">print</span>(r[np.<span class="f">argmax</span>(obs)].<span class="f">round</span>(<span class="n">2</span>))       <span class="c"># máximo de L(r) - r</span>
+
+<span class="c"># Ajuste del proceso de Thomas por mínimo contraste sobre K^(1/4)</span>
+K_obs = <span class="f">K_ripley</span>(pts, r)
+<span class="k">def</span> <span class="f">K_thomas</span>(r, kappa, sigma):
+    <span class="k">return</span> np.pi * r**<span class="n">2</span> + (<span class="n">1</span> - np.<span class="f">exp</span>(-r**<span class="n">2</span> / (<span class="n">4</span> * sigma**<span class="n">2</span>))) / kappa
+<span class="k">def</span> <span class="f">contraste</span>(theta):
+    kappa, sigma = np.<span class="f">exp</span>(theta)
+    <span class="k">return</span> np.<span class="f">sum</span>((K_obs**<span class="n">0.25</span> - <span class="f">K_thomas</span>(r, kappa, sigma)**<span class="n">0.25</span>)**<span class="n">2</span>)
+kappa_hat, sigma_hat = np.<span class="f">exp</span>(<span class="f">minimize</span>(contraste, np.<span class="f">log</span>([<span class="n">5</span>, <span class="n">0.05</span>]), method=<span class="s">"Nelder-Mead"</span>).x)
+<span class="f">print</span>(<span class="f">round</span>(kappa_hat, <span class="n">1</span>), <span class="f">round</span>(sigma_hat, <span class="n">3</span>), <span class="f">round</span>(<span class="f">len</span>(pts) / kappa_hat, <span class="n">1</span>))  <span class="c"># kappa, sigma, mu</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(spatstat)
 
 <span class="f">set.seed</span>(<span class="n">7</span>)
 X &lt;- <span class="f">rThomas</span>(kappa = <span class="n">10</span>, scale = <span class="n">0.03</span>, mu = <span class="n">8</span>)   <span class="c"># ventana [0,1]² por defecto</span>
@@ -184,17 +284,24 @@ X &lt;- <span class="f">rThomas</span>(kappa = <span class="n">10</span>, scale 
 <span class="c"># 2. Índice de Clark-Evans</span>
 <span class="f">clarkevans</span>(X, correction = <span class="s">"none"</span>)               <span class="c"># R &lt; 1: agrupado</span>
 
-<span class="c"># 3. L(r) − r con envolvente de 39 patrones CSR</span>
+<span class="c"># 3. L(r) − r con envolvente puntual de 39 patrones CSR y envolvente global</span>
 env &lt;- <span class="f">envelope</span>(X, Lest, nsim = <span class="n">39</span>, correction = <span class="s">"translate"</span>)
 <span class="f">plot</span>(env, . - r ~ r, main = <span class="s">"L(r) − r"</span>)
+<span class="f">envelope</span>(X, Lest, nsim = <span class="n">99</span>, global = <span class="k">TRUE</span>)      <span class="c"># banda con nivel global del 1 %</span>
+<span class="f">dclf.test</span>(X, Lest, nsim = <span class="n">99</span>)                    <span class="c"># prueba global de Diggle-Cressie-Loosmore-Ford</span>
+
+<span class="c"># 4. Ajuste del proceso de Thomas por mínimo contraste</span>
+ajuste &lt;- <span class="f">kppm</span>(X ~ <span class="n">1</span>, clusters = <span class="s">"Thomas"</span>)
+ajuste                                           <span class="c"># kappa, scale (σ) y mu estimados</span>
+<span class="f">plot</span>(<span class="f">envelope</span>(ajuste, Lest, nsim = <span class="n">39</span>), . - r ~ r)   <span class="c"># ¿el modelo ajustado explica L?</span>
 
 <span class="c"># Datos reales incluidos en spatstat</span>
 <span class="f">clarkevans</span>(redwood, correction = <span class="s">"none"</span>)         <span class="c"># secoyas: claramente &lt; 1</span>
 <span class="f">clarkevans</span>(cells, correction = <span class="s">"none"</span>)           <span class="c"># células: claramente &gt; 1</span></code></pre>
 </div>
-      <p>Con la semilla de Python salen 95 puntos, \(X^2 \approx 41{,}3\) con 15 grados de libertad (\(p \approx 0{,}0003\)) y \(R \approx 0{,}42\): los tres métodos rechazan CSR. La curva \(L(r) - r\) queda por encima de la envolvente en todas las distancias evaluadas hasta 0,24, con su máximo cerca de \(r \approx 0{,}07\), entre \(2\sigma\) y \(3\sigma\). En R los números cambian porque el generador aleatorio es distinto, pero la conclusión es la misma.</p>
+      <p>Con la semilla de Python salen 95 puntos, \(X^2 \approx 41{,}3\) con 15 grados de libertad (\(p \approx 0{,}0003\)) y \(R \approx 0{,}42\): los tres métodos rechazan CSR. La curva \(L(r) - r\) queda por encima de la envolvente en todas las distancias evaluadas hasta 0,24, con su máximo cerca de \(r \approx 0{,}07\), entre \(2\sigma\) y \(3\sigma\). El mínimo contraste estima \(\hat\kappa \approx 18\), \(\hat\sigma \approx 0{,}022\) y \(\hat\mu \approx 5\): del orden correcto, pero lejos de los valores reales, porque con solo unos 10 grupos un único patrón contiene poca información sobre \(\kappa\). En R los números cambian porque el generador aleatorio es distinto, pero la conclusión es la misma.</p>
 
-      <h2 id="puntos-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <h2 id="puntos-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="Bajo CSR K(r) = πr², así que L(r) − r = 0. Un valor positivo indica más vecinos de lo esperado a esa distancia: agrupamiento a escala r." data-wrong="Recuerda que L(r) = √(K(r)/π) y que bajo CSR K(r) = πr². ¿Qué significa tener más vecinos de los esperados dentro de un radio r?">
         <h3>En un patrón de casos de dengue, L(r) − r es claramente positiva y sale de la envolvente para r entre 100 y 400 m. ¿Qué indica?</h3>
         <div class="opts">
@@ -215,7 +322,7 @@ env &lt;- <span class="f">envelope</span>(X, Lest, nsim = <span class="n">39</sp
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="Exacto. Con un solo patrón no se distingue contagio de heterogeneidad. Hay que modelar la intensidad con la población como covariable y usar una K no homogénea." data-wrong="Piensa en qué pasaría si los casos ocurrieran totalmente al azar entre las personas, pero las personas no estuvieran repartidas de forma uniforme.">
+      <div class="quiz" data-right="Exacto. Con un solo patrón no se distingue contagio de heterogeneidad. Hay que modelar la intensidad con la población como covariable o con controles y usar una K no homogénea." data-wrong="Piensa en qué pasaría si los casos ocurrieran totalmente al azar entre las personas, pero las personas no estuvieran repartidas de forma uniforme.">
         <h3>Los casos de una enfermedad salen agrupados según la función K. ¿Por qué eso no prueba que sea contagiosa?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque la función K solo funciona con árboles</button>
@@ -225,46 +332,119 @@ env &lt;- <span class="f">envelope</span>(X, Lest, nsim = <span class="n">39</sp
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Bajo CSR la distancia esperada al vecino más cercano es 1/(2√λ). Con λ = 400 por km², √λ = 20 y E[D] = 1/40 km = 25 m." data-wrong="Usa E[D] = 1/(2√λ) con λ en puntos por km², y convierte el resultado a metros.">
+        <h3>Hay 400 farmacias por km² repartidas al azar (CSR). ¿Cuál es la distancia esperada de una farmacia a la más cercana?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>50 m</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>25 m</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>2,5 m</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>12,5 m</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Al adelgazar al azar se pierden puntos de forma independiente, lo que baja la intensidad pero no cambia la estructura de interacción: K queda igual." data-wrong="Recuerda que K está dividida por λ. ¿Qué pasa con el número de vecinos y con λ si cada punto se conserva con probabilidad p?">
+        <h3>Eliminas al azar la mitad de los puntos de un patrón agrupado (cada uno con probabilidad 0,5, independientemente). ¿Qué pasa con la función K?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Se reduce a la mitad</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Pasa a ser πr², porque el patrón se vuelve aleatorio</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se duplica</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>No cambia: K es invariante al adelgazamiento independiente</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="puntos-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución.</p>
+      <h2 id="puntos-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>En una parcela de 4 ha (40 000 m²) se cuentan 120 árboles. Bajo CSR, ¿cuál es la intensidad estimada? ¿Cuántos árboles esperas en un cuadrado de 10 × 10 m y qué probabilidad hay de que esté vacío?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(\hat\lambda = 120/40\,000 = 0{,}003\) árboles/m² (30 por hectárea). En 100 m² se esperan \(0{,}003 \times 100 = 0{,}3\) árboles, y \(P(N = 0) = e^{-0{,}3} \approx\) <b>0,741</b>: casi tres de cada cuatro cuadrados de ese tamaño estarían vacíos sin que eso indique nada raro.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para un Poisson homogéneo de intensidad \(\lambda\) en el plano: (a) deduce la función de distribución \(G(r)\) de la distancia \(D\) al vecino más cercano; (b) calcula \(\mathbb{E}[D]\) y \(\operatorname{Var}(D)\); (c) explica de dónde sale la constante 0,26136 del estadístico de Clark-Evans; (d) muestra que \(\pi\lambda D^2\) tiene distribución exponencial de media 1 y úsalo para proponer una prueba exacta basada en \(\sum_i \pi\lambda d_i^2\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(P(D > r) = P(N(b(\mathbf{s}, r)) = 0) = e^{-\lambda\pi r^2}\) por Slivnyak, así que \(G(r) = 1 - e^{-\lambda\pi r^2}\).</p>
+            <p>(b) \(\mathbb{E}[D] = \int_0^\infty P(D > r)dr = \int_0^\infty e^{-\lambda\pi r^2}dr = \frac12\sqrt{\frac{\pi}{\lambda\pi}} = \frac{1}{2\sqrt\lambda}\). \(\mathbb{E}[D^2] = \int_0^\infty 2r e^{-\lambda\pi r^2}dr = \frac{1}{\lambda\pi}\). \(\operatorname{Var}(D) = \frac{1}{\lambda\pi} - \frac{1}{4\lambda} = \frac{4-\pi}{4\pi\lambda}\).</p>
+            <p>(c) El error estándar de la media de \(n\) distancias (suponiendo independencia aproximada) es \(\sqrt{(4-\pi)/(4\pi\lambda n)}\), y \(\sqrt{(4-\pi)/(4\pi)} = \sqrt{0{,}06831} = 0{,}26136\).</p>
+            <p>(d) \(P(\pi\lambda D^2 > t) = P(D > \sqrt{t/(\pi\lambda)}) = e^{-t}\): exponencial de media 1. Si las distancias fueran independientes, \(2\sum_i\pi\lambda d_i^2 \sim \chi^2_{2n}\) daría una prueba exacta. En la práctica no lo son (dos puntos pueden ser mutuamente vecinos), por eso se usa una submuestra de puntos separados o una prueba de Monte Carlo.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>En 1 km² hay 50 nidos y la distancia media al vecino más cercano es 42 m. Calcula el índice de Clark-Evans e interprétalo.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(\hat\lambda = 50\) nidos/km², así que la distancia esperada bajo CSR es \(0{,}5/\sqrt{50} = 0{,}0707\) km = 70,7 m. \(R = 42/70{,}7 \approx\) <b>0,59</b>. Los nidos están más cerca entre sí de lo que estarían al azar: patrón <b>agrupado</b>. El error estándar es \(0{,}26136/\sqrt{50 \times 50} = 0{,}0052\) km, y \(Z = (42 - 70{,}7)/5{,}2 \approx -5{,}5\): muy significativo.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para un proceso de Thomas con \(\kappa = 10\) padres por unidad de área y \(\sigma = 0{,}03\): (a) a partir de \(g(r) = 1 + \frac{1}{4\pi\kappa\sigma^2}e^{-r^2/4\sigma^2}\), deduce \(K(r)\); (b) calcula \(K\) y \(L(r) - r\) en \(r = 0{,}1\); (c) en un patrón observado obtuviste \(\hat K(0{,}1) = 0{,}0471\). ¿Qué tan lejos está de CSR y del modelo? ¿Qué explicaría la diferencia?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(K(r) = \int_0^r 2\pi u\,du + \frac{2\pi}{4\pi\kappa\sigma^2}\int_0^r u e^{-u^2/4\sigma^2}du = \pi r^2 + \frac{1}{2\kappa\sigma^2}\cdot 2\sigma^2\big(1 - e^{-r^2/4\sigma^2}\big) = \pi r^2 + \frac{1}{\kappa}\big(1 - e^{-r^2/4\sigma^2}\big)\).</p>
+            <p>(b) CSR: \(K = \pi (0{,}1)^2 = 0{,}0314\) y \(L - r = 0\). Thomas: \(K = 0{,}0314 + \frac{1}{10}\big(1 - e^{-0{,}01/0{,}0036}\big) = 0{,}0314 + 0{,}0938 = 0{,}1252\), así que \(L = \sqrt{0{,}1252/\pi} = 0{,}1996\) y \(L - r \approx 0{,}100\).</p>
+            <p>(c) Observado: \(L = \sqrt{0{,}0471/\pi} = 0{,}1224\), \(L - r \approx 0{,}022\). Hay algo de agrupamiento respecto de CSR, pero mucho menos del que predice ese Thomas. Puede que los grupos sean más numerosos (\(\kappa\) mayor, cada grupo aporta menos exceso), más anchos (\(\sigma\) mayor) o que el patrón sea una mezcla con puntos dispersos. Por ejemplo, con \(\sigma = 0{,}03\) fijo, igualar \(0{,}0471 = 0{,}0314 + 0{,}938/\kappa\) da \(\kappa \approx 60\). Ajustar por mínimo contraste (<code>kppm</code>) estima \(\kappa\) y \(\sigma\) con toda la curva, no con un solo \(r\).</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Una parcela se divide en 9 cuadrantes iguales y se cuentan: 0, 2, 1, 8, 0, 1, 7, 0, 2. Calcula el índice varianza/media y el estadístico \(X^2\), y decide si hay evidencia contra CSR. ¿Qué advertencia harías sobre la prueba?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(n = 21\), \(\bar n = 2{,}33\), \(s^2 = 74/8 = 9{,}25\). IVM \(= 9{,}25/2{,}33 \approx 3{,}96\), muy por encima de 1. \(X^2 = 8 \times 9{,}25 / 2{,}33 = 31{,}7\) con 8 grados de libertad, \(p \approx 0{,}0001\): fuerte evidencia de <b>agrupamiento</b>.</p><p>Advertencia: con \(\bar n = 2{,}3\) la aproximación chi-cuadrado es dudosa; conviene un valor p por Monte Carlo (simular conteos multinomiales con \(n = 21\)) o usar otro tamaño de cuadrante.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación: genera 300 patrones CSR de 60 puntos en el cuadrado unidad. Para cada uno, construye la envolvente de 39 patrones CSR para \(L(r) - r\) en 25 distancias entre 0,01 y 0,25. Estima la probabilidad de (a) salir de la banda en \(r = 0{,}10\); (b) salir en algún \(r\); (c) rechazar con una envolvente global basada en la desviación máxima \(\max_r|\hat L(r) - r|\). Compara con el 5 % nominal.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-<span class="k">from</span> scipy.stats <span class="k">import</span> chi2
-n = np.<span class="f">array</span>([<span class="n">0</span>, <span class="n">2</span>, <span class="n">1</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">7</span>, <span class="n">0</span>, <span class="n">2</span>])
-x2 = ((n - n.<span class="f">mean</span>())**<span class="n">2</span> / n.<span class="f">mean</span>()).<span class="f">sum</span>()
-<span class="f">print</span>(n.<span class="f">var</span>(ddof=<span class="n">1</span>) / n.<span class="f">mean</span>(), x2, chi2.<span class="f">sf</span>(x2, df=<span class="n">8</span>))   <span class="c"># 3.96  31.7  0.0001</span>
-<span class="c"># p por Monte Carlo</span>
-rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
-sims = rng.<span class="f">multinomial</span>(<span class="n">21</span>, [<span class="n">1</span>/<span class="n">9</span>]*<span class="n">9</span>, size=<span class="n">9999</span>)
-x2s = ((sims - <span class="n">21</span>/<span class="n">9</span>)**<span class="n">2</span> / (<span class="n">21</span>/<span class="n">9</span>)).<span class="f">sum</span>(axis=<span class="n">1</span>)
-<span class="f">print</span>((<span class="n">1</span> + (x2s &gt;= x2).<span class="f">sum</span>()) / <span class="n">10000</span>)   <span class="c"># ≈ 0.0003</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>n &lt;- <span class="f">c</span>(<span class="n">0</span>, <span class="n">2</span>, <span class="n">1</span>, <span class="n">8</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">7</span>, <span class="n">0</span>, <span class="n">2</span>)
-x2 &lt;- <span class="f">sum</span>((n - <span class="f">mean</span>(n))^<span class="n">2</span> / <span class="f">mean</span>(n))
-<span class="f">c</span>(ivm = <span class="f">var</span>(n) / <span class="f">mean</span>(n), x2 = x2, p = <span class="f">pchisq</span>(x2, df = <span class="n">8</span>, lower.tail = <span class="k">FALSE</span>))
-<span class="c"># p por Monte Carlo</span>
-<span class="f">chisq.test</span>(n, simulate.p.value = <span class="k">TRUE</span>, B = <span class="n">9999</span>)</code></pre>
-</div></div></details>
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">3</span>)
+r = np.<span class="f">linspace</span>(<span class="n">0.01</span>, <span class="n">0.25</span>, <span class="n">25</span>)
+
+<span class="k">def</span> <span class="f">L_menos_r</span>(pts):
+    n = <span class="f">len</span>(pts)
+    dx = np.<span class="f">abs</span>(pts[:, <span class="k">None</span>, <span class="n">0</span>] - pts[<span class="k">None</span>, :, <span class="n">0</span>])
+    dy = np.<span class="f">abs</span>(pts[:, <span class="k">None</span>, <span class="n">1</span>] - pts[<span class="k">None</span>, :, <span class="n">1</span>])
+    d = np.<span class="f">hypot</span>(dx, dy); np.<span class="f">fill_diagonal</span>(d, np.inf)
+    peso = <span class="n">1</span> / ((<span class="n">1</span> - dx) * (<span class="n">1</span> - dy))
+    K = np.<span class="f">array</span>([(peso * (d &lt;= ri)).<span class="f">sum</span>() <span class="k">for</span> ri <span class="k">in</span> r]) / (n * (n - <span class="n">1</span>))
+    <span class="k">return</span> np.<span class="f">sqrt</span>(K / np.pi) - r
+
+n, rep = <span class="n">60</span>, <span class="n">300</span>
+fuera_r = <span class="n">0</span>                  <span class="c"># sale de la banda en un r fijo (r = 0,10)</span>
+fuera_alguno = <span class="n">0</span>             <span class="c"># sale de la banda en algún r</span>
+fuera_global = <span class="n">0</span>             <span class="c"># envolvente global por desviación máxima</span>
+j = np.<span class="f">argmin</span>(<span class="f">abs</span>(r - <span class="n">0.10</span>))
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(rep):
+    obs = <span class="f">L_menos_r</span>(rng.<span class="f">uniform</span>(size=(n, <span class="n">2</span>)))            <span class="c"># ¡el patrón SÍ es CSR!</span>
+    sims = np.<span class="f">array</span>([<span class="f">L_menos_r</span>(rng.<span class="f">uniform</span>(size=(n, <span class="n">2</span>))) <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">39</span>)])
+    fuera = (obs &gt; sims.<span class="f">max</span>(<span class="n">0</span>)) | (obs &lt; sims.<span class="f">min</span>(<span class="n">0</span>))
+    fuera_r += fuera[j]
+    fuera_alguno += fuera.<span class="f">any</span>()
+    <span class="c"># global: desviación máxima |L - r| del observado frente a las 39 simuladas</span>
+    fuera_global += np.<span class="f">abs</span>(obs).<span class="f">max</span>() &gt; np.<span class="f">abs</span>(sims).<span class="f">max</span>(<span class="n">1</span>).<span class="f">max</span>()
+<span class="f">print</span>(fuera_r / rep, fuera_alguno / rep, fuera_global / rep)</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(spatstat)
+<span class="f">set.seed</span>(<span class="n">3</span>)
+rr &lt;- <span class="f">seq</span>(<span class="n">0</span>, <span class="n">0.25</span>, length.out = <span class="n">26</span>)
+res &lt;- <span class="f">replicate</span>(<span class="n">300</span>, {
+  X &lt;- <span class="f">runifpoint</span>(<span class="n">60</span>)                                    <span class="c"># el patrón SÍ es CSR</span>
+  e &lt;- <span class="f">envelope</span>(X, Lest, nsim = <span class="n">39</span>, r = rr, correction = <span class="s">"translate"</span>,
+                savefuns = <span class="k">TRUE</span>, verbose = <span class="k">FALSE</span>)
+  fuera &lt;- (e$obs &gt; e$hi) | (e$obs &lt; e$lo)
+  g &lt;- <span class="f">envelope</span>(e, global = <span class="k">TRUE</span>, verbose = <span class="k">FALSE</span>)       <span class="c"># envolvente global (desviación máxima)</span>
+  <span class="f">c</span>(r10 = fuera[<span class="f">which.min</span>(<span class="f">abs</span>(rr - <span class="n">0.10</span>))],
+    alguno = <span class="f">any</span>(fuera[-<span class="n">1</span>]),
+    global = <span class="f">any</span>(g$obs &gt; g$hi | g$obs &lt; g$lo))
+})
+<span class="f">rowMeans</span>(res)   <span class="c"># ≈ 0,05 en un r fijo; ≈ 0,35 en algún r; ≈ 0,025 con la global</span></code></pre>
+</div>
+            <p>Resultados aproximados: (a) ≈ 0,05, el nivel nominal \(2/40\); (b) ≈ 0,35, siete veces el nominal; (c) ≈ 0,01 a 0,03, cerca del valor teórico \(1/40 = 0{,}025\) de esta prueba de rango de una cola (el observado tiene la mayor desviación de los 40). Moraleja: la banda puntual es una ayuda visual; para afirmar que un patrón no es CSR usa la global o DCLF, y fija la escala de interés antes de mirar los datos.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Para un proceso de Thomas con \(\kappa = 10\) padres por unidad de área y \(\sigma = 0{,}03\), calcula la \(K\) teórica y \(L(r) - r\) en \(r = 0{,}1\). En un patrón observado obtuviste \(\hat K(0{,}1) = 0{,}0471\). ¿Qué tan lejos está de CSR y del modelo de Thomas? ¿Qué explicaría la diferencia?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>CSR: \(K = \pi (0{,}1)^2 = 0{,}0314\) y \(L - r = 0\). Thomas: \(K = 0{,}0314 + \frac{1}{10}\big(1 - e^{-0{,}01/0{,}0036}\big) = 0{,}0314 + 0{,}0938 = 0{,}1252\), así que \(L = \sqrt{0{,}1252/\pi} = 0{,}1996\) y \(L - r \approx 0{,}100\).</p><p>Observado: \(L = \sqrt{0{,}0471/\pi} = 0{,}1224\), \(L - r \approx 0{,}022\). Hay algo de agrupamiento respecto de CSR, pero mucho menos del que predice ese Thomas. Puede que los grupos sean más numerosos (\(\kappa\) mayor, cada grupo aporta menos exceso), más anchos (\(\sigma\) mayor) o que el patrón sea una mezcla con puntos dispersos. Ajustar el modelo por mínimo contraste (<code>kppm</code>) estima \(\kappa\) y \(\sigma\) con toda la curva, no con un solo \(r\).</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que si un proceso estacionario con función \(K\) se adelgaza al azar, conservando cada punto con probabilidad \(p\) de forma independiente, la función \(K\) del proceso resultante es la misma. (b) Demuestra que la corrección por traslación hace a \(\hat K\) aproximadamente insesgado: muestra que el número esperado de pares ordenados con diferencia en \(d\mathbf{h}\) observables en la ventana es \(\lambda^2 g(\mathbf{h})|W \cap (W + \mathbf{h})|\,d\mathbf{h}\). (c) ¿Por qué se recomienda no pasar de \(r\) igual a un cuarto del lado?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) La intensidad pasa a \(p\lambda\). El número esperado de otros puntos conservados a distancia \(\le r\) de un punto conservado típico es \(p\) veces el original (cada vecino sobrevive con probabilidad \(p\), independiente del punto central): \(p\lambda K(r)\). Dividiendo por la nueva intensidad: \(K_p(r) = p\lambda K(r)/(p\lambda) = K(r)\).</p>
+            <p>(b) La densidad de pares ordenados \((\mathbf{x}, \mathbf{y})\) es \(\lambda^2 g(\mathbf{y} - \mathbf{x})\). Los pares con \(\mathbf{y} - \mathbf{x} = \mathbf{h}\) que caen ambos en \(W\) requieren \(\mathbf{x} \in W \cap (W - \mathbf{h})\), un conjunto de área \(|W \cap (W + \mathbf{h})|\). Por eso \(\mathbb{E}\sum_{i\ne j}\frac{\mathbf{1}\{d_{ij}\le r\}}{|W \cap (W + \mathbf{s}_j - \mathbf{s}_i)|} = \lambda^2\int_{\|\mathbf{h}\|\le r} g(\mathbf{h})\,d\mathbf{h} = \lambda^2 K(r)\). Multiplicar por \(|W|^2/(n(n-1)) \approx 1/\lambda^2\) da \(\hat K(r) \approx K(r)\); la aproximación viene de estimar \(\lambda^2\).</p>
+            <p>(c) Para \(r\) grande, \(|W \cap (W + \mathbf{h})|\) se vuelve pequeño, los pesos explotan y pocos pares dominan el estimador: la varianza crece mucho. Además, a escalas comparables con la ventana hay muy pocas “réplicas” de la estructura.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Un municipio mapea 85 casos de leucemia infantil en 10 años y encuentra que \(\hat L(r) - r\) sale de la envolvente CSR entre 200 m y 2 km. Un concejal concluye: “hay un foco causado por la antena de telefonía del centro”. (a) Da al menos tres razones por las que esa conclusión no se sigue. (b) Propón un análisis caso-control: qué controles usarías y qué función compararías. (c) Si \(D(r) = K_{\text{casos}}(r) - K_{\text{controles}}(r)\) queda dentro de la envolvente por reetiquetado aleatorio, ¿qué concluyes? (d) ¿Cómo evaluarías específicamente la hipótesis de la antena?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) La población infantil no está repartida uniformemente: más niños en el centro dan agrupamiento sin ningún factor de riesgo. La prueba con envolvente puntual sobre muchas distancias infla el error tipo I. El agrupamiento no dice nada sobre la causa ni sobre la antena (no se usó su ubicación). Y 10 años mezclan residencias que cambian: la dirección al diagnóstico puede no ser la de exposición.</p>
+            <p>(b) Controles: una muestra aleatoria de niños de la misma edad del registro de nacimientos o del censo, geocodificados igual que los casos. Se compara \(K_{\text{casos}}\) con \(K_{\text{controles}}\): si el riesgo es igual en todas partes, ambas tienen la misma K aunque la población esté agrupada.</p>
+            <p>(c) Reetiquetar al azar casos y controles (manteniendo las 85 etiquetas de caso) genera la distribución nula de \(D(r)\). Si \(D\) queda dentro de la banda, el agrupamiento de los casos es el mismo que el de la población: no hay evidencia de agrupamiento extra del riesgo.</p>
+            <p>(d) Con un modelo de intensidad relativa: \(\lambda_{\text{casos}}(\mathbf{s}) = \rho\,\lambda_{\text{controles}}(\mathbf{s})\,f(d(\mathbf{s}, \text{antena}))\), por ejemplo con \(f(d) = 1 + \alpha e^{-d/\beta}\) como en el análisis de Chorley-Ribble, y probar \(\alpha = 0\) por verosimilitud o con una regresión logística de caso frente a control con la distancia a la antena como covariable, ajustando por edad y nivel socioeconómico.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

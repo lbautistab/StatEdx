@@ -5,52 +5,198 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Clustering: k-means y jerárquico</h1>
-      <p>A veces no hay una respuesta que predecir, solo datos que queremos ordenar en grupos de casos parecidos. Aquí aprendes los dos métodos de agrupamiento más usados, k-means y el clustering jerárquico, cómo elegir el número de grupos con el codo y la silueta, y cómo leer un dendrograma sin caer en sus trampas.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel intermedio</span><span>Requiere: k vecinos más cercanos</span><span>R · Python</span></div>
+      <p>A veces no hay una respuesta que predecir, solo datos que queremos ordenar en grupos de casos parecidos. Aquí aprendes los dos métodos de agrupamiento más usados, k-means y el clustering jerárquico: su formulación como problema de optimización, por qué el algoritmo de Lloyd converge, cómo elegir el número de grupos con el codo, la silueta y el estadístico gap, y cómo leer un dendrograma sin caer en sus trampas.</p>
+      <div class="lmeta"><span>85 min</span><span>Nivel intermedio</span><span>Requiere: k vecinos más cercanos</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#kmeans-idea" data-sec="kmeans-idea">La idea</a></li>
-        <li><a href="#kmeans-alg" data-sec="kmeans-alg">El algoritmo k-means</a></li>
-        <li><a href="#kmeans-lab" data-sec="kmeans-lab">Laboratorio: k-means</a></li>
-        <li><a href="#kmeans-elegir" data-sec="kmeans-elegir">Elegir k: codo y silueta</a></li>
+        <li><a href="#kmeans-intro" data-sec="kmeans-intro">Introducción</a></li>
+        <li><a href="#kmeans-def" data-sec="kmeans-def">Definición</a></li>
+        <li><a href="#kmeans-alg" data-sec="kmeans-alg">El algoritmo de Lloyd</a></li>
+        <li><a href="#kmeans-elegir" data-sec="kmeans-elegir">Elegir k: codo, silueta y gap</a></li>
         <li><a href="#kmeans-jer" data-sec="kmeans-jer">Clustering jerárquico</a></li>
-        <li><a href="#kmeans-dendro" data-sec="kmeans-dendro">Laboratorio: dendrograma</a></li>
-        <li><a href="#kmeans-cuidados" data-sec="kmeans-cuidados">Cuidados y alternativas</a></li>
+        <li><a href="#kmeans-prop" data-sec="kmeans-prop">Propiedades</a></li>
+        <li><a href="#kmeans-sim" data-sec="kmeans-sim">Ejercicios de simulación</a></li>
+        <li><a href="#kmeans-apps" data-sec="kmeans-apps">Aplicaciones reales</a></li>
         <li><a href="#kmeans-code" data-sec="kmeans-code">En R y Python</a></li>
-        <li><a href="#kmeans-quiz" data-sec="kmeans-quiz">Comprueba</a></li>
-        <li><a href="#kmeans-ej" data-sec="kmeans-ej">Ejercicios</a></li>
+        <li><a href="#kmeans-quiz" data-sec="kmeans-quiz">Quiz</a></li>
+        <li><a href="#kmeans-ej" data-sec="kmeans-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="kmeans-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="kmeans-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una cafetería tiene los registros de 2 000 clientes con su tarjeta de puntos: cuántas veces vienen al mes y cuánto gastan por visita. Quiere diseñar promociones distintas para tipos distintos de clientes, pero nadie le dijo cuáles son esos tipos. Al graficar los datos aparecen nubes: los que vienen todos los días por un café barato, los que vienen poco pero gastan mucho el fin de semana, los ocasionales. Encontrar esas nubes automáticamente es <b>clustering</b> (agrupamiento).</p>
-      <p>Es un problema de <b>aprendizaje no supervisado</b>: no hay una variable respuesta \(y\) con la que comparar. En clasificación sabemos las clases y aprendemos a predecirlas; en clustering inventamos los grupos a partir de la similitud entre casos. Por eso no existe “el” agrupamiento correcto: un buen agrupamiento es uno con grupos compactos, bien separados y, sobre todo, <b>útiles e interpretables</b> para quien los va a usar.</p>
-      <div class="callout"><b>Dos familias:</b> los métodos de <b>partición</b>, como k-means, reparten los datos en exactamente \(k\) grupos que tú eliges. Los métodos <b>jerárquicos</b> construyen un árbol de fusiones (el dendrograma) que contiene agrupamientos para todos los valores de \(k\) a la vez; tú decides después dónde cortarlo.</div>
-
-      <h2 id="kmeans-alg"><span class="sec">§ 2</span>El algoritmo k-means</h2>
-      <p>k-means busca \(k\) grupos \(C_1, \dots, C_k\) y un centro \(\mu_j\) para cada uno, de modo que la suma de las distancias al cuadrado de cada punto a su centro sea lo más pequeña posible. Esa suma se llama <b>suma de cuadrados dentro de los grupos</b> (WCSS, o <i>inercia</i> en scikit-learn):</p>
-      <div class="eq">\[ W(C) = \sum_{j=1}^{k} \sum_{i \in C_j} \lVert x_i - \mu_j \rVert^2, \qquad \mu_j = \frac{1}{|C_j|}\sum_{i \in C_j} x_i \]
-        <div class="note">Una identidad útil: \(\sum_{i \in C_j} \lVert x_i - \mu_j \rVert^2 = \frac{1}{2|C_j|}\sum_{i, i' \in C_j} \lVert x_i - x_{i'} \rVert^2\). Minimizar \(W\) equivale a hacer que los puntos de cada grupo estén cerca <b>entre sí</b>.</div>
+      <p>Es un problema de <b>aprendizaje no supervisado</b>: no hay una variable respuesta \(y\) con la que comparar. En clasificación (como en <a href="#knn">k vecinos más cercanos</a> o en <a href="#trees">árboles</a>) sabemos las clases y aprendemos a predecirlas; en clustering inventamos los grupos a partir de la similitud entre casos. Por eso no existe “el” agrupamiento correcto: un buen agrupamiento es uno con grupos compactos, bien separados y, sobre todo, <b>útiles e interpretables</b> para quien los va a usar.</p>
+      <p><b>Un poco de historia.</b> La idea de partir datos minimizando distancias al cuadrado aparece en Hugo Steinhaus (1956). Stuart Lloyd, en los Laboratorios Bell, propuso en 1957 el algoritmo de alternar asignaciones y medias para cuantizar señales de audio (cuántos niveles usar para transmitir una señal con el menor error), aunque su informe se publicó recién en 1982. James MacQueen acuñó el nombre “k-means” en 1967. El clustering jerárquico creció en paralelo en la taxonomía numérica de Sokal y Sneath (1963), que querían clasificar especies a partir de muchas características medidas, y Joe Ward propuso ese mismo año el criterio de fusión que lleva su nombre. Hoy ambos métodos son la base de la segmentación de clientes, la genómica, la compresión de imágenes y muchas tareas de exploración de datos.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a formular k-means como la minimización de la suma de cuadrados dentro de los grupos (WCSS) y a calcularla a mano;</li>
+          <li>por qué el algoritmo de Lloyd siempre converge, por qué solo a un mínimo local y cómo ayuda k-means++;</li>
+          <li>a elegir \(k\) con el codo, la silueta, el índice de Calinski-Harabasz y el estadístico gap, y a desconfiar de cada uno;</li>
+          <li>a construir un dendrograma con distintos enlaces (simple, completo, promedio, Ward) y a cortarlo;</li>
+          <li>a aplicar ambos métodos en R y Python a un caso real y a evaluar los grupos con el índice de Rand ajustado.</li>
+        </ul>
       </div>
-      <p>Probar todas las particiones posibles es imposible (con 100 puntos y 3 grupos hay más de \(10^{46}\)), así que se usa el <b>algoritmo de Lloyd</b>, que alterna dos pasos sencillos:</p>
+
+      <h2 id="kmeans-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Tenemos \(n\) observaciones \(x_1, \dots, x_n \in \mathbb{R}^p\) (cada una es un vector con \(p\) variables numéricas). Una <b>partición</b> en \(k\) grupos es una colección \(C = \{C_1, \dots, C_k\}\) de subconjuntos de índices, no vacíos, disjuntos y que juntos cubren \(\{1, \dots, n\}\). Escribimos \(c(i) \in \{1, \dots, k\}\) para el grupo al que pertenece la observación \(i\), y \(n_j = |C_j|\) para el tamaño del grupo \(j\).</p>
+      <div class="callout"><b>Definición (problema de k-means).</b> Dado \(k\), k-means busca la partición \(C\) y los centros \(\mu_1, \dots, \mu_k \in \mathbb{R}^p\) que minimizan la <b>suma de cuadrados dentro de los grupos</b> (WCSS, <i>within-cluster sum of squares</i>, llamada <i>inercia</i> en scikit-learn):
+        \[ W(C, \mu) = \sum_{j=1}^{k} \sum_{i \in C_j} \lVert x_i - \mu_j \rVert^2 . \]
+        Para una partición fija, el mejor centro de cada grupo es su <b>centroide</b> \(\bar x_j = \frac{1}{n_j}\sum_{i \in C_j} x_i\), y escribimos simplemente \(W(C)\).</div>
+      <p>Cada término se lee así: \(\lVert x_i - \mu_j \rVert^2 = \sum_{l=1}^{p}(x_{il} - \mu_{jl})^2\) es la distancia euclidiana al cuadrado del punto \(i\) a su centro; la suma interior mide la dispersión del grupo \(j\); la exterior suma esa dispersión sobre todos los grupos. Una identidad útil muestra que la WCSS también mide qué tan cerca están los puntos de un grupo <b>entre sí</b>:</p>
+      <div class="eq">\[ \sum_{i \in C_j} \lVert x_i - \bar x_j \rVert^2 = \frac{1}{2 n_j}\sum_{i \in C_j}\sum_{i' \in C_j} \lVert x_i - x_{i'} \rVert^2 \]
+        <div class="note">Se prueba expandiendo \(\lVert x_i - x_{i'} \rVert^2 = \lVert (x_i - \bar x_j) - (x_{i'} - \bar x_j) \rVert^2\) y usando que \(\sum_{i \in C_j}(x_i - \bar x_j) = 0\).</div>
+      </div>
+      <p><b>Ejemplo numérico.</b> Cuatro puntos en el plano: \(A = (1, 1)\), \(B = (2, 1)\), \(D = (4, 3)\), \(E = (5, 4)\). Con la partición \(\{A, B\}, \{D, E\}\) los centroides son \(\bar x_1 = (1{,}5;\ 1)\) y \(\bar x_2 = (4{,}5;\ 3{,}5)\). Las distancias al cuadrado son \(0{,}25\) para \(A\) y \(B\), y \(0{,}25 + 0{,}25 = 0{,}5\) para \(D\) y \(E\). Entonces \(W = 0{,}25 + 0{,}25 + 0{,}5 + 0{,}5 = 1{,}5\). Con la identidad: en el grupo 2, \(\lVert D - E \rVert^2 = 2\), los pares ordenados suman \(2 \cdot 2 = 4\) y \(4/(2 \cdot 2) = 1\), igual que \(0{,}5 + 0{,}5\). La partición alternativa \(\{A\}, \{B, D, E\}\) tiene centroide \((3{,}67;\ 2{,}67)\) para el grupo grande; las distancias al cuadrado de \(B\), \(D\) y \(E\) son 5,56, 0,22 y 3,56, así que \(W \approx 9{,}33\), mucho peor.</p>
+      <p>Otras definiciones que usaremos:</p>
+      <ul>
+        <li><b>Suma de cuadrados total</b> \(T = \sum_{i=1}^{n}\lVert x_i - \bar x \rVert^2\), con \(\bar x\) la media global; no depende de la partición.</li>
+        <li><b>Suma de cuadrados entre grupos</b> \(B(C) = \sum_{j=1}^{k} n_j \lVert \bar x_j - \bar x \rVert^2\): qué tan lejos están los centroides de la media global, ponderados por tamaño.</li>
+        <li><b>Clustering jerárquico aglomerativo</b>: una sucesión de \(n - 1\) fusiones que va de \(n\) grupos de un punto a un solo grupo, guiada por una <b>función de enlace</b> \(D(A, B)\) entre grupos.</li>
+        <li><b>Dendrograma</b>: el árbol que dibuja esas fusiones a la altura \(h\) en que ocurren; cortar a altura \(h\) da una partición.</li>
+      </ul>
+
+      <h2 id="kmeans-alg"><span class="sec">§ 3</span>El algoritmo de Lloyd y su convergencia</h2>
+      <p>Encontrar la partición óptima es un problema combinatorio enorme: el número de particiones de \(n\) puntos en \(k\) grupos es el número de Stirling de segunda clase \(S(n, k) \approx k^n / k!\). Con 100 puntos y 3 grupos hay más de \(10^{46}\). Además, el problema exacto es NP-difícil incluso con \(k = 2\) en dimensión general (Aloise y colaboradores, 2009). Por eso se usa una heurística, el <b>algoritmo de Lloyd</b>, que alterna dos minimizaciones sencillas:</p>
       <ol>
-        <li><b>Inicializa</b> \(k\) centros, por ejemplo eligiendo \(k\) puntos al azar.</li>
-        <li><b>Asigna</b> cada punto al centro más cercano: \(c(i) = \arg\min_j \lVert x_i - \mu_j \rVert^2\).</li>
-        <li><b>Actualiza</b> cada centro como la media de los puntos que le tocaron.</li>
+        <li><b>Inicializa</b> \(k\) centros \(\mu_1^{(0)}, \dots, \mu_k^{(0)}\), por ejemplo eligiendo \(k\) puntos al azar.</li>
+        <li><b>Asigna</b> cada punto al centro más cercano: \(c^{(t)}(i) = \arg\min_j \lVert x_i - \mu_j^{(t)} \rVert^2\).</li>
+        <li><b>Actualiza</b> cada centro como la media de los puntos que le tocaron: \(\mu_j^{(t+1)} = \frac{1}{n_j}\sum_{i: c^{(t)}(i) = j} x_i\).</li>
         <li>Repite 2 y 3 hasta que ninguna asignación cambie.</li>
       </ol>
-      <p>Cada paso <b>nunca aumenta</b> \(W\): asignar al centro más cercano solo puede achicar las distancias, y la media es el punto que minimiza la suma de distancias al cuadrado de un grupo. Como hay un número finito de particiones, el algoritmo siempre se detiene. Pero se detiene en un <b>mínimo local</b>, que depende de los centros iniciales. Dos remedios estándar:</p>
+      <h3>Por qué la media es el mejor centro</h3>
+      <p>Para un grupo fijo con puntos \(x_1, \dots, x_m\), sea \(g(\mu) = \sum_i \lVert x_i - \mu \rVert^2\). Sumando y restando \(\bar x\):</p>
+      <div class="eq">\[ g(\mu) = \sum_i \lVert (x_i - \bar x) + (\bar x - \mu) \rVert^2 = \sum_i \lVert x_i - \bar x \rVert^2 + 2(\bar x - \mu)^\top \underbrace{\sum_i (x_i - \bar x)}_{=\,0} + m \lVert \bar x - \mu \rVert^2 . \]
+        <div class="note">El primer término no depende de \(\mu\) y el último es no negativo y vale 0 solo si \(\mu = \bar x\). Es la misma descomposición que en <a href="#desc">estadística descriptiva</a> justifica la varianza como suma de cuadrados respecto de la media.</div>
+      </div>
+      <div class="callout"><b>Teorema (convergencia del algoritmo de Lloyd).</b> La sucesión \(W^{(t)}\) no crece: \(W^{(t+1)} \le W^{(t)}\). Como solo hay un número finito de particiones, el algoritmo se detiene en un número finito de pasos en una partición donde ningún paso mejora: un <b>mínimo local</b> (un punto fijo) de \(W\).</div>
+      <p><b>Demostración.</b> Escribe \(W(c, \mu) = \sum_i \lVert x_i - \mu_{c(i)} \rVert^2\) como función de las asignaciones y los centros. En el paso de asignación, con \(\mu\) fijo, cada punto elige el centro más cercano, así que cada término individual no crece: \(W(c^{(t)}, \mu^{(t)}) \le W(c^{(t-1)}, \mu^{(t)})\). En el paso de actualización, con \(c\) fijo, la descomposición anterior dice que la media minimiza la suma de cada grupo: \(W(c^{(t)}, \mu^{(t+1)}) \le W(c^{(t)}, \mu^{(t)})\). Encadenando, la sucesión es monótona. Si una asignación se repitiera con \(W\) estrictamente menor tendríamos una contradicción, así que no hay ciclos y el número de pasos está acotado por el número de particiones. \(\square\)</p>
+      <p>El teorema no promete el óptimo global. El resultado depende de los centros iniciales, y una mala inicialización puede dejar dos centros compartiendo una nube y otra nube repartida entre dos grupos. Dos remedios estándar:</p>
       <ul>
         <li><b>Varios inicios:</b> correr el algoritmo muchas veces (<code>nstart = 25</code> en R, <code>n_init</code> en scikit-learn) y quedarse con la solución de menor \(W\).</li>
-        <li><b>k-means++:</b> elegir el primer centro al azar y cada uno de los siguientes con probabilidad proporcional a \(D(x)^2\), la distancia al cuadrado al centro ya elegido más cercano. Así los centros iniciales quedan separados. Es la inicialización por defecto en scikit-learn y garantiza, en esperanza, un \(W\) a lo sumo \(O(\log k)\) veces el óptimo.</li>
+        <li><b>k-means++</b> (Arthur y Vassilvitskii, 2007): elegir el primer centro al azar y cada uno de los siguientes con probabilidad proporcional a \(D(x)^2\), la distancia al cuadrado al centro ya elegido más cercano. Así los centros iniciales quedan separados. Los autores probaron que, en esperanza, la WCSS obtenida solo con esa siembra es a lo sumo \(8(\ln k + 2)\) veces la óptima. Es la inicialización por defecto en scikit-learn.</li>
       </ul>
-      <p>Cada iteración cuesta \(O(nkp)\), por eso k-means escala bien a millones de datos. A cambio, al usar distancia euclidiana y medias, prefiere grupos <b>redondeados, de tamaño y dispersión parecidos</b>, y es sensible a las unidades de las variables y a los atípicos.</p>
+      <h3>Geometría: regiones de Voronoi</h3>
+      <p>Con los centros fijos, el punto \(x\) va al grupo \(j\) cuando \(\lVert x - \mu_j \rVert^2 \le \lVert x - \mu_l \rVert^2\) para todo \(l\). Expandiendo, los términos \(\lVert x \rVert^2\) se cancelan y queda una desigualdad <b>lineal</b> en \(x\):</p>
+      <div class="eq">\[ 2(\mu_l - \mu_j)^\top x \le \lVert \mu_l \rVert^2 - \lVert \mu_j \rVert^2 . \]
+        <div class="note">Cada región es una intersección de semiplanos: un polígono convexo (una celda de Voronoi). La frontera entre dos grupos es la mediatriz del segmento que une sus centros. Por eso k-means no puede producir grupos con forma de anillo o de luna.</div>
+      </div>
+      <h3>k-means como caso límite de una mezcla gaussiana</h3>
+      <p>Supón que los datos vienen de una mezcla de \(k\) normales con medias \(\mu_j\), la misma matriz de covarianza \(\sigma^2 I\) y pesos iguales. El algoritmo EM calcula la <b>responsabilidad</b> de cada componente sobre cada punto:</p>
+      <div class="eq">\[ r_{ij} = \frac{\exp\!\big(-\lVert x_i - \mu_j \rVert^2 / 2\sigma^2\big)}{\sum_{l}\exp\!\big(-\lVert x_i - \mu_l \rVert^2 / 2\sigma^2\big)} \xrightarrow[\sigma \to 0]{} \begin{cases} 1 & j = \arg\min_l \lVert x_i - \mu_l \rVert \\ 0 & \text{si no} \end{cases} \]
+        <div class="note">En el límite, el paso E es la asignación dura de Lloyd y el paso M (media ponderada por \(r_{ij}\)) es el promedio del grupo. k-means es, entonces, una mezcla gaussiana de varianzas esféricas iguales y asignaciones duras. Esa conexión explica su preferencia por grupos redondeados y de dispersión parecida.</div>
+      </div>
+      <h3>Ejemplo resuelto a mano</h3>
+      <p>Aplica k-means con \(k = 2\) a los datos 1, 2, 3, 8, 9, 12 partiendo de los centros 1 y 4.</p>
+      <ul>
+        <li><b>Iteración 1.</b> Asignar: 1 y 2 van al centro 1; 3, 8, 9 y 12 van al centro 4 (3 está a distancia 2 del primero y 1 del segundo). Actualizar: \(\mu_1 = 1{,}5\) y \(\mu_2 = (3 + 8 + 9 + 12)/4 = 8\). WCSS \(= 0{,}25 + 0{,}25 + 25 + 0 + 1 + 16 = 42{,}5\).</li>
+        <li><b>Iteración 2.</b> Asignar: 3 está a 1,5 de \(\mu_1\) y a 5 de \(\mu_2\), así que cambia: \(\{1, 2, 3\}\) y \(\{8, 9, 12\}\). Actualizar: \(\mu_1 = 2\) y \(\mu_2 = 29/3 \approx 9{,}67\).</li>
+        <li><b>Iteración 3.</b> Ninguna asignación cambia: convergió. WCSS \(= (1 + 0 + 1) + (1{,}67^2 + 0{,}67^2 + 2{,}33^2) = 2 + 8{,}67 = 10{,}67\).</li>
+      </ul>
+      <p>La WCSS bajó de 42,5 a 10,67, como predice el teorema. En este caso es además el óptimo global: con datos en una recta, los grupos óptimos son intervalos consecutivos, y entre los 5 cortes posibles el corte entre 3 y 8 es el de menor WCSS. El costo de cada iteración es \(O(nkp)\), por eso k-means escala a millones de datos.</p>
 
-      <h2 id="kmeans-lab"><span class="sec">§ 3</span>Laboratorio: k-means paso a paso</h2>
+      <h2 id="kmeans-elegir"><span class="sec">§ 4</span>Elegir k: codo, silueta y gap</h2>
+      <p>Sea \(W^*(k)\) la WCSS mínima con \(k\) grupos. Siempre se cumple \(W^*(k+1) \le W^*(k)\): partir cualquier grupo en dos no puede aumentar la suma, y con \(k = n\) vale cero. Así que no se puede elegir \(k\) minimizando la WCSS. Hay que equilibrar compacidad y número de grupos.</p>
+      <h3>Descomposición de la variabilidad</h3>
+      <p>Igual que en <a href="#anova">ANOVA</a>, la variabilidad total se reparte en dentro y entre grupos:</p>
+      <div class="eq">\[ T = \sum_{i}\lVert x_i - \bar x \rVert^2 = \underbrace{\sum_j \sum_{i \in C_j}\lVert x_i - \bar x_j \rVert^2}_{W(C)} + \underbrace{\sum_j n_j \lVert \bar x_j - \bar x \rVert^2}_{B(C)} . \]
+        <div class="note">Se obtiene aplicando la descomposición de la media dentro de cada grupo con \(\mu = \bar x\). Como \(T\) es fija, minimizar \(W\) equivale a maximizar \(B\): grupos compactos son lo mismo que centroides separados. El cociente \(B/T\) es el “porcentaje de varianza explicada” que imprime <code>kmeans()</code> en R.</div>
+      </div>
+      <p><b>Método del codo.</b> Grafica \(W^*(k)\) contra \(k\). Al principio cada grupo nuevo separa nubes distintas y la WCSS cae mucho; cuando ya separaste las nubes reales, agregar grupos solo parte nubes en pedazos y la ganancia es pequeña. El “codo” de la curva sugiere \(k\). Es un criterio visual y a veces el codo no es claro.</p>
+      <p><b>Índice de Calinski-Harabasz.</b> Es el análogo del estadístico F de ANOVA:</p>
+      <div class="eq">\[ CH(k) = \frac{B/(k-1)}{W/(n-k)} . \]
+        <div class="note">Se elige el \(k\) que lo maximiza. Penaliza el número de grupos a través de los grados de libertad, pero tiende a favorecer grupos esféricos de tamaño parecido, igual que k-means.</div>
+      </div>
+      <p><b>Silueta</b> (Rousseeuw, 1987). Para cada punto \(i\), sea \(a(i)\) la distancia media a los otros puntos de su grupo y \(b(i)\) la distancia media a los puntos del grupo vecino más cercano (el de menor distancia media, sin contar el suyo):</p>
+      <div class="eq">\[ s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}} \in [-1, 1], \qquad \bar s(k) = \frac{1}{n}\sum_{i=1}^{n} s(i) \]
+        <div class="note">\(s(i)\) cerca de 1: el punto está mucho más cerca de su grupo que del vecino. Cerca de 0: está en la frontera entre dos grupos. Negativo: está más cerca, en promedio, de otro grupo, y probablemente quedó mal asignado. Se elige el \(k\) con mayor silueta media. Para un punto solo en su grupo se define \(s(i) = 0\).</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Silueta media</th><th>Lectura habitual (Kaufman y Rousseeuw)</th></tr></thead>
+        <tbody>
+          <tr><td>0,71 a 1</td><td>estructura fuerte</td></tr>
+          <tr><td>0,51 a 0,70</td><td>estructura razonable</td></tr>
+          <tr><td>0,26 a 0,50</td><td>estructura débil, puede ser artificial</td></tr>
+          <tr><td>≤ 0,25</td><td>no se encontró una estructura sustancial</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Estadístico gap</b> (Tibshirani, Walther y Hastie, 2001). Compara la caída de \(\log W\) con la que tendrían datos <b>sin grupos</b>, simulados uniformes en el mismo rectángulo que los datos:</p>
+      <div class="eq">\[ \text{Gap}(k) = \frac{1}{B}\sum_{b=1}^{B}\log W_b^*(k) - \log W^*(k) . \]
+        <div class="note">\(W_b^*(k)\) es la WCSS de la réplica uniforme \(b\). Un gap grande dice que los datos están mucho más agrupados que el ruido. La regla de los autores elige el menor \(k\) con \(\text{Gap}(k) \ge \text{Gap}(k+1) - s_{k+1}\), donde \(s_{k+1}\) es el error estándar de la simulación. Es la única de estas medidas que puede responder “\(k = 1\)”: no hay grupos.</div>
+      </div>
+      <p>Ningún índice reemplaza al criterio de dominio: si la cafetería puede diseñar solo tres promociones, \(k = 3\) puede ser la mejor respuesta aunque la silueta prefiera 4.</p>
+      <div class="callout"><b>Para recordar:</b> la silueta y el codo miden qué tan separadas están las nubes, no si los grupos son “reales”. Cualquier conjunto de datos, incluso ruido puro, se puede partir en \(k\) grupos. Antes de interpretar un clustering, comprueba que sea estable: que aparezca algo parecido con otra semilla, otra submuestra (<i>bootstrap</i>) o un método distinto.</div>
+
+      <h2 id="kmeans-jer"><span class="sec">§ 5</span>Clustering jerárquico</h2>
+      <p>El clustering jerárquico <b>aglomerativo</b> no necesita fijar \(k\) de antemano:</p>
+      <ol>
+        <li>Empieza con \(n\) grupos de un punto cada uno y calcula la matriz de distancias \(d(x_i, x_{i'})\).</li>
+        <li>Fusiona los dos grupos \(A\), \(B\) con menor enlace \(D(A, B)\) y anota la altura \(h = D(A, B)\).</li>
+        <li>Recalcula el enlace del grupo nuevo \(A \cup B\) a los demás y repite hasta que quede un solo grupo.</li>
+      </ol>
+      <p>La pieza clave es cómo se mide la distancia entre dos <b>grupos</b>, el <b>enlace</b> (<i>linkage</i>):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Enlace</th><th>Distancia entre grupos</th><th>Comportamiento</th></tr></thead>
+        <tbody>
+          <tr><td>Simple</td><td>\(\min_{a \in A,\, b \in B} d(a, b)\)</td><td>sigue cadenas de puntos; puede unir grupos por un puente delgado (“encadenamiento”)</td></tr>
+          <tr><td>Completo</td><td>\(\max_{a \in A,\, b \in B} d(a, b)\)</td><td>grupos compactos de diámetro parecido; sensible a atípicos</td></tr>
+          <tr><td>Promedio (UPGMA)</td><td>\(\frac{1}{|A||B|}\sum_{a \in A}\sum_{b \in B} d(a, b)\)</td><td>intermedio entre simple y completo</td></tr>
+          <tr><td>Ward</td><td>\(\sqrt{\frac{2|A||B|}{|A|+|B|}}\,\lVert \bar x_A - \bar x_B \rVert\)</td><td>fusiona los grupos que menos aumentan la WCSS; grupos redondeados, como k-means</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Fórmula de Lance-Williams</h3>
+      <p>No hace falta volver a los puntos originales en cada paso. Lance y Williams (1967) mostraron que, al fusionar \(A\) y \(B\), el enlace del grupo nuevo con otro grupo \(Q\) se obtiene de los enlaces previos:</p>
+      <div class="eq">\[ D(A \cup B, Q) = \alpha_A D(A, Q) + \alpha_B D(B, Q) + \beta D(A, B) + \gamma \lvert D(A, Q) - D(B, Q) \rvert . \]
+        <div class="note">Simple: \(\alpha_A = \alpha_B = \tfrac12\), \(\beta = 0\), \(\gamma = -\tfrac12\), que da \(\min\{D(A,Q), D(B,Q)\}\). Completo: igual con \(\gamma = +\tfrac12\), que da el máximo. Promedio: \(\alpha_A = \frac{|A|}{|A|+|B|}\), \(\beta = \gamma = 0\). Ward (sobre distancias al cuadrado): \(\alpha_A = \frac{|A|+|Q|}{|A|+|B|+|Q|}\), \(\beta = -\frac{|Q|}{|A|+|B|+|Q|}\), \(\gamma = 0\). Así el algoritmo cuesta \(O(n^2)\) en memoria y entre \(O(n^2)\) y \(O(n^3)\) en tiempo.</div>
+      </div>
+      <h3>El criterio de Ward</h3>
+      <p>Si fusionas \(A\) y \(B\), con centroides \(\bar x_A\), \(\bar x_B\) y tamaños \(n_A\), \(n_B\), el nuevo centroide es \(\bar x_{AB} = (n_A \bar x_A + n_B \bar x_B)/(n_A + n_B)\). Aplicando la descomposición de la media a cada mitad respecto de \(\bar x_{AB}\):</p>
+      <div class="eq">\[ \Delta W = n_A\lVert \bar x_A - \bar x_{AB}\rVert^2 + n_B\lVert \bar x_B - \bar x_{AB}\rVert^2 = \frac{n_A n_B}{n_A + n_B}\lVert \bar x_A - \bar x_B \rVert^2 . \]
+        <div class="note">Ward fusiona en cada paso el par con menor \(\Delta W\): es una versión codiciosa (<i>greedy</i>) de la minimización de la WCSS. La altura mostrada es \(\sqrt{2\Delta W}\), la convención de <code>method = "ward.D2"</code> en R y de <code>linkage(method="ward")</code> en SciPy.</div>
+      </div>
+      <h3>Leer y cortar el dendrograma</h3>
+      <p>Cada hoja es un punto y cada unión horizontal es una fusión, dibujada a la <b>altura</b> de la distancia entre los grupos fusionados. Para obtener \(k\) grupos se <b>corta</b> el árbol con una línea horizontal: los grupos son las ramas que cuelgan bajo el corte. Un salto grande entre dos alturas de fusión consecutivas indica que en ese punto se empiezan a unir grupos muy distintos, y es un buen lugar para cortar.</p>
+      <p>La <b>distancia cofenética</b> \(h(i, i')\) es la altura a la que \(i\) e \(i'\) quedan juntos por primera vez. Con enlaces simple, completo, promedio y Ward las alturas son monótonas y \(h\) cumple la desigualdad <b>ultramétrica</b> \(h(i, i'') \le \max\{h(i, i'),\, h(i', i'')\}\). La correlación entre \(h\) y la distancia original \(d\) (la <b>correlación cofenética</b>) mide qué tan fielmente el árbol representa las distancias; valores sobre 0,8 se consideran buenos.</p>
+      <p><b>Ejemplo resuelto.</b> Puntos A = 0, B = 1, C = 4, D = 10. Distancias: AB = 1, AC = 4, AD = 10, BC = 3, BD = 9, CD = 6. Con enlace <b>simple</b>: A con B a altura 1; luego \(D(\{A,B\}, C) = \min(4, 3) = 3\) frente a \(D(C, D) = 6\), así que C entra a altura 3; por último \(D(\{A,B,C\}, D) = \min(10, 9, 6) = 6\). Con enlace <b>completo</b>: A con B a 1; \(D(\{A,B\}, C) = \max(4, 3) = 4\) frente a 6, C entra a 4; por último \(\max(10, 9, 6) = 10\). Alturas: 1, 3, 6 (simple) y 1, 4, 10 (completo). El salto final es mucho más marcado con enlace completo.</p>
+      <div class="callout"><b>Cómo no leer un dendrograma:</b> la cercanía <b>horizontal</b> de dos hojas no significa nada. Cada fusión se puede girar como una bisagra sin cambiar el árbol, así que el orden de las hojas es en gran parte arbitrario. Lo que mide la similitud de dos puntos es la <b>altura</b> a la que sus ramas se unen por primera vez (la distancia cofenética).</div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Aspecto</th><th>k-means</th><th>Jerárquico</th></tr></thead>
+        <tbody>
+          <tr><td>Hay que fijar k</td><td>antes de ajustar</td><td>después, al cortar el árbol</td></tr>
+          <tr><td>Resultado</td><td>una partición y sus centros</td><td>un árbol con particiones anidadas para todo k</td></tr>
+          <tr><td>Costo</td><td>\(O(nkp)\) por iteración: millones de datos</td><td>al menos \(O(n^2)\) en memoria: hasta unas decenas de miles</td></tr>
+          <tr><td>Determinista</td><td>no: depende del inicio</td><td>sí (salvo empates)</td></tr>
+          <tr><td>Clasificar un punto nuevo</td><td>fácil: el centro más cercano</td><td>no directo</td></tr>
+          <tr><td>Distancias admitidas</td><td>euclidiana al cuadrado</td><td>cualquiera (Gower, correlación, Manhattan)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Otras alternativas que conviene conocer: <b>k-medoids</b> (PAM) usa como centro un punto real del grupo y la distancia sin elevar al cuadrado, y es mucho más robusto a atípicos; <b>k-modes</b> o la distancia de Gower sirven para variables categóricas; <b>DBSCAN</b> agrupa por densidad, encuentra formas no convexas y marca puntos como ruido; los <b>modelos de mezcla gaussiana</b> dan probabilidades de pertenencia y elipses de distinta forma. Para variables muy correlacionadas, conviene reducir primero con <a href="#pca">PCA</a>.</p>
+
+      <h2 id="kmeans-prop"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>Descomposición de la variabilidad.</b> \(T = W(C) + B(C)\) para toda partición. <i>Justificación:</i> descomposición de la media dentro de cada grupo con \(\mu = \bar x\). Consecuencia: minimizar \(W\) equivale a maximizar \(B\).</li>
+        <li><b>Monotonía de Lloyd.</b> \(W^{(t+1)} \le W^{(t)}\) y el algoritmo termina en un número finito de pasos. <i>Justificación:</i> cada paso minimiza \(W\) en un bloque de variables con el otro fijo (descenso por coordenadas).</li>
+        <li><b>WCSS óptima decreciente en k.</b> \(W^*(k+1) \le W^*(k)\) y \(W^*(n) = 0\). <i>Justificación:</i> parte el grupo óptimo de \(k\) que tenga dos puntos distintos poniendo uno aparte; la suma no crece.</li>
+        <li><b>Regiones convexas.</b> Las regiones de asignación son celdas de Voronoi \(\{x : 2(\mu_l - \mu_j)^\top x \le \lVert\mu_l\rVert^2 - \lVert\mu_j\rVert^2\ \forall l\}\). <i>Justificación:</i> intersección de semiplanos.</li>
+        <li><b>Invarianzas.</b> k-means es invariante a traslaciones y rotaciones (\(x \mapsto Qx + b\) con \(Q\) ortogonal), pero <b>no</b> a cambios de escala de una variable. <i>Justificación:</i> \(\lVert Qx - Qy \rVert = \lVert x - y \rVert\), pero \(\lVert \text{diag}(s)(x - y) \rVert\) cambia los pesos de las variables.</li>
+        <li><b>Límite de la mezcla gaussiana.</b> Con covarianzas \(\sigma^2 I\) iguales y \(\sigma \to 0\), EM se reduce al algoritmo de Lloyd. <i>Justificación:</i> las responsabilidades softmax tienden a indicadoras del centro más cercano.</li>
+        <li><b>Costo de Ward.</b> \(\Delta W(A, B) = \frac{n_A n_B}{n_A + n_B}\lVert \bar x_A - \bar x_B \rVert^2\). <i>Justificación:</i> descomposición de la media aplicada a \(A \cup B\).</li>
+        <li><b>Enlace simple y árbol de expansión mínima.</b> Las fusiones del enlace simple coinciden con las aristas del árbol de expansión mínima (algoritmo de Kruskal) del grafo completo de distancias. <i>Justificación:</i> ambos procesos agregan en orden creciente la arista más corta que une dos componentes distintas.</li>
+      </ol>
+      <h3>Errores comunes</h3>
+      <ul>
+        <li><b>No escalar.</b> Con ingreso en pesos y edad en años, la distancia la domina el ingreso. Estandariza, salvo que todas las variables estén en las mismas unidades y sus varianzas sean informativas.</li>
+        <li><b>Elegir k minimizando la WCSS.</b> Siempre baja con k; usa codo, silueta, CH o gap, y el criterio del negocio.</li>
+        <li><b>Creer que los grupos “existen”.</b> k-means parte incluso ruido uniforme en k regiones. Verifica estabilidad y compara con datos sin estructura (gap).</li>
+        <li><b>Promediar variables categóricas</b> codificadas como 1, 2, 3. La “media” de categorías no tiene sentido; usa k-modes o Gower.</li>
+        <li><b>Leer el orden horizontal del dendrograma</b> como similitud. Solo cuenta la altura de fusión.</li>
+      </ul>
+
+      <h2 id="kmeans-sim"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
+      <h3>Laboratorio 1: k-means paso a paso</h3>
       <p>Pulsa <b>Paso</b> para avanzar una mitad de iteración (asignar o actualizar) o <b>Ejecutar</b> para verlo correr hasta converger. El fondo muestra la región de cada centro: todo punto que caiga ahí se asignaría a ese grupo. A la derecha, la WCSS y la silueta media de la mejor solución para cada \(k\), calculadas con 6 inicios k-means++.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · algoritmo de Lloyd</span><span class="num" id="kmeans-head">–</span></div>
@@ -98,48 +244,18 @@
         </div>
         <figcaption>Con datos esféricos y k = 4, prueba varias veces “Nuevos centros” con inicio al azar: a veces dos centros quedan atrapados en el mismo grupo y la WCSS final es mayor que la óptima de la curva. Con k-means++ pasa mucho menos. Luego elige “Anillo”: k-means corta el anillo en rebanadas, porque solo sabe hacer regiones convexas.</figcaption>
       </figure>
-
-      <h2 id="kmeans-elegir"><span class="sec">§ 4</span>Elegir k: el codo y la silueta</h2>
-      <p>La WCSS <b>siempre baja</b> al aumentar \(k\) (con \(k = n\) vale cero), así que no se puede elegir \(k\) minimizándola. Se usan criterios que equilibran compacidad y número de grupos.</p>
-      <p><b>Método del codo.</b> Grafica la WCSS mínima contra \(k\). Al principio cada grupo nuevo separa nubes distintas y la WCSS cae mucho; cuando ya separaste las nubes reales, agregar grupos solo parte nubes en pedazos y la ganancia es pequeña. El “codo” de la curva sugiere \(k\). Es un criterio visual y a veces el codo no es claro.</p>
-      <p><b>Silueta.</b> Para cada punto \(i\), sea \(a(i)\) la distancia media a los otros puntos de su grupo y \(b(i)\) la distancia media a los puntos del grupo vecino más cercano (el de menor distancia media, sin contar el suyo):</p>
-      <div class="eq">\[ s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}} \in [-1, 1], \qquad \bar s(k) = \frac{1}{n}\sum_{i=1}^{n} s(i) \]
-        <div class="note">\(s(i)\) cerca de 1: el punto está mucho más cerca de su grupo que del vecino. Cerca de 0: está en la frontera entre dos grupos. Negativo: está más cerca, en promedio, de otro grupo, y probablemente quedó mal asignado. Se elige el \(k\) con mayor silueta media. Para un punto solo en su grupo se define \(s(i) = 0\).</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Silueta media</th><th>Lectura habitual (Kaufman y Rousseeuw)</th></tr></thead>
-        <tbody>
-          <tr><td>0,71 a 1</td><td>estructura fuerte</td></tr>
-          <tr><td>0,51 a 0,70</td><td>estructura razonable</td></tr>
-          <tr><td>0,26 a 0,50</td><td>estructura débil, puede ser artificial</td></tr>
-          <tr><td>≤ 0,25</td><td>no se encontró una estructura sustancial</td></tr>
-        </tbody>
-      </table></div>
-      <p>Otras opciones son el <b>estadístico gap</b>, que compara la caída de la WCSS con la que tendrían datos sin grupos (uniformes en el mismo rango), y el índice de Calinski-Harabasz, el cociente entre la dispersión entre grupos y dentro de ellos. Ningún índice reemplaza al criterio de dominio: si la cafetería puede diseñar solo tres promociones, \(k = 3\) puede ser la mejor respuesta aunque la silueta prefiera 4.</p>
-      <div class="callout"><b>Para recordar:</b> la silueta y el codo miden qué tan separadas están las nubes, no si los grupos son “reales”. Cualquier conjunto de datos, incluso ruido puro, se puede partir en \(k\) grupos. Antes de interpretar un clustering, comprueba que sea estable: que aparezca algo parecido con otra semilla, otra submuestra o un método distinto.</div>
-
-      <h2 id="kmeans-jer"><span class="sec">§ 5</span>Clustering jerárquico</h2>
-      <p>El clustering jerárquico <b>aglomerativo</b> no necesita fijar \(k\) de antemano:</p>
+      <p><b>Experimentos guiados</b></p>
       <ol>
-        <li>Empieza con \(n\) grupos de un punto cada uno y calcula todas las distancias entre puntos.</li>
-        <li>Fusiona los dos grupos más cercanos.</li>
-        <li>Recalcula la distancia del grupo nuevo a los demás y repite hasta que quede un solo grupo.</li>
+        <li>Con datos esféricos, \(k = 4\) e inicio al azar, pulsa “Nuevos centros” y “Ejecutar” diez veces. Anota la WCSS final de cada corrida. ¿Son todas iguales?
+          <details><summary>Qué deberías observar</summary><p>En varias corridas la WCSS final coincide con el mínimo de la curva del codo, pero en algunas queda claramente más alta: dos centros terminan en la misma nube y otra nube queda partida. Son mínimos locales; por eso se usan varios inicios.</p></details></li>
+        <li>Repite lo mismo con k-means++. ¿Con qué frecuencia aparece un mínimo local malo ahora? ¿Cuántas iteraciones necesita en promedio?
+          <details><summary>Qué deberías observar</summary><p>Los mínimos locales malos se vuelven raros y la convergencia suele tomar menos iteraciones, porque los centros iniciales ya caen en nubes distintas gracias al muestreo proporcional a \(D(x)^2\).</p></details></li>
+        <li>Mueve \(k\) de 1 a 6 con datos esféricos y mira la curva de la derecha. ¿Dónde está el codo? ¿Dónde es máxima la silueta? ¿Coinciden?
+          <details><summary>Qué deberías observar</summary><p>La WCSS cae fuerte hasta \(k = 4\) y después se aplana; la silueta media también alcanza su máximo en 4 (alrededor de 0,6 a 0,7). Con cuatro nubes reales ambos criterios coinciden.</p></details></li>
+        <li>Cambia a “Alargados” (tres nubes estiradas en vertical) con \(k = 3\) y luego a “Anillo” con \(k = 2\). ¿Recupera k-means las formas que ves?
+          <details><summary>Qué deberías observar</summary><p>Con nubes alargadas, k-means tiende a cortar con fronteras rectas que mezclan los extremos de nubes vecinas, y la silueta puede preferir otro \(k\). Con el anillo, divide el plano en dos mitades en vez de separar centro y anillo: sus regiones son convexas y un anillo no lo es.</p></details></li>
       </ol>
-      <p>La pieza clave es cómo se mide la distancia entre dos <b>grupos</b> \(A\) y \(B\), el <b>enlace</b> (<i>linkage</i>):</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Enlace</th><th>Distancia entre grupos</th><th>Comportamiento</th></tr></thead>
-        <tbody>
-          <tr><td>Simple</td><td>\(\min_{a \in A,\, b \in B} d(a, b)\)</td><td>sigue cadenas de puntos; puede unir grupos por un puente delgado (“encadenamiento”)</td></tr>
-          <tr><td>Completo</td><td>\(\max_{a \in A,\, b \in B} d(a, b)\)</td><td>grupos compactos de diámetro parecido; sensible a atípicos</td></tr>
-          <tr><td>Promedio</td><td>\(\frac{1}{|A||B|}\sum_{a \in A}\sum_{b \in B} d(a, b)\)</td><td>intermedio entre simple y completo</td></tr>
-          <tr><td>Ward</td><td>\(\sqrt{\frac{2|A||B|}{|A|+|B|}}\,\lVert \bar x_A - \bar x_B \rVert\)</td><td>fusiona los grupos que menos aumentan la WCSS; grupos redondeados, como k-means</td></tr>
-        </tbody>
-      </table></div>
-      <p>Con Ward, el aumento de la WCSS al fusionar \(A\) y \(B\) es \(\Delta W = \frac{|A||B|}{|A|+|B|}\lVert \bar x_A - \bar x_B \rVert^2\); la altura mostrada es \(\sqrt{2\Delta W}\), la convención de <code>method = "ward.D2"</code> en R y de <code>linkage(method="ward")</code> en SciPy.</p>
-      <p>El resultado se dibuja como un <b>dendrograma</b>: cada hoja es un punto y cada unión horizontal es una fusión, dibujada a la <b>altura</b> de la distancia entre los grupos fusionados. Para obtener \(k\) grupos se <b>corta</b> el árbol con una línea horizontal: los grupos son las ramas que cuelgan bajo el corte. Un salto grande entre dos alturas de fusión consecutivas indica que en ese punto se empiezan a unir grupos muy distintos, y es un buen lugar para cortar.</p>
-      <div class="callout"><b>Cómo no leer un dendrograma:</b> la cercanía <b>horizontal</b> de dos hojas no significa nada. Cada fusión se puede girar como una bisagra sin cambiar el árbol, así que el orden de las hojas es en gran parte arbitrario. Lo que mide la similitud de dos puntos es la <b>altura</b> a la que sus ramas se unen por primera vez (la distancia cofenética).</div>
-
-      <h2 id="kmeans-dendro"><span class="sec">§ 6</span>Laboratorio: construir y cortar un dendrograma</h2>
+      <h3>Laboratorio 2: construir y cortar un dendrograma</h3>
       <p>Catorce puntos con nombre. Cambia el enlace para ver cómo cambia el árbol y mueve la altura de corte: los puntos se colorean según la rama a la que pertenecen bajo la línea.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · clustering jerárquico</span><span class="num" id="kmeans-hc-head">–</span></div>
@@ -176,28 +292,30 @@
         </div>
         <figcaption>Con enlace simple, los puntos sueltos se van pegando uno a uno y el árbol se ve como una escalera: es el encadenamiento. Con completo o Ward aparecen ramas compactas y un salto claro en la altura. Fíjate en que dos hojas vecinas en el eje horizontal pueden unirse muy arriba.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con enlace completo, sube la altura de corte desde 0 hasta el máximo. Anota cuántos grupos hay en cada salto. ¿En qué altura el número de grupos se queda estable más tiempo?
+          <details><summary>Qué deberías observar</summary><p>El número de grupos baja de 14 a 1 de a uno. Hay un tramo largo de alturas donde el número no cambia (típicamente 2 o 3 grupos): ese tramo es el “mayor salto” que reporta el readout y es el corte más defendible.</p></details></li>
+        <li>Cambia a enlace simple con el mismo corte. ¿Cómo cambia la forma del árbol y el tamaño de los grupos?
+          <details><summary>Qué deberías observar</summary><p>El árbol se ve como una escalera: los puntos se van pegando uno a uno a un grupo grande (encadenamiento), las alturas son menores y los saltos menos claros. Suelen aparecer un grupo grande y varios puntos sueltos.</p></details></li>
+        <li>Compara Ward y completo. ¿La última fusión ocurre a la misma altura? ¿Los grupos con 3 ramas coinciden?
+          <details><summary>Qué deberías observar</summary><p>Ward usa una escala distinta (raíz de 2ΔW), así que su última fusión es mucho más alta. Aun así, los grupos de 2 o 3 ramas suelen coincidir con los del enlace completo, porque ambos premian grupos compactos.</p></details></li>
+        <li>Busca dos letras que estén una junto a la otra en el eje horizontal del dendrograma pero que se unan muy arriba. ¿Están cerca en el gráfico de puntos?
+          <details><summary>Qué deberías observar</summary><p>No: están en grupos distintos y lejos en el plano. Lo que importa es la altura de unión, no la vecindad horizontal de las hojas.</p></details></li>
+      </ol>
 
-      <h2 id="kmeans-cuidados"><span class="sec">§ 7</span>Cuidados y alternativas</h2>
-      <ul>
-        <li><b>Escala las variables.</b> Como en k-NN, las distancias las dominan las variables con números grandes. Estandariza antes, salvo que todas estén en las mismas unidades y quieras conservar sus varianzas.</li>
-        <li><b>Atípicos.</b> Un punto muy lejano arrastra la media de su grupo o se queda con un grupo para él solo. <b>k-medoids</b> (PAM) usa como centro un punto real del grupo y la distancia sin elevar al cuadrado, y es mucho más robusto.</li>
-        <li><b>Variables categóricas.</b> La media de categorías no existe. Usa k-modes, o una distancia de Gower con clustering jerárquico o PAM.</li>
-        <li><b>Formas no convexas.</b> k-means y Ward producen grupos redondeados. Para grupos con forma de luna o anillo usa <b>DBSCAN</b> (agrupa por densidad y además marca puntos como ruido) o enlace simple.</li>
-        <li><b>Grupos que se solapan.</b> Los <b>modelos de mezcla gaussiana</b> dan a cada punto una probabilidad de pertenecer a cada grupo y permiten elipses de distinta forma y tamaño. k-means es el caso límite de una mezcla con varianzas esféricas iguales y asignaciones duras.</li>
-      </ul>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Aspecto</th><th>k-means</th><th>Jerárquico</th></tr></thead>
-        <tbody>
-          <tr><td>Hay que fijar k</td><td>antes de ajustar</td><td>después, al cortar el árbol</td></tr>
-          <tr><td>Resultado</td><td>una partición y sus centros</td><td>un árbol con particiones anidadas para todo k</td></tr>
-          <tr><td>Costo</td><td>\(O(nkp)\) por iteración: millones de datos</td><td>al menos \(O(n^2)\) en memoria: hasta unas decenas de miles</td></tr>
-          <tr><td>Determinista</td><td>no: depende del inicio</td><td>sí (salvo empates)</td></tr>
-          <tr><td>Clasificar un punto nuevo</td><td>fácil: el centro más cercano</td><td>no directo</td></tr>
-        </tbody>
-      </table></div>
+      <h2 id="kmeans-apps"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Economía y marketing: segmentación RFM</h3>
+      <p>Las tiendas en línea resumen a cada cliente con tres variables: <b>recencia</b> (días desde la última compra), <b>frecuencia</b> (compras en el año) y <b>monto</b> (gasto total). Como el monto es muy asimétrico, se toma su logaritmo y luego se estandarizan las tres. Con 40 000 clientes, k-means con \(k = 4\) da típicamente grupos como: “leales” (recencia 15 días, 18 compras, 1 200 USD), “nuevos prometedores” (recencia 20 días, 2 compras), “en riesgo” (recencia 200 días, antes compraban seguido) y “dormidos”. La decisión: campañas de reactivación solo para “en riesgo”, cuyo valor esperado justifica el costo del descuento, en lugar de un correo masivo a todos.</p>
+      <h3>Salud y biología: perfiles de expresión génica</h3>
+      <p>Eisen, Spellman, Brown y Botstein (PNAS, 1998) aplicaron clustering jerárquico con enlace promedio y distancia basada en la correlación a la expresión de miles de genes de levadura medida en decenas de condiciones. El dendrograma, dibujado junto a un mapa de calor, agrupó genes con funciones biológicas comunes (por ejemplo, genes ribosomales o del ciclo celular) aunque el algoritmo no sabía nada de su función. Esa forma de mostrar los datos se volvió el estándar de la genómica y permitió proponer funciones para genes desconocidos por “culpa por asociación”.</p>
+      <h3>Tecnología: cuantización de color</h3>
+      <p>Una foto de 1 000 × 1 000 píxeles tiene un millón de puntos en el espacio RGB de dimensión 3. Con k-means y \(k = 16\), cada píxel se reemplaza por el centro de su grupo: la imagen pasa de 24 bits por píxel a 4 bits más una paleta de 16 colores, una compresión de 6 a 1 con una pérdida visual pequeña. Es exactamente el problema de cuantización que motivó a Lloyd, y la base de los formatos con paleta como GIF. La WCSS es aquí el error cuadrático de reconstrucción, y el codo dice cuántos colores vale la pena guardar.</p>
+      <h3>Ambiente: regímenes de calidad del aire</h3>
+      <p>Una red urbana con 30 estaciones mide cada hora PM2.5, NO₂ y ozono. Si se describe cada estación por su perfil horario promedio (24 valores por contaminante, 72 variables estandarizadas), un clustering jerárquico de Ward separa típicamente estaciones de tráfico (picos de NO₂ a las 8 y a las 19 horas), estaciones de fondo urbano y estaciones periféricas con más ozono por la tarde. La decisión: dónde ubicar una estación nueva para no duplicar un perfil ya cubierto y cuáles reportar como representativas de la exposición de la población.</p>
 
-      <h2 id="kmeans-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
-      <p>Usamos las 150 flores del conjunto <i>iris</i> con sus cuatro medidas, <b>sin mirar la especie</b>. Estandarizamos, elegimos \(k\) con el codo y la silueta, ajustamos k-means y Ward, y al final comparamos los grupos con las especies reales.</p>
+      <h2 id="kmeans-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
+      <p>Usamos las 150 flores del conjunto <i>iris</i> (Fisher, 1936) con sus cuatro medidas, <b>sin mirar la especie</b>. Estandarizamos, elegimos \(k\) con el codo, la silueta y Calinski-Harabasz, ajustamos k-means y Ward, describimos los centros en las unidades originales y al final comparamos los grupos con las especies reales.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
@@ -205,61 +323,78 @@
 <span class="k">from</span> sklearn.datasets <span class="k">import</span> load_iris
 <span class="k">from</span> sklearn.preprocessing <span class="k">import</span> StandardScaler
 <span class="k">from</span> sklearn.cluster <span class="k">import</span> KMeans
-<span class="k">from</span> sklearn.metrics <span class="k">import</span> silhouette_score, adjusted_rand_score
+<span class="k">from</span> sklearn.metrics <span class="k">import</span> silhouette_score, calinski_harabasz_score, adjusted_rand_score
 <span class="k">from</span> scipy.cluster.hierarchy <span class="k">import</span> linkage, fcluster, dendrogram
 
 iris = <span class="f">load_iris</span>(as_frame=<span class="k">True</span>)
-X = <span class="f">StandardScaler</span>().<span class="f">fit_transform</span>(iris.data)
+esc = <span class="f">StandardScaler</span>().<span class="f">fit</span>(iris.data)
+X = esc.<span class="f">transform</span>(iris.data)
 
-<span class="c"># 1. Codo y silueta para k = 2..8 (25 inicios k-means++ cada uno)</span>
+<span class="c"># 1. Codo, silueta y Calinski-Harabasz para k = 2..8 (25 inicios k-means++)</span>
 <span class="k">for</span> k <span class="k">in</span> <span class="f">range</span>(<span class="n">2</span>, <span class="n">9</span>):
     km = <span class="f">KMeans</span>(n_clusters=k, n_init=<span class="n">25</span>, random_state=<span class="n">0</span>).<span class="f">fit</span>(X)
-    <span class="f">print</span>(k, <span class="f">round</span>(km.inertia_, <span class="n">1</span>), <span class="f">round</span>(<span class="f">silhouette_score</span>(X, km.labels_), <span class="n">3</span>))
-<span class="c"># 2 222.4 0.582   3 139.8 0.46   4 114.1 0.387 ...  la silueta prefiere k = 2</span>
+    <span class="f">print</span>(k, <span class="f">round</span>(km.inertia_, <span class="n">1</span>), <span class="f">round</span>(<span class="f">silhouette_score</span>(X, km.labels_), <span class="n">3</span>),
+          <span class="f">round</span>(<span class="f">calinski_harabasz_score</span>(X, km.labels_), <span class="n">1</span>))
+<span class="c"># 2 222.4 0.582 251.3 | 3 139.8 0.46 241.9 | 4 114.1 0.387 207.3 ...</span>
 
-<span class="c"># 2. k-means con k = 3 y comparación con las especies</span>
+<span class="c"># 2. k-means con k = 3: centros en unidades originales (cm)</span>
 km = <span class="f">KMeans</span>(n_clusters=<span class="n">3</span>, n_init=<span class="n">25</span>, random_state=<span class="n">0</span>).<span class="f">fit</span>(X)
-especie = iris.target_names[iris.target]
-<span class="f">print</span>(pd.<span class="f">crosstab</span>(km.labels_, especie))     <span class="c"># setosa sola; versicolor y virginica se mezclan</span>
-<span class="f">print</span>(<span class="f">adjusted_rand_score</span>(iris.target, km.labels_))   <span class="c"># ≈ 0.62</span>
+centros = pd.<span class="f">DataFrame</span>(esc.<span class="f">inverse_transform</span>(km.cluster_centers_), columns=iris.data.columns)
+<span class="f">print</span>(centros.<span class="f">round</span>(<span class="n">2</span>))     <span class="c"># un grupo con pétalo ≈ 1.46 cm (setosa), otros con 4.37 y 5.51</span>
 
-<span class="c"># 3. Jerárquico con enlace de Ward, dendrograma y corte en 3 grupos</span>
+<span class="c"># 3. Comparación con las especies</span>
+especie = iris.target_names[iris.target]
+<span class="f">print</span>(pd.<span class="f">crosstab</span>(km.labels_, especie))
+<span class="f">print</span>(<span class="f">round</span>(<span class="f">adjusted_rand_score</span>(iris.target, km.labels_), <span class="n">3</span>))   <span class="c"># 0.62</span>
+
+<span class="c"># 4. Jerárquico con Ward, dendrograma y corte en 3 grupos</span>
 Z = <span class="f">linkage</span>(X, method=<span class="s">"ward"</span>)
+<span class="f">print</span>(Z[-<span class="n">3</span>:, <span class="n">2</span>].<span class="f">round</span>(<span class="n">1</span>))                      <span class="c"># últimas alturas: 8.0 12.6 27.2</span>
 <span class="f">dendrogram</span>(Z, no_labels=<span class="k">True</span>)
 plt.<span class="f">axhline</span>(<span class="n">10</span>, ls=<span class="s">"--"</span>)                        <span class="c"># un corte en altura 10 deja 3 ramas</span>
 plt.<span class="f">show</span>()
 grupos = <span class="f">fcluster</span>(Z, t=<span class="n">3</span>, criterion=<span class="s">"maxclust"</span>)
-<span class="f">print</span>(pd.<span class="f">crosstab</span>(grupos, especie))</code></pre>
+<span class="f">print</span>(pd.<span class="f">crosstab</span>(grupos, especie))
+<span class="f">print</span>(<span class="f">round</span>(<span class="f">adjusted_rand_score</span>(iris.target, grupos), <span class="n">3</span>))      <span class="c"># 0.615</span></code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="k">library</span>(cluster)   <span class="c"># silhouette()</span>
+<span class="k">library</span>(mclust)    <span class="c"># adjustedRandIndex()</span>
 
 X &lt;- <span class="f">scale</span>(iris[, <span class="n">1</span>:<span class="n">4</span>])
-
-<span class="c"># 1. Codo y silueta para k = 2..8</span>
-<span class="f">set.seed</span>(<span class="n">1</span>)
 d &lt;- <span class="f">dist</span>(X)
+
+<span class="c"># 1. Codo, silueta y CH para k = 2..8</span>
+<span class="f">set.seed</span>(<span class="n">1</span>)
 res &lt;- <span class="f">sapply</span>(<span class="n">2</span>:<span class="n">8</span>, <span class="k">function</span>(k) {
   km &lt;- <span class="f">kmeans</span>(X, centers = k, nstart = <span class="n">25</span>)
+  n &lt;- <span class="f">nrow</span>(X)
   <span class="f">c</span>(k = k, wcss = km$tot.withinss,
-    sil = <span class="f">mean</span>(<span class="f">silhouette</span>(km$cluster, d)[, <span class="s">"sil_width"</span>]))
+    sil = <span class="f">mean</span>(<span class="f">silhouette</span>(km$cluster, d)[, <span class="s">"sil_width"</span>]),
+    ch = (km$betweenss / (k - <span class="n">1</span>)) / (km$tot.withinss / (n - k)))
 })
-<span class="f">t</span>(<span class="f">round</span>(res, <span class="n">3</span>))      <span class="c"># la silueta es máxima en k = 2 (≈ 0.58)</span>
+<span class="f">t</span>(<span class="f">round</span>(res, <span class="n">3</span>))      <span class="c"># silueta máxima en k = 2 (≈ 0.58), CH también</span>
 
-<span class="c"># 2. k-means con k = 3 y comparación con las especies</span>
+<span class="c"># 2. k-means con k = 3 y centros en cm</span>
 km &lt;- <span class="f">kmeans</span>(X, centers = <span class="n">3</span>, nstart = <span class="n">25</span>)
 km$size                         <span class="c"># 50, 53 y 47 (en algún orden)</span>
+<span class="f">aggregate</span>(iris[, <span class="n">1</span>:<span class="n">4</span>], <span class="f">list</span>(grupo = km$cluster), mean)
+km$betweenss / km$totss         <span class="c"># B/T ≈ 0.77</span>
+
+<span class="c"># 3. Comparación con las especies</span>
 <span class="f">table</span>(km$cluster, iris$Species)
+<span class="f">adjustedRandIndex</span>(km$cluster, iris$Species)   <span class="c"># ≈ 0.62</span>
 <span class="f">plot</span>(<span class="f">silhouette</span>(km$cluster, d))
 
-<span class="c"># 3. Jerárquico con Ward, dendrograma y corte en 3 grupos</span>
+<span class="c"># 4. Jerárquico con Ward, dendrograma y corte en 3 grupos</span>
 hc &lt;- <span class="f">hclust</span>(d, method = <span class="s">"ward.D2"</span>)
 <span class="f">plot</span>(hc, labels = <span class="k">FALSE</span>, hang = -<span class="n">1</span>)
 <span class="f">rect.hclust</span>(hc, k = <span class="n">3</span>)
 grupos &lt;- <span class="f">cutree</span>(hc, k = <span class="n">3</span>)
-<span class="f">table</span>(grupos, iris$Species)</code></pre>
+<span class="f">table</span>(grupos, iris$Species)
+<span class="f">cor</span>(<span class="f">cophenetic</span>(hc), d)          <span class="c"># correlación cofenética</span></code></pre>
       </div>
-      <p>La lección del ejemplo: la silueta prefiere \(k = 2\) (≈ 0,58), porque <i>setosa</i> está muy separada y <i>versicolor</i> y <i>virginica</i> forman una sola nube. Con \(k = 3\) k-means aísla perfectamente a <i>setosa</i>, pero reparte las otras dos especies en grupos mezclados (39 y 14, 11 y 36). El índice de Rand ajustado, que vale 1 si los grupos coinciden con las especies y 0 si el acuerdo es el del azar, da ≈ 0,62. Los grupos que encuentra un algoritmo no tienen por qué coincidir con las categorías que nos interesan.</p>
+      <p>La lección del ejemplo: la silueta y CH prefieren \(k = 2\) (silueta ≈ 0,58), porque <i>setosa</i> está muy separada y <i>versicolor</i> y <i>virginica</i> forman una sola nube. Con \(k = 3\) k-means aísla perfectamente a <i>setosa</i>, pero reparte las otras dos especies en grupos mezclados (39 y 14, 11 y 36). El índice de Rand ajustado, que vale 1 si los grupos coinciden con las especies y alrededor de 0 si el acuerdo es el del azar, da ≈ 0,62; Ward da ≈ 0,62 también. Los centros en centímetros (pétalo de 1,46, 4,37 y 5,51 cm) dan a cada grupo una interpretación botánica clara. Los grupos que encuentra un algoritmo no tienen por qué coincidir con las categorías que nos interesan.</p>
 
-      <h2 id="kmeans-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <h2 id="kmeans-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="El algoritmo de Lloyd siempre baja la WCSS, pero se detiene en un mínimo local que depende de los centros iniciales. Repetir con varios inicios y quedarse con la menor WCSS evita muchas soluciones malas." data-wrong="Piensa en qué depende el resultado de k-means además de los datos y de k. ¿Llega siempre al mismo agrupamiento?">
         <h3>¿Por qué se ejecuta k-means con varios inicios (nstart o n_init)?</h3>
         <div class="opts">
@@ -290,55 +425,125 @@ grupos &lt;- <span class="f">cutree</span>(hc, k = <span class="n">3</span>)
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Por T = W + B, B = 500 − 120 = 380 y B/T = 0,76. Con n = 100 y k = 4, CH = (380/3)/(120/96) ≈ 126,7/1,25 ≈ 101." data-wrong="Usa la descomposición T = W + B para obtener B, y luego CH = [B/(k − 1)] / [W/(n − k)].">
+        <h3>Con n = 100 puntos, T = 500 y una partición en k = 4 grupos con W = 120, ¿cuánto vale el índice de Calinski-Harabasz?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Aproximadamente 3,2</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Aproximadamente 0,76</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Aproximadamente 101</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Aproximadamente 317</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="k-means usa distancias euclidianas, que no son invariantes a la escala. Medir el ingreso en miles en lugar de pesos reduce su varianza un millón de veces y cambia qué variable domina la distancia, así que los grupos pueden cambiar por completo." data-wrong="Piensa en qué pasa con la distancia euclidiana cuando multiplicas una sola coordenada por 1/1000. ¿Siguen pesando igual las variables?">
+        <h3>Un analista agrupa clientes por edad (años) e ingreso (pesos). Luego mide el ingreso en miles de pesos y vuelve a correr k-means. ¿Qué esperas?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Los mismos grupos, porque k-means es invariante a cambios de unidad</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Los mismos grupos, pero con WCSS mil veces menor</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Que el algoritmo no converja</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Grupos posiblemente muy distintos, ahora más influidos por la edad</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="kmeans-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. El ejercicio 1 lo puedes revivir con el botón Paso del laboratorio.</p>
+      <h2 id="kmeans-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución. Varias piden demostrar un resultado o escribir una simulación.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Aplica k-means con k = 2 a los datos 1, 2, 3, 8, 9, 12 partiendo de los centros 1 y 4. Muestra cada asignación y actualización hasta que converja, y calcula la WCSS final.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra la descomposición \(T = W(C) + B(C)\) para cualquier partición. (b) Deduce que, con \(k\) fijo, minimizar \(W\) equivale a maximizar \(B\). (c) Verifícala con los datos 1, 2, 3, 8, 9, 12 y la partición \(\{1,2,3\}, \{8,9,12\}\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p><b>Iteración 1.</b> Asignar: 1 y 2 van al centro 1; 3, 8, 9 y 12 van al centro 4 (3 está a 2 del primero y a 1 del segundo). Actualizar: μ₁ = 1,5 y μ₂ = (3 + 8 + 9 + 12)/4 = 8.</p>
-            <p><b>Iteración 2.</b> Asignar: 3 está a 1,5 de μ₁ y a 5 de μ₂, así que cambia al primer grupo: {1, 2, 3} y {8, 9, 12}. Actualizar: μ₁ = 2 y μ₂ = 29/3 ≈ 9,67.</p>
-            <p><b>Iteración 3.</b> Ninguna asignación cambia: convergió.</p>
-            <p>WCSS = (1 + 0 + 1) + (1,67² + 0,67² + 2,33²) = 2 + (2,78 + 0,44 + 5,44) ≈ <b>10,67</b>.</p>
+            <p>(a) Para cada grupo \(j\), aplica la identidad \(\sum_{i \in C_j}\lVert x_i - \mu \rVert^2 = \sum_{i \in C_j}\lVert x_i - \bar x_j \rVert^2 + n_j\lVert \bar x_j - \mu \rVert^2\) con \(\mu = \bar x\). El término cruzado se anula porque \(\sum_{i \in C_j}(x_i - \bar x_j) = 0\). Sumando sobre \(j\), el lado izquierdo es \(T\) y el derecho es \(W + B\).</p>
+            <p>(b) \(T\) solo depende de los datos, así que \(W = T - B\): el mínimo de \(W\) se alcanza exactamente donde \(B\) es máxima.</p>
+            <p>(c) \(\bar x = 35/6 \approx 5{,}833\). \(T = \sum x_i^2 - n\bar x^2 = 303 - 6(5{,}833)^2 = 303 - 204{,}17 = 98{,}83\). \(W = 2 + 8{,}67 = 10{,}67\). \(B = 3(2 - 5{,}833)^2 + 3(9{,}667 - 5{,}833)^2 = 3(14{,}69) + 3(14{,}69) = 88{,}17\). Y \(10{,}67 + 88{,}17 = 98{,}83\). \(\checkmark\)</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Calcula la silueta de dos puntos. Punto P: distancia media a su grupo a = 1,2 y al grupo vecino b = 3,0. Punto Q: a = 2,5 y b = 2,0. ¿Qué dirías de cada uno?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Deriva el aumento de WCSS de Ward, \(\Delta W = \frac{n_A n_B}{n_A + n_B}\lVert \bar x_A - \bar x_B\rVert^2\). Luego calcúlalo para \(A = \{(0,0), (0,2)\}\) y \(B = \{(4,1)\}\), y verifica tu número calculando la WCSS de \(A \cup B\) directamente.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>s(P) = (3,0 − 1,2)/máx(1,2; 3,0) = 1,8/3,0 = <b>0,60</b>: bien asignado, razonablemente separado del grupo vecino.</p>
-            <p>s(Q) = (2,0 − 2,5)/máx(2,5; 2,0) = −0,5/2,5 = <b>−0,20</b>: está más cerca del grupo vecino que del suyo. Probablemente está mal asignado o en la frontera.</p>
+            <p>La WCSS de \(A \cup B\) respecto de su centroide \(\bar x_{AB}\) se descompone, mitad por mitad, en \(W_A + n_A\lVert \bar x_A - \bar x_{AB}\rVert^2 + W_B + n_B\lVert \bar x_B - \bar x_{AB}\rVert^2\). Así \(\Delta W = n_A\lVert \bar x_A - \bar x_{AB}\rVert^2 + n_B\lVert \bar x_B - \bar x_{AB}\rVert^2\). Como \(\bar x_A - \bar x_{AB} = \frac{n_B}{n_A + n_B}(\bar x_A - \bar x_B)\) y \(\bar x_B - \bar x_{AB} = \frac{n_A}{n_A + n_B}(\bar x_B - \bar x_A)\), queda \(\Delta W = \frac{n_A n_B^2 + n_B n_A^2}{(n_A + n_B)^2}\lVert \bar x_A - \bar x_B\rVert^2 = \frac{n_A n_B}{n_A + n_B}\lVert \bar x_A - \bar x_B\rVert^2\).</p>
+            <p>Números: \(\bar x_A = (0, 1)\), \(\bar x_B = (4, 1)\), \(\lVert \bar x_A - \bar x_B \rVert^2 = 16\), \(\Delta W = \frac{2 \cdot 1}{3}\cdot 16 = 10{,}67\). Directo: \(W_A = 1 + 1 = 2\), \(W_B = 0\). Centroide de la unión \((4/3, 1)\): distancias al cuadrado \(16/9 + 1\), \(16/9 + 1\), \(64/9\); suma \(= 96/9 + 2 = 12{,}67\). Aumento: \(12{,}67 - 2 = 10{,}67\). \(\checkmark\) La altura de Ward sería \(\sqrt{2 \cdot 10{,}67} \approx 4{,}62\).</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Cuatro puntos en una recta: A = 0, B = 1, C = 4 y D = 10. Construye el dendrograma con enlace simple y con enlace completo: ¿en qué orden y a qué alturas se fusionan? ¿Dónde cortarías cada árbol para obtener 2 grupos?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Considera una mezcla de \(k\) normales \(N(\mu_j, \sigma^2 I)\) con pesos iguales. (a) Escribe la log-verosimilitud completa (con las etiquetas \(z_i\) conocidas) y muestra que maximizarla en \(\mu\) y \(z\) equivale a minimizar la WCSS. (b) Muestra que las responsabilidades del paso E tienden a asignaciones duras cuando \(\sigma \to 0\). (c) ¿Qué supuesto implícito de k-means revela este vínculo?</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Distancias: AB = 1, AC = 4, AD = 10, BC = 3, BD = 9, CD = 6.</p>
-            <p><b>Simple:</b> primero A con B a altura 1. Luego d({A,B}, C) = mín(4, 3) = 3 y d({A,B}, D) = mín(10, 9) = 9, d(C, D) = 6: se une C a altura <b>3</b>. Por último d({A,B,C}, D) = mín(10, 9, 6) = <b>6</b>. Alturas: 1, 3, 6.</p>
-            <p><b>Completo:</b> A con B a altura 1. Luego d({A,B}, C) = máx(4, 3) = 4 contra d(C, D) = 6: se une C a altura <b>4</b>. Por último d({A,B,C}, D) = máx(10, 9, 6) = <b>10</b>. Alturas: 1, 4, 10.</p>
-            <p>Para 2 grupos, {A, B, C} y {D}, corta entre la penúltima y la última fusión: entre 3 y 6 con enlace simple (por ejemplo, en 4,5) y entre 4 y 10 con completo (por ejemplo, en 7). El salto relativo es mucho mayor con el enlace completo.</p>
+            <p>(a) \(\ell_c(\mu, z) = \sum_i \log\big[\tfrac1k \phi(x_i; \mu_{z_i}, \sigma^2 I)\big] = \text{cte} - \frac{1}{2\sigma^2}\sum_i \lVert x_i - \mu_{z_i}\rVert^2\). Con \(\sigma\) fijo, maximizar \(\ell_c\) es minimizar \(\sum_i \lVert x_i - \mu_{z_i}\rVert^2 = W\). Es el llamado EM “clasificador” (CEM).</p>
+            <p>(b) \(r_{ij} = \exp(-d_{ij}/2\sigma^2)/\sum_l \exp(-d_{il}/2\sigma^2)\) con \(d_{ij} = \lVert x_i - \mu_j\rVert^2\). Divide numerador y denominador por \(\exp(-d_{i,\min}/2\sigma^2)\): los términos con \(d_{il} &gt; d_{i,\min}\) quedan como \(\exp(-(d_{il} - d_{i,\min})/2\sigma^2) \to 0\). Así \(r_{ij} \to 1\) para el centro más cercano y 0 para el resto (sin empates).</p>
+            <p>(c) k-means supone grupos con la <b>misma</b> covarianza esférica y, en la práctica, tamaños parecidos. Si un grupo es mucho más disperso o alargado, una mezcla gaussiana con covarianzas libres (<code>GaussianMixture</code> en Python, <code>mclust</code> en R) es más adecuada.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica con datos. En <i>iris</i>, k-means con \(k = 3\) sobre los datos <b>estandarizados</b> da un ARI ≈ 0,62 contra las especies, pero sobre los datos <b>sin estandarizar</b> da ≈ 0,73. Escribe el código que lo comprueba y explica por qué aquí estandarizar empeora. ¿Significa que nunca hay que estandarizar?</p>
+          <details><summary>Ver solución</summary><div class="sol">
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> scipy.cluster.hierarchy <span class="k">import</span> linkage
-x = [[<span class="n">0</span>], [<span class="n">1</span>], [<span class="n">4</span>], [<span class="n">10</span>]]
-<span class="f">print</span>(<span class="f">linkage</span>(x, <span class="s">"single"</span>)[:, <span class="n">2</span>])     <span class="c"># [1. 3. 6.]</span>
-<span class="f">print</span>(<span class="f">linkage</span>(x, <span class="s">"complete"</span>)[:, <span class="n">2</span>])   <span class="c"># [ 1.  4. 10.]</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>d &lt;- <span class="f">dist</span>(<span class="f">c</span>(A = <span class="n">0</span>, B = <span class="n">1</span>, C = <span class="n">4</span>, D = <span class="n">10</span>))
-<span class="f">hclust</span>(d, <span class="s">"single"</span>)$height     <span class="c"># 1 3 6</span>
-<span class="f">hclust</span>(d, <span class="s">"complete"</span>)$height   <span class="c"># 1 4 10</span></code></pre>
+<pre class="code" data-lang="py"><code><span class="k">from</span> sklearn.datasets <span class="k">import</span> load_iris
+<span class="k">from</span> sklearn.preprocessing <span class="k">import</span> StandardScaler
+<span class="k">from</span> sklearn.cluster <span class="k">import</span> KMeans
+<span class="k">from</span> sklearn.metrics <span class="k">import</span> adjusted_rand_score <span class="k">as</span> ari
+X, y = <span class="f">load_iris</span>(return_X_y=<span class="k">True</span>)
+<span class="f">print</span>(X.<span class="f">var</span>(axis=<span class="n">0</span>).<span class="f">round</span>(<span class="n">2</span>))             <span class="c"># [0.68 0.19 3.10 0.58]</span>
+<span class="k">for</span> nombre, Z <span class="k">in</span> [(<span class="s">"crudo"</span>, X), (<span class="s">"estandarizado"</span>, <span class="f">StandardScaler</span>().<span class="f">fit_transform</span>(X))]:
+    lab = <span class="f">KMeans</span>(<span class="n">3</span>, n_init=<span class="n">25</span>, random_state=<span class="n">0</span>).<span class="f">fit_predict</span>(Z)
+    <span class="f">print</span>(nombre, <span class="f">round</span>(<span class="f">ari</span>(y, lab), <span class="n">3</span>))     <span class="c"># crudo 0.73, estandarizado 0.62</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(mclust)
+<span class="f">set.seed</span>(<span class="n">1</span>)
+<span class="f">sapply</span>(iris[, <span class="n">1</span>:<span class="n">4</span>], var)
+crudo &lt;- <span class="f">kmeans</span>(iris[, <span class="n">1</span>:<span class="n">4</span>], <span class="n">3</span>, nstart = <span class="n">25</span>)$cluster
+esc   &lt;- <span class="f">kmeans</span>(<span class="f">scale</span>(iris[, <span class="n">1</span>:<span class="n">4</span>]), <span class="n">3</span>, nstart = <span class="n">25</span>)$cluster
+<span class="f">c</span>(<span class="f">adjustedRandIndex</span>(crudo, iris$Species), <span class="f">adjustedRandIndex</span>(esc, iris$Species))</code></pre>
             </div>
+            <p>Sin estandarizar, el largo del pétalo tiene varianza 3,10, cinco veces mayor que las demás, y domina la distancia. Esa variable es justamente la que mejor separa las especies, así que darle más peso ayuda. Al estandarizar, el ancho del sépalo (poco informativo, varianza 0,19) pasa a pesar igual y agrega ruido. Conclusión: estandarizar no es un dogma; es una decisión sobre el peso de cada variable. Se justifica cuando las unidades son arbitrarias o distintas (pesos y años). Cuando todas las variables están en la misma unidad y su varianza refleja información, puede ser mejor no hacerlo. Y en un problema no supervisado real no tendrías las especies para comprobarlo: por eso la elección debe razonarse con el dominio.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>(a) Demuestra que, para un grupo fijo de puntos, el centro \(m\) que minimiza \(\sum_i \lVert x_i - m \rVert^2\) es la media del grupo. (b) Usa ese resultado para explicar por qué cada iteración de Lloyd no puede aumentar la WCSS. (c) Un analista obtiene estas WCSS mínimas: k = 1: 1 000; 2: 520; 3: 260; 4: 225; 5: 200; 6: 182. ¿Qué k sugiere el codo? Calcula la reducción porcentual de cada paso.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación. (a) Genera 300 puntos uniformes en el cuadrado unitario y calcula la silueta media de k-means para \(k = 2, \dots, 6\). ¿Te convencería alguna? (b) Programa el estadístico gap con \(B = 20\) réplicas uniformes y aplícalo a esos datos y a tres nubes normales con centros \((0,0)\), \((4,0)\), \((2;\ 3{,}5)\) y desviación 0,6. Compara.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) Sea \(g(m) = \sum_i \lVert x_i - m \rVert^2\). Su gradiente es \(\nabla g(m) = -2\sum_i (x_i - m)\), que se anula en \(m = \frac1n \sum_i x_i = \bar x\). Como \(g\) es una función cuadrática convexa, ese punto es el mínimo. Otra forma: \(g(m) = \sum_i \lVert x_i - \bar x \rVert^2 + n\lVert \bar x - m \rVert^2\), que es mínima cuando el segundo término vale 0.</p>
-            <p>(b) En el paso de asignación los centros están fijos y cada punto elige el centro más cercano, así que ningún término \(\lVert x_i - \mu_{c(i)} \rVert^2\) crece. En el paso de actualización los grupos están fijos y, por (a), reemplazar cada centro por la media de su grupo no puede aumentar la suma de ese grupo. La WCSS es una sucesión que no crece y toma un número finito de valores, así que el algoritmo se detiene.</p>
-            <p>(c) Reducciones: de 1 a 2, 48 %; de 2 a 3, 50 %; de 3 a 4, 13 %; de 4 a 5, 11 %; de 5 a 6, 9 %. Después de k = 3 cada grupo adicional aporta poco: el codo está en <b>k = 3</b>. Conviene confirmarlo con la silueta y, sobre todo, con la interpretación de los grupos.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.cluster <span class="k">import</span> KMeans
+<span class="k">from</span> sklearn.metrics <span class="k">import</span> silhouette_score
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+U = rng.<span class="f">uniform</span>(size=(<span class="n">300</span>, <span class="n">2</span>))
+<span class="k">for</span> k <span class="k">in</span> <span class="f">range</span>(<span class="n">2</span>, <span class="n">7</span>):
+    lab = <span class="f">KMeans</span>(k, n_init=<span class="n">10</span>, random_state=<span class="n">0</span>).<span class="f">fit_predict</span>(U)
+    <span class="f">print</span>(k, <span class="f">round</span>(<span class="f">silhouette_score</span>(U, lab), <span class="n">3</span>))   <span class="c"># ≈ 0.35 a 0.41</span>
+
+<span class="k">def</span> <span class="f">logW</span>(X, k):
+    <span class="k">return</span> np.<span class="f">log</span>(<span class="f">KMeans</span>(k, n_init=<span class="n">10</span>, random_state=<span class="n">0</span>).<span class="f">fit</span>(X).inertia_)
+
+<span class="k">def</span> <span class="f">gap</span>(X, kmax=<span class="n">6</span>, B=<span class="n">20</span>, seed=<span class="n">0</span>):
+    r = np.random.<span class="f">default_rng</span>(seed); lo, hi = X.<span class="f">min</span>(<span class="n">0</span>), X.<span class="f">max</span>(<span class="n">0</span>)
+    out = []
+    <span class="k">for</span> k <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, kmax + <span class="n">1</span>):
+        ref = np.<span class="f">array</span>([<span class="f">logW</span>(r.<span class="f">uniform</span>(lo, hi, size=X.shape), k) <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(B)])
+        out.<span class="f">append</span>((k, ref.<span class="f">mean</span>() - <span class="f">logW</span>(X, k), ref.<span class="f">std</span>() * np.<span class="f">sqrt</span>(<span class="n">1</span> + <span class="n">1</span> / B)))
+    <span class="k">return</span> out
+
+C = np.<span class="f">array</span>([[<span class="n">0</span>, <span class="n">0</span>], [<span class="n">4</span>, <span class="n">0</span>], [<span class="n">2</span>, <span class="n">3.5</span>]])
+Y = np.<span class="f">vstack</span>([c + rng.<span class="f">normal</span>(scale=<span class="n">0.6</span>, size=(<span class="n">100</span>, <span class="n">2</span>)) <span class="k">for</span> c <span class="k">in</span> C])
+<span class="k">for</span> nombre, X <span class="k">in</span> [(<span class="s">"uniforme"</span>, U), (<span class="s">"3 nubes"</span>, Y)]:
+    <span class="f">print</span>(nombre, [(k, <span class="f">round</span>(g, <span class="n">2</span>)) <span class="k">for</span> k, g, s <span class="k">in</span> <span class="f">gap</span>(X)])
+<span class="c"># uniforme: gap ≈ 0 para todo k     3 nubes: gap máximo ≈ 1.46 en k = 3</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(cluster)
+<span class="f">set.seed</span>(<span class="n">1</span>)
+U &lt;- <span class="f">matrix</span>(<span class="f">runif</span>(<span class="n">600</span>), ncol = <span class="n">2</span>)
+<span class="f">sapply</span>(<span class="n">2</span>:<span class="n">6</span>, <span class="k">function</span>(k)
+  <span class="f">mean</span>(<span class="f">silhouette</span>(<span class="f">kmeans</span>(U, k, nstart = <span class="n">10</span>)$cluster, <span class="f">dist</span>(U))[, <span class="n">3</span>]))
+C &lt;- <span class="f">rbind</span>(<span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>), <span class="f">c</span>(<span class="n">4</span>, <span class="n">0</span>), <span class="f">c</span>(<span class="n">2</span>, <span class="n">3.5</span>))
+Y &lt;- C[<span class="f">rep</span>(<span class="n">1</span>:<span class="n">3</span>, each = <span class="n">100</span>), ] + <span class="f">matrix</span>(<span class="f">rnorm</span>(<span class="n">600</span>, sd = <span class="n">0.6</span>), ncol = <span class="n">2</span>)
+gU &lt;- <span class="f">clusGap</span>(U, kmeans, K.max = <span class="n">6</span>, B = <span class="n">20</span>, nstart = <span class="n">10</span>)
+gY &lt;- <span class="f">clusGap</span>(Y, kmeans, K.max = <span class="n">6</span>, B = <span class="n">20</span>, nstart = <span class="n">10</span>)
+<span class="f">maxSE</span>(gU$Tab[, <span class="s">"gap"</span>], gU$Tab[, <span class="s">"SE.sim"</span>], method = <span class="s">"Tibs2001SEmax"</span>)   <span class="c"># normalmente 1</span>
+<span class="f">plot</span>(gY)                                                                 <span class="c"># pico en k = 3</span></code></pre>
+            </div>
+            <p>(a) Con ruido uniforme la silueta media queda entre 0,35 y 0,41 y alcanza su máximo en algún \(k\) intermedio (4 en nuestra semilla). Según la tabla de Kaufman y Rousseeuw es “estructura débil”, pero un analista apurado podría reportar 4 segmentos que no existen. (b) El gap con datos uniformes es prácticamente 0 para todo \(k\) (no hay más agrupamiento que en el ruido) y la regla de Tibshirani elige \(k = 1\). Con las tres nubes el gap salta a ≈ 1,46 en \(k = 3\) y luego baja. Moraleja: compara siempre contra una referencia sin estructura. Una advertencia: con la regla del error estándar aplicada literalmente, si \(\text{Gap}(1)\) ya es alto la regla puede quedarse en un \(k\) pequeño; mira la curva completa además de la regla.</p>
           </div></details>
         </div>
       </div>

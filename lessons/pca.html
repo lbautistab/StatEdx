@@ -5,44 +5,161 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Análisis de componentes principales (PCA)</h1>
-      <p>Cuando tienes muchas variables que cuentan casi la misma historia, el PCA las resume en unas pocas combinaciones que conservan la mayor parte de la información. Aquí aprendes qué es una componente principal, cómo leer la varianza explicada, las cargas y un biplot, y cuándo conviene (y cuándo no) reducir dimensiones.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: correlación y álgebra de matrices básica</span><span>R · Python</span></div>
+      <p>Cuando tienes muchas variables que cuentan casi la misma historia, el PCA las resume en unas pocas combinaciones que conservan la mayor parte de la información. Aquí aprendes qué es una componente principal y por qué es un vector propio, cómo se conecta con la descomposición en valores singulares y la mejor aproximación de rango bajo, cómo leer la varianza explicada, las cargas y un biplot, y cuándo conviene (y cuándo no) reducir dimensiones.</p>
+      <div class="lmeta"><span>90 min</span><span>Nivel avanzado</span><span>Requiere: correlación y álgebra de matrices básica</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#pca-idea" data-sec="pca-idea">La idea</a></li>
-        <li><a href="#pca-def" data-sec="pca-def">Definición y cálculo</a></li>
-        <li><a href="#pca-lab" data-sec="pca-lab">Laboratorio: la dirección de máxima varianza</a></li>
-        <li><a href="#pca-var" data-sec="pca-var">Varianza explicada</a></li>
-        <li><a href="#pca-cargas" data-sec="pca-cargas">Cargas, puntajes y biplot</a></li>
-        <li><a href="#pca-cuando" data-sec="pca-cuando">Escalar, y cuándo reducir</a></li>
+        <li><a href="#pca-intro" data-sec="pca-intro">Introducción</a></li>
+        <li><a href="#pca-def" data-sec="pca-def">Definición</a></li>
+        <li><a href="#pca-espectral" data-sec="pca-espectral">Máxima varianza y vectores propios</a></li>
+        <li><a href="#pca-svd" data-sec="pca-svd">Reconstrucción y SVD</a></li>
+        <li><a href="#pca-var" data-sec="pca-var">¿Cuántas componentes?</a></li>
+        <li><a href="#pca-cargas" data-sec="pca-cargas">Cargas, biplot y escala</a></li>
+        <li><a href="#pca-prop" data-sec="pca-prop">Propiedades</a></li>
+        <li><a href="#pca-sim" data-sec="pca-sim">Ejercicios de simulación</a></li>
+        <li><a href="#pca-apps" data-sec="pca-apps">Aplicaciones reales</a></li>
         <li><a href="#pca-code" data-sec="pca-code">En R y Python</a></li>
-        <li><a href="#pca-quiz" data-sec="pca-quiz">Comprueba</a></li>
-        <li><a href="#pca-ej" data-sec="pca-ej">Ejercicios</a></li>
+        <li><a href="#pca-quiz" data-sec="pca-quiz">Quiz</a></li>
+        <li><a href="#pca-ej" data-sec="pca-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="pca-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="pca-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Un colegio registra las notas de sus estudiantes en seis materias: matemáticas, física, química, lengua, historia e inglés. Quien saca buena nota en física suele sacar buena nota en matemáticas, y quien destaca en historia suele destacar en lengua. Seis columnas, pero en realidad hay menos “ideas” distintas: algo como un <b>rendimiento general</b> (todos los que estudian mucho suben en todo) y un contraste <b>ciencias contra letras</b>. Si pudiéramos describir a cada estudiante con esos dos números perderíamos poca información y ganaríamos mucho en claridad: podríamos graficar a todo el curso en un plano.</p>
       <p>El <b>análisis de componentes principales</b> (PCA, por sus siglas en inglés) hace eso de forma automática. Construye nuevas variables, las <b>componentes principales</b>, que son combinaciones lineales de las originales, no están correlacionadas entre sí y están ordenadas: la primera recoge la mayor varianza posible, la segunda la mayor varianza que queda, y así sucesivamente.</p>
+      <p><b>Un poco de historia.</b> Karl Pearson (1901) buscaba “las rectas y planos que mejor se ajustan a un sistema de puntos en el espacio”, midiendo la distancia en perpendicular y no en vertical como en la regresión. Harold Hotelling (1933), interesado en resumir baterías de pruebas psicológicas, llegó al mismo resultado maximizando varianza y le dio el nombre de componentes principales. En 1936, Eckart y Young demostraron que la descomposición en valores singulares da la mejor aproximación de rango bajo de una matriz, el resultado que hoy sostiene al PCA computacional. Con la llegada de los computadores, el PCA se volvió una herramienta de uso diario en genética, finanzas, química, visión por computador y ciencias sociales.</p>
       <div class="callout"><b>Para qué sirve:</b> visualizar datos con muchas variables en 2 o 3 dimensiones, construir índices (como un índice de nivel socioeconómico), eliminar la colinealidad antes de una regresión, comprimir y quitar ruido, y alimentar con menos variables a métodos sensibles a la dimensión como <a href="#knn">k-NN</a> o el <a href="#kmeans">clustering</a>. Es un método <b>no supervisado</b>: no usa ninguna variable respuesta.</div>
-
-      <h2 id="pca-def"><span class="sec">§ 2</span>Definición y cálculo</h2>
-      <p>Tenemos \(n\) observaciones de \(p\) variables, ya <b>centradas</b> (a cada columna le restamos su media), en una matriz \(X\) de \(n \times p\). Su matriz de covarianzas es \(S = \frac{1}{n-1}X^\top X\). La primera componente principal es la combinación lineal \(z_1 = X\phi_1\) con la mayor varianza posible, con un vector de pesos de longitud 1 (si no, bastaría con multiplicar los pesos para inflar la varianza):</p>
-      <div class="eq">\[ \phi_1 = \arg\max_{\lVert \phi \rVert = 1}\ \operatorname{Var}(X\phi) = \arg\max_{\lVert \phi \rVert = 1}\ \phi^\top S\, \phi \qquad\Longrightarrow\qquad S\,\phi_1 = \lambda_1 \phi_1 \]
-        <div class="note">Con un multiplicador de Lagrange, \(\frac{\partial}{\partial\phi}\big[\phi^\top S\phi - \lambda(\phi^\top\phi - 1)\big] = 2S\phi - 2\lambda\phi = 0\). La solución es un <b>vector propio</b> de \(S\), y la varianza alcanzada es \(\phi^\top S\phi = \lambda\): conviene el vector propio del <b>mayor valor propio</b>.</div>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a derivar las componentes principales como vectores propios de la matriz de covarianzas con multiplicadores de Lagrange;</li>
+          <li>a calcular el PCA con la descomposición en valores singulares y a interpretar el teorema de Eckart-Young;</li>
+          <li>a elegir el número de componentes con el gráfico de sedimentación, Kaiser y el análisis paralelo de Horn;</li>
+          <li>a interpretar cargas, puntajes, comunalidades y biplots, y a decidir entre covarianza y correlación;</li>
+          <li>a reconocer cuándo el PCA ayuda y cuándo engaña (por ejemplo, en regresión sobre componentes).</li>
+        </ul>
       </div>
-      <p>La segunda componente maximiza la varianza entre las direcciones perpendiculares a \(\phi_1\), y resulta ser el vector propio del segundo valor propio, y así hasta la \(p\)-ésima. Todo cabe en la descomposición espectral de \(S\):</p>
-      <div class="eq">\[ S = V \Lambda V^\top, \qquad V = [\phi_1 \cdots \phi_p] \text{ ortogonal}, \qquad \Lambda = \operatorname{diag}(\lambda_1 \ge \lambda_2 \ge \cdots \ge \lambda_p \ge 0), \qquad Z = XV \]
-        <div class="note">Las columnas de \(V\) son las <b>cargas</b> (<i>loadings</i>) y las columnas de \(Z\), los <b>puntajes</b> (<i>scores</i>) de cada observación. Las componentes tienen varianzas \(\operatorname{Var}(z_k) = \lambda_k\), no están correlacionadas entre sí, y la varianza total se conserva: \(\sum_k \lambda_k = \operatorname{tr}(S) = \sum_j s_j^2\).</div>
-      </div>
-      <p>Hay una segunda interpretación, igual de importante: las primeras \(q\) componentes generan el <b>subespacio de dimensión \(q\) más cercano a los datos</b>. Si proyectas cada punto sobre ese subespacio, la suma de las distancias al cuadrado entre los puntos y sus proyecciones es la menor posible, y vale \((n-1)\sum_{k > q}\lambda_k\). Maximizar la varianza proyectada y minimizar el error de reconstrucción son el mismo problema, porque ambas cantidades suman la varianza total (es Pitágoras).</p>
-      <p>En la práctica se calcula con la <b>descomposición en valores singulares</b> de la matriz centrada, más estable numéricamente: \(X = UDV^\top\). Las cargas son las columnas de \(V\), los puntajes son \(Z = UD\) y los valores propios son \(\lambda_k = d_k^2/(n-1)\). Es lo que hacen <code>prcomp</code> en R y <code>PCA</code> en scikit-learn.</p>
 
-      <h2 id="pca-lab"><span class="sec">§ 3</span>Laboratorio: la dirección de máxima varianza</h2>
+      <h2 id="pca-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Tenemos \(n\) observaciones de \(p\) variables, ya <b>centradas</b> (a cada columna le restamos su media), en una matriz \(X\) de \(n \times p\). Su matriz de covarianzas muestral es \(S = \frac{1}{n-1}X^\top X\), simétrica y semidefinida positiva: \(\phi^\top S\phi = \frac{1}{n-1}\lVert X\phi\rVert^2 \ge 0\).</p>
+      <div class="callout"><b>Definición (componentes principales).</b> La <b>primera componente principal</b> es la combinación lineal \(z_1 = X\phi_1\) de máxima varianza entre todas las de pesos con norma 1:
+        \[ \phi_1 = \arg\max_{\lVert \phi \rVert = 1}\ \operatorname{Var}(X\phi) = \arg\max_{\lVert \phi \rVert = 1}\ \phi^\top S\, \phi . \]
+        La \(k\)-ésima componente \(z_k = X\phi_k\) maximiza la misma varianza con la restricción adicional \(\phi_k \perp \phi_1, \dots, \phi_{k-1}\). Los vectores \(\phi_k\) son las <b>cargas</b> (<i>loadings</i>) y los valores \(z_{ik}\) son los <b>puntajes</b> (<i>scores</i>) de cada observación.</div>
+      <p>La restricción \(\lVert\phi\rVert = 1\) es indispensable: sin ella bastaría con multiplicar los pesos por 10 para multiplicar la varianza por 100. Los términos clave:</p>
+      <ul>
+        <li><b>Valor propio</b> \(\lambda_k\): la varianza de la componente \(k\), \(\operatorname{Var}(z_k) = \lambda_k\).</li>
+        <li><b>Proporción de varianza explicada</b> \(\text{PVE}_k = \lambda_k / \sum_j \lambda_j\).</li>
+        <li><b>Carga</b> \(\phi_{jk}\): peso de la variable \(j\) en la componente \(k\).</li>
+        <li><b>Comunalidad</b> de la variable \(j\) con \(q\) componentes: fracción de su varianza reproducida por ellas.</li>
+      </ul>
+      <p><b>Ejemplo numérico.</b> Dos variables estandarizadas con correlación \(r = 0{,}6\). La matriz de correlaciones es \(R = \begin{pmatrix}1 &amp; 0{,}6\\ 0{,}6 &amp; 1\end{pmatrix}\). Para cualquier matriz de esta forma, \(R(1, 1)^\top = (1 + r)(1, 1)^\top\) y \(R(1, -1)^\top = (1 - r)(1, -1)^\top\), así que \(\lambda_1 = 1{,}6\), \(\lambda_2 = 0{,}4\), \(\phi_1 = (1, 1)/\sqrt2\) y \(\phi_2 = (1, -1)/\sqrt2\). CP1 explica \(1{,}6/2 = 80\,\%\): es, salvo el factor \(1/\sqrt2\), el promedio de las dos variables. Una observación con valores estandarizados \((1{,}2;\ 0{,}4)\) tiene puntajes \(z_1 = 1{,}6/\sqrt2 \approx 1{,}13\) y \(z_2 = 0{,}8/\sqrt2 \approx 0{,}57\).</p>
+
+      <h2 id="pca-espectral"><span class="sec">§ 3</span>Máxima varianza y vectores propios</h2>
+      <p><b>Supuestos.</b> El PCA es una técnica descriptiva y no necesita normalidad. Solo pide variables numéricas, que la relación de interés sea lineal (mide varianza y covarianza) y, para que la matriz \(S\) sea estable, que \(n\) no sea mucho menor que \(p\) o que se usen versiones regularizadas.</p>
+      <h3>Derivación con multiplicadores de Lagrange</h3>
+      <p>Queremos maximizar \(f(\phi) = \phi^\top S\phi\) con la restricción \(g(\phi) = \phi^\top\phi - 1 = 0\). El lagrangiano es \(\mathcal{L}(\phi, \lambda) = \phi^\top S\phi - \lambda(\phi^\top\phi - 1)\). Derivando respecto de \(\phi\) (usando \(\nabla_\phi\, \phi^\top S\phi = 2S\phi\) porque \(S\) es simétrica):</p>
+      <div class="eq">\[ \nabla_\phi \mathcal{L} = 2S\phi - 2\lambda\phi = 0 \quad\Longrightarrow\quad S\phi = \lambda\phi, \qquad \operatorname{Var}(X\phi) = \phi^\top S\phi = \lambda\,\phi^\top\phi = \lambda . \]
+        <div class="note">Todo punto crítico es un <b>vector propio</b> de \(S\), y la varianza que alcanza es su valor propio. El máximo es el vector propio del <b>mayor</b> valor propio.</div>
+      </div>
+      <p>Para la segunda componente agregamos la restricción \(\phi_1^\top\phi = 0\): \(\mathcal{L} = \phi^\top S\phi - \lambda(\phi^\top\phi - 1) - \mu\,\phi_1^\top\phi\). La condición es \(2S\phi - 2\lambda\phi - \mu\phi_1 = 0\). Multiplicando por \(\phi_1^\top\) a la izquierda: \(2\phi_1^\top S\phi - 0 - \mu = 0\), y como \(\phi_1^\top S\phi = \lambda_1\phi_1^\top\phi = 0\), resulta \(\mu = 0\). Otra vez \(S\phi = \lambda\phi\), ahora con el mayor valor propio disponible: \(\lambda_2\). Por inducción, la \(k\)-ésima componente es el \(k\)-ésimo vector propio.</p>
+      <div class="callout"><b>Teorema espectral y cociente de Rayleigh.</b> Toda matriz simétrica se descompone como \(S = V\Lambda V^\top\) con \(V = [\phi_1 \cdots \phi_p]\) ortogonal y \(\Lambda = \operatorname{diag}(\lambda_1 \ge \cdots \ge \lambda_p \ge 0)\). Además
+        \[ \lambda_1 = \max_{\phi \ne 0}\frac{\phi^\top S\phi}{\phi^\top\phi}, \qquad \lambda_k = \max_{\phi \perp \phi_1, \dots, \phi_{k-1}}\frac{\phi^\top S\phi}{\phi^\top\phi} . \]
+        Con \(Z = XV\), las componentes tienen covarianza \(\frac{1}{n-1}Z^\top Z = V^\top S V = \Lambda\): varianzas \(\lambda_k\) y correlaciones cero.</div>
+      <p>La prueba directa del máximo: escribe \(\phi = V a\) con \(\lVert a\rVert = 1\). Entonces \(\phi^\top S\phi = a^\top\Lambda a = \sum_k \lambda_k a_k^2 \le \lambda_1\sum_k a_k^2 = \lambda_1\), con igualdad en \(a = e_1\). La varianza total se conserva: \(\sum_k \lambda_k = \operatorname{tr}(\Lambda) = \operatorname{tr}(V^\top SV) = \operatorname{tr}(S) = \sum_j s_j^2\). El PCA es una <b>rotación</b> de los ejes: no crea ni destruye varianza, solo la reparte en orden decreciente.</p>
+      <h3>Ejemplo resuelto a mano</h3>
+      <p>Dos variables con matriz de covarianzas \(S = \begin{pmatrix}9 &amp; 3\\ 3 &amp; 4\end{pmatrix}\).</p>
+      <ul>
+        <li><b>Valores propios.</b> \(\det(S - \lambda I) = (9 - \lambda)(4 - \lambda) - 9 = \lambda^2 - 13\lambda + 27 = 0\). Así \(\lambda = (13 \pm \sqrt{169 - 108})/2 = (13 \pm 7{,}81)/2\): \(\lambda_1 \approx 10{,}41\) y \(\lambda_2 \approx 2{,}59\). Su suma es 13 = traza, y su producto 27 = determinante.</li>
+        <li><b>Vector propio.</b> \((9 - 10{,}41)\phi_1 + 3\phi_2 = 0 \Rightarrow \phi_2 = 0{,}468\,\phi_1\). Normalizando: \(\phi_1 \approx (0{,}906;\ 0{,}424)\), con un ángulo de \(\arctan 0{,}468 \approx 25{,}1°\) respecto del eje \(x_1\).</li>
+        <li><b>Varianza explicada.</b> \(\text{PVE}_1 = 10{,}41/13 \approx 80{,}0\,\%\).</li>
+        <li><b>Con las variables estandarizadas</b>, la correlación es \(3/(3 \cdot 2) = 0{,}5\): \(\lambda = 1{,}5\) y \(0{,}5\), PVE₁ = 75 % y CP1 apunta a 45°. La dirección cambió porque, sin estandarizar, \(x_1\) tiene más varianza (9 contra 4) y arrastra CP1 hacia su eje.</li>
+      </ul>
+
+      <h2 id="pca-svd"><span class="sec">§ 4</span>Reconstrucción, SVD y Eckart-Young</h2>
+      <p>Hay una segunda interpretación, igual de importante: las primeras \(q\) componentes generan el <b>subespacio de dimensión \(q\) más cercano a los datos</b>. Sea \(V_q = [\phi_1 \cdots \phi_q]\) y la proyección de cada punto \(\hat x_i = V_qV_q^\top x_i\). Por Pitágoras, como \(x_i - \hat x_i\) es perpendicular a \(\hat x_i\):</p>
+      <div class="eq">\[ \sum_i \lVert x_i\rVert^2 = \sum_i \lVert \hat x_i\rVert^2 + \sum_i \lVert x_i - \hat x_i\rVert^2 \quad\Longrightarrow\quad \underbrace{\sum_i \lVert x_i - \hat x_i\rVert^2}_{\text{error de reconstrucción}} = (n - 1)\sum_{k &gt; q}\lambda_k . \]
+        <div class="note">El total del lado izquierdo es fijo (\((n-1)\operatorname{tr}S\)), así que maximizar la varianza proyectada y minimizar el error de reconstrucción son el mismo problema. Esta es la visión de Pearson: la recta de mejor ajuste en perpendicular, distinta de la recta de <a href="#reg">regresión</a>, que minimiza distancias verticales.</div>
+      </div>
+      <p>En la práctica se calcula con la <b>descomposición en valores singulares</b> (SVD) de la matriz centrada, más estable numéricamente que formar \(X^\top X\):</p>
+      <div class="eq">\[ X = UDV^\top, \qquad U^\top U = I_r,\ V^\top V = I_r,\ D = \operatorname{diag}(d_1 \ge \cdots \ge d_r &gt; 0) . \]
+        <div class="note">Sustituyendo, \(X^\top X = VD^2V^\top\): las columnas de \(V\) son las cargas, los valores propios son \(\lambda_k = d_k^2/(n-1)\) y los puntajes son \(Z = XV = UD\). Es lo que hacen <code>prcomp</code> en R y <code>PCA</code> en scikit-learn.</div>
+      </div>
+      <div class="callout"><b>Teorema de Eckart-Young (1936).</b> Entre todas las matrices \(A\) de rango a lo sumo \(q\), la que minimiza \(\lVert X - A\rVert_F^2 = \sum_{i,j}(x_{ij} - a_{ij})^2\) es la SVD truncada \(X_q = \sum_{k=1}^{q} d_k u_k v_k^\top = Z_qV_q^\top\), y el error mínimo es \(\sum_{k &gt; q} d_k^2\).</div>
+      <p>Interpretación: conservar \(q\) componentes es guardar \(n q + p q\) números en vez de \(n p\), con el menor error cuadrático posible. Con \(n = 1\,000\) imágenes de \(p = 4\,096\) píxeles y \(q = 50\), pasamos de 4,1 millones de números a unos 255 000, una compresión de 16 a 1.</p>
+      <p><b>Relación con otras técnicas.</b> El PCA no es un <b>análisis factorial</b>, aunque se parezcan: el análisis factorial postula un modelo \(x = Lf + \varepsilon\) con factores latentes y errores propios de cada variable, y solo explica la varianza común; el PCA es una rotación que explica toda la varianza sin suponer un modelo. Tampoco es regresión: en la <a href="#regmult">regresión múltiple</a> la colinealidad infla varianzas, y la <b>regresión sobre componentes</b> (PCR) la elimina usando \(Z_q\) como predictores, al costo de ignorar \(y\) al elegir las direcciones.</p>
+
+      <h2 id="pca-var"><span class="sec">§ 5</span>Varianza explicada: ¿cuántas componentes?</h2>
+      <p>La <b>proporción de varianza explicada</b> (PVE) por la componente \(k\) y la acumulada por las primeras \(q\) son:</p>
+      <div class="eq">\[ \text{PVE}_k = \frac{\lambda_k}{\sum_{j=1}^{p}\lambda_j}, \qquad \text{PVE}_{1:q} = \frac{\lambda_1 + \cdots + \lambda_q}{\lambda_1 + \cdots + \lambda_p} \]
+        <div class="note">Con variables estandarizadas, \(\sum_j \lambda_j = p\), y \(\text{PVE}_k = \lambda_k/p\). En el ejemplo de los arrestos en EE. UU. de la sección 10, los valores propios son 2,48; 0,99; 0,36 y 0,17: las dos primeras componentes explican \((2{,}48 + 0{,}99)/4 = 86{,}8\,\%\) de la varianza.</div>
+      </div>
+      <p>No hay una regla única para elegir \(q\). Las más usadas:</p>
+      <ul>
+        <li><b>Gráfico de sedimentación</b> (<i>scree plot</i>, Cattell 1966): los \(\lambda_k\) en orden. Te quedas con las componentes antes del “codo”, donde la curva se aplana como los escombros al pie de un cerro.</li>
+        <li><b>Umbral de varianza acumulada:</b> las componentes necesarias para llegar al 80 % o 90 %. Es simple, pero el umbral es arbitrario.</li>
+        <li><b>Criterio de Kaiser</b> (solo con la matriz de correlaciones): conservar las componentes con \(\lambda_k &gt; 1\), es decir, las que explican más que una variable original. Tiende a quedarse con demasiadas cuando \(p\) es grande.</li>
+        <li><b>Análisis paralelo de Horn</b> (1965): comparar cada \(\lambda_k\) con el percentil 95 de los que se obtienen en datos simulados <b>sin correlación</b> del mismo tamaño \(n \times p\), y conservar solo los que lo superan. Corrige que, aun sin estructura, el azar separa los valores propios: con \(n = 200\) y \(p = 10\) independientes, el mayor suele salir cerca de 1,4.</li>
+        <li><b>Según el uso:</b> si el PCA es un paso previo a un modelo predictivo, elige \(q\) con <a href="#cv">validación cruzada</a> del modelo final.</li>
+      </ul>
+      <p><b>Un modelo útil para entender el codo.</b> Si \(p\) variables estandarizadas tienen todas la misma correlación \(\rho\) entre sí (matriz equicorrelacionada \(R = (1 - \rho)I + \rho\,\mathbf{1}\mathbf{1}^\top\)), entonces \(\lambda_1 = 1 + (p - 1)\rho\) con \(\phi_1 = \mathbf{1}/\sqrt p\), y los otros \(p - 1\) valores propios valen \(1 - \rho\). Con \(p = 6\) notas y \(\rho = 0{,}5\), CP1 = “rendimiento general” explica \(3{,}5/6 \approx 58\,\%\) y el gráfico muestra un codo perfecto después de la primera barra.</p>
+
+      <h2 id="pca-cargas"><span class="sec">§ 6</span>Cargas, puntajes, biplot y escala</h2>
+      <p>Para interpretar una componente se miran sus <b>cargas</b>: el peso \(\phi_{jk}\) de cada variable \(j\) en la componente \(k\). Con variables estandarizadas, la correlación entre una variable y una componente es:</p>
+      <div class="eq">\[ \operatorname{cor}(x_j, z_k) = \phi_{jk}\sqrt{\lambda_k}, \qquad \sum_{k=1}^{p}\operatorname{cor}(x_j, z_k)^2 = 1 \]
+        <div class="note">Se obtiene de \(\operatorname{Cov}(x_j, z_k) = e_j^\top S\phi_k = \lambda_k\phi_{jk}\) y de dividir por \(\sqrt{1 \cdot \lambda_k}\). El cuadrado es la fracción de la varianza de la variable \(j\) que explica la componente \(k\); sumado sobre las \(q\) retenidas es la <b>comunalidad</b>.</div>
+      </div>
+      <p>En el ejemplo de los arrestos por cada 100 000 habitantes en los 50 estados de EE. UU. en 1973 (asesinatos, asaltos, violaciones y porcentaje de población urbana), con las variables estandarizadas:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Variable</th><th>Carga en CP1</th><th>Carga en CP2</th><th>cor(x, CP1)</th><th>cor(x, CP2)</th></tr></thead>
+        <tbody>
+          <tr><td>Asesinatos</td><td>0,536</td><td>−0,418</td><td>0,84</td><td>−0,42</td></tr>
+          <tr><td>Asaltos</td><td>0,583</td><td>−0,188</td><td>0,92</td><td>−0,19</td></tr>
+          <tr><td>Población urbana</td><td>0,278</td><td>0,873</td><td>0,44</td><td>0,87</td></tr>
+          <tr><td>Violaciones</td><td>0,543</td><td>0,167</td><td>0,86</td><td>0,17</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>CP1</b> pone pesos parecidos en los tres delitos y poco en la urbanización: es un índice de <b>criminalidad general</b> (Florida y Nevada puntúan alto; Dakota del Norte y Vermont, bajo). <b>CP2</b> está dominada por la población urbana: separa estados muy urbanos (California, Hawái) de estados rurales (Misisipi, Vermont). La comunalidad de asesinatos en el plano es \(0{,}84^2 + 0{,}42^2 \approx 0{,}885\).</p>
+      <p>Un <b>biplot</b> (Gabriel, 1971) dibuja en el mismo plano los puntajes de las observaciones en CP1 y CP2 (puntos) y las cargas de las variables (flechas). Se lee así: las flechas que apuntan en direcciones parecidas son variables correlacionadas positivamente; las opuestas, negativamente; las perpendiculares, casi sin correlación. Una flecha larga indica una variable bien representada en el plano. Una observación situada hacia donde apunta una flecha tiene valores altos de esa variable.</p>
+      <div class="callout"><b>El signo es arbitrario.</b> Si \(\phi\) es un vector propio, \(-\phi\) también lo es. R y Python pueden darte las mismas componentes con el signo cambiado (en R, <code>prcomp</code> da las cargas de CP1 negativas para estos datos). Cambiar el signo de una componente invierte sus puntajes, pero no cambia nada de la interpretación ni de la varianza explicada.</div>
+      <h3>¿Covarianza o correlación?</h3>
+      <p>El PCA busca varianza, así que una variable medida en unidades con números grandes se adueña de la primera componente. En los arrestos, la varianza de los asaltos es 6 945 y la de los asesinatos, 19. Sin estandarizar, CP1 explica el 96,6 % de la varianza y es prácticamente “asaltos” (carga de 0,995). Estandarizar equivale a hacer el PCA sobre la <b>matriz de correlaciones</b> \(R = D^{-1/2}SD^{-1/2}\) y da a cada variable el mismo peso. Usa la matriz de covarianzas solo si todas las variables están en las mismas unidades y sus varianzas tienen significado (por ejemplo, píxeles de una imagen o la misma medida en varios momentos).</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Conviene usar PCA</th><th>Mejor pensarlo dos veces</th></tr></thead>
+        <tbody>
+          <tr><td>Muchas variables numéricas muy correlacionadas</td><td>Variables casi sin correlación: cada componente explica poco más que una variable</td></tr>
+          <tr><td>Quieres visualizar o explorar estructura en 2D</td><td>La estructura es no lineal (curvas, grupos con forma rara): usa t-SNE o UMAP para visualizar</td></tr>
+          <tr><td>Colinealidad en una regresión (regresión sobre componentes, PCR)</td><td>Necesitas interpretar el efecto de cada variable original</td></tr>
+          <tr><td>Reducir ruido o comprimir antes de k-NN o clustering</td><td>Las direcciones de poca varianza son justo las que predicen \(y\): el PCA ignora la respuesta (considera mínimos cuadrados parciales, PLS)</td></tr>
+          <tr><td>Construir un índice que resuma varias medidas</td><td>Hay atípicos fuertes (usa PCA robusto) o variables categóricas (usa análisis de correspondencias múltiples)</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Cuidado con la fuga de información:</b> si usas el PCA como paso previo a un modelo predictivo, calcula las medias, las desviaciones y las cargas <b>solo con los datos de entrenamiento</b> y aplica esa misma transformación a los de prueba. Lo más seguro es ponerlo dentro de un <i>pipeline</i> y elegir el número de componentes con validación cruzada.</div>
+
+      <h2 id="pca-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Componentes no correlacionadas.</b> \(\operatorname{Cov}(z_k, z_l) = \phi_k^\top S\phi_l = \lambda_l\phi_k^\top\phi_l = 0\) para \(k \ne l\). <i>Justificación:</i> los vectores propios de una matriz simétrica son ortogonales.</li>
+        <li><b>Varianzas ordenadas.</b> \(\operatorname{Var}(z_k) = \lambda_k\) con \(\lambda_1 \ge \lambda_2 \ge \cdots \ge \lambda_p \ge 0\). <i>Justificación:</i> \(\phi_k^\top S\phi_k = \lambda_k\) y \(S\) es semidefinida positiva.</li>
+        <li><b>Conservación de la varianza total.</b> \(\sum_k \lambda_k = \operatorname{tr}(S)\); con datos estandarizados, \(= p\). <i>Justificación:</i> la traza es invariante a rotaciones ortogonales.</li>
+        <li><b>Varianza generalizada.</b> \(\prod_k \lambda_k = \det(S)\). <i>Justificación:</i> \(\det(V\Lambda V^\top) = \det\Lambda\). Un valor propio cercano a 0 indica una combinación lineal casi constante: colinealidad.</li>
+        <li><b>Óptimo de rango bajo.</b> El error de reconstrucción con \(q\) componentes es \((n - 1)\sum_{k&gt;q}\lambda_k\), el menor posible para cualquier subespacio de dimensión \(q\). <i>Justificación:</i> Pitágoras y el teorema de Eckart-Young.</li>
+        <li><b>Correlación variable-componente.</b> Con datos estandarizados, \(\operatorname{cor}(x_j, z_k) = \phi_{jk}\sqrt{\lambda_k}\) y \(\sum_k \operatorname{cor}(x_j, z_k)^2 = 1\). <i>Justificación:</i> \(\operatorname{Cov}(x_j, z_k) = (S\phi_k)_j = \lambda_k\phi_{jk}\) y \(\sum_k \lambda_k\phi_{jk}^2 = (V\Lambda V^\top)_{jj} = 1\).</li>
+        <li><b>No invariancia a la escala.</b> Si \(x \mapsto Dx\) con \(D\) diagonal, las componentes cambian (no solo se reescalan). <i>Justificación:</i> los vectores propios de \(DSD\) no son, en general, \(D\phi_k\).</li>
+        <li><b>Matriz equicorrelacionada.</b> \(\lambda_1 = 1 + (p - 1)\rho\) y \(\lambda_{2:p} = 1 - \rho\). <i>Justificación:</i> \(R\mathbf 1 = (1 + (p-1)\rho)\mathbf 1\), y todo vector ortogonal a \(\mathbf 1\) cumple \(Rv = (1 - \rho)v\).</li>
+      </ol>
+      <h3>Errores comunes</h3>
+      <ul>
+        <li><b>No estandarizar variables en unidades distintas</b>, y luego “descubrir” que una variable domina CP1.</li>
+        <li><b>Interpretar el signo</b> de las cargas como si fuera fijo, o comparar signos entre programas.</li>
+        <li><b>Creer que alta varianza significa importancia predictiva.</b> La componente de menor varianza puede ser la que predice \(y\).</li>
+        <li><b>Ajustar el PCA con todos los datos</b> antes de separar entrenamiento y prueba (fuga de información).</li>
+        <li><b>Leer los puntajes de un biplot como distancias exactas</b> cuando el plano explica poca varianza: si PVE₁₊₂ = 40 %, dos puntos cercanos en el plano pueden estar lejos en las otras dimensiones.</li>
+      </ul>
+
+      <h2 id="pca-sim"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <h3>Laboratorio 1: la dirección de máxima varianza</h3>
       <p>Una nube de 200 puntos centrados. Gira la recta con el ángulo θ: cada punto se proyecta en perpendicular sobre ella (segmentos) y la varianza de esas proyecciones aparece a la derecha como función del ángulo. La primera componente es el ángulo donde esa curva es máxima; la segunda es perpendicular a ella, en el mínimo.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · proyectar y maximizar</span><span class="num" id="pca-head">–</span></div>
@@ -75,20 +192,19 @@
         </div>
         <figcaption>Con ρ = 0 y σ₂/σ₁ = 1 la curva es plana: ninguna dirección es mejor y el PCA no tiene nada que resumir. Sube |ρ| y verás que CP1 explica cada vez más. Ahora deja ρ = 0 y sube σ₂/σ₁: CP1 se va al eje de la variable con más varianza, solo por su escala. Por eso importa estandarizar.</figcaption>
       </figure>
-
-      <h2 id="pca-var"><span class="sec">§ 4</span>Varianza explicada: ¿cuántas componentes?</h2>
-      <p>La <b>proporción de varianza explicada</b> (PVE) por la componente \(k\) y la acumulada por las primeras \(q\) son:</p>
-      <div class="eq">\[ \text{PVE}_k = \frac{\lambda_k}{\sum_{j=1}^{p}\lambda_j}, \qquad \text{PVE}_{1:q} = \frac{\lambda_1 + \cdots + \lambda_q}{\lambda_1 + \cdots + \lambda_p} \]
-        <div class="note">Con variables estandarizadas, \(\sum_j \lambda_j = p\), y \(\text{PVE}_k = \lambda_k/p\). En el ejemplo de los arrestos en EE. UU. de la sección 7, los valores propios son 2,48; 0,99; 0,36 y 0,17: las dos primeras componentes explican \((2{,}48 + 0{,}99)/4 = 86{,}8\,\%\) de la varianza.</div>
-      </div>
-      <p>No hay una regla única para elegir \(q\). Las más usadas:</p>
-      <ul>
-        <li><b>Gráfico de sedimentación</b> (<i>scree plot</i>): los \(\lambda_k\) en orden. Te quedas con las componentes antes del “codo”, donde la curva se aplana como los escombros al pie de un cerro.</li>
-        <li><b>Umbral de varianza acumulada:</b> las componentes necesarias para llegar al 80 % o 90 %. Es simple, pero el umbral es arbitrario.</li>
-        <li><b>Criterio de Kaiser</b> (solo con la matriz de correlaciones): conservar las componentes con \(\lambda_k > 1\), es decir, las que explican más que una variable original. Tiende a quedarse con demasiadas cuando \(p\) es grande.</li>
-        <li><b>Análisis paralelo de Horn:</b> comparar cada \(\lambda_k\) con el que se obtiene en datos simulados sin correlación del mismo tamaño, y conservar solo los que lo superan. Es de los criterios más confiables.</li>
-        <li><b>Según el uso:</b> si el PCA es un paso previo a un modelo predictivo, elige \(q\) con validación cruzada del modelo final.</li>
-      </ul>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Fija ρ = 0 y σ₂/σ₁ = 1 y mueve θ de 0° a 179°. ¿Cómo es la curva de la derecha? ¿Qué porcentaje explica CP1?
+          <details><summary>Qué deberías observar</summary><p>La curva es casi plana y CP1 explica cerca del 50 %: con varianzas iguales y sin correlación, toda dirección es igual de buena. Las pequeñas diferencias son azar muestral, y el ángulo de CP1 salta de un lado a otro al pulsar “Nuevos datos”.</p></details></li>
+        <li>Con σ₂/σ₁ = 1, sube ρ a 0,5, 0,7 y 0,9 y pulsa “Alinear con CP1”. Compara el porcentaje que explica CP1 con \((1 + \rho)/2\).
+          <details><summary>Qué deberías observar</summary><p>CP1 queda en torno a 45° y explica aproximadamente 75 %, 85 % y 95 %, que es \((1 + \rho)/2\), el resultado de la matriz de correlaciones de 2 × 2.</p></details></li>
+        <li>Deja ρ = 0 y sube σ₂/σ₁ a 2,5. ¿Hacia dónde apunta CP1 y cuánto explica?
+          <details><summary>Qué deberías observar</summary><p>CP1 se va a 90° (el eje de la segunda variable) y explica alrededor de \(6{,}25/7{,}25 \approx 86\,\%\), sin que haya ninguna correlación. Es puro efecto de escala: por eso se estandariza.</p></details></li>
+        <li>Con ρ = 0,7, ubica θ en el mínimo de la curva. ¿Qué relación hay entre la varianza proyectada ahí, la de CP1 y la varianza total?
+          <details><summary>Qué deberías observar</summary><p>El mínimo está a 90° de CP1 y es \(\lambda_2\). La suma de la varianza en el máximo y en el mínimo es la varianza total (la traza de S): la rotación conserva la varianza.</p></details></li>
+      </ol>
+      <h3>Laboratorio 2: gráfico de sedimentación</h3>
+      <p>Diez variables generadas como la suma de un factor latente más ruido propio. Cambia el número de factores y el nivel de ruido, y observa cómo reaccionan el codo, la varianza acumulada y el criterio de Kaiser.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · gráfico de sedimentación</span><span class="num" id="pca-sc-head">–</span></div>
         <div class="lab-body">
@@ -116,43 +232,30 @@
         </div>
         <figcaption>Cada variable es la suma de uno de los factores latentes más ruido propio. Con 2 factores aparece un codo claro después de la segunda barra. Sube el ruido: el codo se borra y Kaiser empieza a fallar. Con “Ninguno” las variables son independientes y aun así los λ no valen exactamente 1: el azar de la muestra los separa, que es lo que corrige el análisis paralelo.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con 2 factores y ruido σ = 0,8, ¿cuántas barras sobresalen? ¿Coinciden el codo, Kaiser y el umbral del 80 %?
+          <details><summary>Qué deberías observar</summary><p>Sobresalen dos barras y el codo está después de la segunda; Kaiser también retiene 2. El umbral del 80 % puede pedir 3 o más, porque el ruido propio reparte la varianza restante entre muchas componentes pequeñas.</p></details></li>
+        <li>Elige “Ninguno” y pulsa “Nueva muestra” varias veces. ¿Valen todos los λ exactamente 1? ¿Cuántas componentes retiene Kaiser?
+          <details><summary>Qué deberías observar</summary><p>No: el mayor sale cerca de 1,3 o 1,4 y el menor cerca de 0,7, solo por azar. Kaiser retiene 3 a 5 componentes que no tienen ningún significado. Esta es la razón del análisis paralelo de Horn.</p></details></li>
+        <li>Con 3 factores, sube el ruido de 0,2 a 2,5. ¿En qué punto deja de verse el codo?
+          <details><summary>Qué deberías observar</summary><p>Con ruido bajo, las tres primeras barras son enormes y el resto casi cero. A medida que sube el ruido, los λ de los factores bajan y los del ruido suben hasta mezclarse; alrededor de σ ≈ 1,5 a 2 el codo ya es difícil de identificar y CP1 explica poco.</p></details></li>
+        <li>Con 1 factor y ruido 0,8, compara el porcentaje que explica CP1 con la fórmula equicorrelacionada \([1 + (p-1)\rho]/p\), donde \(\rho = 1/(1 + \sigma^2)\).
+          <details><summary>Qué deberías observar</summary><p>Con σ = 0,8, ρ ≈ 0,61 y la fórmula da \((1 + 9 \cdot 0{,}61)/10 \approx 65\,\%\). El readout debe mostrar un valor cercano, con algo de variación muestral.</p></details></li>
+      </ol>
 
-      <h2 id="pca-cargas"><span class="sec">§ 5</span>Cargas, puntajes y biplot</h2>
-      <p>Para interpretar una componente se miran sus <b>cargas</b>: el peso \(\phi_{jk}\) de cada variable \(j\) en la componente \(k\). Con variables estandarizadas, la correlación entre una variable y una componente es:</p>
-      <div class="eq">\[ \operatorname{cor}(x_j, z_k) = \phi_{jk}\sqrt{\lambda_k}, \qquad \sum_{k=1}^{p}\operatorname{cor}(x_j, z_k)^2 = 1 \]
-        <div class="note">El cuadrado de esa correlación es la fracción de la varianza de la variable \(j\) que explica la componente \(k\). Sumar esos cuadrados sobre las \(q\) componentes retenidas da la <b>comunalidad</b> de la variable: qué tan bien la representa el resumen.</div>
-      </div>
-      <p>En el ejemplo de los arrestos por cada 100 000 habitantes en los 50 estados de EE. UU. en 1973 (asesinatos, asaltos, violaciones y porcentaje de población urbana), con las variables estandarizadas:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Variable</th><th>Carga en CP1</th><th>Carga en CP2</th><th>cor(x, CP1)</th><th>cor(x, CP2)</th></tr></thead>
-        <tbody>
-          <tr><td>Asesinatos</td><td>0,536</td><td>−0,418</td><td>0,84</td><td>−0,42</td></tr>
-          <tr><td>Asaltos</td><td>0,583</td><td>−0,188</td><td>0,92</td><td>−0,19</td></tr>
-          <tr><td>Población urbana</td><td>0,278</td><td>0,873</td><td>0,44</td><td>0,87</td></tr>
-          <tr><td>Violaciones</td><td>0,543</td><td>0,167</td><td>0,86</td><td>0,17</td></tr>
-        </tbody>
-      </table></div>
-      <p><b>CP1</b> pone pesos parecidos en los tres delitos y poco en la urbanización: es un índice de <b>criminalidad general</b> (Florida y Nevada puntúan alto; Dakota del Norte y Vermont, bajo). <b>CP2</b> está dominada por la población urbana: separa estados muy urbanos (California, Hawái) de estados rurales (Misisipi, Vermont).</p>
-      <p>Un <b>biplot</b> dibuja en el mismo plano los puntajes de las observaciones en CP1 y CP2 (puntos) y las cargas de las variables (flechas). Se lee así: las flechas que apuntan en direcciones parecidas son variables correlacionadas positivamente; las opuestas, negativamente; las perpendiculares, casi sin correlación. Una flecha larga indica una variable bien representada en el plano. Una observación situada hacia donde apunta una flecha tiene valores altos de esa variable.</p>
-      <div class="callout"><b>El signo es arbitrario.</b> Si \(\phi\) es un vector propio, \(-\phi\) también lo es. R y Python pueden darte las mismas componentes con el signo cambiado (en R, <code>prcomp</code> da las cargas de CP1 negativas para estos datos). Cambiar el signo de una componente invierte sus puntajes, pero no cambia nada de la interpretación ni de la varianza explicada.</div>
+      <h2 id="pca-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Economía y finanzas: la curva de rendimientos</h3>
+      <p>Litterman y Scheinkman (1991) aplicaron PCA a los cambios diarios de las tasas de interés de bonos del Tesoro de EE. UU. a distintos plazos (de meses a 30 años). Tres componentes explican más del 95 % de la variación: un <b>nivel</b> (todas las tasas suben o bajan juntas, cargas casi iguales), una <b>pendiente</b> (corto plazo contra largo plazo) y una <b>curvatura</b> (plazos medios contra los extremos). Las mesas de dinero usan esas tres componentes para medir y cubrir el riesgo de tasa de una cartera con solo tres instrumentos, en lugar de uno por plazo.</p>
+      <h3>Ciencias sociales y salud: el índice de riqueza</h3>
+      <p>En muchas encuestas de hogares de países de ingreso medio y bajo no se mide el ingreso. Filmer y Pritchett (2001) propusieron construir un índice de nivel socioeconómico con la primera componente principal de indicadores de activos del hogar (tener radio, refrigerador, piso de cemento, agua potable, electricidad…). Las cargas de CP1 actúan como pesos; los hogares se ordenan por su puntaje y se dividen en quintiles. Las Encuestas de Demografía y Salud (DHS) usan un índice de este tipo para mostrar, por ejemplo, cómo la mortalidad infantil o la vacunación cambian del quintil más pobre al más rico, y orientar programas sociales.</p>
+      <h3>Genética: los genes reflejan la geografía</h3>
+      <p>Novembre y colaboradores (Nature, 2008) aplicaron PCA a unos 200 000 marcadores genéticos (SNP) de unas 1 400 personas europeas. Al graficar los puntajes en CP1 y CP2, la nube reprodujo casi el mapa de Europa: CP1 seguía un eje noroeste-sudeste y CP2 uno este-oeste. Hoy el PCA es un paso obligatorio en los estudios de asociación genómica (GWAS): las primeras componentes se incluyen como covariables para que las diferencias de ascendencia no se confundan con efectos de genes.</p>
+      <h3>Tecnología: caras propias (<i>eigenfaces</i>)</h3>
+      <p>Turk y Pentland (1991) representaron cada cara como un vector de miles de píxeles y calcularon el PCA de un conjunto de entrenamiento. Las cargas, vistas como imágenes, parecen caras fantasmales: las “eigenfaces”. Con unas 50 componentes cada cara se reconstruye razonablemente, y para reconocer a una persona basta comparar sus 50 puntajes con los de la base de datos, en vez de comparar miles de píxeles. Aunque hoy las <a href="#cnn">redes convolucionales</a> son mucho más precisas, el método mostró por primera vez el poder de la reducción de dimensión en visión por computador.</p>
 
-      <h2 id="pca-cuando"><span class="sec">§ 6</span>Escalar, y cuándo conviene reducir</h2>
-      <p><b>¿Covarianza o correlación?</b> El PCA busca varianza, así que una variable medida en unidades con números grandes se adueña de la primera componente. En los arrestos, la varianza de los asaltos es 6 945 y la de los asesinatos, 19. Sin estandarizar, CP1 explica el 96,6 % de la varianza y es prácticamente “asaltos” (carga de 0,995). Estandarizar equivale a hacer el PCA sobre la <b>matriz de correlaciones</b> y da a cada variable el mismo peso. Usa la matriz de covarianzas solo si todas las variables están en las mismas unidades y sus varianzas tienen significado (por ejemplo, píxeles de una imagen o la misma medida en varios momentos).</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Conviene usar PCA</th><th>Mejor pensarlo dos veces</th></tr></thead>
-        <tbody>
-          <tr><td>Muchas variables numéricas muy correlacionadas</td><td>Variables casi sin correlación: cada componente explica poco más que una variable</td></tr>
-          <tr><td>Quieres visualizar o explorar estructura en 2D</td><td>La estructura es no lineal (curvas, grupos con forma rara): usa t-SNE o UMAP para visualizar</td></tr>
-          <tr><td>Colinealidad en una regresión (regresión sobre componentes, PCR)</td><td>Necesitas interpretar el efecto de cada variable original</td></tr>
-          <tr><td>Reducir ruido o comprimir antes de k-NN o clustering</td><td>Las direcciones de poca varianza son justo las que predicen \(y\): el PCA ignora la respuesta (considera mínimos cuadrados parciales, PLS)</td></tr>
-          <tr><td>Construir un índice que resuma varias medidas</td><td>Hay atípicos fuertes (usa PCA robusto) o variables categóricas (usa análisis de correspondencias múltiples)</td></tr>
-        </tbody>
-      </table></div>
-      <div class="callout"><b>Cuidado con la fuga de información:</b> si usas el PCA como paso previo a un modelo predictivo, calcula las medias, las desviaciones y las cargas <b>solo con los datos de entrenamiento</b> y aplica esa misma transformación a los de prueba. Lo más seguro es ponerlo dentro de un <i>pipeline</i> y elegir el número de componentes con <a href="#cv">validación cruzada</a>.</div>
-      <p>El PCA tampoco es un <b>análisis factorial</b>, aunque se parezcan. El análisis factorial postula un modelo con factores latentes y errores propios de cada variable, y solo explica la varianza común; el PCA es una rotación de los datos que explica toda la varianza sin suponer ningún modelo.</p>
-
-      <h2 id="pca-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
-      <p>Hacemos el PCA de los datos <code>USArrests</code> (50 estados, 4 variables), que vienen con R; en Python los descargamos con <code>statsmodels</code> desde el repositorio Rdatasets (requiere conexión a internet).</p>
+      <h2 id="pca-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <p>Hacemos el PCA de los datos <code>USArrests</code> (50 estados, 4 variables), que vienen con R; en Python los descargamos con <code>statsmodels</code> desde el repositorio Rdatasets (requiere conexión a internet). Calculamos valores propios, cargas, correlaciones, el biplot y comparamos con el PCA sin estandarizar.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
@@ -219,7 +322,7 @@ pr$x &lt;- -pr$x
       </div>
       <p>Dos componentes resumen el 86,8 % de la información de las cuatro variables, y cada una tiene una lectura clara: criminalidad y urbanización. Con dos números por estado podemos dibujar los 50 en un plano y ver de un vistazo qué estados se parecen. Fíjate en que la población urbana tiene una correlación de solo 0,44 con CP1: la criminalidad y la urbanización son ejes casi independientes en estos datos.</p>
 
-      <h2 id="pca-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <h2 id="pca-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="El PCA maximiza varianza, y las varianzas dependen de las unidades. Asaltos tiene una varianza cientos de veces mayor que las demás, así que sin estandarizar CP1 es prácticamente esa variable." data-wrong="Recuerda qué maximiza la primera componente. ¿Qué pasa si una variable tiene una varianza de 6 945 y otra de 19?">
         <h3>Haces PCA de USArrests sin estandarizar y CP1 explica el 96,6 % de la varianza. ¿Qué significa?</h3>
         <div class="opts">
@@ -250,70 +353,121 @@ pr$x &lt;- -pr$x
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Con la matriz equicorrelacionada, λ₁ = 1 + (p − 1)ρ = 1 + 9 · 0,4 = 4,6, así que CP1 explica 4,6/10 = 46 %. Los otros nueve valores propios valen 1 − ρ = 0,6." data-wrong="Usa λ₁ = 1 + (p − 1)ρ y recuerda que con variables estandarizadas la varianza total es p.">
+        <h3>Diez variables estandarizadas tienen todas correlación 0,4 entre sí. ¿Qué proporción de la varianza explica CP1?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>46 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>40 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>14 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>60 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El PCA elige las direcciones sin mirar y. Si la respuesta depende de una dirección de poca varianza, la regresión sobre las primeras componentes la descarta. Conviene elegir q con validación cruzada o usar PLS, que busca direcciones correlacionadas con y." data-wrong="Recuerda que el PCA es no supervisado. ¿Qué garantiza que la dirección de mayor varianza de X sea la que mejor predice y?">
+        <h3>Usas regresión sobre la primera componente (PCR con q = 1), que explica el 99 % de la varianza de X, y el R² de validación es casi 0. ¿Cuál es la explicación más probable?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Un error en el código, porque 99 % de varianza garantiza buena predicción</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Que faltó estandarizar y</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Que y depende de la dirección de poca varianza que el PCA descartó</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Que la validación cruzada no se puede usar con componentes</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="pca-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. Para el ejercicio 4 puedes comprobar tu intuición con el primer laboratorio.</p>
+      <h2 id="pca-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución. Combinan demostraciones, cálculo y simulación.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un PCA sobre la matriz de correlaciones de 8 variables da los valores propios 4,2; 2,1; 1,0; 0,3; 0,2; 0,1; 0,06 y 0,04. (a) Calcula la PVE de las tres primeras y la acumulada. (b) ¿Cuántas componentes retienes con el umbral del 80 % y con el criterio de Kaiser?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que, con datos estandarizados, \(\operatorname{cor}(x_j, z_k) = \phi_{jk}\sqrt{\lambda_k}\) y que \(\sum_{k=1}^{p}\operatorname{cor}(x_j, z_k)^2 = 1\). (b) En el PCA de USArrests, asesinatos tiene cargas 0,536 y −0,418 en CP1 y CP2, con λ₁ = 2,48 y λ₂ = 0,99; población urbana tiene 0,278 y 0,873. Calcula la comunalidad de ambas en el plano y di cuál está mejor representada.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) La suma es 8 (como debe ser con 8 variables estandarizadas). PVE: 4,2/8 = 52,5 %; 2,1/8 = 26,25 %; 1,0/8 = 12,5 %. Acumulada: 52,5 %, 78,75 % y 91,25 %.</p>
-            <p>(b) Con dos componentes no se llega al 80 % (78,75 %), así que el umbral pide <b>3</b>. Kaiser conserva las de λ &gt; 1: <b>2</b> (la tercera vale exactamente 1, una variable “promedio”). Los criterios no siempre coinciden: aquí el gráfico de sedimentación tiene un codo claro después de la tercera.</p>
+            <p>(a) \(x_j = Xe_j\) y \(z_k = X\phi_k\), así que \(\operatorname{Cov}(x_j, z_k) = e_j^\top S\phi_k = \lambda_k e_j^\top\phi_k = \lambda_k\phi_{jk}\). Con \(\operatorname{Var}(x_j) = 1\) y \(\operatorname{Var}(z_k) = \lambda_k\): \(\operatorname{cor} = \lambda_k\phi_{jk}/\sqrt{\lambda_k} = \phi_{jk}\sqrt{\lambda_k}\). Sumando cuadrados: \(\sum_k \lambda_k\phi_{jk}^2 = (V\Lambda V^\top)_{jj} = S_{jj} = 1\).</p>
+            <p>(b) Asesinatos: \((0{,}536 \cdot 1{,}575)^2 + (0{,}418 \cdot 0{,}995)^2 \approx 0{,}712 + 0{,}173 = 0{,}885\). Población urbana: \((0{,}278 \cdot 1{,}575)^2 + (0{,}873 \cdot 0{,}995)^2 \approx 0{,}192 + 0{,}755 = 0{,}947\). La población urbana está algo mejor representada (95 % contra 88 %), aunque casi toda por CP2.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Dos variables estandarizadas tienen correlación r = 0,6. (a) Encuentra los valores propios y los vectores propios de su matriz de correlaciones. (b) ¿Qué proporción explica CP1? (c) Calcula el puntaje en CP1 de una observación con valores estandarizados (1,2; 0,4).</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Demuestra que, para cualquier matriz \(P\) de proyección ortogonal de rango \(q\) (\(P = WW^\top\), \(W^\top W = I_q\)), el error \(\sum_i\lVert x_i - Px_i\rVert^2 = (n-1)\big[\operatorname{tr}S - \operatorname{tr}(W^\top SW)\big]\), y que este error es mínimo cuando las columnas de \(W\) son los \(q\) primeros vectores propios. Verifícalo con \(S = \begin{pmatrix}9 &amp; 3\\ 3 &amp; 4\end{pmatrix}\) y \(q = 1\) comparando la dirección de CP1 con la del eje \(x_1\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) La matriz es [[1; 0,6], [0,6; 1]]. Para cualquier matriz de este tipo los valores propios son 1 + r = <b>1,6</b> y 1 − r = <b>0,4</b>, con vectores propios (1, 1)/√2 y (1, −1)/√2.</p>
-            <p>(b) PVE₁ = 1,6/2 = <b>80 %</b>.</p>
-            <p>(c) z₁ = (1,2 + 0,4)/√2 = 1,6/1,414 ≈ <b>1,13</b>. CP1 es, salvo un factor, el promedio de las dos variables.</p>
+            <p>Como \(P\) es simétrica e idempotente, \(\lVert x - Px\rVert^2 = x^\top(I - P)x = \lVert x\rVert^2 - x^\top WW^\top x\). Sumando sobre \(i\): \(\operatorname{tr}(X^\top X) - \operatorname{tr}(W^\top X^\top XW) = (n-1)[\operatorname{tr}S - \operatorname{tr}(W^\top SW)]\). Minimizar el error es maximizar \(\operatorname{tr}(W^\top SW) = \sum_{l=1}^{q} w_l^\top Sw_l\) con columnas ortonormales. Por el teorema de Ky Fan (o aplicando el cociente de Rayleigh columna por columna), el máximo es \(\lambda_1 + \cdots + \lambda_q\), alcanzado por los primeros vectores propios.</p>
+            <p>Verificación: con \(w = \phi_1 \approx (0{,}906;\ 0{,}424)\), \(w^\top Sw = \lambda_1 \approx 10{,}41\) y el error por \(n-1\) es \(13 - 10{,}41 = 2{,}59 = \lambda_2\). Con \(w = (1, 0)\) (el eje \(x_1\)), \(w^\top Sw = 9\) y el error es \(13 - 9 = 4 &gt; 2{,}59\). Proyectar sobre CP1 pierde un 35 % menos de información.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Prueba que la matriz equicorrelacionada \(R = (1-\rho)I_p + \rho\,\mathbf 1\mathbf 1^\top\) tiene \(\lambda_1 = 1 + (p-1)\rho\) y \(\lambda_2 = \cdots = \lambda_p = 1 - \rho\). (b) ¿Para qué valores de \(\rho\) es \(R\) una matriz de correlaciones válida? (c) Seis notas con \(\rho = 0{,}5\): ¿cuánto explica CP1 y qué retendrían Kaiser y el umbral del 80 %? Interpreta la estructura.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(R\mathbf 1 = (1-\rho)\mathbf 1 + \rho\,\mathbf 1(\mathbf 1^\top\mathbf 1) = (1 - \rho + p\rho)\mathbf 1\). Para \(v \perp \mathbf 1\): \(Rv = (1-\rho)v + \rho\,\mathbf 1(\mathbf 1^\top v) = (1-\rho)v\). El subespacio ortogonal a \(\mathbf 1\) tiene dimensión \(p - 1\).</p>
+            <p>(b) \(R\) debe ser semidefinida positiva: \(1 - \rho \ge 0\) y \(1 + (p-1)\rho \ge 0\), es decir \(-1/(p-1) \le \rho \le 1\). Con muchas variables, la correlación común no puede ser muy negativa.</p>
+            <p>(c) \(\lambda_1 = 1 + 5 \cdot 0{,}5 = 3{,}5\), PVE₁ = 58,3 %; los demás valen 0,5 (8,3 % cada uno). Kaiser retiene 1. Para el 80 % harían falta \(3{,}5 + 0{,}5m \ge 4{,}8\), o sea \(m = 3\) adicionales: 4 componentes. El umbral fijo es engañoso aquí: la estructura es claramente unidimensional (un “rendimiento general”) y las otras componentes son ruido de igual tamaño, sin un orden con significado.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación del análisis paralelo de Horn. Genera \(n = 200\) observaciones de \(p = 10\) variables con dos factores latentes (las cinco primeras cargan 0,8 en el factor 1 y las cinco últimas 0,7 en el factor 2, ruido normal de desviación 0,6). Calcula los valores propios de la matriz de correlaciones y compáralos con el percentil 95 de 500 réplicas de datos independientes del mismo tamaño. ¿Cuántas componentes retienes?</p>
+          <details><summary>Ver solución</summary><div class="sol">
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-R = np.<span class="f">array</span>([[<span class="n">1</span>, <span class="n">0.6</span>], [<span class="n">0.6</span>, <span class="n">1</span>]])
-val, vec = np.linalg.<span class="f">eigh</span>(R)          <span class="c"># eigh ordena de menor a mayor</span>
-<span class="f">print</span>(val[::-<span class="n">1</span>], vec[:, ::-<span class="n">1</span>])         <span class="c"># [1.6 0.4]</span>
-<span class="f">print</span>(np.<span class="f">array</span>([<span class="n">1.2</span>, <span class="n">0.4</span>]) @ vec[:, -<span class="n">1</span>])   <span class="c"># ±1.131 (el signo es arbitrario)</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>R &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="n">0.6</span>, <span class="n">0.6</span>, <span class="n">1</span>), <span class="n">2</span>)
-e &lt;- <span class="f">eigen</span>(R)
-e$values                          <span class="c"># 1.6 0.4</span>
-<span class="f">sum</span>(<span class="f">c</span>(<span class="n">1.2</span>, <span class="n">0.4</span>) * e$vectors[, <span class="n">1</span>])   <span class="c"># ±1.131</span></code></pre>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+n, p = <span class="n">200</span>, <span class="n">10</span>
+F = rng.<span class="f">normal</span>(size=(n, <span class="n">2</span>))
+L = np.<span class="f">zeros</span>((p, <span class="n">2</span>)); L[:<span class="n">5</span>, <span class="n">0</span>] = <span class="n">0.8</span>; L[<span class="n">5</span>:, <span class="n">1</span>] = <span class="n">0.7</span>
+X = F @ L.T + rng.<span class="f">normal</span>(scale=<span class="n">0.6</span>, size=(n, p))
+lam = np.linalg.<span class="f">eigvalsh</span>(np.<span class="f">corrcoef</span>(X, rowvar=<span class="k">False</span>))[::-<span class="n">1</span>]
+sim = np.<span class="f">array</span>([np.linalg.<span class="f">eigvalsh</span>(np.<span class="f">corrcoef</span>(rng.<span class="f">normal</span>(size=(n, p)), rowvar=<span class="k">False</span>))[::-<span class="n">1</span>]
+                <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">500</span>)])
+umbral = np.<span class="f">percentile</span>(sim, <span class="n">95</span>, axis=<span class="n">0</span>)
+<span class="f">print</span>(lam.<span class="f">round</span>(<span class="n">2</span>))      <span class="c"># [3.55 3.14 0.6  0.54 ...]</span>
+<span class="f">print</span>(umbral.<span class="f">round</span>(<span class="n">2</span>))   <span class="c"># [1.46 1.32 1.23 1.14 ...]</span>
+<span class="f">print</span>(<span class="s">"retener:"</span>, <span class="f">int</span>(np.<span class="f">sum</span>(np.<span class="f">cumprod</span>(lam &gt; umbral))))   <span class="c"># 2</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
+n &lt;- <span class="n">200</span>; p &lt;- <span class="n">10</span>
+F &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(n * <span class="n">2</span>), n)
+L &lt;- <span class="f">matrix</span>(<span class="n">0</span>, p, <span class="n">2</span>); L[<span class="n">1</span>:<span class="n">5</span>, <span class="n">1</span>] &lt;- <span class="n">0.8</span>; L[<span class="n">6</span>:<span class="n">10</span>, <span class="n">2</span>] &lt;- <span class="n">0.7</span>
+X &lt;- F %*% <span class="f">t</span>(L) + <span class="f">matrix</span>(<span class="f">rnorm</span>(n * p, sd = <span class="n">0.6</span>), n)
+lam &lt;- <span class="f">eigen</span>(<span class="f">cor</span>(X))$values
+sim &lt;- <span class="f">replicate</span>(<span class="n">500</span>, <span class="f">eigen</span>(<span class="f">cor</span>(<span class="f">matrix</span>(<span class="f">rnorm</span>(n * p), n)))$values)
+umbral &lt;- <span class="f">apply</span>(sim, <span class="n">1</span>, quantile, <span class="n">0.95</span>)
+<span class="f">round</span>(<span class="f">rbind</span>(lam, umbral), <span class="n">2</span>)
+<span class="f">sum</span>(<span class="f">cumprod</span>(lam &gt; umbral))     <span class="c"># 2</span>
+<span class="c"># alternativa: psych::fa.parallel(X, fa = "pc")</span></code></pre>
             </div>
+            <p>Los dos primeros valores propios (≈ 3,55 y 3,14) superan con holgura el umbral del azar (≈ 1,46 y 1,32); el tercero (≈ 0,60) queda muy por debajo de 1,23. Se retienen <b>2</b>, el número real de factores. Fíjate en que el umbral del primer valor propio del ruido es 1,46, no 1: con \(n\) finito, el azar siempre “fabrica” algunos λ mayores que 1, y por eso Kaiser tiende a sobreestimar.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>En el PCA estandarizado de USArrests, la carga de asesinatos es 0,536 en CP1 y −0,418 en CP2, con λ₁ = 2,48 y λ₂ = 0,99. (a) Calcula la correlación de asesinatos con cada componente. (b) ¿Qué fracción de la varianza de asesinatos queda representada en el plano CP1-CP2? (c) La población urbana tiene cargas 0,278 y 0,873: ¿qué variable está mejor representada en el plano?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Construye dos predictores \(x_1 = (z_1 + z_2)/\sqrt2\), \(x_2 = (z_1 - z_2)/\sqrt2\) con \(z_1 \sim N(0, 3^2)\) y \(z_2 \sim N(0;\ 0{,}3^2)\), y la respuesta \(y = 2z_2 + \varepsilon\) con \(\varepsilon \sim N(0;\ 0{,}2^2)\), \(n = 300\). (a) ¿Cuánta varianza de \(X\) explica CP1? (b) Compara por validación cruzada el \(R^2\) de PCR con 1 y con 2 componentes. (c) ¿Qué lección general sacas y qué alternativa propondrías?</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) cor = carga × √λ: con CP1, 0,536 × √2,48 = 0,536 × 1,575 ≈ <b>0,84</b>; con CP2, −0,418 × √0,99 ≈ <b>−0,42</b>.</p>
-            <p>(b) La comunalidad es 0,84² + 0,42² ≈ 0,712 + 0,173 = <b>0,885</b>: el plano conserva cerca del 88 % de la varianza de asesinatos.</p>
-            <p>(c) Población urbana: (0,278 × 1,575)² + (0,873 × 0,995)² ≈ 0,192 + 0,755 = <b>0,947</b>. La población urbana está algo mejor representada (95 %), aunque casi toda por CP2.</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Dos variables tienen matriz de covarianzas S = [[9, 3], [3, 4]]. (a) Calcula los valores propios, la PVE de CP1 y el ángulo de CP1 con el eje x₁. (b) ¿Cuánto vale la suma de distancias al cuadrado entre los puntos y su proyección sobre CP1, dividida por n − 1? (c) Repite (a) con las variables estandarizadas. ¿Por qué cambia la dirección?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) La ecuación característica es λ² − 13λ + 27 = 0 (traza 13, determinante 36 − 9 = 27), así que λ = (13 ± √61)/2: <b>λ₁ ≈ 10,41</b> y <b>λ₂ ≈ 2,59</b>. PVE₁ = 10,41/13 ≈ <b>80,0 %</b>. El vector propio cumple (9 − 10,41)φ₁ + 3φ₂ = 0, es decir φ₂ ≈ 0,468 φ₁; normalizado, φ ≈ (0,906; 0,424), con un ángulo de arctan(0,468) ≈ <b>25,1°</b>.</p>
-            <p>(b) Es la varianza que queda fuera de CP1: <b>λ₂ ≈ 2,59</b>. Varianza proyectada más error de reconstrucción suman la varianza total: 10,41 + 2,59 = 13.</p>
-            <p>(c) Estandarizadas, la correlación es 3/(3 × 2) = 0,5: λ = 1,5 y 0,5, PVE₁ = <b>75 %</b>, y CP1 apunta a <b>45°</b>, la dirección (1, 1)/√2. Sin estandarizar, x₁ tiene más varianza (9 contra 4) y arrastra CP1 hacia su eje. Con la matriz de correlaciones ambas pesan igual y la dirección solo refleja su correlación.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-S = np.<span class="f">array</span>([[<span class="n">9</span>, <span class="n">3</span>], [<span class="n">3</span>, <span class="n">4</span>]])
-val, vec = np.linalg.<span class="f">eigh</span>(S)
-<span class="f">print</span>(val)                                            <span class="c"># [ 2.595 10.405]</span>
-<span class="f">print</span>(np.<span class="f">degrees</span>(np.<span class="f">arctan</span>(vec[<span class="n">1</span>, <span class="n">1</span>] / vec[<span class="n">0</span>, <span class="n">1</span>])))         <span class="c"># 25.1</span>
-D = np.<span class="f">diag</span>(<span class="n">1</span> / np.<span class="f">sqrt</span>(np.<span class="f">diag</span>(S)))
-<span class="f">print</span>(np.linalg.<span class="f">eigh</span>(D @ S @ D)[<span class="n">0</span>])                      <span class="c"># [0.5 1.5]</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>S &lt;- <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">9</span>, <span class="n">3</span>, <span class="n">3</span>, <span class="n">4</span>), <span class="n">2</span>)
-e &lt;- <span class="f">eigen</span>(S)
-e$values                                        <span class="c"># 10.405 2.595</span>
-<span class="f">atan</span>(e$vectors[<span class="n">2</span>, <span class="n">1</span>] / e$vectors[<span class="n">1</span>, <span class="n">1</span>]) * <span class="n">180</span> / pi    <span class="c"># 25.1</span>
-<span class="f">eigen</span>(<span class="f">cov2cor</span>(S))$values                         <span class="c"># 1.5 0.5</span></code></pre>
+<span class="k">from</span> sklearn.decomposition <span class="k">import</span> PCA
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> LinearRegression
+<span class="k">from</span> sklearn.pipeline <span class="k">import</span> make_pipeline
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> cross_val_score
+rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
+n = <span class="n">300</span>
+z1 = rng.<span class="f">normal</span>(scale=<span class="n">3</span>, size=n); z2 = rng.<span class="f">normal</span>(scale=<span class="n">0.3</span>, size=n)
+X = np.<span class="f">column_stack</span>([z1 + z2, z1 - z2]) / np.<span class="f">sqrt</span>(<span class="n">2</span>)
+y = <span class="n">2</span> * z2 + rng.<span class="f">normal</span>(scale=<span class="n">0.2</span>, size=n)
+<span class="f">print</span>(<span class="f">PCA</span>().<span class="f">fit</span>(X).explained_variance_ratio_.<span class="f">round</span>(<span class="n">3</span>))      <span class="c"># [0.989 0.011]</span>
+<span class="k">for</span> q <span class="k">in</span> (<span class="n">1</span>, <span class="n">2</span>):
+    m = <span class="f">make_pipeline</span>(<span class="f">PCA</span>(n_components=q), <span class="f">LinearRegression</span>())
+    <span class="f">print</span>(q, <span class="f">cross_val_score</span>(m, X, y, cv=<span class="n">5</span>, scoring=<span class="s">"r2"</span>).<span class="f">mean</span>().<span class="f">round</span>(<span class="n">3</span>))
+<span class="c"># 1 -0.017     2 0.869</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(pls)
+<span class="f">set.seed</span>(<span class="n">1</span>)
+n &lt;- <span class="n">300</span>
+z1 &lt;- <span class="f">rnorm</span>(n, sd = <span class="n">3</span>); z2 &lt;- <span class="f">rnorm</span>(n, sd = <span class="n">0.3</span>)
+d &lt;- <span class="f">data.frame</span>(x1 = (z1 + z2) / <span class="f">sqrt</span>(<span class="n">2</span>), x2 = (z1 - z2) / <span class="f">sqrt</span>(<span class="n">2</span>))
+d$y &lt;- <span class="n">2</span> * z2 + <span class="f">rnorm</span>(n, sd = <span class="n">0.2</span>)
+<span class="f">summary</span>(<span class="f">prcomp</span>(d[, <span class="n">1</span>:<span class="n">2</span>]))           <span class="c"># CP1 ≈ 99 %</span>
+m &lt;- <span class="f">pcr</span>(y ~ x1 + x2, data = d, validation = <span class="s">"CV"</span>)
+<span class="f">R2</span>(m)                                <span class="c"># ≈ 0 con 1 componente, ≈ 0.87 con 2</span></code></pre>
             </div>
+            <p>(a) CP1 ≈ \(z_1\) explica ≈ 98,9 % de la varianza de \(X\). (b) Con una componente el \(R^2\) de validación es ≈ 0 (incluso negativo); con dos (equivalente a mínimos cuadrados) es ≈ 0,87, cerca del máximo posible \(\operatorname{Var}(2z_2)/\operatorname{Var}(y) = 0{,}36/0{,}40 = 0{,}9\). (c) La varianza de los predictores no dice nada sobre su relación con la respuesta: el PCA es no supervisado. Para predecir, elige \(q\) por validación cruzada del modelo final, o usa métodos supervisados de reducción como mínimos cuadrados parciales (PLS) o regularización (ridge, que encoge las direcciones de poca varianza en lugar de eliminarlas).</p>
           </div></details>
         </div>
       </div>

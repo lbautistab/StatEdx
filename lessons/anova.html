@@ -6,28 +6,29 @@
       <div class="crumbs"></div>
       <h1>Análisis de varianza (ANOVA)</h1>
       <p>Cuando quieres comparar tres o más medias, hacer una prueba t por cada par multiplica los falsos positivos. El ANOVA hace una sola pregunta global comparando dos fuentes de variación: la que hay entre los grupos y la que hay dentro de ellos. Si la primera es mucho mayor, alguna media es distinta, y las comparaciones múltiples te dicen cuál.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel intermedio</span><span>Requiere: pruebas t</span><span>R · Python</span></div>
+      <div class="lmeta"><span>95 min</span><span>Nivel intermedio</span><span>Requiere: pruebas t</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#anova-idea" data-sec="anova-idea">La idea</a></li>
-        <li><a href="#anova-modelo" data-sec="anova-modelo">El modelo</a></li>
+        <li><a href="#anova-intro" data-sec="anova-intro">Introducción</a></li>
+        <li><a href="#anova-def" data-sec="anova-def">Definición</a></li>
         <li><a href="#anova-sc" data-sec="anova-sc">Descomponer la variabilidad</a></li>
-        <li><a href="#anova-tabla" data-sec="anova-tabla">La tabla ANOVA y el estadístico F</a></li>
-        <li><a href="#anova-lab" data-sec="anova-lab">Laboratorio</a></li>
-        <li><a href="#anova-supuestos" data-sec="anova-supuestos">Supuestos y alternativas</a></li>
+        <li><a href="#anova-tabla" data-sec="anova-tabla">Cuadrados medios y estadístico F</a></li>
         <li><a href="#anova-mult" data-sec="anova-mult">Comparaciones múltiples</a></li>
-        <li><a href="#anova-efecto" data-sec="anova-efecto">Tamaño del efecto</a></li>
+        <li><a href="#anova-supuestos" data-sec="anova-supuestos">Supuestos, Welch y Kruskal-Wallis</a></li>
+        <li><a href="#anova-prop" data-sec="anova-prop">Propiedades</a></li>
+        <li><a href="#anova-lab" data-sec="anova-lab">Ejercicios de simulación</a></li>
+        <li><a href="#anova-apl" data-sec="anova-apl">Aplicaciones reales</a></li>
         <li><a href="#anova-code" data-sec="anova-code">En R y Python</a></li>
-        <li><a href="#anova-quiz" data-sec="anova-quiz">Comprueba</a></li>
-        <li><a href="#anova-ej" data-sec="anova-ej">Ejercicios</a></li>
+        <li><a href="#anova-quiz" data-sec="anova-quiz">Quiz</a></li>
+        <li><a href="#anova-ej" data-sec="anova-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="anova-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="anova-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una huerta comunitaria quiere saber si el fertilizante cambia la cosecha. Divide 18 plantas de tomate en tres grupos de 6 al azar: sin fertilizante (control), con fertilizante orgánico y con fertilizante químico. Al final de la temporada pesa los tomates de cada planta (kg):</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Grupo</th><th>Cosecha por planta (kg)</th><th>Media</th><th>Desv. típica</th></tr></thead>
@@ -38,33 +39,71 @@
         </tbody>
       </table></div>
       <p>Las medias son distintas, pero eso siempre pasa con muestras. ¿Son <b>suficientemente</b> distintas? Podrías hacer tres pruebas t (control frente a orgánico, control frente a químico, orgánico frente a químico), pero cada una tiene 5 % de riesgo de falso positivo. Si las tres fueran independientes, la probabilidad de al menos un error sería \(1 - 0{,}95^3 = 14{,}3\,\%\); con 5 grupos hay 10 pares y llega a cerca del 40 %.</p>
+      <p><b>Un poco de historia.</b> El ANOVA nació en el campo, literalmente. En 1919 Ronald A. Fisher llegó a la estación experimental de Rothamsted, en Inglaterra, donde se acumulaban 70 años de datos de cosechas con distintos abonos. Para separar el efecto de los tratamientos del ruido del suelo y del clima inventó la descomposición de la variabilidad en “partes” atribuibles a cada fuente, la presentó en <i>Statistical Methods for Research Workers</i> (1925) y la acompañó de dos ideas que hoy parecen obvias: asignar los tratamientos <b>al azar</b> y repetir cada tratamiento varias veces. El nombre de la distribución \(F\) lo puso George Snedecor en 1934, en honor a Fisher.</p>
       <div class="callout"><b>El truco del ANOVA:</b> aunque se llama “análisis de varianza”, compara medias. Lo hace mirando dos varianzas: cuánto se separan las medias de los grupos entre sí, y cuánto varían las plantas dentro de cada grupo. Si los grupos están mucho más separados de lo que el ruido interno explicaría, las medias no son todas iguales.</div>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Escribir el modelo del ANOVA de un factor y sus hipótesis.</li>
+          <li>Demostrar la identidad \(SC_T = SC_{\text{entre}} + SC_{\text{dentro}}\) y construir la tabla ANOVA a mano.</li>
+          <li>Explicar por qué \(F \approx 1\) bajo \(H_0\) a partir de las esperanzas de los cuadrados medios, y calcular la potencia con la F no central.</li>
+          <li>Controlar la tasa de error por familia con Bonferroni, Holm, Tukey y contrastes planificados.</li>
+          <li>Revisar los supuestos y elegir entre ANOVA clásico, ANOVA de Welch y Kruskal-Wallis.</li>
+          <li>Reportar el tamaño del efecto con \(\eta^2\) y \(\omega^2\).</li>
+        </ul>
+      </div>
 
-      <h2 id="anova-modelo"><span class="sec">§ 2</span>El modelo</h2>
+      <h2 id="anova-def"><span class="sec">§ 2</span>Definición</h2>
       <p>Con \(k\) grupos, \(n_i\) observaciones en el grupo \(i\) y \(N = \sum n_i\) en total, el ANOVA de un factor supone:</p>
-      <div class="eq">\[ y_{ij} = \mu_i + \varepsilon_{ij} = \mu + \tau_i + \varepsilon_{ij}, \qquad \varepsilon_{ij} \sim \mathcal{N}(0, \sigma^2) \text{ independientes} \]
-        <div class="note">\(y_{ij}\) es la observación \(j\) del grupo \(i\); \(\mu\) es la media general y \(\tau_i = \mu_i - \mu\) el efecto del grupo \(i\). Todos los grupos comparten la misma varianza \(\sigma^2\).</div>
+      <div class="callout"><b>Modelo del ANOVA de un factor.</b>
+        \[ y_{ij} = \mu_i + \varepsilon_{ij} = \mu + \tau_i + \varepsilon_{ij}, \qquad \varepsilon_{ij} \overset{iid}{\sim} N(0, \sigma^2), \quad i = 1,\dots,k,\ \ j = 1,\dots,n_i \]
+        con la restricción \(\sum_i n_i\tau_i = 0\). Las hipótesis son
+        \[ H_0: \mu_1 = \mu_2 = \cdots = \mu_k \ \ (\text{equivalente a } \tau_1 = \cdots = \tau_k = 0) \qquad H_1: \text{al menos una } \mu_i \text{ es distinta.} \]
       </div>
-      <p>Las hipótesis son globales:</p>
-      <div class="eq">\[ H_0: \mu_1 = \mu_2 = \cdots = \mu_k \qquad\text{frente a}\qquad H_1: \text{al menos una } \mu_i \text{ es distinta} \]
-        <div class="note">\(H_1\) no dice que todas sean distintas ni cuál lo es. Rechazar \(H_0\) es el permiso para buscar después qué pares difieren.</div>
+      <ul>
+        <li>\(y_{ij}\) es la observación \(j\) del grupo \(i\) (la planta \(j\) con el fertilizante \(i\)).</li>
+        <li>\(\mu\) es la media general y \(\tau_i = \mu_i - \mu\) el <b>efecto</b> del grupo \(i\): cuánto sube o baja la media por pertenecer a él.</li>
+        <li>\(\varepsilon_{ij}\) es el error: lo que separa a cada planta de la media de su grupo. Todos los grupos comparten la misma varianza \(\sigma^2\).</li>
+        <li>\(H_1\) no dice que todas sean distintas ni cuál lo es. Rechazar \(H_0\) es el permiso para buscar después qué pares difieren.</li>
+      </ul>
+      <p>El estadístico de prueba se compara con una distribución nueva:</p>
+      <div class="eq">\[ F = \frac{U/d_1}{V/d_2} \sim F_{d_1,\,d_2} \quad\text{si } U \sim \chi^2_{d_1},\ V \sim \chi^2_{d_2} \text{ independientes} \]
+        <div class="note">La distribución F solo toma valores positivos, es asimétrica a la derecha y tiene dos grados de libertad: los del numerador \(d_1\) y los del denominador \(d_2\). Su media es \(d_2/(d_2-2)\), muy cerca de 1 cuando \(d_2\) es grande.</div>
       </div>
-      <p>Este es un caso particular de la regresión lineal: equivale a regresar \(y\) sobre variables indicadoras del grupo. Por eso en R y Python se ajusta con las mismas funciones (<code>lm</code>, <code>ols</code>) que usarás en regresión múltiple.</p>
+      <p><b>Ejemplo numérico pequeño.</b> Tres grupos de 2 datos: A = {1, 3}, B = {4, 6}, C = {7, 9}. Medias 2, 5 y 8; media general 5. La variación <b>entre</b> es \(2[(2-5)^2 + 0^2 + (8-5)^2] = 36\) con 2 gl, y la variación <b>dentro</b> es \((1+1) + (1+1) + (1+1) = 6\) con 3 gl. Entonces \(F = (36/2)/(6/3) = 18/2 = 9\). Los grupos se separan 9 veces más de lo que el ruido interno haría esperar.</p>
+      <p>El ANOVA es un caso particular de la <a href="#regmult">regresión lineal múltiple</a>: equivale a regresar \(y\) sobre \(k-1\) variables indicadoras del grupo. Por eso en R y Python se ajusta con las mismas funciones (<code>lm</code>, <code>ols</code>) que usarás en regresión.</p>
 
       <h2 id="anova-sc"><span class="sec">§ 3</span>Descomponer la variabilidad</h2>
-      <p>Llamemos \(\bar y_i\) a la media del grupo \(i\) y \(\bar y\) a la media general. Cada desvío respecto de la media general se parte en dos: lo que el grupo se aleja del centro, y lo que la observación se aleja de su grupo.</p>
+      <p>Llamemos \(\bar y_i = \frac{1}{n_i}\sum_j y_{ij}\) a la media del grupo \(i\) y \(\bar y = \frac{1}{N}\sum_i\sum_j y_{ij}\) a la media general. Cada desvío respecto de la media general se parte en dos: lo que el grupo se aleja del centro, y lo que la observación se aleja de su grupo.</p>
       <div class="eq">\[ y_{ij} - \bar y = (\bar y_i - \bar y) + (y_{ij} - \bar y_i) \]</div>
-      <p>Al elevar al cuadrado y sumar, los productos cruzados se anulan y queda la identidad fundamental del ANOVA:</p>
-      <div class="eq">\[ \underbrace{\sum_{i}\sum_{j}(y_{ij}-\bar y)^2}_{SC_T} = \underbrace{\sum_{i} n_i(\bar y_i-\bar y)^2}_{SC_{\text{entre}}} + \underbrace{\sum_{i}\sum_{j}(y_{ij}-\bar y_i)^2}_{SC_{\text{dentro}}} \]
-        <div class="note">En el ejemplo, \(\bar y = 4{,}622\). \(SC_{\text{entre}} = 6\,[(4{,}033-4{,}622)^2 + (4{,}667-4{,}622)^2 + (5{,}167-4{,}622)^2] = 3{,}871\) y \(SC_{\text{dentro}} = 5\,(0{,}314^2 + 0{,}301^2 + 0{,}327^2) = 1{,}480\). Total: \(5{,}351\).</div>
+      <p><b>Derivación.</b> Elevas al cuadrado y sumas sobre \(i\) y \(j\):</p>
+      <div class="eq">\[ \sum_{i,j}(y_{ij}-\bar y)^2 = \sum_{i,j}(\bar y_i - \bar y)^2 + \sum_{i,j}(y_{ij}-\bar y_i)^2 + 2\sum_i(\bar y_i - \bar y)\underbrace{\sum_j (y_{ij} - \bar y_i)}_{=\,0} \]
+        <div class="note">El producto cruzado se anula porque, dentro de cada grupo, las desviaciones respecto de su propia media suman cero. Y como \((\bar y_i - \bar y)^2\) no depende de \(j\), su suma sobre \(j\) es \(n_i(\bar y_i - \bar y)^2\).</div>
       </div>
-      <p>\(SC_{\text{dentro}}\) también se llama suma de cuadrados del error o residual: es la variación que el factor no explica. \(SC_{\text{entre}}\) es la parte explicada por el fertilizante.</p>
+      <p>Queda la <b>identidad fundamental del ANOVA</b>:</p>
+      <div class="eq">\[ \underbrace{\sum_{i}\sum_{j}(y_{ij}-\bar y)^2}_{SC_T} = \underbrace{\sum_{i} n_i(\bar y_i-\bar y)^2}_{SC_{\text{entre}}} + \underbrace{\sum_{i}\sum_{j}(y_{ij}-\bar y_i)^2}_{SC_{\text{dentro}}} \]</div>
+      <p><b>Ejemplo resuelto a mano (huerta).</b></p>
+      <ol>
+        <li>Medias de grupo: \(\bar y_1 = 24{,}2/6 = 4{,}033\), \(\bar y_2 = 28{,}0/6 = 4{,}667\), \(\bar y_3 = 31{,}0/6 = 5{,}167\). Media general: \(\bar y = 83{,}2/18 = 4{,}622\).</li>
+        <li>\(SC_{\text{entre}} = 6\,[(4{,}033-4{,}622)^2 + (4{,}667-4{,}622)^2 + (5{,}167-4{,}622)^2] = 6\,(0{,}347 + 0{,}002 + 0{,}297) = 3{,}871\).</li>
+        <li>\(SC_{\text{dentro}} = \sum_i (n_i-1)s_i^2 = 5\,(0{,}314^2 + 0{,}301^2 + 0{,}327^2) = 5\,(0{,}0987 + 0{,}0907 + 0{,}1067) = 1{,}480\).</li>
+        <li>\(SC_T = 3{,}871 + 1{,}480 = 5{,}351\), que coincide con \(\sum (y_{ij} - 4{,}622)^2\) calculado directamente.</li>
+      </ol>
+      <p>\(SC_{\text{dentro}}\) también se llama suma de cuadrados del error o residual: es la variación que el factor no explica. \(SC_{\text{entre}}\) es la parte explicada por el fertilizante. Su cociente con \(SC_T\) es el \(R^2\) del modelo de regresión equivalente.</p>
 
-      <h2 id="anova-tabla"><span class="sec">§ 4</span>La tabla ANOVA y el estadístico F</h2>
-      <p>Las sumas de cuadrados crecen con el número de términos, así que se dividen entre sus grados de libertad para obtener <b>cuadrados medios</b> (varianzas). Su cociente es el estadístico \(F\):</p>
-      <div class="eq">\[ CM_{\text{entre}} = \frac{SC_{\text{entre}}}{k-1}, \qquad CM_{\text{dentro}} = \frac{SC_{\text{dentro}}}{N-k}, \qquad F = \frac{CM_{\text{entre}}}{CM_{\text{dentro}}} \sim F_{k-1,\,N-k} \text{ bajo } H_0 \]
-        <div class="note">\(CM_{\text{dentro}}\) estima \(\sigma^2\) siempre. \(CM_{\text{entre}}\) estima \(\sigma^2\) solo si \(H_0\) es cierta; si las medias difieren, estima \(\sigma^2 + \sum n_i\tau_i^2/(k-1)\), que es mayor. Por eso \(F \approx 1\) bajo \(H_0\) y \(F\) grande contradice \(H_0\).</div>
-      </div>
+      <h2 id="anova-tabla"><span class="sec">§ 4</span>Cuadrados medios y el estadístico F</h2>
+      <p>Las sumas de cuadrados crecen con el número de términos, así que se dividen entre sus grados de libertad para obtener <b>cuadrados medios</b> (varianzas). Los grados de libertad también se suman: \(N - 1 = (k-1) + (N-k)\).</p>
+      <div class="eq">\[ CM_{\text{entre}} = \frac{SC_{\text{entre}}}{k-1}, \qquad CM_{\text{dentro}} = \frac{SC_{\text{dentro}}}{N-k}, \qquad F = \frac{CM_{\text{entre}}}{CM_{\text{dentro}}} \]</div>
+      <p><b>Esperanza de los cuadrados medios.</b> Este es el corazón de la prueba:</p>
+      <ol>
+        <li>Dentro de cada grupo, \(E[\sum_j (y_{ij}-\bar y_i)^2] = (n_i-1)\sigma^2\). Sumando: \(E[SC_{\text{dentro}}] = (N-k)\sigma^2\), así que \(E[CM_{\text{dentro}}] = \sigma^2\) <b>siempre</b>, sea \(H_0\) cierta o no.</li>
+        <li>Para el numerador escribe \(\bar y_i = \mu + \tau_i + \bar\varepsilon_i\) y \(\bar y = \mu + \bar\varepsilon\) (usando \(\sum n_i\tau_i = 0\)). Entonces \(\bar y_i - \bar y = \tau_i + (\bar\varepsilon_i - \bar\varepsilon)\).</li>
+        <li>Al tomar esperanza, los términos cruzados con \(\tau_i\) desaparecen y \(E[\sum_i n_i(\bar\varepsilon_i - \bar\varepsilon)^2] = (k-1)\sigma^2\). Resultado:
+          \[ E[CM_{\text{entre}}] = \sigma^2 + \frac{\sum_i n_i\tau_i^2}{k-1}. \]</li>
+      </ol>
+      <p><b>Interpretación.</b> Bajo \(H_0\) todos los \(\tau_i\) son 0 y ambos cuadrados medios estiman la misma \(\sigma^2\): \(F\) ronda 1. Si las medias difieren, el numerador estima algo mayor y \(F\) crece. Por eso la prueba es siempre de cola derecha.</p>
+      <div class="callout"><b>Teorema.</b> Bajo el modelo normal y \(H_0\), \(SC_{\text{entre}}/\sigma^2 \sim \chi^2_{k-1}\) y \(SC_{\text{dentro}}/\sigma^2 \sim \chi^2_{N-k}\) son independientes (teorema de Cochran). Por tanto
+        \[ F = \frac{CM_{\text{entre}}}{CM_{\text{dentro}}} \sim F_{k-1,\,N-k}. \]
+        Bajo \(H_1\), \(F\) sigue una F <b>no central</b> con parámetro \(\lambda = \sum_i n_i\tau_i^2/\sigma^2\).</div>
       <div class="tablewrap"><table>
         <thead><tr><th>Fuente</th><th>SC</th><th>gl</th><th>CM</th><th>F</th><th>Valor p</th></tr></thead>
         <tbody>
@@ -73,10 +112,79 @@
           <tr><td>Total</td><td>5,351</td><td>17</td><td></td><td></td><td></td></tr>
         </tbody>
       </table></div>
-      <p>La distribución \(F\) tiene dos parámetros de grados de libertad (numerador y denominador), es asimétrica a la derecha y solo toma valores positivos. La prueba es siempre de cola derecha: el valor crítico \(F_{0{,}05;\,2,\,15}\) es 3,68 y el observado es 19,62, así que se rechaza \(H_0\) con mucha holgura. El fertilizante sí cambia la cosecha media.</p>
-      <div class="callout"><b>Conexión con la prueba t:</b> con solo dos grupos, el ANOVA da exactamente el mismo valor p que la t de Student con varianza agrupada, y \(F = t^2\). El ANOVA es la generalización de esa prueba a \(k\) grupos.</div>
+      <p>El valor crítico \(F_{0{,}05;\,2,\,15}\) es 3,68 y el observado es 19,62, así que se rechaza \(H_0\) con mucha holgura. El fertilizante sí cambia la cosecha media.</p>
+      <div class="callout"><b>Conexión con la prueba t:</b> con solo dos grupos, el ANOVA da exactamente el mismo valor p que la t de Student con varianza agrupada, y \(F = t^2\) (lo demuestras en las preguntas propuestas). El ANOVA es la generalización de esa prueba a \(k\) grupos. Repasa la sesión de <a href="#ttest">pruebas t</a> si lo necesitas.</div>
+      <p><b>Tamaño del efecto.</b> Igual que con la prueba t, el valor p no mide cuán grande es la diferencia. Se usa la proporción de variación explicada:</p>
+      <div class="eq">\[ \eta^2 = \frac{SC_{\text{entre}}}{SC_T}, \qquad \omega^2 = \frac{SC_{\text{entre}} - (k-1)\,CM_{\text{dentro}}}{SC_T + CM_{\text{dentro}}} \]
+        <div class="note">En la huerta, \(\eta^2 = 3{,}871/5{,}351 = 0{,}72\) y \(\omega^2 = (3{,}871 - 2 \cdot 0{,}0987)/(5{,}351 + 0{,}0987) = 0{,}67\). \(\eta^2\) es el \(R^2\) del modelo y sobrestima el efecto poblacional en muestras pequeñas; \(\omega^2\) corrige ese sesgo usando que \(E[CM_{\text{entre}}] - E[CM_{\text{dentro}}]\) depende solo de los \(\tau_i\).</div>
+      </div>
+      <p>Referencias orientativas de Cohen para \(\eta^2\): 0,01 pequeño, 0,06 mediano, 0,14 grande. Un 72 % es enorme y típico de experimentos agrícolas bien controlados; en estudios con personas son mucho más habituales valores de 0,02 a 0,10. Acompaña la cifra con las diferencias en unidades reales: “el fertilizante químico aumenta la cosecha media en 1,1 kg por planta (IC 95 %: 0,7 a 1,6)” se entiende mejor que cualquier \(\eta^2\).</p>
+      <p><b>Potencia.</b> Con la F no central puedes planificar. Si esperas medias 4,0; 4,4 y 4,8 kg con \(\sigma = 0{,}4\) y \(n = 6\) por grupo, los efectos son \(-0{,}4;\ 0;\ 0{,}4\) y \(\lambda = 6\,(0{,}16 + 0 + 0{,}16)/0{,}16 = 12\). La potencia es \(P(F_{2,15}(\lambda = 12) &gt; 3{,}68) \approx 0{,}81\).</p>
 
-      <h2 id="anova-lab"><span class="sec">§ 5</span>Laboratorio</h2>
+      <h2 id="anova-mult"><span class="sec">§ 5</span>Comparaciones múltiples</h2>
+      <p>El ANOVA dijo “alguna media es distinta”. Ahora quieres saber cuáles, sin volver al problema de inflar los falsos positivos. La clave es controlar la <b>tasa de error por familia</b> (FWER): la probabilidad de cometer al menos un error tipo I en todo el conjunto de comparaciones.</p>
+      <div class="eq">\[ m = \binom{k}{2} = \frac{k(k-1)}{2} \text{ pares}, \qquad \text{FWER} \le 1-(1-\alpha)^m, \qquad \text{Bonferroni: } \alpha^\ast = \frac{\alpha}{m} \]
+        <div class="note">Bonferroni se justifica con la desigualdad de Boole: \(P(\bigcup_r A_r) \le \sum_r P(A_r) = m \cdot \alpha/m = \alpha\). Es simple y vale para cualquier conjunto de pruebas, dependientes o no, pero se vuelve conservador cuando \(m\) es grande.</div>
+      </div>
+      <p><b>Holm</b> es la versión escalonada: ordenas los valores p de menor a mayor, \(p_{(1)} \le \dots \le p_{(m)}\), y rechazas mientras \(p_{(r)} \le \alpha/(m - r + 1)\). Controla la FWER igual que Bonferroni y es siempre al menos igual de potente.</p>
+      <p><b>Tukey HSD</b> (diferencia honestamente significativa) está diseñado para todos los pares de medias. Usa la distribución del <b>rango estudentizado</b> \(q = (\bar y_{\max} - \bar y_{\min})/\sqrt{CM_{\text{dentro}}/n}\), es decir, la distribución de la mayor diferencia posible bajo \(H_0\). Si controlas la mayor, controlas todas:</p>
+      <div class="eq">\[ |\bar y_i - \bar y_j| &gt; HSD = q_{0{,}05;\,k,\,N-k}\,\sqrt{\frac{CM_{\text{dentro}}}{n}} = 3{,}67\sqrt{\frac{0{,}0987}{6}} = 0{,}471 \text{ kg} \]
+        <div class="note">Para diseños desbalanceados se usa la versión de Tukey-Kramer, con \(\sqrt{\tfrac{CM}{2}\left(\tfrac{1}{n_i}+\tfrac{1}{n_j}\right)}\).</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Par</th><th>Diferencia</th><th>IC 95 % de Tukey</th><th>p ajustado (Tukey)</th><th>p ajustado (Bonferroni)</th></tr></thead>
+        <tbody>
+          <tr><td>Orgánico − control</td><td>0,63</td><td>[0,16;  1,10]</td><td>0,009</td><td>0,010</td></tr>
+          <tr><td>Químico − control</td><td>1,13</td><td>[0,66;  1,60]</td><td>&lt; 0,001</td><td>&lt; 0,001</td></tr>
+          <tr><td>Químico − orgánico</td><td>0,50</td><td>[0,03;  0,97]</td><td>0,037</td><td>0,044</td></tr>
+        </tbody>
+      </table></div>
+      <p>Los tres pares difieren al 5 %. <b>Contrastes planificados.</b> Si antes de ver los datos defines pocas preguntas concretas, las expresas como combinaciones lineales \(L = \sum_i c_i\mu_i\) con \(\sum_i c_i = 0\). Su estimador y su error estándar son</p>
+      <div class="eq">\[ \hat L = \sum_i c_i\bar y_i, \qquad SE(\hat L) = \sqrt{CM_{\text{dentro}}\sum_i \frac{c_i^2}{n_i}}, \qquad t = \frac{\hat L}{SE(\hat L)} \sim t_{N-k} \]
+        <div class="note">“Fertilizado frente a no fertilizado” es \(c = (-1, \tfrac12, \tfrac12)\): \(\hat L = (4{,}667 + 5{,}167)/2 - 4{,}033 = 0{,}883\), \(SE = \sqrt{0{,}0987 \cdot 1{,}5/6} = 0{,}157\), \(t = 5{,}62\) con 15 gl. Otra opción es <b>Dunnett</b>, si solo te interesa comparar cada tratamiento con un control (menos comparaciones, más potencia).</div>
+      </div>
+
+      <h2 id="anova-supuestos"><span class="sec">§ 6</span>Supuestos, Welch y Kruskal-Wallis</h2>
+      <p>Los supuestos son los del <a href="#diag">modelo lineal</a>, y se revisan con los <b>residuos</b> \(e_{ij} = y_{ij} - \bar y_i\):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Supuesto</th><th>Cómo revisarlo</th><th>Si falla</th></tr></thead>
+        <tbody>
+          <tr><td>Independencia</td><td>Diseño: asignación aleatoria, unidades distintas en cada grupo</td><td>Medidas repetidas o modelos mixtos si los mismos sujetos están en varios grupos</td></tr>
+          <tr><td>Normalidad de los residuos</td><td>Gráfico Q-Q de residuos, Shapiro-Wilk con cautela</td><td>Robusto con grupos moderados (n ≥ 15 a 20); si no, transformar o usar Kruskal-Wallis</td></tr>
+          <tr><td>Varianzas iguales</td><td>Residuos por grupo, prueba de Levene; regla práctica: la desviación mayor no supera el doble de la menor</td><td><b>ANOVA de Welch</b>, que no supone varianzas iguales</td></tr>
+        </tbody>
+      </table></div>
+      <p>En la huerta las desviaciones típicas van de 0,30 a 0,33 y la prueba de Levene da \(p = 0{,}93\): no hay señales de heterocedasticidad. Cuando los grupos tienen el mismo tamaño (diseño <b>balanceado</b>) el ANOVA clásico tolera bastante bien varianzas distintas; con tamaños muy desiguales, el grupo pequeño y disperso puede distorsionar mucho el valor p, igual que en la t de Student.</p>
+      <p><b>ANOVA de Welch.</b> Pondera cada grupo por la precisión de su media, \(w_i = n_i/s_i^2\), y compara las medias con la media ponderada \(\tilde y = \sum w_i\bar y_i/\sum w_i\):</p>
+      <div class="eq">\[ F_W = \frac{\frac{1}{k-1}\sum_i w_i(\bar y_i - \tilde y)^2}{1 + \frac{2(k-2)}{k^2-1}\sum_i \frac{(1 - w_i/\sum w)^2}{n_i - 1}} \]
+        <div class="note">Se compara con una F de \(k-1\) y \(\nu\) gl, con \(\nu\) estimado al estilo Satterthwaite. En la huerta da \(F_W = 17{,}7\) con 2 y 10,0 gl, \(p = 0{,}0005\). En R es <code>oneway.test</code>.</div>
+      </div>
+      <p><b>Kruskal-Wallis.</b> La alternativa no paramétrica reemplaza los datos por sus rangos \(R_{ij}\) en la muestra combinada y compara los rangos medios \(\bar R_i\):</p>
+      <div class="eq">\[ H = \frac{12}{N(N+1)}\sum_i n_i\left(\bar R_i - \frac{N+1}{2}\right)^2 \;\approx\; \chi^2_{k-1} \text{ bajo } H_0 \]
+        <div class="note">Contrasta si alguna distribución tiende a dar valores mayores (no estrictamente medias). En la huerta: \(H = 12{,}6\), \(p = 0{,}0018\). Es robusto a atípicos, pero pierde algo de potencia si los datos son normales.</div>
+      </div>
+
+      <h2 id="anova-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Aditividad de sumas de cuadrados y gl.</b> \(SC_T = SC_{\text{entre}} + SC_{\text{dentro}}\) y \(N-1 = (k-1) + (N-k)\). Justificación: el producto cruzado se anula porque \(\sum_j(y_{ij} - \bar y_i) = 0\) en cada grupo.</li>
+        <li><b>\(CM_{\text{dentro}}\) es insesgado para \(\sigma^2\)</b>, sea \(H_0\) cierta o no: \(E[CM_{\text{dentro}}] = \sigma^2\). Es la varianza agrupada de la prueba t extendida a \(k\) grupos.</li>
+        <li><b>\(E[CM_{\text{entre}}] = \sigma^2 + \sum n_i\tau_i^2/(k-1)\).</b> El exceso sobre \(\sigma^2\) es la señal; de ahí que F sea de cola derecha.</li>
+        <li><b>Con dos grupos, \(F = t^2\).</b> Porque \(SC_{\text{entre}} = \frac{n_1n_2}{N}(\bar y_1 - \bar y_2)^2\) y si \(T \sim t_\nu\), \(T^2 \sim F_{1,\nu}\).</li>
+        <li><b>Contrastes ortogonales descomponen \(SC_{\text{entre}}\).</b> Si \(\sum c_i d_i/n_i = 0\), las sumas de cuadrados \(SC_L = \hat L^2/\sum(c_i^2/n_i)\) de \(k-1\) contrastes ortogonales suman exactamente \(SC_{\text{entre}}\). En la huerta: 3,121 (fertilizado frente a control) + 0,750 (químico frente a orgánico) = 3,871.</li>
+        <li><b>Invariancia.</b> F no cambia si transformas \(y \mapsto a + by\) con \(b \neq 0\): numerador y denominador se multiplican por \(b^2\). Las unidades de medida no afectan la conclusión.</li>
+        <li><b>Potencia con la F no central.</b> \(1 - \beta = P(F_{k-1,N-k}(\lambda) &gt; F_{\alpha})\) con \(\lambda = \sum n_i\tau_i^2/\sigma^2\). La potencia crece con \(n\) y con la separación de las medias, y cae con \(\sigma^2\).</li>
+        <li><b>Robustez del diseño balanceado.</b> Con \(n_i\) iguales, el error tipo I del ANOVA clásico se mantiene cerca del nominal aunque las varianzas difieran moderadamente; con tamaños desiguales puede subir (grupo pequeño disperso) o bajar (grupo grande disperso).</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li><b>Concluir que todas las medias difieren</b> porque el ANOVA rechazó: solo sabes que no todas son iguales.</li>
+        <li><b>Hacer pruebas t por pares sin corrección</b> después del ANOVA (o en lugar de él): la FWER se dispara con \(k\).</li>
+        <li><b>Usar ANOVA de un factor con medidas repetidas</b>: si los mismos sujetos aparecen en todos los grupos, las observaciones no son independientes y necesitas un ANOVA de medidas repetidas o un modelo mixto.</li>
+        <li><b>Revisar la normalidad de los datos crudos en lugar de los residuos</b>: lo que se supone normal es \(\varepsilon_{ij}\), no la mezcla de todos los grupos.</li>
+        <li><b>Elegir los contrastes después de mirar las medias</b> y tratarlos como planificados: eso equivale a comparar el mayor con el menor, y requiere Tukey o Scheffé.</li>
+      </ul>
+
+      <h2 id="anova-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
       <p>Cada fila es un grupo. Las barras de color son las medias de los grupos y la línea punteada la media general. Los segmentos rojos son la variación <b>entre</b> grupos; la dispersión de los puntos alrededor de su media es la variación <b>dentro</b>. Separa las medias reales o aumenta el ruido y mira cómo se mueve F.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · ANOVA de un factor</span><span class="num" id="anova-head">–</span></div>
@@ -115,39 +223,18 @@
         </div>
         <figcaption>Con separación 0 las medias reales son iguales: F ronda 1 y el valor p es uniforme entre 0 y 1 (pulsa “Nueva muestra” varias veces). Duplica σ y F cae aproximadamente a la cuarta parte, porque el ruido entra al cuadrado en el denominador.</figcaption>
       </figure>
-
-      <h2 id="anova-supuestos"><span class="sec">§ 6</span>Supuestos y alternativas</h2>
-      <p>Los supuestos son los del modelo lineal, y se revisan con los <b>residuos</b> \(e_{ij} = y_{ij} - \bar y_i\):</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Supuesto</th><th>Cómo revisarlo</th><th>Si falla</th></tr></thead>
-        <tbody>
-          <tr><td>Independencia</td><td>Diseño: asignación aleatoria, unidades distintas en cada grupo</td><td>Medidas repetidas o modelos mixtos si los mismos sujetos están en varios grupos</td></tr>
-          <tr><td>Normalidad de los residuos</td><td>Gráfico Q-Q de residuos, Shapiro-Wilk con cautela</td><td>Robusto con grupos moderados (n ≥ 15 a 20); si no, transformar o usar Kruskal-Wallis</td></tr>
-          <tr><td>Varianzas iguales</td><td>Residuos por grupo, prueba de Levene; regla práctica: la desviación mayor no supera el doble de la menor</td><td><b>ANOVA de Welch</b>, que no supone varianzas iguales</td></tr>
-        </tbody>
-      </table></div>
-      <p>En la huerta las desviaciones típicas van de 0,30 a 0,33 y la prueba de Levene da \(p = 0{,}93\): no hay señales de heterocedasticidad. Cuando los grupos tienen el mismo tamaño (diseño <b>balanceado</b>) el ANOVA clásico tolera bastante bien varianzas distintas; con tamaños muy desiguales, el grupo pequeño y disperso puede distorsionar mucho el valor p, igual que en la t de Student. Si dudas, el ANOVA de Welch (<code>oneway.test</code> en R) es una opción segura: en la huerta da \(F = 17{,}7\) con 2 y 10,0 gl, \(p = 0{,}0005\).</p>
-      <p>La alternativa no paramétrica es la prueba de <b>Kruskal-Wallis</b>, que trabaja con rangos y compara si alguna distribución tiende a dar valores mayores. En la huerta: \(H = 12{,}6\), \(p = 0{,}0018\).</p>
-
-      <h2 id="anova-mult"><span class="sec">§ 7</span>Comparaciones múltiples</h2>
-      <p>El ANOVA dijo “alguna media es distinta”. Ahora quieres saber cuáles, sin volver al problema de inflar los falsos positivos. La clave es controlar la <b>tasa de error por familia</b> (FWER): la probabilidad de cometer al menos un error tipo I en todo el conjunto de comparaciones.</p>
-      <div class="eq">\[ m = \binom{k}{2} = \frac{k(k-1)}{2} \text{ pares}, \qquad \text{FWER} \le 1-(1-\alpha)^m, \qquad \text{Bonferroni: } \alpha^\ast = \frac{\alpha}{m} \]
-        <div class="note">Bonferroni compara cada par con \(\alpha/m\) (o multiplica cada valor p por \(m\)). Es simple y vale para cualquier conjunto de pruebas, pero se vuelve conservador cuando \(m\) es grande.</div>
-      </div>
-      <p><b>Tukey HSD</b> (diferencia honestamente significativa) está diseñado para todos los pares de medias. Usa la distribución del rango estudentizado \(q\) y el \(CM_{\text{dentro}}\) del ANOVA, que aprovecha la información de todos los grupos para estimar \(\sigma\):</p>
-      <div class="eq">\[ |\bar y_i - \bar y_j| &gt; HSD = q_{0{,}05;\,k,\,N-k}\,\sqrt{\frac{CM_{\text{dentro}}}{n}} = 3{,}67\sqrt{\frac{0{,}0987}{6}} = 0{,}471 \text{ kg} \]
-        <div class="note">Para diseños desbalanceados se usa la versión de Tukey-Kramer, con \(\sqrt{\tfrac{CM}{2}\left(\tfrac{1}{n_i}+\tfrac{1}{n_j}\right)}\).</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Par</th><th>Diferencia</th><th>IC 95 % de Tukey</th><th>p ajustado (Tukey)</th><th>p ajustado (Bonferroni)</th></tr></thead>
-        <tbody>
-          <tr><td>Orgánico − control</td><td>0,63</td><td>[0,16;  1,10]</td><td>0,009</td><td>0,010</td></tr>
-          <tr><td>Químico − control</td><td>1,13</td><td>[0,66;  1,60]</td><td>&lt; 0,001</td><td>&lt; 0,001</td></tr>
-          <tr><td>Químico − orgánico</td><td>0,50</td><td>[0,03;  0,97]</td><td>0,037</td><td>0,044</td></tr>
-        </tbody>
-      </table></div>
-      <p>Los tres pares difieren al 5 %. Otras opciones según la pregunta: <b>Dunnett</b> si solo te interesa comparar cada tratamiento con un control (menos comparaciones, más potencia), <b>contrastes planificados</b> si antes de ver los datos definiste pocas comparaciones concretas (por ejemplo, “fertilizado frente a no fertilizado”), y <b>Holm</b> como versión escalonada de Bonferroni, siempre al menos igual de potente.</p>
-      <p>El segundo simulador muestra el problema que todo esto resuelve. Genera cientos de experimentos donde <b>todas las medias reales son iguales</b> y cuenta en cuántos aparece algún “resultado significativo”.</p>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Fija k = 3, separación 0, σ = 0,4 y n = 6. Pulsa “Nueva muestra” 15 veces y anota F y el valor p.
+          <details><summary>Qué deberías observar</summary><p>F oscila alrededor de 1 (su media teórica con 2 y 15 gl es \(15/13 \approx 1{,}15\)) y a veces sale 2 o 3 por azar. El valor p salta por todo el intervalo de 0 a 1; en promedio 1 de cada 20 muestras da \(p &lt; 0{,}05\). \(\eta^2\) no es cero aunque no haya efecto: con muestras pequeñas siempre “explica” algo, y por eso existe \(\omega^2\).</p></details></li>
+        <li>Con separación 0,5 y n = 6, sube σ de 0,4 a 0,8 sin pedir muestra nueva.
+          <details><summary>Qué deberías observar</summary><p>F cae aproximadamente a la cuarta parte. Las medias de grupo apenas se mueven, pero \(CM_{\text{dentro}}\) se multiplica por 4 porque estima \(\sigma^2\). El efecto relativo \(\tau_i/\sigma\) se redujo a la mitad, y \(\lambda\) a la cuarta parte.</p></details></li>
+        <li>Fija separación 0,3 y σ = 0,8, y sube n de 6 a 40.
+          <details><summary>Qué deberías observar</summary><p>F crece casi proporcional a \(n\), porque \(CM_{\text{entre}}\) incluye \(n\sum\tau_i^2/(k-1)\) mientras \(CM_{\text{dentro}}\) sigue estimando \(\sigma^2\). Un efecto que con n = 6 casi nunca era significativo pasa a serlo casi siempre: es la potencia creciendo con \(\lambda = n\sum\tau_i^2/\sigma^2\). En cambio \(\eta^2\) se estabiliza: no crece con n.</p></details></li>
+        <li>Con separación 0,5, σ = 0,4, n = 6, cambia k de 3 a 5.
+          <details><summary>Qué deberías observar</summary><p>Con más grupos hay más pares y el lector de “pares distintos (Bonferroni)” muestra que cada comparación se vuelve más exigente: con k = 5 se compara cada par con \(0{,}05/10\). El F global suele crecer porque hay más medias separadas, pero el número de pares detectados no crece al mismo ritmo.</p></details></li>
+      </ol>
+      <p>El segundo simulador muestra el problema que resuelven las comparaciones múltiples. Genera cientos de experimentos donde <b>todas las medias reales son iguales</b> y cuenta en cuántos aparece algún “resultado significativo”.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · inflación del error tipo I</span><span class="num" id="anova-fw-head">–</span></div>
         <div class="lab-body">
@@ -167,19 +254,32 @@
         </div>
         <figcaption>Cada experimento tiene k grupos de 10 datos de la misma población. Las pruebas t sin corregir se disparan con k, aunque algo por debajo de 1 − 0,95ᵐ porque los pares comparten grupos y no son independientes. ANOVA y Bonferroni se quedan cerca del 5 % prometido.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Fija k = 2 y simula 400 experimentos.
+          <details><summary>Qué deberías observar</summary><p>Con dos grupos hay un solo par: las tres curvas coinciden cerca del 5 %. La t sin corregir, la t con Bonferroni (que divide por 1) y el ANOVA son la misma prueba, porque \(F = t^2\).</p></details></li>
+        <li>Pulsa “Barrer k = 2 a 10” y mira la curva roja.
+          <details><summary>Qué deberías observar</summary><p>La proporción de experimentos con algún falso positivo sube rápido: alrededor del 12 % con k = 3, del 28 % con k = 5 y cerca del 60 % con k = 10. Queda por debajo de \(1 - 0{,}95^m\) (curva gris) porque los pares comparten grupos y sus pruebas están correlacionadas, pero el problema es real.</p></details></li>
+        <li>En el mismo barrido, compara la curva azul (Bonferroni) con la negra (ANOVA).
+          <details><summary>Qué deberías observar</summary><p>Ambas se mantienen cerca o por debajo del 5 % para todo k. Bonferroni tiende a quedar por debajo (es conservador, sobre todo con k grande), lo que significa que pierde potencia: para detectar diferencias reales, Tukey o Holm suelen ser mejores opciones.</p></details></li>
+      </ol>
 
-      <h2 id="anova-efecto"><span class="sec">§ 8</span>Tamaño del efecto</h2>
-      <p>Igual que con la prueba t, el valor p no mide cuán grande es la diferencia. Para el ANOVA se usa la proporción de variación explicada por el factor:</p>
-      <div class="eq">\[ \eta^2 = \frac{SC_{\text{entre}}}{SC_T}, \qquad \omega^2 = \frac{SC_{\text{entre}} - (k-1)\,CM_{\text{dentro}}}{SC_T + CM_{\text{dentro}}} \]
-        <div class="note">En la huerta, \(\eta^2 = 3{,}871/5{,}351 = 0{,}72\) y \(\omega^2 = 0{,}67\). \(\eta^2\) es el \(R^2\) del modelo y sobrestima el efecto poblacional en muestras pequeñas; \(\omega^2\) corrige ese sesgo.</div>
-      </div>
-      <p>Referencias orientativas de Cohen para \(\eta^2\): 0,01 pequeño, 0,06 mediano, 0,14 grande. Un 72 % es enorme y típico de experimentos agrícolas bien controlados; en estudios con personas son mucho más habituales valores de 0,02 a 0,10. Como siempre, acompaña la cifra con las diferencias en unidades reales: “el fertilizante químico aumenta la cosecha media en 1,1 kg por planta (IC 95 %: 0,7 a 1,6)” se entiende mejor que cualquier \(\eta^2\).</p>
+      <h2 id="anova-apl"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Agricultura: el dataset PlantGrowth</h3>
+      <p>El dataset <code>PlantGrowth</code> de R (tomado de Dobson, 1983) registra el peso seco de 30 plantas: 10 de control y 10 con cada uno de dos tratamientos. Las medias son 5,03; 4,66 y 5,53 g. El ANOVA da \(F = 4{,}85\) con 2 y 27 gl, \(p = 0{,}016\), con \(\eta^2 = 0{,}26\). Levene no detecta problemas (\(p = 0{,}34\)). Tukey muestra que ningún tratamiento difiere del control al 5 % (\(p = 0{,}39\) y \(p = 0{,}20\)), pero el tratamiento 2 sí supera al 1 por 0,87 g (\(p = 0{,}012\)). <b>Decisión:</b> descartar el tratamiento 1 frente al 2; para afirmar que el 2 mejora al control haría falta un ensayo con más plantas. Es un buen ejemplo de un F global significativo sin que el par “de interés” lo sea.</p>
+      <h3>Control de plagas: InsectSprays</h3>
+      <p>Beall (1942) contó insectos en parcelas tratadas con seis insecticidas (A a F), 12 parcelas por producto; los datos están en R como <code>InsectSprays</code>. Las medias van de 2,1 (C) a 16,7 (F) insectos, pero las desviaciones van de 1,7 a 6,2: los conteos tienen varianza que crece con la media, y Levene lo detecta (\(p = 0{,}004\)). El ANOVA clásico da \(F = 34{,}7\), el de Welch \(F_W = 36{,}1\) con 5 y 30 gl, y Kruskal-Wallis \(H = 54{,}7\); todos con \(p &lt; 10^{-9}\). Al usar \(\sqrt{y}\), transformación estabilizadora para conteos, Levene ya no rechaza (\(p = 0{,}50\)). <b>Decisión:</b> los insecticidas C, D y E son claramente más eficaces; la elección entre ellos se hace con Tukey sobre la escala transformada, o con un modelo de <a href="#glm">Poisson</a>.</p>
+      <h3>Tecnología: latencia de configuraciones de servidor</h3>
+      <p>Un equipo de infraestructura mide la latencia p95 (ms) de 4 configuraciones durante 25 ventanas de 5 minutos cada una, asignadas al azar en el orden de ejecución. Datos ilustrativos: medias 182, 175, 171 y 188 ms, con desviaciones 12, 11, 25 y 13. La configuración 3 es mucho más variable, así que conviene el ANOVA de Welch. Si este rechaza, comparas cada configuración con la actual (la 1) mediante Dunnett. <b>Decisión:</b> no basta con elegir la de menor media; la configuración 3 tiene la mejor latencia promedio, pero su variabilidad puede violar el acuerdo de servicio, y el análisis lo pone sobre la mesa.</p>
+      <h3>Educación: tres modalidades de un curso</h3>
+      <p>Una universidad ofrece el mismo curso presencial, en línea y en modalidad híbrida, y compara la nota final de muestras de estudiantes de cada modalidad (datos ilustrativos: 40, 35 y 38 estudiantes). Aquí el ANOVA puede indicar que las medias difieren, pero los estudiantes <b>eligieron</b> su modalidad: no hubo asignación al azar. Un F significativo no prueba que la modalidad cause la diferencia; podría deberse a que quienes eligen la modalidad en línea trabajan más horas, por ejemplo. <b>Decisión:</b> usar el ANOVA como descripción y pasar a un modelo con covariables (ANCOVA, es decir, <a href="#regmult">regresión múltiple</a>) o a un diseño aleatorizado antes de cambiar la política del curso.</p>
 
-      <h2 id="anova-code"><span class="sec">§ 9</span>En R y Python</h2>
-      <p>El ejemplo completo de la huerta: tabla ANOVA, supuestos, alternativas y Tukey.</p>
+      <h2 id="anova-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>El ejemplo completo de la huerta: tabla ANOVA, tamaño del efecto, supuestos, alternativas, Tukey y un contraste planificado.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">import</span> pandas <span class="k">as</span> pd
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> pandas <span class="k">as</span> pd
 <span class="k">from</span> scipy <span class="k">import</span> stats
 <span class="k">import</span> statsmodels.api <span class="k">as</span> sm
 <span class="k">import</span> statsmodels.formula.api <span class="k">as</span> smf
@@ -198,8 +298,12 @@ df = pd.<span class="f">DataFrame</span>([(g, x) <span class="k">for</span> g, x
 modelo = smf.<span class="f">ols</span>(<span class="s">"kg ~ C(fert)"</span>, data=df).<span class="f">fit</span>()
 tabla = sm.stats.<span class="f">anova_lm</span>(modelo, typ=<span class="n">2</span>)
 <span class="f">print</span>(tabla)                                  <span class="c"># SC 3.871 y 1.480, gl 2 y 15</span>
-eta2 = tabla.sum_sq.iloc[<span class="n">0</span>] / tabla.sum_sq.<span class="f">sum</span>()
-<span class="f">print</span>(eta2)                                   <span class="c"># ≈ 0.72</span>
+
+<span class="c"># tamaño del efecto: eta² y omega²</span>
+sce, scd = tabla.sum_sq.iloc[<span class="n">0</span>], tabla.sum_sq.iloc[<span class="n">1</span>]
+cmd = scd / tabla.df.iloc[<span class="n">1</span>]
+<span class="f">print</span>(sce / (sce + scd))                         <span class="c"># η² ≈ 0.72</span>
+<span class="f">print</span>((sce - <span class="n">2</span> * cmd) / (sce + scd + cmd))          <span class="c"># ω² ≈ 0.67</span>
 
 <span class="c"># supuestos</span>
 <span class="f">print</span>(stats.<span class="f">levene</span>(*datos.<span class="f">values</span>()))         <span class="c"># p ≈ 0.93</span>
@@ -210,7 +314,13 @@ eta2 = tabla.sum_sq.iloc[<span class="n">0</span>] / tabla.sum_sq.<span class="f
 <span class="f">print</span>(stats.<span class="f">kruskal</span>(*datos.<span class="f">values</span>()))                    <span class="c"># H ≈ 12.6, p ≈ 0.0018</span>
 
 <span class="c"># comparaciones múltiples de Tukey</span>
-<span class="f">print</span>(<span class="f">pairwise_tukeyhsd</span>(df.kg, df.fert, alpha=<span class="n">0.05</span>))</code></pre>
+<span class="f">print</span>(<span class="f">pairwise_tukeyhsd</span>(df.kg, df.fert, alpha=<span class="n">0.05</span>))
+
+<span class="c"># contraste planificado: fertilizado frente a control</span>
+medias = df.<span class="f">groupby</span>(<span class="s">"fert"</span>).kg.<span class="f">mean</span>().values
+c = np.<span class="f">array</span>([-<span class="n">1</span>, <span class="n">0.5</span>, <span class="n">0.5</span>])
+L = c @ medias; se = np.<span class="f">sqrt</span>(cmd * (c ** <span class="n">2</span> / <span class="n">6</span>).<span class="f">sum</span>())
+<span class="f">print</span>(L, L / se, <span class="n">2</span> * stats.t.<span class="f">sf</span>(L / se, <span class="n">15</span>))        <span class="c"># ≈ 0.883  5.62  4.8e-05</span></code></pre>
 <pre class="code" data-lang="r" hidden><code>df &lt;- <span class="f">data.frame</span>(
   fert = <span class="f">factor</span>(<span class="f">rep</span>(<span class="f">c</span>(<span class="s">"control"</span>, <span class="s">"organico"</span>, <span class="s">"quimico"</span>), each = <span class="n">6</span>)),
   kg   = <span class="f">c</span>(<span class="n">4.1</span>, <span class="n">3.8</span>, <span class="n">4.5</span>, <span class="n">4.0</span>, <span class="n">3.6</span>, <span class="n">4.2</span>,
@@ -220,9 +330,11 @@ eta2 = tabla.sum_sq.iloc[<span class="n">0</span>] / tabla.sum_sq.<span class="f
 modelo &lt;- <span class="f">aov</span>(kg ~ fert, data = df)
 <span class="f">summary</span>(modelo)                     <span class="c"># F ≈ 19.62 con 2 y 15 gl, p ≈ 6.5e-05</span>
 
-<span class="c"># tamaño del efecto</span>
-sc &lt;- <span class="f">summary</span>(modelo)[[<span class="n">1</span>]][[<span class="s">"Sum Sq"</span>]]
-sc[<span class="n">1</span>] / <span class="f">sum</span>(sc)                       <span class="c"># η² ≈ 0.72</span>
+<span class="c"># tamaño del efecto: eta² y omega²</span>
+sc  &lt;- <span class="f">summary</span>(modelo)[[<span class="n">1</span>]][[<span class="s">"Sum Sq"</span>]]
+cmd &lt;- sc[<span class="n">2</span>] / <span class="n">15</span>
+sc[<span class="n">1</span>] / <span class="f">sum</span>(sc)                           <span class="c"># η² ≈ 0.72</span>
+(sc[<span class="n">1</span>] - <span class="n">2</span> * cmd) / (<span class="f">sum</span>(sc) + cmd)          <span class="c"># ω² ≈ 0.67</span>
 
 <span class="c"># supuestos: residuos y Levene (paquete car)</span>
 <span class="f">par</span>(mfrow = <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>)); <span class="f">plot</span>(modelo, which = <span class="n">1</span>:<span class="n">2</span>)
@@ -234,10 +346,16 @@ car::<span class="f">leveneTest</span>(kg ~ fert, data = df)   <span class="c">#
 
 <span class="c"># comparaciones múltiples</span>
 <span class="f">TukeyHSD</span>(modelo)
-<span class="f">pairwise.t.test</span>(df$kg, df$fert, p.adjust.method = <span class="s">"bonferroni"</span>)</code></pre>
+<span class="f">pairwise.t.test</span>(df$kg, df$fert, p.adjust.method = <span class="s">"holm"</span>)
+
+<span class="c"># contraste planificado: fertilizado frente a control</span>
+medias &lt;- <span class="f">tapply</span>(df$kg, df$fert, mean)
+cc &lt;- <span class="f">c</span>(-<span class="n">1</span>, <span class="n">0.5</span>, <span class="n">0.5</span>)
+L &lt;- <span class="f">sum</span>(cc * medias); se &lt;- <span class="f">sqrt</span>(cmd * <span class="f">sum</span>(cc^<span class="n">2</span> / <span class="n">6</span>))
+<span class="f">c</span>(L = L, t = L / se, p = <span class="n">2</span> * <span class="f">pt</span>(-L / se, <span class="n">15</span>))   <span class="c"># ≈ 0.883  5.62  4.8e-05</span></code></pre>
       </div>
 
-      <h2 id="anova-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <h2 id="anova-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Rechazar H₀ en el ANOVA solo dice que no todas las medias son iguales. Para saber cuáles pares difieren hacen falta comparaciones múltiples como Tukey." data-wrong="Revisa qué afirma exactamente la hipótesis alternativa del ANOVA. ¿Dice cuántas medias son distintas, o cuáles?">
         <h3>Un ANOVA con 4 grupos da p = 0,003. ¿Qué puedes concluir?</h3>
         <div class="opts">
@@ -268,59 +386,48 @@ car::<span class="f">leveneTest</span>(kg ~ fert, data = df)   <span class="c">#
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="CM entre contiene el factor n: n·Σ(media de grupo − media general)²/(k − 1). Si las medias y las desviaciones no cambian, CM dentro sigue estimando la misma σ², así que F se multiplica aproximadamente por 2." data-wrong="Mira la fórmula de SC entre: cada término está multiplicado por n. ¿Qué le pasa a CM dentro si las desviaciones de los grupos no cambian?">
+        <h3>En la huerta F = 19,6 con n = 6 por grupo. Si repitieras el estudio con n = 12 y obtuvieras las mismas medias y desviaciones, ¿qué pasaría con F?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Aproximadamente se duplicaría</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Se quedaría igual, porque las medias no cambian</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se reduciría a la mitad, porque hay más ruido</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Se multiplicaría por 4</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con varianzas distintas y tamaños desiguales el ANOVA clásico puede dar un error tipo I muy alejado del 5 %. El ANOVA de Welch pondera cada grupo por la precisión de su media y no supone varianzas iguales." data-wrong="Piensa en el mismo problema de la prueba t de Student con varianzas y tamaños distintos. ¿Qué versión del ANOVA no supone varianzas iguales?">
+        <h3>Tienes 3 grupos con n = 30, 10 y 5 y desviaciones 1, 2 y 4; Levene da p = 0,001. ¿Qué análisis eliges?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>ANOVA clásico, porque es robusto a todo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Tres pruebas t de Student sin corregir</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>ANOVA de Welch, seguido de comparaciones tipo Games-Howell</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Eliminar el grupo más disperso y repetir el ANOVA</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="anova-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <h2 id="anova-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un estudio compara 4 dietas con 5 personas cada una. Obtiene \(SC_{\text{entre}} = 60\) y \(SC_{\text{dentro}} = 96\). Completa la tabla ANOVA y decide con \(\alpha = 0{,}05\) (el valor crítico \(F_{0{,}05;\,3,\,16}\) es 3,24).</p>
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Demostración.</b> Bajo el modelo \(y_{ij} = \mu + \tau_i + \varepsilon_{ij}\) con \(\sum n_i\tau_i = 0\) y errores iid \(N(0,\sigma^2)\): (a) demuestra la identidad \(SC_T = SC_{\text{entre}} + SC_{\text{dentro}}\); (b) demuestra que \(E[CM_{\text{dentro}}] = \sigma^2\) y \(E[CM_{\text{entre}}] = \sigma^2 + \sum n_i\tau_i^2/(k-1)\); (c) deduce un estimador insesgado de \(\sum n_i\tau_i^2\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>\(k = 4\), \(N = 20\): gl entre = 3, gl dentro = 16, gl total = 19. \(CM_{\text{entre}} = 60/3 = 20\), \(CM_{\text{dentro}} = 96/16 = 6\) y \(F = 20/6 = 3{,}33\).</p>
-            <p>Como \(3{,}33 &gt; 3{,}24\), se rechaza \(H_0\) por poco (p ≈ 0,046): hay evidencia de que alguna dieta tiene un efecto medio distinto. \(\eta^2 = 60/156 = 0{,}38\). Con un resultado tan cerca del umbral, conviene ser prudente con las comparaciones por pares.</p>
+            <p><b>(a)</b> \(y_{ij} - \bar y = (\bar y_i - \bar y) + (y_{ij} - \bar y_i)\). Al elevar al cuadrado y sumar, el término cruzado es \(2\sum_i(\bar y_i - \bar y)\sum_j(y_{ij} - \bar y_i) = 0\), porque cada suma interna vale 0.</p>
+            <p><b>(b)</b> En el grupo \(i\), \(\sum_j(y_{ij} - \bar y_i)^2 = \sum_j(\varepsilon_{ij} - \bar\varepsilon_i)^2\), con esperanza \((n_i-1)\sigma^2\) (es la varianza muestral sin dividir). Sumando, \(E[SC_{\text{dentro}}] = (N-k)\sigma^2\). Para el numerador, \(\bar y_i - \bar y = \tau_i + (\bar\varepsilon_i - \bar\varepsilon)\), así que</p>
+            <div class="eq">\[ E[SC_{\text{entre}}] = \sum_i n_i\tau_i^2 + 2\sum_i n_i\tau_i\,E[\bar\varepsilon_i - \bar\varepsilon] + E\Big[\sum_i n_i(\bar\varepsilon_i - \bar\varepsilon)^2\Big]. \]</div>
+            <p>El término del medio es 0. Para el último, \(E[\sum n_i\bar\varepsilon_i^2] = \sum n_i\sigma^2/n_i = k\sigma^2\) y \(E[N\bar\varepsilon^2] = \sigma^2\); como \(\sum n_i(\bar\varepsilon_i - \bar\varepsilon)^2 = \sum n_i\bar\varepsilon_i^2 - N\bar\varepsilon^2\), su esperanza es \((k-1)\sigma^2\). Dividiendo por \(k-1\) sale el resultado.</p>
+            <p><b>(c)</b> \(E[(k-1)(CM_{\text{entre}} - CM_{\text{dentro}})] = \sum n_i\tau_i^2\). Esa es la idea detrás de \(\omega^2\).</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Un equipo de marketing prueba 6 diseños de página y compara todos los pares con pruebas t al 5 %, sin corrección. ¿Cuántas comparaciones hace? Suponiendo independencia, ¿cuál es la probabilidad de al menos un falso positivo si en realidad todos los diseños son iguales? ¿Qué nivel debería usar con Bonferroni?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>\(m = 6 \cdot 5/2 = 15\) pares. \(P(\text{algún falso positivo}) = 1 - 0{,}95^{15} = 0{,}54\): más de la mitad de las veces “encontraría” un diseño ganador que no existe.</p>
-            <p>Con Bonferroni, cada par se evalúa con \(0{,}05/15 = 0{,}0033\). Mejor aún: primero un ANOVA y, si rechaza, Tukey para los pares.</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Tres métodos de capacitación se prueban con 8 empleados cada uno. Las medias de productividad son 20, 23 y 26 unidades por hora, con desviaciones típicas 4, 5 y 3. Construye la tabla ANOVA a partir de estos resúmenes, calcula \(\eta^2\) y comenta si es razonable suponer varianzas iguales.</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Media general (diseño balanceado): \(\bar y = 23\). \(SC_{\text{entre}} = 8\,[(20-23)^2 + 0^2 + (26-23)^2] = 144\). \(SC_{\text{dentro}} = \sum (n_i - 1)s_i^2 = 7\,(16 + 25 + 9) = 350\).</p>
-            <p>gl: 2 y 21. \(CM_{\text{entre}} = 72\), \(CM_{\text{dentro}} = 16{,}67\), \(F = 4{,}32\), p ≈ 0,027 (crítico 3,47). Se rechaza \(H_0\). \(\eta^2 = 144/494 = 0{,}29\).</p>
-            <p>La mayor desviación (5) no llega al doble de la menor (3) y el diseño es balanceado, así que el ANOVA clásico es razonable.</p>
-            <div class="codetabs">
-              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-<span class="k">from</span> scipy <span class="k">import</span> stats
-n, medias, sds = <span class="n">8</span>, np.<span class="f">array</span>([<span class="n">20</span>, <span class="n">23</span>, <span class="n">26</span>]), np.<span class="f">array</span>([<span class="n">4</span>, <span class="n">5</span>, <span class="n">3</span>])
-k, N = <span class="f">len</span>(medias), n * <span class="f">len</span>(medias)
-sce = n * ((medias - medias.<span class="f">mean</span>()) ** <span class="n">2</span>).<span class="f">sum</span>()       <span class="c"># 144</span>
-scd = ((n - <span class="n">1</span>) * sds ** <span class="n">2</span>).<span class="f">sum</span>()                      <span class="c"># 350</span>
-F = (sce / (k - <span class="n">1</span>)) / (scd / (N - k))
-<span class="f">print</span>(F, stats.f.<span class="f">sf</span>(F, k - <span class="n">1</span>, N - k), sce / (sce + scd))   <span class="c"># ≈ 4.32  0.027  0.29</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>n &lt;- <span class="n">8</span>; medias &lt;- <span class="f">c</span>(<span class="n">20</span>, <span class="n">23</span>, <span class="n">26</span>); sds &lt;- <span class="f">c</span>(<span class="n">4</span>, <span class="n">5</span>, <span class="n">3</span>)
-k &lt;- <span class="f">length</span>(medias); N &lt;- n * k
-sce &lt;- n * <span class="f">sum</span>((medias - <span class="f">mean</span>(medias))^<span class="n">2</span>)      <span class="c"># 144</span>
-scd &lt;- <span class="f">sum</span>((n - <span class="n">1</span>) * sds^<span class="n">2</span>)                      <span class="c"># 350</span>
-F &lt;- (sce / (k - <span class="n">1</span>)) / (scd / (N - k))
-<span class="f">c</span>(F = F, p = <span class="f">pf</span>(F, k - <span class="n">1</span>, N - k, lower.tail = <span class="k">FALSE</span>), eta2 = sce / (sce + scd))</code></pre>
-            </div>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Retoma los dos grupos de la sesión de pruebas t (clase tradicional: 68, 72, 61, 75, 70, 66, 73, 64, 69, 71, 62, 67; con práctica: 74, 80, 69, 85, 77, 72, 88, 76, 79, 70). Haz un ANOVA y compara F con el t de Student al cuadrado. Después demuestra algebraicamente que, con dos grupos, \(F = t^2\).</p>
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>ANOVA y prueba t.</b> Retoma los dos grupos de la sesión de pruebas t (clase tradicional: 68, 72, 61, 75, 70, 66, 73, 64, 69, 71, 62, 67; con práctica: 74, 80, 69, 85, 77, 72, 88, 76, 79, 70). Haz un ANOVA y compara F con el t de Student al cuadrado. Después demuestra algebraicamente que, con dos grupos, \(F = t^2\), y que los valores p coinciden.</p>
           <details><summary>Ver solución</summary><div class="sol">
             <p>El ANOVA da \(F = 15{,}32\) con 1 y 20 gl y \(p = 0{,}00086\). La t de Student era \(t = 3{,}914\), y \(3{,}914^2 = 15{,}32\). Mismo valor p.</p>
             <p>Demostración: con \(k = 2\), \(\bar y = (n_1\bar y_1 + n_2\bar y_2)/N\), de donde \(\bar y_1 - \bar y = \tfrac{n_2}{N}(\bar y_1 - \bar y_2)\) y \(\bar y_2 - \bar y = -\tfrac{n_1}{N}(\bar y_1 - \bar y_2)\). Entonces</p>
             <div class="eq">\[ SC_{\text{entre}} = n_1\tfrac{n_2^2}{N^2}D^2 + n_2\tfrac{n_1^2}{N^2}D^2 = \frac{n_1 n_2}{N}D^2 = \frac{D^2}{\frac{1}{n_1}+\frac{1}{n_2}}, \quad D = \bar y_1 - \bar y_2 \]</div>
-            <p>Con 1 gl, \(CM_{\text{entre}} = SC_{\text{entre}}\), y \(CM_{\text{dentro}} = s_p^2\). Por tanto \(F = D^2 / \big(s_p^2(\tfrac{1}{n_1}+\tfrac{1}{n_2})\big) = t^2\). Además, si \(T \sim t_\nu\), entonces \(T^2 \sim F_{1,\nu}\), así que los valores p coinciden.</p>
+            <p>Con 1 gl, \(CM_{\text{entre}} = SC_{\text{entre}}\), y \(CM_{\text{dentro}} = s_p^2\). Por tanto \(F = D^2 / \big(s_p^2(\tfrac{1}{n_1}+\tfrac{1}{n_2})\big) = t^2\). Además, si \(T \sim t_\nu\), entonces \(T^2 = Z^2/(V/\nu) \sim F_{1,\nu}\), y \(P(F &gt; t^2) = P(|T| &gt; |t|)\): el valor p del ANOVA es el bilateral de la t.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
@@ -335,6 +442,80 @@ prac &lt;- <span class="f">c</span>(<span class="n">74</span>, <span class="n">8
 d &lt;- <span class="f">data.frame</span>(y = <span class="f">c</span>(trad, prac), g = <span class="f">rep</span>(<span class="f">c</span>(<span class="s">"trad"</span>, <span class="s">"prac"</span>), <span class="f">c</span>(<span class="n">12</span>, <span class="n">10</span>)))
 <span class="f">summary</span>(<span class="f">aov</span>(y ~ g, data = d))                       <span class="c"># F ≈ 15.32</span>
 <span class="f">t.test</span>(prac, trad, var.equal = <span class="k">TRUE</span>)$statistic^<span class="n">2</span>    <span class="c"># ≈ 15.32</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Contrastes ortogonales.</b> En la huerta, define los contrastes \(L_1\): “fertilizado frente a control”, \(c = (-1, \tfrac12, \tfrac12)\), y \(L_2\): “químico frente a orgánico”, \(d = (0, -1, 1)\). (a) Verifica que son ortogonales. (b) Calcula \(\hat L_1\), \(\hat L_2\), sus errores estándar y estadísticos t. (c) Demuestra que \(SC_{L_1} + SC_{L_2} = SC_{\text{entre}}\), con \(SC_L = \hat L^2/\sum(c_i^2/n_i)\). (d) Deriva \(\operatorname{Var}(\hat L)\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> Con \(n_i\) iguales, ortogonalidad es \(\sum c_i d_i = 0 + (-\tfrac12) + \tfrac12 = 0\).</p>
+            <p><b>(b)</b> \(\hat L_1 = (4{,}667 + 5{,}167)/2 - 4{,}033 = 0{,}883\), \(SE_1 = \sqrt{0{,}0987 \cdot 1{,}5/6} = 0{,}157\), \(t_1 = 5{,}62\). \(\hat L_2 = 5{,}167 - 4{,}667 = 0{,}500\), \(SE_2 = \sqrt{0{,}0987 \cdot 2/6} = 0{,}181\), \(t_2 = 2{,}76\). Ambos con 15 gl; \(p_1 \approx 0{,}00005\), \(p_2 \approx 0{,}015\).</p>
+            <p><b>(c)</b> \(SC_{L_1} = 0{,}883^2/(1{,}5/6) = 3{,}121\) y \(SC_{L_2} = 0{,}5^2/(2/6) = 0{,}750\). Suman 3,871, exactamente \(SC_{\text{entre}}\): dos contrastes ortogonales reparten los 2 gl del factor sin solaparse.</p>
+            <p><b>(d)</b> Las medias de grupo son independientes con \(\operatorname{Var}(\bar y_i) = \sigma^2/n_i\), así que \(\operatorname{Var}(\hat L) = \sum c_i^2\sigma^2/n_i\). Se estima con \(CM_{\text{dentro}}\) en lugar de \(\sigma^2\), y por eso el t tiene \(N-k\) gl.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Potencia y tamaño de muestra.</b> Planeas repetir el experimento de la huerta esperando medias 4,0; 4,4 y 4,8 kg con \(\sigma = 0{,}4\). (a) Calcula el parámetro de no centralidad \(\lambda\) y la potencia con \(n = 6\) por grupo. (b) ¿Cuál es el \(n\) mínimo por grupo para potencia del 90 %? (c) Explica por qué la potencia no depende de la media general 4,4.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> \(\tau = (-0{,}4;\ 0;\ 0{,}4)\), \(\lambda = n\sum\tau_i^2/\sigma^2 = 6 \cdot 0{,}32/0{,}16 = 12\). Con \(F_{0{,}05;2,15} = 3{,}68\), la potencia es \(P(F_{2,15}(12) &gt; 3{,}68) \approx 0{,}81\).</p>
+            <p><b>(b)</b> Probando valores: \(n = 7\) da 0,88 y \(n = 8\) da 0,92. Necesitas <b>8 plantas por grupo</b> (24 en total).</p>
+            <p><b>(c)</b> \(\lambda\) depende solo de los \(\tau_i = \mu_i - \mu\) y de \(\sigma\): sumar una constante a todas las medias no cambia las diferencias, y F es invariante a traslaciones.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">def</span> <span class="f">potencia</span>(n, tau=(-<span class="n">0.4</span>, <span class="n">0</span>, <span class="n">0.4</span>), sigma=<span class="n">0.4</span>, alpha=<span class="n">0.05</span>):
+    k = <span class="f">len</span>(tau); lam = n * <span class="f">sum</span>(t ** <span class="n">2</span> <span class="k">for</span> t <span class="k">in</span> tau) / sigma ** <span class="n">2</span>
+    crit = stats.f.<span class="f">ppf</span>(<span class="n">1</span> - alpha, k - <span class="n">1</span>, k * n - k)
+    <span class="k">return</span> stats.ncf.<span class="f">sf</span>(crit, k - <span class="n">1</span>, k * n - k, lam)
+<span class="k">for</span> n <span class="k">in</span> <span class="f">range</span>(<span class="n">4</span>, <span class="n">10</span>):
+    <span class="f">print</span>(n, <span class="f">round</span>(<span class="f">potencia</span>(n), <span class="n">3</span>))   <span class="c"># 6 → 0.805, 7 → 0.877, 8 → 0.924</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># power.anova.test usa la varianza de las medias y la varianza del error</span>
+<span class="f">power.anova.test</span>(groups = <span class="n">3</span>, n = <span class="n">6</span>, between.var = <span class="f">var</span>(<span class="f">c</span>(<span class="n">4.0</span>, <span class="n">4.4</span>, <span class="n">4.8</span>)),
+                 within.var = <span class="n">0.4</span>^<span class="n">2</span>)                   <span class="c"># power ≈ 0.81</span>
+<span class="f">power.anova.test</span>(groups = <span class="n">3</span>, power = <span class="n">0.9</span>, between.var = <span class="f">var</span>(<span class="f">c</span>(<span class="n">4.0</span>, <span class="n">4.4</span>, <span class="n">4.8</span>)),
+                 within.var = <span class="n">0.4</span>^<span class="n">2</span>)                   <span class="c"># n ≈ 7.3 → 8</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Simulación de robustez.</b> Con \(H_0\) verdadera (todas las medias 0), estima por Monte Carlo el error tipo I al 5 % del ANOVA clásico, del ANOVA de Welch y de Kruskal-Wallis en tres escenarios con \(\sigma = (1, 2, 4)\): (i) \(n = (30, 10, 5)\); (ii) \(n = (5, 10, 30)\); (iii) \(n = (15, 15, 15)\). Interpreta críticamente: ¿por qué Kruskal-Wallis tampoco resuelve el problema?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Resultados aproximados (5 000 réplicas): (i) clásico ≈ 0,33, Welch ≈ 0,05, Kruskal-Wallis ≈ 0,14; (ii) clásico ≈ 0,003, Welch ≈ 0,05, Kruskal-Wallis ≈ 0,01; (iii) clásico ≈ 0,07, Welch ≈ 0,05, Kruskal-Wallis ≈ 0,06.</p>
+            <p>En (i) el grupo pequeño es el más disperso y \(CM_{\text{dentro}}\), dominado por el grupo grande y estable, subestima la variabilidad de su media: F se infla. En (ii) ocurre lo contrario. El diseño balanceado (iii) amortigua el problema. Kruskal-Wallis no es una solución porque contrasta igualdad de <b>distribuciones</b>: con varianzas distintas las distribuciones ya difieren aunque las medias sean iguales, así que “rechaza” por la razón equivocada. Welch es el que responde a la pregunta sobre medias.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+<span class="k">from</span> statsmodels.stats.oneway <span class="k">import</span> anova_oneway
+rng = np.random.<span class="f">default_rng</span>(<span class="n">2</span>)
+<span class="k">def</span> <span class="f">sim</span>(ns, ss, R=<span class="n">5000</span>):
+    r = np.<span class="f">zeros</span>(<span class="n">3</span>)
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(R):
+        gs = [rng.<span class="f">normal</span>(<span class="n">0</span>, s, n) <span class="k">for</span> n, s <span class="k">in</span> <span class="f">zip</span>(ns, ss)]
+        y, g = np.<span class="f">concatenate</span>(gs), np.<span class="f">repeat</span>(<span class="f">range</span>(<span class="f">len</span>(ns)), ns)
+        r += [stats.<span class="f">f_oneway</span>(*gs).pvalue &lt; <span class="n">0.05</span>,
+              <span class="f">anova_oneway</span>(y, g, use_var=<span class="s">"unequal"</span>).pvalue &lt; <span class="n">0.05</span>,
+              stats.<span class="f">kruskal</span>(*gs).pvalue &lt; <span class="n">0.05</span>]
+    <span class="k">return</span> r / R
+<span class="k">for</span> ns <span class="k">in</span> [(<span class="n">30</span>, <span class="n">10</span>, <span class="n">5</span>), (<span class="n">5</span>, <span class="n">10</span>, <span class="n">30</span>), (<span class="n">15</span>, <span class="n">15</span>, <span class="n">15</span>)]:
+    <span class="f">print</span>(ns, <span class="f">sim</span>(ns, (<span class="n">1</span>, <span class="n">2</span>, <span class="n">4</span>)))   <span class="c"># ≈ [0.33 0.05 0.14], [0.003 0.05 0.01], [0.07 0.05 0.06]</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">2</span>)
+sim &lt;- <span class="k">function</span>(ns, ss, R = <span class="n">5000</span>) {
+  g &lt;- <span class="f">factor</span>(<span class="f">rep</span>(<span class="n">1</span>:<span class="f">length</span>(ns), ns))
+  p &lt;- <span class="f">replicate</span>(R, {
+    y &lt;- <span class="f">rnorm</span>(<span class="f">sum</span>(ns), <span class="n">0</span>, <span class="f">rep</span>(ss, ns))
+    <span class="f">c</span>(<span class="f">oneway.test</span>(y ~ g, var.equal = <span class="k">TRUE</span>)$p.value,
+      <span class="f">oneway.test</span>(y ~ g)$p.value,
+      <span class="f">kruskal.test</span>(y ~ g)$p.value)
+  })
+  <span class="f">rowMeans</span>(p &lt; <span class="n">0.05</span>)   <span class="c"># clásico, Welch, Kruskal-Wallis</span>
+}
+<span class="f">sim</span>(<span class="f">c</span>(<span class="n">30</span>, <span class="n">10</span>, <span class="n">5</span>), <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">4</span>))    <span class="c"># ≈ 0.33  0.05  0.14</span>
+<span class="f">sim</span>(<span class="f">c</span>(<span class="n">5</span>, <span class="n">10</span>, <span class="n">30</span>), <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">4</span>))    <span class="c"># ≈ 0.003  0.05  0.01</span>
+<span class="f">sim</span>(<span class="f">c</span>(<span class="n">15</span>, <span class="n">15</span>, <span class="n">15</span>), <span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">4</span>))   <span class="c"># ≈ 0.07  0.05  0.06</span></code></pre>
             </div>
           </div></details>
         </div>

@@ -5,43 +5,63 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Estimador de Kaplan-Meier</h1>
-      <p>La curva escalonada que aparece en casi todo artículo médico tiene una lógica muy simple: en cada tiempo de evento miras quién sigue en riesgo y qué fracción sobrevive ese instante. Aquí la construyes paso a paso, le pones intervalos de confianza y aprendes a leer la mediana y la media restringida sin caer en las trampas de la cola.</p>
-      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: conceptos de supervivencia</span><span>R · Python</span></div>
+      <p>La curva escalonada que aparece en casi todo artículo médico tiene una lógica muy simple: en cada tiempo de evento miras quién sigue en riesgo y qué fracción sobrevive ese instante. Aquí la defines con precisión, la derivas como estimador de máxima verosimilitud no paramétrico, le pones intervalos de confianza, aprendes a leer la mediana y la media restringida y la aplicas a datos reales de cáncer de pulmón.</p>
+      <div class="lmeta"><span>90 min</span><span>Nivel intermedio</span><span>Requiere: conceptos de supervivencia</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#km-idea" data-sec="km-idea">La idea</a></li>
-        <li><a href="#km-paso" data-sec="km-paso">El producto límite</a></li>
-        <li><a href="#km-lab" data-sec="km-lab">Laboratorio: construye la curva</a></li>
+        <li><a href="#km-intro" data-sec="km-intro">Introducción</a></li>
+        <li><a href="#km-def" data-sec="km-def">Definición</a></li>
+        <li><a href="#km-deriv" data-sec="km-deriv">Por qué un producto</a></li>
         <li><a href="#km-ic" data-sec="km-ic">Varianza e intervalos</a></li>
-        <li><a href="#km-mediana" data-sec="km-mediana">Mediana y media restringida</a></li>
-        <li><a href="#km-leer" data-sec="km-leer">Leer bien la curva</a></li>
+        <li><a href="#km-mediana" data-sec="km-mediana">Mediana y RMST</a></li>
+        <li><a href="#km-supuestos" data-sec="km-supuestos">Censura y riesgos competitivos</a></li>
+        <li><a href="#km-prop" data-sec="km-prop">Propiedades</a></li>
+        <li><a href="#km-lab" data-sec="km-lab">Ejercicios de simulación</a></li>
+        <li><a href="#km-apps" data-sec="km-apps">Aplicaciones reales</a></li>
         <li><a href="#km-code" data-sec="km-code">En R y Python</a></li>
-        <li><a href="#km-quiz" data-sec="km-quiz">Comprueba</a></li>
-        <li><a href="#km-ej" data-sec="km-ej">Ejercicios</a></li>
+        <li><a href="#km-quiz" data-sec="km-quiz">Quiz</a></li>
+        <li><a href="#km-ej" data-sec="km-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="km-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="km-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Diez pacientes operados de una hernia se siguen hasta que la hernia reaparece. Estos son los meses de seguimiento, con “+” para los que terminaron el estudio sin recaída:</p>
       <div class="eq">\[ 3,\quad 4^{+},\quad 6,\quad 6,\quad 8^{+},\quad 9,\quad 12,\quad 12^{+},\quad 15,\quad 20^{+} \]</div>
-      <p>¿Qué proporción sigue sin recaída a los 10 meses? La respuesta ingenua, “4 recaídas antes de los 10 meses de 10 pacientes, así que 60 %”, trata al paciente censurado en 4 y al censurado en 8 como si hubieran llegado a los 10 meses sin recaer, cosa que no sabemos. Si los quitas de la cuenta, “4 de 8”, los tratas como si nunca hubieran existido, y eso tampoco es justo: aportaron 4 y 8 meses de información sin recaída.</p>
-      <p>La solución de Kaplan y Meier (1958) es no hacer la pregunta de una sola vez, sino partirla en preguntas condicionales que sí se pueden responder: <b>de los que seguían en observación justo antes de cada recaída, ¿qué fracción no recayó en ese momento?</b> Un censurado cuenta en el denominador mientras está en observación y después sale sin hacer ruido.</p>
+      <p>¿Qué proporción sigue sin recaída a los 10 meses? La respuesta ingenua, “4 recaídas antes de los 10 meses de 10 pacientes, así que 60 %”, trata al paciente censurado en 4 y al censurado en 8 como si hubieran llegado a los 10 meses sin recaer, cosa que no sabemos. Si los quitas de la cuenta, “4 de 8”, los tratas como si nunca hubieran existido, y eso tampoco es justo: aportaron 4 y 8 meses de información sin recaída. Ninguna de las dos cuentas usa bien la información parcial que da la censura.</p>
+      <p>La solución de Kaplan y Meier es no hacer la pregunta de una sola vez, sino partirla en preguntas condicionales que sí se pueden responder: <b>de los que seguían en observación justo antes de cada recaída, ¿qué fracción no recayó en ese momento?</b> Un censurado cuenta en el denominador mientras está en observación y después sale sin hacer ruido.</p>
+      <p>Un poco de historia. Edward L. Kaplan y Paul Meier enviaron por separado al <i>Journal of the American Statistical Association</i> dos manuscritos casi idénticos sobre cómo estimar la supervivencia con observaciones incompletas. El editor, John Tukey, les propuso fusionarlos, y el artículo conjunto “Nonparametric estimation from incomplete observations” apareció en 1958. Hoy es uno de los artículos de estadística más citados de la historia. La idea del producto ya aparecía en las tablas de vida actuariales, y la fórmula de la varianza es anterior: la publicó el epidemiólogo Major Greenwood en 1926 para tablas de vida de pacientes con cáncer. Lo nuevo de Kaplan y Meier fue usar los tiempos exactos de cada evento, sin agrupar en intervalos, y demostrar que el resultado es el estimador de máxima verosimilitud no paramétrico.</p>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Definir el conjunto en riesgo, los eventos y el estimador del producto límite con notación precisa.</li>
+          <li>Derivar Kaplan-Meier como estimador de máxima verosimilitud no paramétrico y como “redistribución hacia la derecha”.</li>
+          <li>Calcular el error estándar de Greenwood y los intervalos directo y log-log.</li>
+          <li>Estimar la mediana, otros cuantiles y la media restringida (RMST) con su incertidumbre.</li>
+          <li>Reconocer cuándo la curva engaña: censura informativa, cola con pocos en riesgo y riesgos competitivos.</li>
+          <li>Aplicarlo en R y Python a los datos reales de cáncer de pulmón del NCCTG.</li>
+        </ul>
+      </div>
 
-      <h2 id="km-paso"><span class="sec">§ 2</span>El producto límite</h2>
+      <h2 id="km-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Para cada individuo \(i = 1, \dots, n\) hay un tiempo de evento \(T_i\) y un tiempo de censura \(C_i\). Solo observas el menor de los dos y cuál ocurrió:</p>
+      <div class="eq">\[ Y_i = \min(T_i, C_i), \qquad \delta_i = \mathbb{1}\{T_i \le C_i\} \]
+        <div class="note">\(\delta_i = 1\) indica evento observado y \(\delta_i = 0\) censura por la derecha: sabes que \(T_i &gt; Y_i\), pero no cuánto más. La cantidad que quieres estimar es la <b>función de supervivencia</b> \(S(t) = P(T &gt; t)\), que vimos en <a href="#superv">conceptos de supervivencia</a>.</div>
+      </div>
       <p>Ordena los tiempos distintos en que hubo eventos, \(t_1 &lt; t_2 &lt; \dots &lt; t_k\). En cada uno define:</p>
       <ul>
-        <li>\(n_j\): número <b>en riesgo</b> justo antes de \(t_j\) (sin evento y sin censura antes de \(t_j\));</li>
-        <li>\(d_j\): número de eventos en \(t_j\).</li>
+        <li>\(n_j = \#\{i : Y_i \ge t_j\}\): número <b>en riesgo</b> justo antes de \(t_j\) (sin evento y sin censura antes de \(t_j\));</li>
+        <li>\(d_j = \#\{i : Y_i = t_j,\ \delta_i = 1\}\): número de eventos en \(t_j\);</li>
+        <li>\(c_j\): número de censuras en \([t_j, t_{j+1})\), de modo que \(n_{j+1} = n_j - d_j - c_j\);</li>
+        <li>\(\hat h_j = d_j / n_j\): <b>riesgo discreto</b> estimado, la fracción de los que estaban en riesgo que tuvo el evento en \(t_j\).</li>
       </ul>
-      <p>Sobrevivir más allá de \(t\) es sobrevivir cada uno de los tiempos de evento anteriores. Por la regla de la cadena de la probabilidad condicional, \(S(t)\) es un producto de probabilidades condicionales, y cada una se estima con la fracción observada:</p>
-      <div class="eq">\[ \hat S(t) = \prod_{j:\, t_j \le t} \left(1 - \frac{d_j}{n_j}\right) \]
-        <div class="note">Es el <b>estimador de Kaplan-Meier</b> o del producto límite. Es una función escalonada que solo baja en los tiempos de evento; la censura no la hace bajar, solo reduce \(n_j\) para los pasos siguientes. Sin censura, coincide con la proporción empírica de individuos con \(T &gt; t\).</div>
+      <div class="callout"><b>Definición (estimador de Kaplan-Meier o del producto límite).</b>
+        <div class="eq">\[ \hat S(t) = \prod_{j:\, t_j \le t} \left(1 - \frac{d_j}{n_j}\right), \qquad \hat S(t) = 1 \ \text{ si } t &lt; t_1 \]</div>
+        Es una función escalonada, continua por la derecha, que solo baja en los tiempos de evento. La censura no la hace bajar: solo reduce \(n_j\) para los pasos siguientes. Si el último tiempo observado es una censura, la curva no llega a cero y queda indefinida más allá de ese tiempo.
       </div>
-      <p>Para los diez pacientes:</p>
+      <p><b>Ejemplo numérico.</b> Para los diez pacientes de la hernia:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>t<sub>j</sub></th><th>n<sub>j</sub> en riesgo</th><th>d<sub>j</sub> eventos</th><th>censurados en [t<sub>j</sub>, t<sub>j+1</sub>)</th><th>1 − d<sub>j</sub>/n<sub>j</sub></th><th>Ŝ(t<sub>j</sub>)</th></tr></thead>
         <tbody>
@@ -52,13 +72,99 @@
           <tr><td>15</td><td>2</td><td>1</td><td>1 (en 20)</td><td>1/2</td><td>0,203</td></tr>
         </tbody>
       </table></div>
-      <p>La respuesta a la pregunta inicial es \(\hat S(10) = 0{,}54\): entre la proporción ingenua 0,60 y la que borra censurados, 0,50.</p>
-      <div class="callout"><b>Convención de empates:</b> si un evento y una censura ocurren en el mismo tiempo (como el 12 y el 12+), se supone que la censura ocurre justo después del evento. Así el censurado cuenta como en riesgo en ese tiempo: \(n_j = 4\), no 3.</div>
-      <p>Una pieza relacionada es el <b>estimador de Nelson-Aalen</b> del riesgo acumulado, \(\tilde H(t) = \sum_{t_j \le t} d_j / n_j\), que suma en lugar de multiplicar. Como \(1 - x \approx e^{-x}\) cuando \(x\) es pequeño, \(e^{-\tilde H(t)}\) y \(\hat S(t)\) casi coinciden mientras haya muchos en riesgo. Nelson-Aalen será útil para revisar supuestos en Cox y en los modelos paramétricos.</p>
+      <p>La respuesta a la pregunta inicial es \(\hat S(10) = 0{,}54\): entre la proporción ingenua 0,60 y la que borra censurados, 0,50. Más allá de 20 meses la curva no está definida porque el último seguimiento es una censura.</p>
+      <div class="callout"><b>Convención de empates:</b> si un evento y una censura ocurren en el mismo tiempo (como el 12 y el 12+), se supone que la censura ocurre justo después del evento. Así el censurado cuenta como en riesgo en ese tiempo: \(n_j = 4\), no 3. La lógica es que el paciente censurado en 12 sí estuvo expuesto durante todo el mes 12.</div>
+      <p>Una pieza relacionada es el <b>estimador de Nelson-Aalen</b> del riesgo acumulado \(H(t) = -\ln S(t)\) (en tiempo continuo):</p>
+      <div class="eq">\[ \tilde H(t) = \sum_{j:\, t_j \le t} \frac{d_j}{n_j}, \qquad \tilde S(t) = e^{-\tilde H(t)} \]
+        <div class="note">Suma en lugar de multiplicar. Como \(1 - x \approx e^{-x}\) cuando \(x\) es pequeño, \(\tilde S(t)\) (estimador de Fleming-Harrington) y \(\hat S(t)\) casi coinciden mientras haya muchos en riesgo. En la hernia, \(\tilde H(12) = 0{,}1 + 0{,}25 + 0{,}2 + 0{,}25 = 0{,}8\) y \(e^{-0{,}8} = 0{,}449\), algo por encima de \(\hat S(12) = 0{,}405\). Siempre se cumple \(\tilde S(t) \ge \hat S(t)\).</div>
+      </div>
 
-      <h2 id="km-lab"><span class="sec">§ 3</span>Laboratorio: construye la curva</h2>
-      <p>Arriba, cada línea es un paciente; las que siguen en color forman el <b>conjunto en riesgo</b> en el tiempo marcado. Abajo, la curva de Kaplan-Meier se construye paso a paso frente a la supervivencia real (línea punteada). Pulsa “Paso” desde cero, después aumenta \(n\) y la censura, y activa los intervalos.</p>
-      <figure class="instrument lab">
+      <h2 id="km-deriv"><span class="sec">§ 3</span>Por qué un producto: derivación del estimador</h2>
+      <p><b>1. Regla de la cadena.</b> Sobrevivir más allá de \(t_j\) es sobrevivir más allá de \(t_{j-1}\) y además no tener el evento en \(t_j\). Por la definición de probabilidad condicional, para cualesquiera tiempos \(0 = t_0 &lt; t_1 &lt; \dots &lt; t_m \le t\):</p>
+      <div class="eq">\[ S(t) = P(T &gt; t_1)\,P(T &gt; t_2 \mid T &gt; t_1) \cdots P(T &gt; t \mid T &gt; t_m) = \prod_{j} \big(1 - h_j\big) \]
+        <div class="note">con \(h_j = P(T = t_j \mid T \ge t_j)\) el riesgo discreto en \(t_j\). Entre dos tiempos de evento observados no hay eventos, así que el estimador natural del factor correspondiente es 1. Solo falta estimar cada \(h_j\).</div>
+      </div>
+      <p><b>2. Máxima verosimilitud no paramétrica.</b> Supón que la distribución de \(T\) solo pone masa en los tiempos de evento observados (cualquier masa en otros puntos reduce la verosimilitud). Un individuo con evento en \(t_j\) aporta \(\big[\prod_{l &lt; j}(1-h_l)\big] h_j\); uno censurado en \([t_j, t_{j+1})\) aporta \(\prod_{l \le j}(1 - h_l)\). Agrupando por tiempo de evento, la verosimilitud queda:</p>
+      <div class="eq">\[ L(h_1, \dots, h_k) = \prod_{j=1}^{k} h_j^{\,d_j}\,(1 - h_j)^{\,n_j - d_j} \]
+        <div class="note">Cada factor tiene la forma de una verosimilitud binomial: en \(t_j\) hay \(n_j\) “ensayos” y \(d_j\) “éxitos”. La log-verosimilitud se separa en sumandos, \(\ell = \sum_j \big[d_j \ln h_j + (n_j - d_j)\ln(1-h_j)\big]\), y \(\partial \ell / \partial h_j = d_j/h_j - (n_j - d_j)/(1-h_j) = 0\) da \(\hat h_j = d_j / n_j\).</div>
+      </div>
+      <p>Por la invarianza del estimador de máxima verosimilitud, \(\hat S(t) = \prod_{t_j \le t} (1 - \hat h_j)\) es el estimador de máxima verosimilitud no paramétrico (NPMLE) de \(S(t)\). Eso es lo que demostraron Kaplan y Meier en 1958.</p>
+      <p><b>3. Redistribución hacia la derecha.</b> Efron (1967) dio una lectura muy intuitiva: empieza dando masa \(1/n\) a cada individuo. Recorre los tiempos en orden; cada vez que encuentras un censurado, reparte su masa en partes iguales entre todos los que están a su derecha. Al final, la masa acumulada en los eventos es \(1 - \hat S\). En la hernia: el censurado en 4 reparte su 0,1 entre los 8 que siguen, que pasan a pesar 0,1125. Los dos eventos en 6 suman 0,225, así que \(\hat S(6) = 1 - 0{,}1 - 0{,}225 = 0{,}675\). El censurado en 8 reparte 0,1125 entre 5, que pasan a pesar 0,135, y \(\hat S(9) = 0{,}675 - 0{,}135 = 0{,}54\). Exactamente la tabla.</p>
+      <div class="callout"><b>Supuestos que hacen funcionar la derivación:</b> (i) <b>censura no informativa</b>: \(T\) y \(C\) son independientes (o, más débil, el riesgo de quien sigue en observación es el mismo que el de quien se censuró en ese instante); (ii) individuos independientes con la misma distribución \(S(t)\); (iii) tiempos bien medidos desde un origen común (cirugía, diagnóstico, alta del servicio). Si (i) falla, ningún método puramente descriptivo lo arregla.</div>
+      <p><b>Propiedades asintóticas.</b> Si \(P(Y \ge t) &gt; 0\), \(\hat S(t)\) es consistente y \(\sqrt{n}\,(\hat S(t) - S(t))\) converge a una normal (Breslow y Crowley, 1974). En términos de procesos de conteo, \(\tilde H(t) - H(t)\) es una martingala, y de ahí salen las varianzas y las pruebas como la <a href="#logrank">prueba log-rank</a>.</p>
+
+      <h2 id="km-ic"><span class="sec">§ 4</span>Varianza e intervalos de confianza</h2>
+      <p><b>Derivación de la fórmula de Greenwood.</b> Toma logaritmos: \(\ln \hat S(t) = \sum_{t_j \le t} \ln(1 - \hat h_j)\). Condicionando en los conjuntos en riesgo, los \(\hat h_j\) son proporciones binomiales aproximadamente independientes con \(\operatorname{Var}(\hat h_j) = h_j(1-h_j)/n_j\). Por el método delta, con \(g(h) = \ln(1-h)\) y \(g'(h) = -1/(1-h)\):</p>
+      <div class="eq">\[ \operatorname{Var}\big[\ln(1-\hat h_j)\big] \approx \frac{1}{(1-h_j)^2}\cdot\frac{h_j(1-h_j)}{n_j} = \frac{h_j}{n_j(1-h_j)} \;\Rightarrow\; \widehat{\operatorname{Var}}\big[\ln \hat S(t)\big] = \sum_{t_j \le t}\frac{d_j}{n_j(n_j - d_j)} \]</div>
+      <p>Aplicando el método delta otra vez, ahora a \(\hat S = e^{\ln \hat S}\), se obtiene la <b>fórmula de Greenwood</b>:</p>
+      <div class="eq">\[ \widehat{\operatorname{Var}}\big[\hat S(t)\big] = \hat S(t)^2 \sum_{j:\, t_j \le t} \frac{d_j}{n_j\,(n_j - d_j)} \]
+        <div class="note">Cada término crece cuando \(n_j\) es pequeño: los eventos con pocos en riesgo aportan mucha incertidumbre. Si el último individuo en riesgo tiene el evento, \(n_j = d_j\) y el término no está definido; la curva cae a 0 y el error estándar se reporta como no disponible. Sin censura, la fórmula se reduce a \(\hat S(1-\hat S)/n\), la varianza binomial de siempre.</div>
+      </div>
+      <p>El intervalo directo \(\hat S \pm 1{,}96\,\operatorname{EE}\) funciona mal en los extremos y puede dar valores negativos o mayores que 1. La solución estándar es construirlo en una escala sin límites y volver a la original. Con la transformación <b>log-log</b>, \(\theta(t) = \ln[-\ln \hat S(t)]\), el método delta da \(\operatorname{Var}(\hat\theta) \approx \operatorname{Var}(\ln \hat S)/(\ln \hat S)^2\), y por tanto:</p>
+      <div class="eq">\[ \operatorname{EE}(\hat\theta) = \frac{\sqrt{\sum_{t_j \le t} \frac{d_j}{n_j(n_j - d_j)}}}{\big|\ln \hat S(t)\big|}, \qquad \text{IC}_{95\,\%} = \Big[\, \hat S(t)^{\,e^{1{,}96\,\operatorname{EE}(\hat\theta)}},\;\; \hat S(t)^{\,e^{-1{,}96\,\operatorname{EE}(\hat\theta)}} \,\Big] \]
+        <div class="note">Siempre queda dentro de \([0, 1]\) y es asimétrico, como debe ser cerca de los extremos. Es la opción por defecto en Stata y SAS; en R, <code>survfit</code> usa por defecto la transformación log (<code>conf.type = "log"</code>), así que conviene pedir <code>"log-log"</code> explícitamente.</div>
+      </div>
+      <p><b>Ejemplo resuelto a mano.</b> Para los diez pacientes, en \(t = 12\): la suma de Greenwood es \(\tfrac{1}{10\cdot 9} + \tfrac{2}{8\cdot 6} + \tfrac{1}{5\cdot 4} + \tfrac{1}{4\cdot 3} = 0{,}0111 + 0{,}0417 + 0{,}0500 + 0{,}0833 = 0{,}186\), así que \(\operatorname{EE} = 0{,}405\sqrt{0{,}186} \approx 0{,}175\). El intervalo directo sería \(0{,}405 \pm 1{,}96(0{,}175) = [0{,}06;\ 0{,}75]\). Para el log-log: \(|\ln 0{,}405| = 0{,}904\), \(\operatorname{EE}(\hat\theta) = 0{,}431/0{,}904 = 0{,}477\), \(e^{1{,}96 \cdot 0{,}477} = 2{,}55\) y \(e^{-0{,}935} = 0{,}393\). El intervalo es \([0{,}405^{2{,}55};\ 0{,}405^{0{,}393}] = [0{,}10;\ 0{,}70]\). Con diez pacientes, la curva informa poco: es normal.</p>
+      <div class="callout"><b>Intervalos puntuales, no bandas:</b> el intervalo de cada \(t\) tiene 95 % de cobertura en ese \(t\). La probabilidad de que toda la curva real quede dentro de la banda que forman es menor. Si quieres una afirmación simultánea sobre toda la curva, usa bandas de Hall-Wellner o de igual precisión (Nair), que son más anchas.</div>
+
+      <h2 id="km-mediana"><span class="sec">§ 5</span>Mediana, cuantiles y media restringida</h2>
+      <p>La <b>mediana de supervivencia</b> estimada es el menor tiempo en que la curva baja hasta 0,5 o menos. En general, el cuantil \(p\) es el tiempo en que una fracción \(p\) ya tuvo el evento:</p>
+      <div class="eq">\[ \hat t_{p} = \min\big\{\, t : \hat S(t) \le 1 - p \,\big\}, \qquad \hat t_{0{,}5} = \min\big\{\, t : \hat S(t) \le 0{,}5 \,\big\} \]
+        <div class="note">Para los diez pacientes, \(\hat S(9) = 0{,}54\) y \(\hat S(12) = 0{,}405\), así que la mediana es 12 meses. Si la curva nunca baja de 0,5, la mediana <b>no se alcanza</b>: se reporta como “no estimable” o “&gt; último tiempo”, nunca se inventa. Si la curva queda plana exactamente en 0,5 entre dos tiempos, R toma el punto medio de ese tramo.</div>
+      </div>
+      <p>Su intervalo de confianza (método de Brookmeyer y Crowley, 1982) se obtiene invirtiendo una prueba: contiene todos los \(t\) para los cuales no rechazarías \(H_0: S(t) = 0{,}5\). En la práctica se lee en la propia gráfica: va desde el primer tiempo en que el límite <b>inferior</b> de la banda cruza 0,5 hasta el primer tiempo en que lo cruza el límite <b>superior</b>. Con pocos datos el límite superior suele no estar definido. En la hernia, el límite inferior log-log en \(t = 3\) ya vale 0,47, por debajo de 0,5, así que el intervalo empieza en 3; el límite superior nunca baja de 0,5 (en \(t = 15\) todavía vale 0,56), así que el intervalo es \([3, \infty)\)</p>
+      <p>La media \(E[T] = \int_0^\infty S(t)\,dt\) casi nunca es estimable, porque si el último tiempo es una censura la curva no llega a cero. En su lugar se usa la <b>media restringida</b> hasta un horizonte \(\tau\) fijado de antemano, \(\mu(\tau) = E[\min(T, \tau)] = \int_0^\tau S(t)\,dt\):</p>
+      <div class="eq">\[ \widehat{\text{RMST}}(\tau) = \int_0^{\tau} \hat S(t)\,dt = \sum_{j} \hat S(t_{j-1})\,\big(\min(t_j, \tau) - t_{j-1}\big) \]
+        <div class="note">Es el área bajo la curva escalonada hasta \(\tau\), con \(t_0 = 0\) y \(\hat S(t_0) = 1\). Para los diez pacientes con \(\tau = 15\): \(3(1) + 3(0{,}9) + 3(0{,}675) + 3(0{,}54) + 3(0{,}405) = 10{,}56\) meses. Se lee: en los primeros 15 meses, un paciente pasa en promedio 10,6 meses sin recaída.</div>
+      </div>
+      <p>Su varianza también sale del método delta. Con \(A_j = \int_{t_j}^{\tau} \hat S(u)\,du\), el área que queda a la derecha de cada evento:</p>
+      <div class="eq">\[ \widehat{\operatorname{Var}}\big[\widehat{\text{RMST}}(\tau)\big] = \sum_{t_j \le \tau} A_j^2\,\frac{d_j}{n_j(n_j - d_j)} \]
+        <div class="note">En la hernia: \(A = 7{,}56;\ 4{,}86;\ 2{,}835;\ 1{,}215\) en \(t = 3, 6, 9, 12\) (en \(t = 15\) es 0). La varianza es \(7{,}56^2/90 + 4{,}86^2 \cdot 2/48 + 2{,}835^2/20 + 1{,}215^2/12 = 2{,}14\), y el EE es 1,46 meses.</div>
+      </div>
+      <p>La RMST tiene una ventaja práctica enorme: está en unidades de tiempo, se interpreta sin supuestos de modelo y la diferencia entre dos grupos (“el tratamiento da 1,8 meses libres de recaída extra en dos años”) es fácil de comunicar. Además sigue siendo válida cuando los riesgos no son proporcionales, que es cuando la razón de riesgos de <a href="#cox">Cox</a> deja de resumir bien la comparación.</p>
+
+      <h2 id="km-supuestos"><span class="sec">§ 6</span>Tipos de censura, truncamiento y riesgos competitivos</h2>
+      <p>Kaplan-Meier, tal como está escrito, resuelve la <b>censura por la derecha</b>. Conviene distinguirla de otras formas de información incompleta:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Situación</th><th>Qué sabes</th><th>Qué usar</th></tr></thead>
+        <tbody>
+          <tr><td>Censura por la derecha</td><td>\(T &gt; Y\)</td><td>Kaplan-Meier</td></tr>
+          <tr><td>Censura por la izquierda</td><td>\(T \le Y\) (el evento ya ocurrió al primer control)</td><td>Turnbull / NPMLE</td></tr>
+          <tr><td>Censura por intervalo</td><td>\(L &lt; T \le R\) (entre dos controles)</td><td>Turnbull, <code>icenReg</code></td></tr>
+          <tr><td>Truncamiento por la izquierda</td><td>el individuo entra al estudio en \(E &gt; 0\) y solo se ve si \(T &gt; E\)</td><td>KM con entrada tardía: \(n_j\) cuenta solo a quienes ya entraron</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con <b>entrada tardía</b> el conjunto en riesgo se redefine como \(n_j = \#\{i : E_i &lt; t_j \le Y_i\}\). Es típico en estudios con la edad como escala de tiempo: alguien que se incorpora a los 60 años no puede aportar información sobre el riesgo a los 50. Olvidarlo produce un sesgo “de inmortalidad”: la curva sale demasiado optimista al principio.</p>
+      <p>Los <b>riesgos competitivos</b> merecen atención especial. Si estudias recaída y algunos pacientes mueren antes de recaer, la muerte no es una censura: impide la recaída para siempre. Si la tratas como censura, \(1 - \hat S(t)\) estima la probabilidad de recaer en un mundo hipotético donde nadie muere, y siempre sale mayor que la probabilidad real. Lo correcto es la <b>función de incidencia acumulada</b> (estimador de Aalen-Johansen):</p>
+      <div class="eq">\[ \widehat{F}_1(t) = \sum_{t_j \le t} \hat S_{\text{todos}}(t_{j-1})\,\frac{d_{1j}}{n_j} \]
+        <div class="note">\(\hat S_{\text{todos}}\) es el Kaplan-Meier de “cualquier evento” y \(d_{1j}\) los eventos del tipo de interés. Se cumple \(\hat F_1(t) + \hat F_2(t) + \hat S_{\text{todos}}(t) = 1\): las incidencias de cada causa y la supervivencia libre de todo suman 1, cosa que no pasa con los \(1 - \hat S\) por causa.</div>
+      </div>
+      <p>Este marco de “conjunto en riesgo + riesgo discreto” es el mismo que usarás en la <a href="#logrank">prueba log-rank</a> (comparar curvas), en la <a href="#cox">regresión de Cox</a> (riesgos que dependen de covariables) y para revisar gráficamente si un modelo <a href="#weibull">exponencial o Weibull</a> es razonable.</p>
+
+      <h2 id="km-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Reduce a la proporción empírica sin censura.</b> Si no hay censuras, \(n_{j+1} = n_j - d_j\) y el producto es telescópico: \(\hat S(t) = \#\{T_i &gt; t\}/n\). Kaplan-Meier generaliza la función de distribución empírica.</li>
+        <li><b>Es el NPMLE.</b> Maximiza \(\prod_j h_j^{d_j}(1-h_j)^{n_j-d_j}\) con \(\hat h_j = d_j/n_j\); por invarianza, \(\hat S\) es el estimador de máxima verosimilitud no paramétrico de \(S\).</li>
+        <li><b>Es monótono, escalonado y vive en [0, 1].</b> Cada factor \(1 - d_j/n_j \in [0, 1]\), así que \(\hat S\) es no creciente. Llega a 0 solo si el último tiempo observado es un evento.</li>
+        <li><b>Consistencia y normalidad asintótica.</b> Para \(t\) con \(P(Y \ge t) &gt; 0\), \(\hat S(t) \to S(t)\) y \(\sqrt{n}(\hat S(t) - S(t))\) es asintóticamente normal con varianza estimada por Greenwood. Más allá del último seguimiento no hay información.</li>
+        <li><b>Varianza de Greenwood.</b> \(\widehat{\operatorname{Var}}[\hat S(t)] = \hat S(t)^2 \sum_{t_j \le t} d_j/[n_j(n_j - d_j)]\), obtenida con el método delta sobre \(\ln \hat S\). Sin censura es \(\hat S(1 - \hat S)/n\).</li>
+        <li><b>Relación con Nelson-Aalen.</b> Como \(\ln(1-x) \le -x\), se cumple \(\hat S(t) \le e^{-\tilde H(t)}\), y la diferencia es de orden \(\sum (d_j/n_j)^2\), despreciable con conjuntos en riesgo grandes.</li>
+        <li><b>Redistribución hacia la derecha.</b> \(\hat S\) coincide con la curva que se obtiene repartiendo la masa de cada censurado entre los individuos a su derecha (Efron). Por eso KM “supone” que los censurados se comportan como quienes siguen en riesgo.</li>
+        <li><b>Insesgadez aproximada.</b> \(\hat S(t)\) tiene un ligero sesgo hacia arriba en muestras finitas, de orden \(S(t)\,P(\text{conjunto en riesgo vacío antes de } t)\), que se vuelve despreciable cuando hay suficientes individuos en riesgo.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Calcular la proporción de eventos sobre el total, o borrar a los censurados: ambos sesgan la estimación.</li>
+          <li>Interpretar la cola de la curva sin mirar el número en riesgo. Con 3 personas en riesgo, un evento baja la curva un 33 %.</li>
+          <li>Reportar una mediana cuando la curva nunca llega a 0,5, o calcular la media sin restringir cuando el último tiempo es censura.</li>
+          <li>Tratar la muerte por otras causas como censura y leer \(1 - \hat S\) como probabilidad real del evento de interés.</li>
+          <li>Comparar dos curvas en un solo tiempo elegido después de mirar la gráfica, en lugar de usar una prueba de toda la curva.</li>
+        </ul>
+      </div>
+
+      <h2 id="km-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>Arriba, cada línea es un paciente; las que siguen en color forman el <b>conjunto en riesgo</b> en el tiempo marcado. Abajo, la curva de Kaplan-Meier se construye paso a paso frente a la supervivencia real (línea punteada), que es una Weibull con forma 1,3 y escala 14 meses, cuya mediana verdadera es 10,56 meses. Pulsa “Paso” desde cero, después aumenta \(n\) y la censura, y activa los intervalos.</p>
+<figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · Kaplan-Meier paso a paso</span><span class="num" id="km-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
@@ -96,43 +202,31 @@
         </div>
         <figcaption>Con n pequeño y mucha censura, la banda se abre al final de la curva y los últimos escalones son enormes: cada evento con 2 o 3 en riesgo baja la curva un 30 % o un 50 %. El intervalo de Greenwood sin transformar puede salirse de [0, 1] y aquí se recorta; el log-log siempre queda dentro.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Deja \(n = 12\) y censura 3 %. Pulsa “Desde cero” y avanza con “Paso”. En cada escalón calcula a mano \(1 - d_j/n_j\) con los números de la gráfica inferior y comprueba que el producto da el readout.
+          <details><summary>Qué deberías observar</summary><p>Cada escalón tiene altura \(\hat S(t_{j-1})\,d_j/n_j\): los primeros son pequeños (muchos en riesgo) y los últimos grandes. Los círculos vacíos (censuras) no producen escalón, pero el número en riesgo de abajo baja en uno.</p></details></li>
+        <li>Fija la censura en 0 % y compara la curva con la proporción de pacientes cuyo tiempo supera cada \(t\). Después sube la censura a 15 %.
+          <details><summary>Qué deberías observar</summary><p>Sin censura, Kaplan-Meier es la proporción empírica y la curva llega a 0 en el último evento. Con 15 % mensual, muchos salen pronto: la curva termina más arriba, queda indefinida tras el último seguimiento y la banda se abre mucho al final.</p></details></li>
+        <li>Fija \(n = 30\) y alterna entre “Greenwood” y “log-log”. Pulsa “Nueva muestra” varias veces y fíjate en la cola.
+          <details><summary>Qué deberías observar</summary><p>El intervalo de Greenwood es simétrico y a veces se sale de [0, 1] (se recorta en la gráfica). El log-log es asimétrico: más estrecho hacia el extremo cercano (0 o 1) y más ancho hacia el centro. Cerca de \(\hat S = 0{,}5\) ambos casi coinciden.</p></details></li>
+        <li>Sube \(n\) a 200 con censura 3 %. Pulsa “Completa” y anota la mediana y su intervalo. Repite con \(n = 50\) y \(n = 20\).
+          <details><summary>Qué deberías observar</summary><p>La mediana estimada se acerca a 10,6 meses y la amplitud de su intervalo se reduce aproximadamente como \(1/\sqrt{n}\): al cuadruplicar \(n\) la amplitud se reduce a la mitad. Con \(n = 20\) el límite superior a veces no está definido.</p></details></li>
+      </ol>
 
-      <h2 id="km-ic"><span class="sec">§ 4</span>Varianza e intervalos de confianza</h2>
-      <p>La varianza de \(\hat S(t)\) se aproxima con la <b>fórmula de Greenwood</b> (1926), que sale de aplicar el método delta a \(\ln \hat S(t) = \sum \ln(1 - d_j/n_j)\), tratando cada factor como una proporción binomial independiente:</p>
-      <div class="eq">\[ \widehat{\operatorname{Var}}\big[\hat S(t)\big] = \hat S(t)^2 \sum_{j:\, t_j \le t} \frac{d_j}{n_j\,(n_j - d_j)} \]
-        <div class="note">Cada término crece cuando \(n_j\) es pequeño: los eventos con pocos en riesgo aportan mucha incertidumbre. Si el último individuo en riesgo tiene el evento, \(n_j = d_j\) y el término no está definido; la curva cae a 0 y el error estándar se reporta como no disponible.</div>
-      </div>
-      <p>El intervalo directo \(\hat S \pm 1{,}96\,\operatorname{EE}\) funciona mal en los extremos y puede dar valores negativos o mayores que 1. La solución estándar es construirlo en una escala sin límites y volver a la original. Con la transformación <b>log-log</b>, \(\theta(t) = \ln[-\ln \hat S(t)]\):</p>
-      <div class="eq">\[ \operatorname{EE}(\hat\theta) = \frac{\sqrt{\sum_{t_j \le t} \frac{d_j}{n_j(n_j - d_j)}}}{\big|\ln \hat S(t)\big|}, \qquad \text{IC}_{95\,\%} = \Big[\, \hat S(t)^{\,e^{1{,}96\,\operatorname{EE}(\hat\theta)}},\;\; \hat S(t)^{\,e^{-1{,}96\,\operatorname{EE}(\hat\theta)}} \,\Big] \]
-        <div class="note">Siempre queda dentro de \([0, 1]\) y es asimétrico, como debe ser cerca de los extremos. Es la opción por defecto en Stata y SAS; en R, <code>survfit</code> usa por defecto la transformación log (<code>conf.type = "log"</code>), así que conviene pedir <code>"log-log"</code> explícitamente.</div>
-      </div>
-      <p>Para los diez pacientes, en \(t = 12\): la suma de Greenwood es \(\tfrac{1}{10\cdot 9} + \tfrac{2}{8\cdot 6} + \tfrac{1}{5\cdot 4} + \tfrac{1}{4\cdot 3} = 0{,}186\), así que \(\operatorname{EE} = 0{,}405\sqrt{0{,}186} \approx 0{,}175\). El intervalo directo sería \([0{,}06;\ 0{,}75]\) y el log-log es \([0{,}10;\ 0{,}70]\). Con diez pacientes, la curva informa poco: es normal.</p>
-      <div class="callout"><b>Intervalos puntuales, no bandas:</b> el intervalo de cada \(t\) tiene 95 % de cobertura en ese \(t\). La probabilidad de que toda la curva real quede dentro de la banda que forman es menor. Si quieres una afirmación simultánea sobre toda la curva, usa bandas de Hall-Wellner o de igual precisión.</div>
+      <h2 id="km-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: cáncer de pulmón avanzado (NCCTG)</h3>
+      <p>El conjunto <code>lung</code> del paquete <code>survival</code> de R recoge 228 pacientes con cáncer de pulmón avanzado del North Central Cancer Treatment Group, con 165 muertes observadas y 63 censuras. La mediana de supervivencia global es de 310 días (IC 95 % ≈ 284 a 361). Separando por sexo, los 138 hombres tienen mediana de 270 días y las 90 mujeres de 426 días; al año sobreviven el 34 % de los hombres y el 53 % de las mujeres. La RMST a dos años es de unos 311 días en hombres y 435 en mujeres: en los primeros 730 días, una mujer vive en promedio unos 124 días más. Este tipo de resultado orienta el pronóstico y es la base para ajustar después por edad y estado funcional con un modelo de Cox.</p>
+      <h3>Tecnología: abandono de suscriptores</h3>
+      <p>Una plataforma de streaming sigue a 5 000 usuarios que se suscribieron en enero. Los que siguen activos al cierre del análisis, o se dieron de alta tarde, están censurados. Kaplan-Meier da, por ejemplo, \(\hat S(3) = 0{,}82\), \(\hat S(6) = 0{,}71\) y \(\hat S(12) = 0{,}58\) meses, con una caída fuerte en el mes 1 (fin del periodo de prueba). Comparar la curva de cohortes sucesivas indica si un cambio en el onboarding reduce el abandono temprano, y la RMST a 12 meses multiplicada por la cuota mensual da los ingresos esperados por usuario en el primer año.</p>
+      <h3>Industria: fiabilidad de componentes</h3>
+      <p>Un centro de datos registra los meses hasta la falla de 2 000 discos duros de un mismo modelo; los discos retirados sanos o aún en servicio están censurados. Datos de este tipo los publica, por ejemplo, Backblaze. Si Kaplan-Meier da \(\hat S(36) = 0{,}91\) con IC [0,89; 0,93], el equipo estima que en tres años deberá reemplazar alrededor del 9 % del parque, y dimensiona el inventario de repuestos. La forma de la curva (caída temprana por “mortalidad infantil” y aceleración tardía por desgaste) motiva después un modelo <a href="#weibull">Weibull</a>.</p>
+      <h3>Ciencias sociales: duración del desempleo</h3>
+      <p>Una encuesta de panel sigue a 1 200 personas desde que pierden su empleo hasta que encuentran otro; quienes salen del panel o siguen desempleados al final están censurados. Aquí la “supervivencia” es seguir desempleado: si la mediana estimada es de 5 meses y \(\hat S(12) = 0{,}22\), un 22 % sigue buscando al año. Las curvas por nivel educativo o por región, con su número en riesgo, informan el diseño de subsidios con duración limitada.</p>
 
-      <h2 id="km-mediana"><span class="sec">§ 5</span>Mediana, cuantiles y media restringida</h2>
-      <p>La <b>mediana de supervivencia</b> estimada es el menor tiempo en que la curva baja hasta 0,5 o menos:</p>
-      <div class="eq">\[ \hat t_{0{,}5} = \min\big\{\, t : \hat S(t) \le 0{,}5 \,\big\} \]
-        <div class="note">Para los diez pacientes, \(\hat S(9) = 0{,}54\) y \(\hat S(12) = 0{,}405\), así que la mediana es 12 meses. Si la curva nunca baja de 0,5, la mediana <b>no se alcanza</b>: se reporta como “no estimable” o “&gt; último tiempo”, nunca se inventa.</div>
-      </div>
-      <p>Su intervalo de confianza (método de Brookmeyer y Crowley) se lee en la propia gráfica: va desde el primer tiempo en que el límite <b>inferior</b> de la banda cruza 0,5 hasta el primer tiempo en que lo cruza el límite <b>superior</b>. Con pocos datos el límite superior suele no estar definido. Lo mismo sirve para cualquier cuantil: el tiempo en que el 25 % ya tuvo el evento, por ejemplo, se lee donde la curva cruza 0,75.</p>
-      <p>La media \(E[T] = \int_0^\infty S(t)\,dt\) casi nunca es estimable, porque si el último tiempo es una censura la curva no llega a cero. En su lugar se usa la <b>media restringida</b> hasta un horizonte \(\tau\) fijado de antemano:</p>
-      <div class="eq">\[ \widehat{\text{RMST}}(\tau) = \int_0^{\tau} \hat S(t)\,dt = \sum_{j} \hat S(t_{j-1})\,\big(\min(t_j, \tau) - t_{j-1}\big) \]
-        <div class="note">Es el área bajo la curva escalonada hasta \(\tau\), con \(t_0 = 0\) y \(\hat S(t_0) = 1\). Para los diez pacientes con \(\tau = 15\): \(3(1) + 3(0{,}9) + 3(0{,}675) + 3(0{,}54) + 3(0{,}405) = 10{,}56\) meses. Se lee: en los primeros 15 meses, un paciente pasa en promedio 10,6 meses sin recaída.</div>
-      </div>
-      <p>La RMST tiene una ventaja práctica enorme: está en unidades de tiempo, se interpreta sin supuestos de modelo y la diferencia entre dos grupos (“el tratamiento da 1,8 meses libres de recaída extra en dos años”) es fácil de comunicar.</p>
-
-      <h2 id="km-leer"><span class="sec">§ 6</span>Leer bien una curva de Kaplan-Meier</h2>
-      <ul>
-        <li><b>Muestra siempre el número en riesgo.</b> Una tabla debajo del eje con \(n_j\) en tiempos fijos le dice al lector dónde la curva se apoya en cientos de personas y dónde en tres. Las marcas verticales sobre la curva indican censuras.</li>
-        <li><b>Desconfía de la cola.</b> Al final, cada evento produce un escalón grande y la curva puede quedarse plana por falta de seguimiento, no porque el riesgo desaparezca. Muchos autores cortan la gráfica cuando quedan menos del 10 % o 20 % en riesgo.</li>
-        <li><b>La censura debe ser no informativa.</b> Si los pacientes que empeoran abandonan el estudio, la curva sobreestima la supervivencia. Compara el patrón de censura entre grupos y entre perfiles de pacientes.</li>
-        <li><b>Con riesgos competitivos, \(1 - \hat S\) exagera.</b> Si estudias recaída y algunos pacientes mueren antes de recaer, tratar la muerte como censura estima la recaída en un mundo hipotético sin muertes. Para la probabilidad real de recaída usa la función de incidencia acumulada (Aalen-Johansen).</li>
-        <li><b>No compares grupos “a ojo” en un solo tiempo.</b> Dos curvas pueden separarse a los 12 meses por azar. Para comparar curvas completas está la prueba log-rank de la siguiente sesión.</li>
-      </ul>
-
-      <h2 id="km-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
-      <p>Reproducimos la tabla de los diez pacientes, con intervalos log-log, mediana con su intervalo y media restringida a 15 meses. En R se usa el paquete <code>survival</code>; en Python, <code>statsmodels</code> (la librería <code>lifelines</code> ofrece lo mismo con <code>KaplanMeierFitter</code>).</p>
-      <div class="codetabs">
+      <h2 id="km-code"><span class="sec">§ 10</span>En R y Python</h2>
+      <p>Primero reproducimos la tabla de los diez pacientes, con intervalos log-log, mediana con su intervalo y media restringida a 15 meses. En R se usa el paquete <code>survival</code>; en Python, <code>statsmodels</code> (la librería <code>lifelines</code> ofrece lo mismo con <code>KaplanMeierFitter</code>).</p>
+<div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
@@ -180,10 +274,49 @@ km                    <span class="c"># mediana = 12 y su IC</span>
 <span class="f">abline</span>(h = <span class="n">0.5</span>, lty = <span class="n">3</span>)
 <span class="c"># con survminer: ggsurvplot(km, risk.table = TRUE, conf.int = TRUE)</span></code></pre>
       </div>
+      <p><b>Caso aplicado completo: cáncer de pulmón por sexo.</b> Con los 228 pacientes del NCCTG estimamos la curva por sexo, la mediana con su intervalo, la supervivencia al año y la RMST a dos años.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+<span class="k">from</span> statsmodels.duration.survfunc <span class="k">import</span> SurvfuncRight
 
-      <h2 id="km-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+<span class="c"># datos lung de R (en Rdatasets se llama "cancer"); status: 1 = censura, 2 = muerte</span>
+d = sm.datasets.<span class="f">get_rdataset</span>(<span class="s">"cancer"</span>, <span class="s">"survival"</span>).data
+d[<span class="s">"evento"</span>] = (d.status == <span class="n">2</span>).<span class="f">astype</span>(<span class="f">int</span>)
+<span class="f">print</span>(<span class="f">len</span>(d), d.evento.<span class="f">sum</span>())                  <span class="c"># 228 165</span>
+
+<span class="k">def</span> <span class="f">rmst</span>(km, tau):
+    t, S = km.surv_times, km.surv_prob
+    tt = np.<span class="f">r_</span>[<span class="n">0</span>, t[t &lt; tau], tau]
+    <span class="k">return</span> np.<span class="f">sum</span>(np.<span class="f">diff</span>(tt) * np.<span class="f">r_</span>[<span class="n">1</span>, S[t &lt; tau]])
+
+<span class="k">for</span> sexo, nombre <span class="k">in</span> [(<span class="n">1</span>, <span class="s">"hombres"</span>), (<span class="n">2</span>, <span class="s">"mujeres"</span>)]:
+    g = d[d.sex == sexo]
+    km = <span class="f">SurvfuncRight</span>(g.time, g.evento)
+    S1 = km.surv_prob[km.surv_times &lt;= <span class="n">365</span>][-<span class="n">1</span>]
+    <span class="f">print</span>(nombre, <span class="f">len</span>(g), km.<span class="f">quantile</span>(<span class="n">0.5</span>), km.<span class="f">quantile_ci</span>(<span class="n">0.5</span>),
+          <span class="f">round</span>(S1, <span class="n">3</span>), <span class="f">round</span>(<span class="f">rmst</span>(km, <span class="n">730</span>), <span class="n">1</span>))
+<span class="c"># hombres 138 270 (210, 306) 0.336 311.1</span>
+<span class="c"># mujeres  90 426 (345, 524) 0.526 434.7</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="c"># lung: status 1 = censura, 2 = muerte; sex 1 = hombre, 2 = mujer</span>
+fit &lt;- <span class="f">survfit</span>(<span class="f">Surv</span>(time, status) ~ sex, data = lung, conf.type = <span class="s">"log-log"</span>)
+fit                                   <span class="c"># medianas: 270 y 426 días</span>
+<span class="f">summary</span>(fit, times = <span class="n">365</span>)            <span class="c"># S(365) ≈ 0.34 y 0.53</span>
+<span class="f">print</span>(fit, rmean = <span class="n">730</span>)              <span class="c"># RMST(730) ≈ 311 y 435 días</span>
+
+<span class="c"># diferencia de RMST con su IC (paquete survRM2)</span>
+<span class="c"># library(survRM2); with(lung, rmst2(time, status - 1, sex - 1, tau = 730))</span>
+
+<span class="f">plot</span>(fit, col = <span class="n">1</span>:<span class="n">2</span>, mark.time = <span class="k">TRUE</span>, xlab = <span class="s">"días"</span>, ylab = <span class="s">"supervivencia"</span>)
+<span class="f">legend</span>(<span class="s">"topright"</span>, <span class="f">c</span>(<span class="s">"hombres"</span>, <span class="s">"mujeres"</span>), col = <span class="n">1</span>:<span class="n">2</span>, lty = <span class="n">1</span>)</code></pre>
+      </div>
+      <p>La diferencia de medianas es de 156 días y la de RMST a dos años de 124 días. Para decidir si la diferencia entre curvas es más que azar necesitas la prueba log-rank (estadístico 10,3 con 1 grado de libertad, \(p \approx 0{,}001\)), que verás en la <a href="#logrank">siguiente sesión</a>.</p>
+
+      <h2 id="km-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Correcto. La censura no hace bajar la curva: el paciente sale del conjunto en riesgo y el siguiente escalón se calcula con un denominador menor." data-wrong="Recuerda que Ŝ(t) solo cambia en los tiempos de evento. ¿Qué cantidad de la fórmula cambia cuando alguien se censura?">
-        <h3>¿Qué le pasa a la curva de Kaplan-Meier en el tiempo de una censura?</h3>
+        <h3>1. ¿Qué le pasa a la curva de Kaplan-Meier en el tiempo de una censura?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Baja un escalón más pequeño que en un evento</button>
           <button class="opt" type="button" data-ok="1"><span class="letter">B</span>No baja; solo se reduce el número en riesgo para los pasos siguientes</button>
@@ -193,7 +326,7 @@ km                    <span class="c"># mediana = 12 y su IC</span>
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Bien. Con 50 en riesgo y 5 eventos, el factor es 1 − 5/50 = 0,9, así que Ŝ pasa de 0,80 a 0,72." data-wrong="Usa la fórmula del producto límite: multiplica la supervivencia anterior por (1 − d/n) del nuevo tiempo de evento.">
-        <h3>Justo antes de t = 10, Ŝ = 0,80. En t = 10 hay 50 en riesgo y 5 eventos. ¿Cuánto vale Ŝ(10)?</h3>
+        <h3>2. Justo antes de t = 10, Ŝ = 0,80. En t = 10 hay 50 en riesgo y 5 eventos. ¿Cuánto vale Ŝ(10)?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,75</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,90</button>
@@ -203,7 +336,7 @@ km                    <span class="c"># mediana = 12 y su IC</span>
         <div class="feedback" aria-live="polite"></div>
       </div>
       <div class="quiz" data-right="Exacto. Si la curva no baja de 0,5 la mediana no se alcanza y se informa así. La RMST hasta un horizonte fijo es un buen resumen alternativo." data-wrong="La mediana es el primer tiempo en que la curva llega a 0,5 o menos. Si eso nunca ocurre en los datos, ¿se puede estimar sin inventar la cola?">
-        <h3>La curva de un estudio termina en Ŝ = 0,62 a los 36 meses. ¿Qué informas como mediana?</h3>
+        <h3>3. La curva de un estudio termina en Ŝ = 0,62 a los 36 meses. ¿Qué informas como mediana?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Que no se alcanzó (&gt; 36 meses), y quizás la RMST a 36 meses</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">B</span>36 meses, el último tiempo observado</button>
@@ -212,44 +345,159 @@ km                    <span class="c"># mediana = 12 y su IC</span>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Así es. Tratar la muerte como censura supone que los fallecidos habrían seguido en riesgo de recaer; 1 − Ŝ estima la recaída en un mundo sin muertes y exagera la probabilidad real. La incidencia acumulada de Aalen-Johansen corrige esto." data-wrong="Piensa en qué supone Kaplan-Meier sobre los censurados: que se comportan como quienes siguen en riesgo. ¿Un fallecido puede recaer después?">
+        <h3>4. Estudias recaída y tratas las muertes sin recaída como censuras. ¿Qué pasa con 1 − Ŝ(t)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Estima bien la probabilidad real de recaer, porque la censura es no informativa</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Subestima la probabilidad de recaer</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Sobreestima la probabilidad real de recaer; conviene la incidencia acumulada</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No cambia nada si hay pocas muertes o muchas</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Correcto. El término d/(n(n − d)) es grande cuando n es pequeño: los eventos con pocos en riesgo dominan la suma de Greenwood y la banda se abre en la cola." data-wrong="Mira la fórmula de Greenwood: cada evento suma d/(n(n − d)). ¿Para qué valores de n ese término es grande?">
+        <h3>5. ¿Por qué la banda de confianza de Kaplan-Meier se abre al final de la curva?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Porque al final hay más eventos que al principio</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Porque la transformación log-log es asimétrica</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Porque la censura hace bajar la curva</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Porque quedan pocos en riesgo y cada término d/(n(n − d)) de Greenwood es grande</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="km-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>Hazlos a mano primero; después compruébalos con el código de la sección anterior.</p>
+      <h2 id="km-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Son ejercicios para pensar con calma: demostraciones, simulación y análisis de datos reales. Intenta cada uno antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Semanas hasta que un usuario nuevo abandona una aplicación de idiomas (“+” = sigue activo al cierre): 1, 2, 2+, 4, 4, 5+, 7, 9+. Construye la tabla de Kaplan-Meier y da Ŝ(5).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>t = 1: n = 8, d = 1, Ŝ = 7/8 = 0,875. t = 2: n = 7, d = 1 (el 2+ sigue en riesgo en 2), Ŝ = 0,875 × 6/7 = 0,750. t = 4: n = 5, d = 2, Ŝ = 0,750 × 3/5 = 0,450. t = 7: n = 2 (salió el 5+), d = 1, Ŝ = 0,450 × 1/2 = 0,225. Como en 5 no hay evento, <b>Ŝ(5) = 0,450</b>, y la mediana es 4 semanas.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Demuestra que, si no hay censura, el estimador de Kaplan-Meier es igual a la proporción de individuos con T &gt; t. Después prueba que, con censura, Kaplan-Meier coincide con el algoritmo de redistribución hacia la derecha de Efron, y explica por qué Ŝ(t) no puede escribirse como “número de sobrevivientes en t dividido entre n”.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>Sin censura.</b> Quienes salen del conjunto en riesgo son exactamente los que tuvieron el evento, así que \(n_{j+1} = n_j - d_j\). El producto es telescópico: \(\prod_{t_j \le t} \frac{n_j - d_j}{n_j} = \frac{n_2}{n_1}\cdot\frac{n_3}{n_2}\cdots\frac{n_{m+1}}{n_m} = \frac{n_{m+1}}{n}\), donde \(n_{m+1}\) es el número que sigue sin evento después de \(t\). Eso es la proporción empírica de \(T &gt; t\).</p>
+            <p><b>Redistribución.</b> Sea \(w\) la masa que tiene cada individuo en riesgo justo antes de \(t_j\). Por inducción, \(\hat S(t_j^-) = n_j\,w\): la masa restante está repartida por igual entre los \(n_j\) en riesgo (al inicio, \(n \cdot 1/n = 1\)). En \(t_j\), los \(d_j\) eventos se llevan \(d_j w\), así que \(\hat S(t_j) = (n_j - d_j)w = \hat S(t_j^-)(1 - d_j/n_j)\), el factor de KM. Cada censurado reparte su \(w\) entre los \(m\) que quedan a su derecha, que pasan a tener \(w(1 + 1/m)\); la masa total en riesgo no cambia, y la hipótesis de inducción se mantiene. Por tanto ambas construcciones dan la misma curva.</p>
+            <p><b>Por qué no es un cociente simple.</b> Con censura, \(n_{j+1} = n_j - d_j - c_j\) y el producto ya no se cancela: los censurados no están en el numerador (no sabemos si sobrevivieron) ni se descuentan como eventos. KM les asigna la supervivencia futura de quienes siguen en riesgo, válido si la censura es no informativa.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Con los datos del ejercicio 1, calcula el error estándar de Greenwood de Ŝ(4) y el intervalo directo al 95 %.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Suma de Greenwood hasta t = 4: 1/(8·7) + 1/(7·6) + 2/(5·3) = 0,0179 + 0,0238 + 0,1333 = 0,1750. EE = 0,450 × √0,1750 = 0,450 × 0,418 ≈ <b>0,188</b>. IC directo: 0,450 ± 1,96 × 0,188 = <b>[0,08; 0,82]</b>. Es muy ancho: con 8 usuarios la curva da una idea, no una estimación precisa.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Deriva paso a paso la fórmula de Greenwood con el método delta y comprueba que sin censura se reduce a Ŝ(1 − Ŝ)/n. Después calcula a mano, con los datos 1, 2, 2+, 4, 4, 5+, 7, 9+ (semanas hasta abandonar una app), el EE de Ŝ(4) y los intervalos directo y log-log al 95 %.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>Derivación.</b> \(\ln \hat S = \sum \ln(1 - \hat h_j)\) con \(\operatorname{Var}(\hat h_j) \approx h_j(1-h_j)/n_j\). Delta: \(\operatorname{Var}[\ln(1-\hat h_j)] \approx h_j/[n_j(1-h_j)] = d_j/[n_j(n_j - d_j)]\). Sumando (los términos son aproximadamente incorrelados por la estructura de martingala) y aplicando delta a \(e^{x}\): \(\operatorname{Var}(\hat S) \approx \hat S^2 \sum d_j/[n_j(n_j-d_j)]\).</p>
+            <p><b>Sin censura</b>, \(n_{j+1} = n_j - d_j\), así que \(\frac{d_j}{n_j(n_j - d_j)} = \frac{1}{n_{j+1}} - \frac{1}{n_j}\). La suma es telescópica: \(\frac{1}{n_{m+1}} - \frac{1}{n}\). Con \(\hat S = n_{m+1}/n\): \(\hat S^2\big(\frac{1}{n\hat S} - \frac{1}{n}\big) = \frac{\hat S(1 - \hat S)}{n}\).</p>
+            <p><b>Datos.</b> t = 1: n = 8, d = 1, Ŝ = 0,875. t = 2: n = 7, d = 1, Ŝ = 0,750. t = 4: n = 5, d = 2, Ŝ = 0,450. Suma de Greenwood: 1/56 + 1/42 + 2/15 = 0,0179 + 0,0238 + 0,1333 = 0,1750. EE = 0,450 × 0,418 = <b>0,188</b>. Directo: <b>[0,08; 0,82]</b>. Log-log: |ln 0,45| = 0,799, EE(θ) = 0,418/0,799 = 0,524, exponentes e^(1,027) = 2,79 y e^(−1,027) = 0,358, IC = [0,45^2,79; 0,45^0,358] = <b>[0,11; 0,75]</b>.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Con los datos del ejercicio 1, calcula la media restringida a 8 semanas y el estimador de Nelson-Aalen H̃(7). Compara e^(−H̃(7)) con Ŝ(7).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>RMST(8) = 1(1) + 1(0,875) + 2(0,750) + 3(0,450) + 1(0,225) = 1 + 0,875 + 1,5 + 1,35 + 0,225 = <b>4,95 semanas</b>. Nelson-Aalen: H̃(7) = 1/8 + 1/7 + 2/5 + 1/2 = 0,125 + 0,143 + 0,400 + 0,500 = 1,168, y e^(−1,168) ≈ <b>0,311</b>, mayor que Ŝ(7) = 0,225. La diferencia es grande porque los últimos pasos tienen d/n grandes (0,4 y 0,5), donde 1 − x ya no se parece a e^(−x).</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudio de simulación: genera tiempos Weibull (forma 1,3, escala 14) con censura exponencial de tasa 0,03 y censura administrativa en 30 meses. Para n = 15, 30 y 100, repite 4 000 veces y estima la cobertura real de los intervalos al 95 % directo y log-log de S(20). ¿Cuál recomiendas y por qué?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>S(20) verdadera = exp(−(20/14)^1,3) = 0,204, cerca del extremo inferior, justo donde el intervalo directo sufre. Resultados de una corrida (semilla 2024): con n = 15, directo 0,85 y log-log 0,86; con n = 30, directo 0,90 y log-log 0,95; con n = 100, directo 0,93 y log-log 0,95. El log-log alcanza la cobertura nominal mucho antes. Con n = 15 ambos fallan porque a menudo no queda nadie en riesgo en t = 20 o la curva cae a 0 (esas réplicas cuentan como no cobertura). Recomendación: log-log por defecto, y no reportar intervalos donde quedan muy pocos en riesgo.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-<span class="k">from</span> statsmodels.duration.survfunc <span class="k">import</span> SurvfuncRight
-t = np.<span class="f">array</span>([<span class="n">1</span>, <span class="n">2</span>, <span class="n">2</span>, <span class="n">4</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">7</span>, <span class="n">9</span>]); e = np.<span class="f">array</span>([<span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>])
-km = <span class="f">SurvfuncRight</span>(t, e)
-tt = np.<span class="f">r_</span>[<span class="n">0</span>, km.surv_times, <span class="n">8</span>]; Sv = np.<span class="f">r_</span>[<span class="n">1</span>, km.surv_prob]
-<span class="f">print</span>(np.<span class="f">sum</span>(np.<span class="f">diff</span>(tt) * Sv))                        <span class="c"># 4.95</span>
-H = np.<span class="f">cumsum</span>(km.n_events / km.n_risk)
-<span class="f">print</span>(H[-<span class="n">1</span>], np.<span class="f">exp</span>(-H[-<span class="n">1</span>]), km.surv_prob[-<span class="n">1</span>])          <span class="c"># 1.168 0.311 0.225</span></code></pre>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">2024</span>)
+k, lam, t0 = <span class="n">1.3</span>, <span class="n">14.0</span>, <span class="n">20.0</span>
+S_true = np.<span class="f">exp</span>(-(t0 / lam) ** k)
+
+<span class="k">def</span> <span class="f">km_at</span>(y, d, t0):
+    S, g = <span class="n">1.0</span>, <span class="n">0.0</span>
+    <span class="k">for</span> t <span class="k">in</span> np.<span class="f">unique</span>(y[(d == <span class="n">1</span>) &amp; (y &lt;= t0)]):
+        n = np.<span class="f">sum</span>(y &gt;= t); e = np.<span class="f">sum</span>((y == t) &amp; (d == <span class="n">1</span>))
+        S *= <span class="n">1</span> - e / n
+        g = g + e / (n * (n - e)) <span class="k">if</span> n &gt; e <span class="k">else</span> np.nan
+    <span class="k">return</span> S, g
+
+<span class="k">def</span> <span class="f">coverage</span>(n, reps=<span class="n">4000</span>):
+    hit_p = hit_l = <span class="n">0</span>
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps):
+        T = lam * rng.<span class="f">weibull</span>(k, n)
+        C = np.<span class="f">minimum</span>(rng.<span class="f">exponential</span>(<span class="n">1</span> / <span class="n">0.03</span>, n), <span class="n">30</span>)
+        y, d = np.<span class="f">minimum</span>(T, C), (T &lt;= C).<span class="f">astype</span>(<span class="f">int</span>)
+        S, g = <span class="f">km_at</span>(y, d, t0)
+        <span class="k">if</span> <span class="k">not</span> (<span class="n">0</span> &lt; S &lt; <span class="n">1</span>) <span class="k">or</span> np.<span class="f">isnan</span>(g):
+            <span class="k">continue</span>          <span class="c"># se cuenta como fallo de cobertura</span>
+        se = S * np.<span class="f">sqrt</span>(g)
+        hit_p += (S - <span class="n">1.96</span> * se &lt;= S_true &lt;= S + <span class="n">1.96</span> * se)
+        e = np.<span class="f">sqrt</span>(g) / <span class="f">abs</span>(np.<span class="f">log</span>(S))
+        hit_l += (S ** np.<span class="f">exp</span>(<span class="n">1.96</span> * e) &lt;= S_true &lt;= S ** np.<span class="f">exp</span>(-<span class="n">1.96</span> * e))
+    <span class="k">return</span> hit_p / reps, hit_l / reps
+
+<span class="f">print</span>(<span class="s">"S verdadera en t0:"</span>, <span class="f">round</span>(S_true, <span class="n">3</span>))           <span class="c"># 0.204</span>
+<span class="k">for</span> n <span class="k">in</span> (<span class="n">15</span>, <span class="n">30</span>, <span class="n">100</span>):
+    p, l = <span class="f">coverage</span>(n)
+    <span class="f">print</span>(<span class="s">f"n = {n:3d}   directo: {p:.3f}   log-log: {l:.3f}"</span>)
+<span class="c"># n = 15: 0.854 0.860 · n = 30: 0.898 0.948 · n = 100: 0.929 0.946</span></code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
-km &lt;- <span class="f">survfit</span>(<span class="f">Surv</span>(<span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">2</span>, <span class="n">4</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">7</span>, <span class="n">9</span>), <span class="f">c</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>)) ~ <span class="n">1</span>)
-<span class="f">print</span>(km, rmean = <span class="n">8</span>)                              <span class="c"># *rmean = 4.95</span>
-H &lt;- <span class="f">cumsum</span>(km$n.event / km$n.risk)               <span class="c"># Nelson-Aalen</span>
-<span class="f">exp</span>(-H[km$time == <span class="n">7</span>]); km$surv[km$time == <span class="n">7</span>]     <span class="c"># 0.311 y 0.225</span></code></pre>
-</div></div></details>
+<span class="f">set.seed</span>(<span class="n">2024</span>)
+S_true &lt;- <span class="f">exp</span>(-(<span class="n">20</span> / <span class="n">14</span>)^<span class="n">1.3</span>)
+cob &lt;- <span class="k">function</span>(n, reps = <span class="n">4000</span>) {
+  r &lt;- <span class="f">replicate</span>(reps, {
+    T &lt;- <span class="f">rweibull</span>(n, shape = <span class="n">1.3</span>, scale = <span class="n">14</span>)
+    C &lt;- <span class="f">pmin</span>(<span class="f">rexp</span>(n, <span class="n">0.03</span>), <span class="n">30</span>)
+    y &lt;- <span class="f">pmin</span>(T, C); d &lt;- <span class="f">as.integer</span>(T &lt;= C)
+    ok &lt;- <span class="f">sapply</span>(<span class="f">c</span>(<span class="s">"plain"</span>, <span class="s">"log-log"</span>), <span class="k">function</span>(ct) {
+      s &lt;- <span class="f">summary</span>(<span class="f">survfit</span>(<span class="f">Surv</span>(y, d) ~ <span class="n">1</span>, conf.type = ct), times = <span class="n">20</span>, extend = <span class="k">TRUE</span>)
+      <span class="f">isTRUE</span>(s$lower &lt;= S_true &amp;&amp; S_true &lt;= s$upper)
+    })
+    ok
+  })
+  <span class="f">rowMeans</span>(r)
+}
+<span class="f">sapply</span>(<span class="f">c</span>(<span class="n">15</span>, <span class="n">30</span>, <span class="n">100</span>), cob)   <span class="c"># ≈ mismas coberturas que en Python</span></code></pre>
+            </div>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Demuestra que, si no hay censura, el estimador de Kaplan-Meier es igual a la proporción de individuos con T &gt; t. Después explica por qué, con censura, Ŝ(t) no puede escribirse como “número de sobrevivientes en t dividido entre n”.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Sin censura, quienes salen del conjunto en riesgo son exactamente los que tuvieron el evento, así que \(n_{j+1} = n_j - d_j\). El producto es telescópico: \(\prod_{t_j \le t} \frac{n_j - d_j}{n_j} = \frac{n_2}{n_1}\cdot\frac{n_3}{n_2}\cdots\frac{n_{m+1}}{n_m} = \frac{n_{m+1}}{n}\), donde \(n_{m+1}\) es el número que sigue sin evento después de \(t\). Eso es la proporción empírica de \(T &gt; t\). Con censura, \(n_{j+1} = n_j - d_j - c_j\) y el producto ya no se cancela: los censurados no están en el numerador (no sabemos si sobrevivieron) ni se descuentan como eventos. Kaplan-Meier les asigna implícitamente la supervivencia futura de quienes siguen en riesgo, una “redistribución hacia la derecha” de su masa, válida si la censura es no informativa.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con los datos <code>lung</code> (228 pacientes, 165 muertes), estima por sexo la mediana con su IC, Ŝ(365) con su IC log-log y la RMST a 730 días con su error estándar. Calcula la diferencia de RMST con un IC al 95 % suponiendo independencia entre grupos e interpreta el resultado para un comité clínico. ¿Por qué la RMST puede ser preferible a la mediana aquí?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Resultados: hombres (n = 138), mediana 270 días (IC ≈ 210 a 306), Ŝ(365) = 0,34, RMST(730) ≈ 311 días; mujeres (n = 90), mediana 426 (IC ≈ 345 a 524), Ŝ(365) = 0,53, RMST ≈ 435 días. Con la fórmula \(\sum A_j^2 d_j/[n_j(n_j-d_j)]\) los EE de la RMST salen de 19,3 días en hombres y 27,2 en mujeres, así que la diferencia de 123,6 días tiene EE ≈ √(19,3² + 27,2²) ≈ 33,4 y un IC aproximado de 58 a 189 días, que no incluye 0.</p>
+            <p>Lectura para el comité: “en los dos primeros años tras el diagnóstico, las mujeres viven en promedio unos cuatro meses más que los hombres”. La RMST usa toda la curva hasta 730 días, no solo el punto donde cruza 0,5, y es interpretable aunque las curvas no tengan riesgos proporcionales. Es una diferencia descriptiva: para atribuirla al sexo habría que ajustar por edad, ECOG y otros factores.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> statsmodels.api <span class="k">as</span> sm
+<span class="k">from</span> statsmodels.duration.survfunc <span class="k">import</span> SurvfuncRight
+
+d = sm.datasets.<span class="f">get_rdataset</span>(<span class="s">"cancer"</span>, <span class="s">"survival"</span>).data
+d[<span class="s">"e"</span>] = (d.status == <span class="n">2</span>).<span class="f">astype</span>(<span class="f">int</span>)
+
+<span class="k">def</span> <span class="f">rmst_se</span>(km, tau):
+    t, S, n, e = km.surv_times, km.surv_prob, km.n_risk, km.n_events
+    m = t &lt;= tau; t, S, n, e = t[m], S[m], n[m], e[m]
+    tt = np.<span class="f">r_</span>[<span class="n">0</span>, t, tau]; Sv = np.<span class="f">r_</span>[<span class="n">1</span>, S]
+    seg = np.<span class="f">diff</span>(tt) * Sv                    <span class="c"># áreas de cada tramo</span>
+    A = np.<span class="f">cumsum</span>(seg[::-<span class="n">1</span>])[::-<span class="n">1</span>][<span class="n">1</span>:]        <span class="c"># área a la derecha de cada evento</span>
+    ok = n &gt; e
+    var = np.<span class="f">sum</span>(A[ok] ** <span class="n">2</span> * e[ok] / (n[ok] * (n[ok] - e[ok])))
+    <span class="k">return</span> seg.<span class="f">sum</span>(), np.<span class="f">sqrt</span>(var)
+
+res = {}
+<span class="k">for</span> s <span class="k">in</span> (<span class="n">1</span>, <span class="n">2</span>):
+    g = d[d.sex == s]
+    res[s] = <span class="f">rmst_se</span>(<span class="f">SurvfuncRight</span>(g.time, g.e), <span class="n">730</span>)
+    <span class="f">print</span>(s, np.<span class="f">round</span>(res[s], <span class="n">1</span>))
+dif = res[<span class="n">2</span>][<span class="n">0</span>] - res[<span class="n">1</span>][<span class="n">0</span>]; se = np.<span class="f">hypot</span>(res[<span class="n">1</span>][<span class="n">1</span>], res[<span class="n">2</span>][<span class="n">1</span>])
+<span class="f">print</span>(<span class="f">round</span>(dif, <span class="n">1</span>), <span class="f">round</span>(dif - <span class="n">1.96</span> * se, <span class="n">1</span>), <span class="f">round</span>(dif + <span class="n">1.96</span> * se, <span class="n">1</span>))
+<span class="c"># 1 [311.1 19.3] · 2 [434.7 27.2] · 123.6 58.1 189.0</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+fit &lt;- <span class="f">survfit</span>(<span class="f">Surv</span>(time, status) ~ sex, data = lung, conf.type = <span class="s">"log-log"</span>)
+<span class="f">summary</span>(fit, times = <span class="n">365</span>)
+tab &lt;- <span class="f">summary</span>(fit, rmean = <span class="n">730</span>)$table
+tab[, <span class="f">c</span>(<span class="s">"rmean"</span>, <span class="s">"se(rmean)"</span>, <span class="s">"median"</span>, <span class="s">"0.95LCL"</span>, <span class="s">"0.95UCL"</span>)]
+dif &lt;- <span class="f">diff</span>(tab[, <span class="s">"rmean"</span>]); se &lt;- <span class="f">sqrt</span>(<span class="f">sum</span>(tab[, <span class="s">"se(rmean)"</span>]^<span class="n">2</span>))
+dif + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * <span class="n">1.96</span> * se                  <span class="c"># ≈ 124 días, IC ≈ [58, 189]</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Diez pacientes trasplantados se siguen hasta recaída (1), muerte sin recaída (2) o censura (0): 2(1), 3(2), 4(1), 5(2), 6(0), 7(1), 8(2), 9(1), 10(0), 12(1). (a) Calcula 1 − Ŝ(t) para la recaída tratando las muertes como censura. (b) Calcula la incidencia acumulada de recaída de Aalen-Johansen. (c) Compara en t = 10 y t = 12 y explica a un investigador clínico cuál responde a “¿qué probabilidad tiene un paciente de recaer antes de un año?”.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> Muertes como censura: t = 2: 9/10 → 0,900; t = 4: n = 8 → 0,7875; t = 7: n = 5 → 0,630; t = 9: n = 3 → 0,420; t = 12: n = 1 → 0. Así 1 − Ŝ(10) = 0,58 y 1 − Ŝ(12) = 1,00.</p>
+            <p><b>(b)</b> Con \(\hat S_{\text{todos}}\) (cualquier evento) y \(\hat F_1(t) = \sum \hat S_{\text{todos}}(t_{j-1})\,d_{1j}/n_j\): t = 2: 1 × 1/10 = 0,10 (S todos pasa a 0,9); t = 3 muerte: S todos 0,8; t = 4: 0,8 × 1/8 = 0,10, F = 0,20 (S todos 0,7); t = 5 muerte: 0,6; t = 7: 0,6 × 1/5 = 0,12, F = 0,32 (S todos 0,48); t = 8 muerte: 0,36; t = 9: 0,36 × 1/3 = 0,12, F = 0,44 (S todos 0,24); t = 12: 0,24 × 1 = 0,24, F = 0,68.</p>
+            <p><b>(c)</b> En t = 10: 0,58 frente a 0,44; en t = 12: 1,00 frente a 0,68. La incidencia acumulada es la que responde a la pregunta clínica: el 1,00 de Kaplan-Meier diría que todos recaen, pero tres pacientes murieron sin recaer y nunca lo harán. La incidencia de muerte sin recaída es 0,32, y 0,68 + 0,32 + 0 = 1. Kaplan-Meier con muertes censuradas responde a una pregunta contrafactual (“si nadie pudiera morir”), útil para estudiar el mecanismo, no para informar al paciente.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

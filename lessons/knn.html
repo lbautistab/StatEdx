@@ -5,60 +5,154 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>k vecinos más cercanos</h1>
-      <p>Para adivinar algo de un caso nuevo, mira los casos más parecidos que ya conoces. Esa idea tan simple es el método de los k vecinos más cercanos (k-NN). Aquí aprendes a medir “parecido”, a elegir k, por qué escalar las variables no es opcional y por qué el método se rompe cuando hay demasiadas dimensiones.</p>
-      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
+      <p>Para adivinar algo de un caso nuevo, mira los casos más parecidos que ya conoces. Esa idea tan simple es el método de los k vecinos más cercanos (k-NN). Aquí aprendes a medir "parecido", por qué k-NN aproxima al mejor clasificador posible, a elegir k, por qué escalar las variables no es opcional y por qué el método se rompe cuando hay demasiadas dimensiones.</p>
+      <div class="lmeta"><span>85 min</span><span>Nivel intermedio</span><span>Requiere: regresión lineal simple</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#knn-idea" data-sec="knn-idea">La idea</a></li>
-        <li><a href="#knn-dist" data-sec="knn-dist">Distancias y el algoritmo</a></li>
-        <li><a href="#knn-k" data-sec="knn-k">Elegir k</a></li>
-        <li><a href="#knn-lab" data-sec="knn-lab">Laboratorio</a></li>
+        <li><a href="#knn-intro" data-sec="knn-intro">Introducción</a></li>
+        <li><a href="#knn-def" data-sec="knn-def">Definición</a></li>
+        <li><a href="#knn-dist" data-sec="knn-dist">k-NN y el clasificador de Bayes</a></li>
+        <li><a href="#knn-k" data-sec="knn-k">Elegir k: sesgo contra varianza</a></li>
         <li><a href="#knn-escala" data-sec="knn-escala">Escalar las variables</a></li>
         <li><a href="#knn-dim" data-sec="knn-dim">La maldición de la dimensión</a></li>
+        <li><a href="#knn-prop" data-sec="knn-prop">Propiedades</a></li>
+        <li><a href="#knn-sim" data-sec="knn-sim">Ejercicios de simulación</a></li>
+        <li><a href="#knn-apl" data-sec="knn-apl">Aplicaciones reales</a></li>
         <li><a href="#knn-code" data-sec="knn-code">En R y Python</a></li>
-        <li><a href="#knn-quiz" data-sec="knn-quiz">Comprueba</a></li>
-        <li><a href="#knn-ej" data-sec="knn-ej">Ejercicios</a></li>
+        <li><a href="#knn-quiz" data-sec="knn-quiz">Quiz</a></li>
+        <li><a href="#knn-ej" data-sec="knn-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="knn-idea"><span class="sec">§ 1</span>La idea</h2>
-      <p>Un gimnasio quiere saber qué clientes van a renovar su membresía. Llega una clienta nueva de 25 años que gana 28 000 pesos al mes. No tenemos una fórmula, pero sí el historial de cientos de clientes. Una estrategia natural: buscar a los clientes <b>más parecidos</b> a ella y ver qué hicieron. Si de sus 9 “vecinos” más cercanos 6 renovaron, estimamos que ella renovará con probabilidad cercana a 6/9.</p>
+      <h2 id="knn-intro"><span class="sec">§ 1</span>Introducción</h2>
+      <p>Un gimnasio quiere saber qué clientes van a renovar su membresía. Llega una clienta nueva de 25 años que gana 28 000 pesos al mes. No tenemos una fórmula, pero sí el historial de cientos de clientes. Una estrategia natural: buscar a los clientes <b>más parecidos</b> a ella y ver qué hicieron. Si de sus 9 "vecinos" más cercanos 6 renovaron, estimamos que ella renovará con probabilidad cercana a 6/9.</p>
       <p>Eso es todo el método de los <b>k vecinos más cercanos</b> (<i>k-nearest neighbors</i>, k-NN). No estima coeficientes ni supone una forma para la relación entre las variables y la respuesta: guarda los datos y, cuando llega un caso nuevo, consulta a sus vecinos. Por eso se le llama un método <b>no paramétrico</b> y <b>perezoso</b> (<i>lazy learner</i>): todo el trabajo ocurre al predecir, no al entrenar.</p>
+      <p>La idea tiene una historia curiosa. Evelyn Fix y Joseph Hodges la propusieron en 1951 en un informe técnico para la Escuela de Medicina Aeronáutica de la Fuerza Aérea de Estados Unidos, buscando una regla de discriminación que no supusiera normalidad (como sí lo hacía el discriminante lineal de Fisher). El informe circuló poco durante años. En 1967, Thomas Cover y Peter Hart demostraron el resultado que hizo famoso al método: con muchos datos, la regla del vecino más cercano nunca tiene más del doble del error del mejor clasificador posible. Desde entonces, k-NN es la referencia no paramétrica por excelencia, la base de los sistemas de recomendación "usuarios parecidos a ti compraron…" y de la búsqueda por similitud en bases de datos de imágenes y textos.</p>
       <div class="callout"><b>Tres decisiones definen un k-NN:</b> cómo medir la distancia entre dos casos, cuántos vecinos \(k\) consultar y cómo combinar sus respuestas (voto, voto ponderado o promedio). El resto de la clase trata de tomar bien esas tres decisiones.</div>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>A calcular distancias de Minkowski y a aplicar el algoritmo k-NN en clasificación y regresión.</li>
+          <li>A interpretar k-NN como una estimación local de \(P(Y = c \mid X = x)\) y su relación con el clasificador de Bayes.</li>
+          <li>A derivar la descomposición sesgo-varianza de k-NN y a elegir \(k\) con validación cruzada.</li>
+          <li>A escalar las variables correctamente (dentro de un pipeline) y a reconocer cuándo usar otra distancia.</li>
+          <li>A cuantificar la maldición de la dimensión y sus consecuencias prácticas.</li>
+        </ul>
+      </div>
 
-      <h2 id="knn-dist"><span class="sec">§ 2</span>Distancias y el algoritmo</h2>
-      <p>Cada caso es un vector \(x = (x_1, \dots, x_p)\) con \(p\) variables numéricas. Las distancias más usadas son casos de la familia de <b>Minkowski</b>:</p>
+      <h2 id="knn-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Cada caso es un vector \(x = (x_1, \dots, x_p)\) con \(p\) variables numéricas, y el entrenamiento es el conjunto \(\{(x_i, y_i)\}_{i=1}^n\). Las distancias más usadas son casos de la familia de <b>Minkowski</b>:</p>
       <div class="eq">\[ d_q(x, z) = \Big(\sum_{j=1}^{p} |x_j - z_j|^q\Big)^{1/q}, \qquad d_2 = \sqrt{\textstyle\sum_j (x_j - z_j)^2}\ \ \text{(euclidiana)}, \qquad d_1 = \textstyle\sum_j |x_j - z_j|\ \ \text{(Manhattan)} \]
-        <div class="note">La euclidiana es la distancia “en línea recta”; la Manhattan suma los desplazamientos por cada eje, como caminar por las cuadras de una ciudad. Con \(q \to \infty\) se obtiene la de Chebyshev, \(\max_j |x_j - z_j|\). El conjunto de puntos a distancia \(r\) es un círculo con \(d_2\) y un rombo con \(d_1\).</div>
+        <div class="note">La euclidiana es la distancia "en línea recta"; la Manhattan suma los desplazamientos por cada eje, como caminar por las cuadras de una ciudad. Con \(q \to \infty\) se obtiene la de Chebyshev, \(\max_j |x_j - z_j|\). El conjunto de puntos a distancia \(r\) es un círculo con \(d_2\), un rombo con \(d_1\) y un cuadrado con \(d_\infty\).</div>
       </div>
-      <p>Sea \(N_k(x)\) el conjunto de los \(k\) puntos de entrenamiento más cercanos a \(x\). El algoritmo es:</p>
-      <ol>
-        <li>Calcula la distancia de \(x\) a cada uno de los \(n\) puntos de entrenamiento.</li>
-        <li>Quédate con los \(k\) más cercanos, \(N_k(x)\).</li>
-        <li><b>Clasificación:</b> estima la probabilidad de cada clase como la proporción de vecinos de esa clase y predice la más votada. <b>Regresión:</b> predice el promedio de las respuestas de los vecinos.</li>
-      </ol>
-      <div class="eq">\[ \hat p_c(x) = \frac{1}{k}\sum_{i \in N_k(x)} \mathbb{1}(y_i = c), \qquad \hat y(x) = \arg\max_c\ \hat p_c(x), \qquad \hat f(x) = \frac{1}{k}\sum_{i \in N_k(x)} y_i \ \ \text{(regresión)} \]
-        <div class="note">Una variante muy usada pondera cada vecino por el inverso de su distancia, \(w_i = 1/d(x, x_i)\), para que los más cercanos pesen más. En scikit-learn es <code>weights="distance"</code>; en R, el paquete <code>kknn</code>.</div>
+      <div class="callout"><b>Definición (k-NN).</b> Sea \(N_k(x)\) el conjunto de los índices de los \(k\) puntos de entrenamiento más cercanos a \(x\) según \(d\). El clasificador y el regresor k-NN son
+        <div class="eq">\[ \hat p_c(x) = \frac{1}{k}\sum_{i \in N_k(x)} \mathbb{1}(y_i = c), \qquad \hat y(x) = \arg\max_c\ \hat p_c(x), \qquad \hat f(x) = \frac{1}{k}\sum_{i \in N_k(x)} y_i \]</div>
       </div>
-      <p>k-NN está muy cerca de la idea del <b>clasificador de Bayes</b>, el mejor clasificador posible: el que predice la clase con mayor probabilidad \(P(Y = c \mid X = x)\). k-NN aproxima esa probabilidad condicional con una proporción local. Un resultado clásico (Cover y Hart, 1967) dice que, con muchísimos datos, el error del 1-NN es como mucho el doble del error de Bayes \(R^*\): en clasificación binaria, \(R^* \le R_{1\text{-NN}} \le 2R^*(1 - R^*)\). Y si \(k \to \infty\) con \(k/n \to 0\), el error de k-NN converge al de Bayes.</p>
+      <ul>
+        <li>\(\hat p_c(x)\): proporción de vecinos de la clase \(c\); es la probabilidad estimada.</li>
+        <li>\(\hat y(x)\): la clase más votada (en binaria, la regla "\(\hat p_1 &gt; 0{,}5\)"; puedes mover el umbral).</li>
+        <li>\(\hat f(x)\): en regresión, el promedio de las respuestas de los vecinos.</li>
+        <li><b>Voto ponderado:</b> cada vecino pesa \(w_i = 1/d(x, x_i)\), para que los más cercanos importen más. En scikit-learn es <code>weights="distance"</code>; en R, el paquete <code>kknn</code>.</li>
+      </ul>
+      <p>El algoritmo, paso a paso: (1) calcula la distancia de \(x\) a cada uno de los \(n\) puntos; (2) quédate con los \(k\) más cercanos; (3) vota o promedia.</p>
+      <p><b>Ejemplo numérico.</b> Entre (2, 3) y (5, 7) las diferencias son 3 y 4: la euclidiana vale \(\sqrt{9 + 16} = 5\), la Manhattan \(3 + 4 = 7\) y la de Chebyshev \(\max(3, 4) = 4\) (siempre \(d_\infty \le d_2 \le d_1\)). Ahora, seis puntos de entrenamiento: clase A en (1, 1), (2, 1), (1, 3) y (5, 4); clase B en (4, 3) y (3, 2). Para clasificar (3, 3) con distancia euclidiana, las distancias son 1 a (4, 3) (B), 1 a (3, 2) (B), 2 a (1, 3) (A), \(\sqrt5 \approx 2{,}24\) a (2, 1) y a (5, 4) (A) y \(\sqrt8 \approx 2{,}83\) a (1, 1) (A). Con \(k = 1\) predice B; con \(k = 3\), B por 2 a 1; con \(k = 5\), A por 3 a 2. La predicción cambia con \(k\): con pocos vecinos manda lo local, con más pesa la clase mayoritaria de la zona.</p>
 
-      <h2 id="knn-k"><span class="sec">§ 3</span>Elegir k: sesgo contra varianza</h2>
+      <h2 id="knn-dist"><span class="sec">§ 3</span>k-NN y el clasificador de Bayes</h2>
+      <p><b>El mejor clasificador posible.</b> Si conocieras la distribución conjunta de \((X, Y)\), la regla que minimiza la probabilidad de error es el <b>clasificador de Bayes</b>, que predice la clase de mayor probabilidad condicional. Para dos clases, con \(\eta(x) = P(Y = 1 \mid X = x)\):</p>
+      <div class="eq">\[ g^*(x) = \mathbb{1}\big[\eta(x) &gt; 1/2\big], \qquad R^* = E\big[\min\{\eta(X),\ 1 - \eta(X)\}\big] \]
+        <div class="note">\(R^*\) es el <b>error de Bayes</b>: el error que comete incluso la regla óptima, porque en cada punto la clase menos probable a veces ocurre. Ningún método, por sofisticado que sea, baja de \(R^*\).</div>
+      </div>
+      <p><b>Por qué k-NN lo aproxima.</b> k-NN reemplaza \(\eta(x)\) por la proporción de unos entre los vecinos, \(\hat p_1(x)\). Si \(k\) es grande, esa proporción es un promedio de muchas etiquetas y tiene poca varianza; si además los \(k\) vecinos están muy cerca de \(x\), todos tienen una probabilidad condicional parecida a \(\eta(x)\) y el promedio no está sesgado. Las dos cosas a la vez exigen \(k \to \infty\) y \(k/n \to 0\): muchos vecinos, pero una fracción cada vez menor de los datos. Una forma equivalente de verlo: si el vecindario de \(x\) tiene volumen \(V\) y contiene \(k\) puntos, la densidad se estima como \(\hat f(x) = k/(nV)\); con \(k_c\) vecinos de la clase \(c\), la regla de Bayes \(\hat P(c \mid x) = \hat\pi_c \hat f_c(x)/\hat f(x)\) da exactamente \(k_c/k\).</p>
+      <p><b>Teorema (Stone, 1977).</b> Si \(k \to \infty\) y \(k/n \to 0\) cuando \(n \to \infty\), el error de k-NN converge a \(R^*\) para cualquier distribución de \((X, Y)\): k-NN es <b>universalmente consistente</b>.</p>
+      <p><b>Teorema (Cover y Hart, 1967).</b> Con \(k = 1\) fijo y \(n \to \infty\), el error del vecino más cercano converge a \(R_{1\text{-NN}} = E[2\eta(X)(1 - \eta(X))]\), y</p>
+      <div class="eq">\[ R^* \;\le\; R_{1\text{-NN}} \;\le\; 2R^*(1 - R^*) \;\le\; 2R^* \]
+        <div class="note">La idea de la demostración: con infinitos datos, el vecino más cercano está prácticamente en \(x\), así que su etiqueta es una moneda independiente con la misma probabilidad \(\eta(x)\). La regla falla cuando las dos monedas difieren, con probabilidad \(\eta(1-\eta) + (1-\eta)\eta = 2\eta(1-\eta)\). La cota sale de que \(2\eta(1-\eta) = 2m(1-m)\) con \(m = \min(\eta, 1-\eta)\) y de la desigualdad de Jensen (pregunta avanzada 1).</div>
+      </div>
+      <p><b>Ejemplo resuelto a mano.</b> Supón que en una región \(\eta(x) = 0{,}2\) para todo \(x\). Bayes predice siempre 0 y erra el 20 %. El 1-NN asintótico erra \(2 \cdot 0{,}2 \cdot 0{,}8 = 32\,\%\), menos que el doble (40 %). Un k-NN con \(k\) grande predice 0 casi siempre (la proporción de unos entre los vecinos estará cerca de 0,2) y se acerca al 20 %. Con \(k = 3\), predice 1 solo si al menos 2 de 3 vecinos son 1, lo que pasa con probabilidad \(3(0{,}2)^2(0{,}8) + 0{,}2^3 = 0{,}104\); su error asintótico es \(0{,}104 \cdot 0{,}8 + 0{,}896 \cdot 0{,}2 \approx 0{,}262\): mejor que el 1-NN y peor que Bayes.</p>
+
+      <h2 id="knn-k"><span class="sec">§ 4</span>Elegir k: sesgo contra varianza</h2>
       <p>\(k\) controla la <b>flexibilidad</b> del modelo, y es el ejemplo más claro del equilibrio entre sesgo y varianza:</p>
       <ul>
         <li><b>k pequeño</b> (en el extremo, \(k = 1\)): la frontera de decisión sigue cada punto, con islas alrededor de casos sueltos. Sesgo bajo, varianza alta. El error de entrenamiento con \(k = 1\) es <b>cero</b>, porque cada punto es su propio vecino más cercano: ese número no dice nada sobre datos nuevos.</li>
         <li><b>k grande</b>: la frontera se suaviza. Si \(k = n\), el modelo ignora a \(x\) y siempre predice la clase mayoritaria. Sesgo alto, varianza baja.</li>
       </ul>
-      <p>Una forma de verlo: el número efectivo de parámetros de k-NN es aproximadamente \(n/k\), como si el espacio se repartiera en \(n/k\) vecindarios que estiman una media cada uno. La regla práctica \(k \approx \sqrt n\) es un punto de partida, pero el valor se elige con <a href="#cv">validación cruzada</a>: pruebas una rejilla de valores de \(k\) y te quedas con el de menor error estimado. En clasificación binaria conviene usar \(k\) impar para evitar empates.</p>
-      <div class="eq">\[ \text{Err}(k) = \underbrace{\sigma^2}_{\text{irreducible}} + \underbrace{\Big[f(x_0) - \frac{1}{k}\sum_{\ell=1}^{k} f(x_{(\ell)})\Big]^2}_{\text{sesgo}^2\ \uparrow\ \text{con } k} + \underbrace{\frac{\sigma^2}{k}}_{\text{varianza}\ \downarrow\ \text{con } k} \]
-        <div class="note">Descomposición del error esperado de k-NN en regresión en un punto \(x_0\), con \(y = f(x) + \varepsilon\), \(\operatorname{Var}(\varepsilon) = \sigma^2\) y los puntos de entrenamiento fijos. \(x_{(\ell)}\) es el \(\ell\)-ésimo vecino. Al crecer \(k\) la varianza baja como \(1/k\), pero se promedian vecinos cada vez más lejanos y el sesgo sube.</div>
+      <p><b>Derivación en regresión.</b> Supón \(y = f(x) + \varepsilon\) con \(E[\varepsilon] = 0\), \(\operatorname{Var}(\varepsilon) = \sigma^2\), errores independientes y los puntos de entrenamiento \(x_i\) fijos. En un punto \(x_0\), la predicción es \(\hat f(x_0) = \frac1k\sum_{\ell=1}^k \big(f(x_{(\ell)}) + \varepsilon_{(\ell)}\big)\), donde \(x_{(\ell)}\) es el \(\ell\)-ésimo vecino. Su esperanza es \(\frac1k\sum f(x_{(\ell)})\) y su varianza \(\sigma^2/k\) (promedio de \(k\) errores independientes). Para una observación nueva \(y_0 = f(x_0) + \varepsilon_0\), independiente de las anteriores:</p>
+      <div class="eq">\[ \text{Err}(x_0) = E\big[(y_0 - \hat f(x_0))^2\big] = \underbrace{\sigma^2}_{\text{irreducible}} + \underbrace{\Big[f(x_0) - \frac{1}{k}\sum_{\ell=1}^{k} f(x_{(\ell)})\Big]^2}_{\text{sesgo}^2\ \uparrow\ \text{con } k} + \underbrace{\frac{\sigma^2}{k}}_{\text{varianza}\ \downarrow\ \text{con } k} \]
+        <div class="note">Al crecer \(k\) la varianza baja como \(1/k\), pero se promedian vecinos cada vez más lejanos y el sesgo sube. Si \(f\) es suave y los datos son densos, el sesgo crece como el cuadrado del radio del vecindario. Es la misma descomposición que verás en la sesión de <a href="#cv">validación cruzada</a>.</div>
       </div>
+      <p><b>Ejemplo resuelto.</b> Toma 99 puntos equiespaciados \(x_i = i/100\), \(f(x) = \sin(2\pi x)\), \(\sigma = 0{,}3\) y \(x_0 = 0{,}25\), justo en el máximo de \(f\). Con \(k = 1\) el vecino es \(x_0\) mismo: sesgo 0, varianza 0,09, error \(0{,}09 + 0{,}09 = 0{,}18\). Con \(k = 11\) los vecinos van de 0,20 a 0,30 y el promedio de \(f\) es ≈ 0,980: sesgo² ≈ 0,0004, varianza \(0{,}09/11 \approx 0{,}0082\), error ≈ 0,099. Con \(k = 51\) el vecindario abarca de 0 a 0,5, el promedio de \(f\) cae a ≈ 0,62, el sesgo² sube a ≈ 0,14 y el error a ≈ 0,23. El óptimo está en un \(k\) intermedio, cerca de 11.</p>
+      <p>Una forma de resumir la complejidad: el número efectivo de parámetros de k-NN es aproximadamente \(n/k\), como si el espacio se repartiera en \(n/k\) vecindarios que estiman una media cada uno. Con \(n = 500\) y \(k = 10\), es como un modelo con 50 parámetros. La regla práctica \(k \approx \sqrt n\) es un punto de partida, pero el valor se elige con <a href="#cv">validación cruzada</a>: pruebas una rejilla de valores de \(k\) y te quedas con el de menor error estimado. En clasificación binaria conviene usar \(k\) impar para evitar empates.</p>
 
-      <h2 id="knn-lab"><span class="sec">§ 4</span>Laboratorio</h2>
-      <p>Tenemos 160 puntos de entrenamiento de dos clases y otros 400 de prueba generados del mismo modo. El color de fondo es la clase que predice k-NN en cada lugar (más intenso cuanto más unánime es el voto). <b>Toca o haz clic en el gráfico</b> para colocar un punto nuevo: verás sus \(k\) vecinos y su vecindario.</p>
+      <h2 id="knn-escala"><span class="sec">§ 5</span>Escalar las variables</h2>
+      <p>La distancia suma diferencias de todas las variables, así que la que tiene <b>números más grandes domina</b>. Si mides la edad en años (rango de unas 50 unidades) y el ingreso en pesos (rango de decenas de miles), una diferencia de 1 000 pesos pesa como una de 1 000 años. Los vecinos quedan definidos casi solo por el ingreso, aunque la edad sea la variable que más importa. Por eso, antes de k-NN, casi siempre se estandariza:</p>
+      <div class="eq">\[ \tilde x_{ij} = \frac{x_{ij} - \bar x_j}{s_j} \qquad\text{o bien}\qquad \tilde x_{ij} = \frac{x_{ij} - \min_j}{\max_j - \min_j} \]
+        <div class="note">La primera es la estandarización z (media 0, desviación 1); la segunda, el escalado min-max a \([0, 1]\). La media, la desviación, el mínimo y el máximo se calculan <b>solo con los datos de entrenamiento</b> y se aplican igual a los de prueba. Calcularlos con todos los datos filtra información de la prueba al modelo.</div>
+      </div>
+      <p>Estandarizar equivale a usar la distancia \(d(x, z)^2 = \sum_j (x_j - z_j)^2/s_j^2\). Su generalización es la <b>distancia de Mahalanobis</b>, \(d_M(x, z)^2 = (x - z)^\top S^{-1}(x - z)\), con \(S\) la matriz de covarianzas: además de igualar escalas, descuenta la correlación entre variables (si dos variables miden casi lo mismo, no cuentan doble). La estandarización es Mahalanobis con \(S\) diagonal.</p>
+      <p><b>Ejemplo resuelto a mano.</b> Una clienta tiene 30 años y gana 20 000 pesos. Candidato P: 60 años y 20 500 pesos. Candidato Q: 31 años y 25 000 pesos. Sin escalar, \(d(P) = \sqrt{30^2 + 500^2} \approx 500{,}9\) y \(d(Q) = \sqrt{1^2 + 5\,000^2} \approx 5\,000\): el vecino es P, alguien 30 años mayor. Estandarizando con desviaciones de 12 años y 8 000 pesos, P queda a \((2{,}5;\ 0{,}0625)\), con distancia ≈ 2,50, y Q a \((0{,}083;\ 0{,}625)\), con distancia ≈ 0,63: el vecino es Q, que tiene casi la misma edad y un ingreso parecido en términos relativos.</p>
+<div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+x, P, Q = np.<span class="f">array</span>([<span class="n">30</span>, <span class="n">20000</span>]), np.<span class="f">array</span>([<span class="n">60</span>, <span class="n">20500</span>]), np.<span class="f">array</span>([<span class="n">31</span>, <span class="n">25000</span>])
+s = np.<span class="f">array</span>([<span class="n">12</span>, <span class="n">8000</span>])
+<span class="f">print</span>(np.linalg.<span class="f">norm</span>(x - P), np.linalg.<span class="f">norm</span>(x - Q))            <span class="c"># 500.9  5000.0</span>
+<span class="f">print</span>(np.linalg.<span class="f">norm</span>((x - P) / s), np.linalg.<span class="f">norm</span>((x - Q) / s))  <span class="c"># 2.501  0.631</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">30</span>, <span class="n">20000</span>); P &lt;- <span class="f">c</span>(<span class="n">60</span>, <span class="n">20500</span>); Q &lt;- <span class="f">c</span>(<span class="n">31</span>, <span class="n">25000</span>)
+s &lt;- <span class="f">c</span>(<span class="n">12</span>, <span class="n">8000</span>)
+<span class="f">sqrt</span>(<span class="f">sum</span>((x - P)^<span class="n">2</span>)); <span class="f">sqrt</span>(<span class="f">sum</span>((x - Q)^<span class="n">2</span>))              <span class="c"># 500.9  5000.0</span>
+<span class="f">sqrt</span>(<span class="f">sum</span>(((x - P) / s)^<span class="n">2</span>)); <span class="f">sqrt</span>(<span class="f">sum</span>(((x - Q) / s)^<span class="n">2</span>))  <span class="c"># 2.501  0.631</span></code></pre>
+            </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Situación</th><th>Qué hacer</th></tr></thead>
+        <tbody>
+          <tr><td>Variables numéricas en unidades distintas</td><td>Estandarizar (z) o min-max; dentro de un <i>pipeline</i></td></tr>
+          <tr><td>Variables con atípicos fuertes</td><td>Escalado robusto: restar la mediana y dividir por el rango intercuartílico</td></tr>
+          <tr><td>Variables categóricas</td><td>Codificación <i>one-hot</i> (0/1) o una distancia mixta como la de Gower</td></tr>
+          <tr><td>Variables correlacionadas</td><td>Mahalanobis, o reducir antes con <a href="#pca">PCA</a></td></tr>
+          <tr><td>Variables irrelevantes</td><td>Quitarlas: cada una suma ruido a la distancia y empeora a los vecinos</td></tr>
+          <tr><td>Clases muy desbalanceadas</td><td>Voto ponderado, ajustar el umbral de probabilidad o remuestrear</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><b>Escalar es elegir pesos.</b> Estandarizar le da a cada variable la misma importancia en la distancia. No es neutral: si sabes que una variable importa más, puedes multiplicarla por un factor mayor. Lo que nunca conviene es dejar que las unidades de medida decidan por ti.</div>
+      <p>Otros aspectos prácticos: k-NN no entrena, pero predecir cuesta \(O(np)\) por cada caso nuevo, porque hay que medir la distancia a todos los puntos. Con muchos datos se usan estructuras como árboles KD o <i>ball trees</i> (que bajan el costo a cerca de \(O(\log n)\) en dimensión baja), o búsquedas aproximadas. Y como guarda todo el entrenamiento, el "modelo" ocupa tanto como los datos.</p>
+
+      <h2 id="knn-dim"><span class="sec">§ 6</span>La maldición de la dimensión</h2>
+      <p>k-NN funciona porque supone que los puntos cercanos se parecen. Con muchas variables esa idea falla: en dimensión alta <b>nadie está cerca de nadie</b>. Supón datos uniformes en el hipercubo \([0, 1]^p\). Para que un vecindario cúbico contenga una fracción \(r\) de los datos, su volumen \(\ell^p\) debe ser \(r\), así que su lado debe medir:</p>
+      <div class="eq">\[ \ell_p(r) = r^{1/p}, \qquad \ell_1(0{,}1) = 0{,}10, \quad \ell_2(0{,}1) = 0{,}32, \quad \ell_{10}(0{,}1) = 0{,}79, \quad \ell_{100}(0{,}1) = 0{,}98 \]
+        <div class="note">En 10 dimensiones, para reunir solo el 10 % de los datos necesitas cubrir el 79 % del rango de cada variable. Ese vecindario ya no es "local": los vecinos se parecen poco al punto que quieres predecir.</div>
+      </div>
+      <p><b>Concentración de distancias.</b> Sean \(X, Z\) independientes y uniformes en \([0,1]^p\). Cada coordenada aporta \(D_j = (X_j - Z_j)^2\), con \(E[D_j] = 1/6\) y \(\operatorname{Var}(D_j) = E[(X_j-Z_j)^4] - 1/36 = 1/15 - 1/36 = 7/180\). Como las coordenadas son independientes:</p>
+      <div class="eq">\[ E\|X - Z\|^2 = \frac{p}{6}, \qquad \operatorname{Var}\|X - Z\|^2 = \frac{7p}{180}, \qquad \frac{\text{desv.}}{\text{media}} = \frac{\sqrt{7p/180}}{p/6} \approx \frac{1{,}18}{\sqrt p} \]
+        <div class="note">La media crece como \(p\), pero la dispersión solo como \(\sqrt p\): relativamente, todas las distancias se parecen cada vez más. Con \(p = 100\), la desviación es un 12 % de la media; con \(p = 1\,000\), menos del 4 %. Por eso \(d_{\min}/d_{\max} \to 1\) y "el más cercano" deja de significar algo.</div>
+      </div>
+      <p>Además, para mantener la densidad de datos fija el tamaño de muestra necesario crece de forma exponencial: si con 100 puntos cubres bien una recta, necesitas del orden de \(100^p\) puntos en \(p\) dimensiones. <b>Ejemplo resuelto a mano.</b> Si quieres que en promedio 10 puntos caigan en un cubo de lado 0,1 alrededor de cada caso nuevo, necesitas \(n \cdot 0{,}1^p = 10\), es decir \(n = 10^{p+1}\): 100 datos con \(p = 1\), 1 000 con \(p = 2\) y \(10^{11}\) con \(p = 10\). Al revés, con \(n = 1\,000\) y \(k = 10\) (fracción 0,01), el lado del vecindario es \(0{,}01^{1/2} = 0{,}10\) con \(p = 2\), pero \(0{,}01^{1/20} \approx 0{,}79\) con \(p = 20\).</p>
+      <p>La salida práctica: k-NN rinde bien con pocas variables informativas y muchos datos, y mal con decenas de variables irrelevantes. Si tienes muchas, reduce la dimensión antes (por ejemplo con <a href="#pca">PCA</a>) o selecciona las variables que importan. Los datos reales suelen ser más benignos que el cubo uniforme, porque viven cerca de una superficie de dimensión baja; esa "dimensión intrínseca" es la que cuenta.</p>
+
+      <h2 id="knn-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Desigualdad entre distancias.</b> \(d_\infty \le d_2 \le d_1 \le \sqrt p\, d_2\). <i>Justificación:</i> el máximo de \(|x_j - z_j|\) es menor que la raíz de la suma de cuadrados, que es menor que la suma (al elevar al cuadrado aparecen términos cruzados no negativos); la última es Cauchy-Schwarz.</li>
+        <li><b>Error de entrenamiento con k = 1.</b> Es 0 si no hay puntos repetidos con etiquetas distintas. <i>Justificación:</i> cada punto está a distancia 0 de sí mismo.</li>
+        <li><b>Sesgo-varianza.</b> \(\text{Err}(x_0) = \sigma^2 + \text{sesgo}^2(k) + \sigma^2/k\). <i>Justificación:</i> § 4.</li>
+        <li><b>Consistencia universal.</b> Si \(k \to \infty\) y \(k/n \to 0\), el error de k-NN tiende a \(R^*\). <i>Justificación:</i> teorema de Stone; la varianza del promedio local se anula y el vecindario se encoge.</li>
+        <li><b>Cota de Cover y Hart.</b> \(R^* \le R_{1\text{-NN}} \le 2R^*(1-R^*)\). <i>Justificación:</i> § 3 y pregunta avanzada 1.</li>
+        <li><b>Grados de libertad efectivos.</b> \(\text{gl} \approx n/k\). <i>Justificación:</i> en regresión, \(\text{gl} = \operatorname{tr}(S) = \sum_i S_{ii} = n \cdot (1/k)\), porque cada punto se pondera con \(1/k\) en su propia predicción.</li>
+        <li><b>No invariancia de escala.</b> Multiplicar una variable por \(c\) cambia los vecinos; la estandarización hace al método invariante a cambios de unidades. <i>Justificación:</i> \(d^2\) suma \(c^2(x_j - z_j)^2\) en esa coordenada.</li>
+        <li><b>Concentración de distancias.</b> Para datos uniformes, el coeficiente de variación de \(\|X - Z\|^2\) es \(\approx 1{,}18/\sqrt p\). <i>Justificación:</i> § 6.</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li>Usar k-NN sin estandarizar variables medidas en unidades distintas.</li>
+        <li>Estandarizar con la media y la desviación de todos los datos, en lugar de solo los de entrenamiento (fuga de información).</li>
+        <li>Elegir \(k\) mirando el error de entrenamiento, que siempre favorece \(k = 1\).</li>
+        <li>Agregar todas las variables disponibles "por si acaso": las irrelevantes ensucian la distancia.</li>
+        <li>Leer \(\hat p_c(x)\) con \(k = 5\) como una probabilidad precisa: con 5 vecinos solo puede valer 0, 0,2, 0,4, 0,6, 0,8 o 1.</li>
+      </ul>
+
+      <h2 id="knn-sim"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: la frontera de k-NN.</b> Tenemos 160 puntos de entrenamiento de dos clases y otros 400 de prueba generados del mismo modo. El color de fondo es la clase que predice k-NN en cada lugar (más intenso cuanto más unánime es el voto). <b>Toca o haz clic en el gráfico</b> para colocar un punto nuevo: verás sus \(k\) vecinos y su vecindario.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · frontera de k-NN</span><span class="num" id="knn-head">–</span></div>
         <div class="lab-body">
@@ -108,31 +202,18 @@
         </div>
         <figcaption>Con k = 1 el error de entrenamiento es 0 % y el fondo se llena de islas: eso es sobreajuste. Sube k y mira cómo el error de prueba primero baja y luego sube. Después elige “Unidades 10× mayores”: el vecindario se aplasta, x₂ decide casi sola quién es vecino y la frontera se vuelve horizontal.</figcaption>
       </figure>
-
-      <h2 id="knn-escala"><span class="sec">§ 5</span>Escalar las variables</h2>
-      <p>La distancia suma diferencias de todas las variables, así que la que tiene <b>números más grandes domina</b>. Si mides la edad en años (rango de unas 50 unidades) y el ingreso en pesos (rango de decenas de miles), una diferencia de 1 000 pesos pesa como una de 1 000 años. Los vecinos quedan definidos casi solo por el ingreso, aunque la edad sea la variable que más importa. Por eso, antes de k-NN, casi siempre se estandariza:</p>
-      <div class="eq">\[ \tilde x_{ij} = \frac{x_{ij} - \bar x_j}{s_j} \qquad\text{o bien}\qquad \tilde x_{ij} = \frac{x_{ij} - \min_j}{\max_j - \min_j} \]
-        <div class="note">La primera es la estandarización z (media 0, desviación 1); la segunda, el escalado min-max a \([0, 1]\). La media, la desviación, el mínimo y el máximo se calculan <b>solo con los datos de entrenamiento</b> y se aplican igual a los de prueba. Calcularlos con todos los datos filtra información de la prueba al modelo.</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Situación</th><th>Qué hacer</th></tr></thead>
-        <tbody>
-          <tr><td>Variables numéricas en unidades distintas</td><td>Estandarizar (z) o min-max; dentro de un <i>pipeline</i></td></tr>
-          <tr><td>Variables con atípicos fuertes</td><td>Escalado robusto: restar la mediana y dividir por el rango intercuartílico</td></tr>
-          <tr><td>Variables categóricas</td><td>Codificación <i>one-hot</i> (0/1) o una distancia mixta como la de Gower</td></tr>
-          <tr><td>Variables irrelevantes</td><td>Quitarlas: cada una suma ruido a la distancia y empeora a los vecinos</td></tr>
-          <tr><td>Clases muy desbalanceadas</td><td>Voto ponderado, ajustar el umbral de probabilidad o remuestrear</td></tr>
-        </tbody>
-      </table></div>
-      <div class="callout"><b>Escalar es elegir pesos.</b> Estandarizar le da a cada variable la misma importancia en la distancia. No es neutral: si sabes que una variable importa más, puedes multiplicarla por un factor mayor. Lo que nunca conviene es dejar que las unidades de medida decidan por ti.</div>
-      <p>Otros aspectos prácticos: k-NN no entrena, pero predecir cuesta \(O(np)\) por cada caso nuevo, porque hay que medir la distancia a todos los puntos. Con muchos datos se usan estructuras como árboles KD o <i>ball trees</i>, o búsquedas aproximadas. Y como guarda todo el entrenamiento, el “modelo” ocupa tanto como los datos.</p>
-
-      <h2 id="knn-dim"><span class="sec">§ 6</span>La maldición de la dimensión</h2>
-      <p>k-NN funciona porque supone que los puntos cercanos se parecen. Con muchas variables esa idea falla: en dimensión alta <b>nadie está cerca de nadie</b>. Supón datos uniformes en el hipercubo \([0, 1]^p\). Para que un vecindario cúbico contenga una fracción \(r\) de los datos, su lado debe medir:</p>
-      <div class="eq">\[ \ell_p(r) = r^{1/p}, \qquad \ell_1(0{,}1) = 0{,}10, \quad \ell_2(0{,}1) = 0{,}32, \quad \ell_{10}(0{,}1) = 0{,}79, \quad \ell_{100}(0{,}1) = 0{,}98 \]
-        <div class="note">En 10 dimensiones, para reunir solo el 10 % de los datos necesitas cubrir el 79 % del rango de cada variable. Ese vecindario ya no es “local”: los vecinos se parecen poco al punto que quieres predecir.</div>
-      </div>
-      <p>Otra cara del problema: al crecer \(p\), las distancias se <b>concentran</b>. La distancia al vecino más cercano y al más lejano se vuelven casi iguales, \(d_{\min}/d_{\max} \to 1\), y “el más cercano” deja de significar algo. Además, para mantener la densidad de datos fija el tamaño de muestra necesario crece de forma exponencial: si con 100 puntos cubres bien una recta, necesitas del orden de \(100^p\) puntos en \(p\) dimensiones.</p>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con los datos "Mezclas", estandarizados y distancia euclidiana, pon k = 1 y después k = 15 y k = 59. Anota los dos errores.
+          <details><summary>Qué deberías observar</summary><p>Con k = 1 el error de entrenamiento es 0 % y el de prueba ronda el 14 %: islas por todas partes, sobreajuste. Con k = 15 el de entrenamiento sube a cerca del 7 % y el de prueba baja a cerca del 11 %. Con k = 59 ambos suben a cerca del 25 %: la frontera es demasiado rígida. La curva de prueba tiene forma de U, con mínimo cerca de k = 17.</p></details></li>
+        <li>Con k = 15, cambia a "Unidades 10× mayores".
+          <details><summary>Qué deberías observar</summary><p>El vecindario se aplasta en la dirección de x₂ y la frontera se vuelve casi horizontal: x₂ decide sola quién es vecino. El error de prueba sube de cerca del 11 % a cerca del 20 %, y el "mejor k" pasa a ser k = 1, porque ya ningún k recupera la información de x₁.</p></details></li>
+        <li>Compara euclidiana y Manhattan con los datos estandarizados y varios valores de k.
+          <details><summary>Qué deberías observar</summary><p>Las diferencias son de uno o dos puntos porcentuales a lo sumo: la elección de la distancia importa mucho menos que la escala y que k. La forma del vecindario (círculo o rombo) cambia, pero los vecinos son casi los mismos.</p></details></li>
+        <li>Cambia a "Dos lunas" y busca el mejor k. Repite pulsando "Nuevos datos".
+          <details><summary>Qué deberías observar</summary><p>Con las lunas, una frontera curva que ningún modelo lineal captura, k-NN llega a errores de prueba de cerca del 5 % con k alrededor de 7. Con datos nuevos el mejor k cambia de una muestra a otra: es una estimación ruidosa, otra razón para elegirlo con validación cruzada y no con una sola partición.</p></details></li>
+      </ol>
+      <p><b>Laboratorio 2: distancias en dimensión alta.</b> Un punto al azar y otros 500 uniformes en \([0,1]^p\). El histograma muestra sus distancias divididas por la máxima.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · distancias en dimensión alta</span><span class="num" id="knn-dim-head">–</span></div>
         <div class="lab-body">
@@ -151,11 +232,29 @@
         </div>
         <figcaption>Con p = 1 o 2 las distancias se reparten entre 0 y 1 y el vecino más cercano está muy cerca. Sube a p = 50 o 100: todas las distancias se amontonan cerca del máximo y el “más cercano” está casi tan lejos como el más lejano.</figcaption>
       </figure>
-      <p>Por eso k-NN rinde bien con pocas variables informativas y muchos datos, y mal con decenas de variables. Si tienes muchas, reduce la dimensión antes (por ejemplo con <a href="#pca">PCA</a>) o selecciona las variables que importan.</p>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Lleva p de 1 a 10 y mira el cociente \(d_{\min}/d_{\max}\).
+          <details><summary>Qué deberías observar</summary><p>Con p = 1 el cociente es casi 0 (el vecino más cercano está pegado), con p = 2 ronda 0,07 y con p = 10 ya ronda 0,3: el más cercano está a casi un tercio de la distancia del más lejano.</p></details></li>
+        <li>Sube a p = 100 y p = 200.
+          <details><summary>Qué deberías observar</summary><p>El cociente pasa de 0,7 y todas las distancias se amontonan en una franja estrecha cerca del máximo, como predice el coeficiente de variación \(1{,}18/\sqrt p\). El lado para captar el 10 % supera 0,97: el vecindario es casi todo el cubo.</p></details></li>
+        <li>Mira la cuarta celda ("datos si 100 bastan en 1D") para p = 5 y p = 10, y pulsa "Nueva muestra" varias veces.
+          <details><summary>Qué deberías observar</summary><p>Con p = 5 harían falta \(10^{10}\) datos y con p = 10, \(10^{20}\), números imposibles. El cociente \(d_{\min}/d_{\max}\) varía algo entre muestras, pero la tendencia con p no cambia.</p></details></li>
+      </ol>
 
-      <h2 id="knn-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
+      <h2 id="knn-apl"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: diagnóstico de tumores de mama</h3>
+      <p>El conjunto Breast Cancer Wisconsin (Diagnostic), de la Universidad de Wisconsin, describe 569 biopsias por aspiración con 30 medidas de los núcleos celulares (radio, textura, concavidad…) y el diagnóstico benigno o maligno. Está incluido en scikit-learn como <code>load_breast_cancer</code>. Un k-NN con \(k = 9\) sobre las variables estandarizadas alcanza cerca del 97 % de exactitud en validación cruzada de 10 grupos, contra cerca del 93 % sin estandarizar (las áreas, en cientos de unidades, dominan a las texturas). En la práctica clínica, la salida útil es \(\hat p(\text{maligno})\): un caso con 5 de 9 vecinos malignos no se diagnostica, se deriva a biopsia quirúrgica.</p>
+      <h3>Biología: las flores iris de Fisher</h3>
+      <p>El conjunto iris (Fisher, 1936; medidas de Edgar Anderson) tiene 150 flores de tres especies con cuatro medidas de sépalo y pétalo. Un 5-NN logra cerca del 97 % de exactitud en validación cruzada. Es un buen ejemplo de cuándo k-NN brilla: pocas variables, todas informativas y en la misma unidad (centímetros), y clases que forman grupos compactos. Las confusiones se concentran entre <i>versicolor</i> y <i>virginica</i>, que se solapan en la región de pétalos medianos.</p>
+      <h3>Tecnología: sistemas de recomendación</h3>
+      <p>El filtrado colaborativo basado en vecinos, popularizado por el proyecto GroupLens de la Universidad de Minnesota a mediados de los años noventa, predice la calificación que le darías a una película como el promedio ponderado de las calificaciones de los \(k\) usuarios más parecidos a ti (o de las \(k\) películas más parecidas a las que ya calificaste). La "distancia" suele ser 1 menos la correlación o el coseno entre vectores de calificaciones. Con millones de usuarios, el problema central es computacional: se usan búsquedas aproximadas de vecinos, que encuentran vecinos casi tan buenos en una fracción del tiempo.</p>
+      <h3>Genómica: imputación de datos faltantes</h3>
+      <p>En los datos de microarreglos de expresión génica faltan valores con frecuencia. Troyanskaya y colaboradores (2001) propusieron KNNimpute: para un gen con un valor faltante, se buscan los \(k\) genes con perfiles de expresión más parecidos en los demás experimentos y se imputa el promedio ponderado de sus valores. Funcionó mejor que imputar la media de la fila y se volvió estándar (está en <code>impute.knn</code> de Bioconductor y en <code>KNNImputer</code> de scikit-learn). La decisión que permite es no descartar genes o muestras incompletas antes del análisis.</p>
+
+      <h2 id="knn-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>Simulamos 600 clientes de un gimnasio con su edad (años) y su ingreso (pesos al mes). La probabilidad de renovar depende sobre todo de la edad (es máxima cerca de los 40 años) y un poco del ingreso. Comparamos k-NN sin escalar y escalado, y elegimos \(k\) con validación cruzada.</p>
-      <div class="codetabs">
+<div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> sklearn.model_selection <span class="k">import</span> train_test_split, GridSearchCV
@@ -221,9 +320,9 @@ pred &lt;- <span class="f">knn</span>(Xs[idx, ], Xs[-idx, ], renueva[idx], k = k
 <span class="f">mean</span>(pred == renueva[-idx])           <span class="c"># bastante mejor que sin escalar</span>
 <span class="f">head</span>(<span class="f">attr</span>(pred, <span class="s">"prob"</span>))</code></pre>
       </div>
-      <p>Sin escalar, el modelo acierta menos que si dijera siempre “renueva” (55 % contra 58 %): los vecinos se eligen por ingreso, que casi no importa. Al estandarizar, la exactitud sube a cerca del 75 %. Observa también que el escalado va <b>dentro</b> del pipeline: así, en cada grupo de la validación cruzada la media y la desviación se calculan solo con los datos de ese entrenamiento.</p>
+      <p>Sin escalar, el modelo acierta menos que si dijera siempre "renueva" (55 % contra 58 %): los vecinos se eligen por ingreso, que casi no importa. Al estandarizar, la exactitud sube a cerca del 75 % con \(k = 9\). Observa también que el escalado va <b>dentro</b> del pipeline: así, en cada grupo de la validación cruzada la media y la desviación se calculan solo con los datos de ese entrenamiento. Para la clienta de 25 años, el modelo estima \(\hat p(\text{renueva}) = 6/9 \approx 0{,}67\): el gimnasio podría ofrecerle un incentivo de renovación, porque su probabilidad está por debajo de la de los clientes de cerca de 40 años.</p>
 
-      <h2 id="knn-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <h2 id="knn-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Con k = 1 cada punto de entrenamiento es su propio vecino más cercano, así que el error de entrenamiento es 0. Por eso ese error no sirve para elegir k: hay que usar validación cruzada o datos de prueba." data-wrong="Piensa qué pasa al predecir un punto de entrenamiento con k = 1: ¿quién es su vecino más cercano, a distancia cero?">
         <h3>Ajustas k-NN con k = 1 y calculas el error sobre los mismos datos de entrenamiento. ¿Qué obtienes?</h3>
         <div class="opts">
@@ -254,49 +353,156 @@ pred &lt;- <span class="f">knn</span>(Xs[idx, ], Xs[-idx, ], renueva[idx], k = k
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="La cota de Cover y Hart es 2R*(1 − R*) = 2 · 0,1 · 0,9 = 0,18. El 1-NN asintótico erra entre 10 % y 18 %." data-wrong="Usa la cota R* ≤ R(1-NN) ≤ 2R*(1 − R*) con R* = 0,1.">
+        <h3>En un problema binario el error de Bayes es 10 %. Con infinitos datos, ¿cuál es la peor tasa de error posible del 1-NN?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>10 %</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>18 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>20 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>50 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Al subir k la varianza baja como σ²/k, pero se promedian vecinos más lejanos y el sesgo sube. El error de prueba dibuja una U." data-wrong="Recuerda la descomposición: varianza σ²/k y un sesgo que depende de qué tan lejos están los vecinos que promedias.">
+        <h3>En k-NN de regresión, ¿qué pasa al aumentar k desde 1?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Bajan el sesgo y la varianza</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Sube la varianza y baja el sesgo</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Baja la varianza y, a partir de cierto punto, sube el sesgo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No cambia nada, k solo afecta el tiempo de cómputo</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="knn-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. El laboratorio te sirve para comprobar las intuiciones de los ejercicios 3 y 4.</p>
+      <h2 id="knn-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Cada pregunta pide una demostración, un cálculo con datos o una simulación. Intenta resolverla antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Calcula la distancia euclidiana, la Manhattan y la de Chebyshev entre los puntos (2, 3) y (5, 7).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Las diferencias son |5 − 2| = 3 y |7 − 3| = 4.</p><ul><li>Euclidiana: √(3² + 4²) = √25 = <b>5</b>.</li><li>Manhattan: 3 + 4 = <b>7</b>.</li><li>Chebyshev: máx(3, 4) = <b>4</b>.</li></ul><p>Siempre se cumple d<sub>∞</sub> ≤ d<sub>2</sub> ≤ d<sub>1</sub>.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Hay seis puntos de entrenamiento. Clase A: (1, 1), (2, 1), (1, 3) y (5, 4). Clase B: (4, 3) y (3, 2). Clasifica el punto (3, 3) con distancia euclidiana y k = 1, k = 3 y k = 5.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Distancias desde (3, 3): a (4, 3) es 1 (B); a (3, 2) es 1 (B); a (1, 3) es 2 (A); a (2, 1) es √5 ≈ 2,24 (A); a (5, 4) es √5 ≈ 2,24 (A); a (1, 1) es √8 ≈ 2,83 (A).</p>
-            <ul><li><b>k = 1:</b> hay empate en distancia 1, pero ambos puntos son B, así que predice <b>B</b>.</li><li><b>k = 3:</b> B, B, A: gana <b>B</b> (2 contra 1).</li><li><b>k = 5:</b> B, B, A, A, A: gana <b>A</b> (3 contra 2).</li></ul>
-            <p>La predicción cambia con k: con pocos vecinos manda lo local; con más vecinos pesa la clase mayoritaria de la zona.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Una clienta tiene 30 años y gana 20 000 pesos. Candidato P: 60 años y 20 500 pesos. Candidato Q: 31 años y 25 000 pesos. (a) ¿Quién es su vecino más cercano con distancia euclidiana sin escalar? (b) ¿Y si estandarizas con desviaciones de 12 años y 8 000 pesos? (c) ¿Cuál tiene más sentido?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que, si el vecino más cercano tiene asintóticamente una etiqueta independiente con la misma \(\eta(x)\), el error del 1-NN en \(x\) es \(2\eta(x)(1 - \eta(x))\). (b) Escribe ese error como \(2m(1-m)\) con \(m = \min(\eta, 1 - \eta)\) y usa Jensen para probar \(R_{1\text{-NN}} \le 2R^*(1 - R^*)\). (c) ¿En qué caso se alcanza la igualdad \(R_{1\text{-NN}} = R^*\)?</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) Sin escalar: d(P) = √(30² + 500²) = √250 900 ≈ 500,9 y d(Q) = √(1² + 5 000²) ≈ 5 000. El vecino es <b>P</b>, alguien 30 años mayor.</p>
-            <p>(b) Escalado: P queda a (30/12, 500/8 000) = (2,5; 0,0625), con distancia ≈ 2,50. Q queda a (1/12, 5 000/8 000) = (0,083; 0,625), con distancia √(0,0069 + 0,3906) ≈ 0,63. El vecino es <b>Q</b>.</p>
-            <p>(c) Q: tiene casi la misma edad y un ingreso parecido en términos relativos. Sin escalar, la diferencia de 500 pesos pesa más que la de 30 años solo por las unidades.</p>
-            <div class="codetabs">
-              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-x, P, Q = np.<span class="f">array</span>([<span class="n">30</span>, <span class="n">20000</span>]), np.<span class="f">array</span>([<span class="n">60</span>, <span class="n">20500</span>]), np.<span class="f">array</span>([<span class="n">31</span>, <span class="n">25000</span>])
-s = np.<span class="f">array</span>([<span class="n">12</span>, <span class="n">8000</span>])
-<span class="f">print</span>(np.linalg.<span class="f">norm</span>(x - P), np.linalg.<span class="f">norm</span>(x - Q))            <span class="c"># 500.9  5000.0</span>
-<span class="f">print</span>(np.linalg.<span class="f">norm</span>((x - P) / s), np.linalg.<span class="f">norm</span>((x - Q) / s))  <span class="c"># 2.501  0.631</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">30</span>, <span class="n">20000</span>); P &lt;- <span class="f">c</span>(<span class="n">60</span>, <span class="n">20500</span>); Q &lt;- <span class="f">c</span>(<span class="n">31</span>, <span class="n">25000</span>)
-s &lt;- <span class="f">c</span>(<span class="n">12</span>, <span class="n">8000</span>)
-<span class="f">sqrt</span>(<span class="f">sum</span>((x - P)^<span class="n">2</span>)); <span class="f">sqrt</span>(<span class="f">sum</span>((x - Q)^<span class="n">2</span>))              <span class="c"># 500.9  5000.0</span>
-<span class="f">sqrt</span>(<span class="f">sum</span>(((x - P) / s)^<span class="n">2</span>)); <span class="f">sqrt</span>(<span class="f">sum</span>(((x - Q) / s)^<span class="n">2</span>))  <span class="c"># 2.501  0.631</span></code></pre>
-            </div>
+            <p>(a) Sean \(Y\) la etiqueta del caso nuevo e \(Y'\) la del vecino, independientes, ambas Bernoulli(\(\eta\)). El 1-NN predice \(Y'\) y falla si \(Y \ne Y'\): \(P = \eta(1-\eta) + (1-\eta)\eta = 2\eta(1-\eta)\).</p>
+            <p>(b) Como \(\eta(1-\eta)\) es simétrica, \(2\eta(1-\eta) = 2m(1-m)\). La función \(g(m) = 2m(1-m)\) es cóncava, así que por Jensen \(E[g(M)] \le g(E[M])\). Como \(E[M] = R^*\): \(R_{1\text{-NN}} = E[2M(1-M)] \le 2R^*(1-R^*)\). La cota inferior sale de \(2m(1-m) \ge m\) para \(m \le 1/2\).</p>
+            <p>(c) \(2m(1-m) = m\) solo si \(m = 0\) o \(m = 1/2\). Si en todo punto \(\eta \in \{0, 1\}\) (clases separables), ambos errores son 0; si \(\eta = 1/2\) en todas partes, ambos valen 1/2. En cualquier caso intermedio el 1-NN es estrictamente peor que Bayes, y por eso conviene \(k &gt; 1\).</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Los datos son uniformes en [0, 1]<sup>p</sup>. Quieres que, en promedio, 10 puntos caigan dentro de un cubo de lado 0,1 alrededor de cada caso nuevo. (a) ¿Cuántos datos necesitas con p = 1, 2, 3 y 10? (b) Con n = 1 000 datos fijos y k = 10, ¿qué lado debe tener el vecindario cúbico con p = 2 y con p = 20?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con 99 puntos equiespaciados \(x_i = i/100\), \(f(x) = \sin(2\pi x)\) y \(\sigma = 0{,}3\): (a) calcula el sesgo², la varianza y el error esperado en \(x_0 = 0{,}25\) para \(k \in \{1, 5, 11, 25, 51, 99\}\). (b) ¿Qué \(k\) minimiza el error? (c) Explica por qué con \(k = 99\) el sesgo² vale 1.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) El cubo de lado 0,1 contiene una fracción 0,1<sup>p</sup> de los datos, así que en promedio tiene n·0,1<sup>p</sup> puntos. Igualando a 10: n = 10 / 0,1<sup>p</sup> = 10<sup>p+1</sup>. Con p = 1, <b>100</b>; con p = 2, <b>1 000</b>; con p = 3, <b>10 000</b>; con p = 10, <b>10<sup>11</sup></b>, cien mil millones de datos.</p>
-            <p>(b) Necesitas la fracción r = 10/1 000 = 0,01. El lado es ℓ = r<sup>1/p</sup>: con p = 2, ℓ = 0,01<sup>1/2</sup> = <b>0,10</b>; con p = 20, ℓ = 0,01<sup>1/20</sup> = e<sup>ln(0,01)/20</sup> ≈ <b>0,79</b>. Con 20 variables, los 10 vecinos “cercanos” difieren del caso nuevo en casi todo el rango de cada variable.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+x = np.<span class="f">arange</span>(<span class="n">1</span>, <span class="n">100</span>) / <span class="n">100</span>
+f = <span class="k">lambda</span> t: np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * t)
+x0, s = <span class="n">0.25</span>, <span class="n">0.3</span>
+orden = np.<span class="f">argsort</span>(np.<span class="f">abs</span>(x - x0), kind=<span class="s">"stable"</span>)
+<span class="k">for</span> k <span class="k">in</span> [<span class="n">1</span>, <span class="n">5</span>, <span class="n">11</span>, <span class="n">25</span>, <span class="n">51</span>, <span class="n">99</span>]:
+    sesgo = f(x[orden[:k]]).<span class="f">mean</span>() - f(x0)
+    <span class="f">print</span>(k, <span class="f">round</span>(sesgo ** <span class="n">2</span>, <span class="n">4</span>), <span class="f">round</span>(s ** <span class="n">2</span> / k, <span class="n">4</span>), <span class="f">round</span>(s ** <span class="n">2</span> + sesgo ** <span class="n">2</span> + s ** <span class="n">2</span> / k, <span class="n">4</span>))
+<span class="c"># k   sesgo²   var     error</span>
+<span class="c"># 1   0.0      0.09    0.18</span>
+<span class="c"># 5   0.0      0.018   0.108</span>
+<span class="c"># 11  0.0004   0.0082  0.0986</span>
+<span class="c"># 25  0.0099   0.0036  0.1035</span>
+<span class="c"># 51  0.1424   0.0018  0.2341</span>
+<span class="c"># 99  1.0      0.0009  1.0909</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- (<span class="n">1</span>:<span class="n">99</span>) / <span class="n">100</span>; f &lt;- <span class="k">function</span>(t) <span class="f">sin</span>(<span class="n">2</span> * pi * t)
+x0 &lt;- <span class="n">0.25</span>; s &lt;- <span class="n">0.3</span>
+orden &lt;- <span class="f">order</span>(<span class="f">abs</span>(x - x0))
+<span class="k">for</span> (k <span class="k">in</span> <span class="f">c</span>(<span class="n">1</span>, <span class="n">5</span>, <span class="n">11</span>, <span class="n">25</span>, <span class="n">51</span>, <span class="n">99</span>)) {
+  sesgo &lt;- <span class="f">mean</span>(<span class="f">f</span>(x[orden[<span class="n">1</span>:k]])) - <span class="f">f</span>(x0)
+  <span class="f">cat</span>(k, <span class="f">round</span>(sesgo^<span class="n">2</span>, <span class="n">4</span>), <span class="f">round</span>(s^<span class="n">2</span> / k, <span class="n">4</span>), <span class="f">round</span>(s^<span class="n">2</span> + sesgo^<span class="n">2</span> + s^<span class="n">2</span> / k, <span class="n">4</span>), <span class="s">"\n"</span>)
+}</code></pre>
+</div>
+            <p>(b) El mínimo está en \(k = 11\) (error ≈ 0,099), muy cerca del piso irreducible 0,09. Entre \(k = 5\) y \(k = 25\) el error cambia poco: la curva es plana cerca del óptimo, por eso la validación cruzada no necesita encontrar el \(k\) exacto.</p>
+            <p>(c) Con \(k = 99\) se promedian todos los puntos, y el promedio de \(\sin(2\pi x)\) en un período completo es 0. El sesgo es \(0 - f(0{,}25) = -1\), al cuadrado 1. El modelo ya no mira a \(x_0\): predice la media global.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Para \(U, V\) uniformes independientes en [0, 1], demuestra que \(E[(U-V)^2] = 1/6\) y \(E[(U-V)^4] = 1/15\). (b) Deduce el coeficiente de variación de \(\|X - Z\|^2\) en \([0,1]^p\). (c) Comprueba por simulación cómo evoluciona \(d_{\min}/d_{\max}\) desde un punto a otros 500 cuando \(p \in \{2, 10, 100, 1\,000\}\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(W = U - V\) tiene densidad triangular \(1 - |w|\) en \([-1, 1]\). Entonces \(E[W^2] = 2\int_0^1 w^2(1-w)\,dw = 2(1/3 - 1/4) = 1/6\) y \(E[W^4] = 2\int_0^1 w^4(1-w)\,dw = 2(1/5 - 1/6) = 1/15\).</p>
+            <p>(b) \(\operatorname{Var}(W^2) = 1/15 - 1/36 = 7/180\). Sumando \(p\) coordenadas independientes: media \(p/6\), varianza \(7p/180\), coeficiente de variación \(\sqrt{7p/180}\cdot 6/p = \sqrt{7 \cdot 36/180}/\sqrt p \approx 1{,}18/\sqrt p\).</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+<span class="k">for</span> p <span class="k">in</span> [<span class="n">2</span>, <span class="n">10</span>, <span class="n">100</span>, <span class="n">1000</span>]:
+    X = rng.<span class="f">uniform</span>(size=(<span class="n">500</span>, p)); x0 = rng.<span class="f">uniform</span>(size=p)
+    d = np.<span class="f">sqrt</span>(((X - x0) ** <span class="n">2</span>).<span class="f">sum</span>(axis=<span class="n">1</span>))
+    <span class="f">print</span>(p, <span class="f">round</span>(d.<span class="f">min</span>() / d.<span class="f">max</span>(), <span class="n">3</span>), <span class="f">round</span>((d**<span class="n">2</span>).<span class="f">std</span>() / (d**<span class="n">2</span>).<span class="f">mean</span>(), <span class="n">3</span>))
+<span class="c"># p     dmin/dmax   CV de d²</span>
+<span class="c"># 2     ≈ 0.02      ≈ 0.68</span>
+<span class="c"># 10    ≈ 0.18      ≈ 0.34</span>
+<span class="c"># 100   ≈ 0.74      ≈ 0.11</span>
+<span class="c"># 1000  ≈ 0.90      ≈ 0.03</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
+<span class="k">for</span> (p <span class="k">in</span> <span class="f">c</span>(<span class="n">2</span>, <span class="n">10</span>, <span class="n">100</span>, <span class="n">1000</span>)) {
+  X &lt;- <span class="f">matrix</span>(<span class="f">runif</span>(<span class="n">500</span> * p), <span class="n">500</span>); x0 &lt;- <span class="f">runif</span>(p)
+  d &lt;- <span class="f">sqrt</span>(<span class="f">colSums</span>((<span class="f">t</span>(X) - x0)^<span class="n">2</span>))
+  <span class="f">cat</span>(p, <span class="f">round</span>(<span class="f">min</span>(d) / <span class="f">max</span>(d), <span class="n">3</span>), <span class="f">round</span>(<span class="f">sd</span>(d^<span class="n">2</span>) / <span class="f">mean</span>(d^<span class="n">2</span>), <span class="n">3</span>), <span class="s">"\n"</span>)
+}</code></pre>
+</div>
+            <p>(c) El CV observado sigue de cerca la fórmula (es algo menor porque aquí el punto de referencia está fijo y solo varían los otros 500), y \(d_{\min}/d_{\max}\) se acerca a 1: con 1 000 variables, el vecino más cercano está al 90 % de la distancia del más lejano.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Dos variables estandarizadas tienen correlación 0,8, de modo que \(S = \begin{pmatrix} 1 &amp; 0{,}8 \\ 0{,}8 &amp; 1 \end{pmatrix}\). Un caso está en el origen y hay dos candidatos a vecino: \(a = (1, 1)\) y \(b = (1, -1)\). (a) Calcula sus distancias euclidianas y de Mahalanobis al origen. (b) Interpreta la diferencia. (c) Demuestra que k-NN con Mahalanobis equivale a k-NN euclidiano sobre los datos transformados por \(S^{-1/2}\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Euclidianas: ambas \(\sqrt2 \approx 1{,}41\). \(S^{-1} = \frac{1}{0{,}36}\begin{pmatrix} 1 &amp; -0{,}8 \\ -0{,}8 &amp; 1 \end{pmatrix}\). Para \(a\): \((1 + 1 - 1{,}6)/0{,}36 = 1{,}11\), distancia ≈ 1,05. Para \(b\): \((1 + 1 + 1{,}6)/0{,}36 = 10\), distancia ≈ 3,16.</p>
+            <p>(b) Con correlación positiva fuerte, moverse en la dirección (1, 1) es "normal": las dos variables suben juntas. El punto \(b\) va contra la correlación y es raro en estos datos; Mahalanobis lo considera tres veces más lejano. La euclidiana no ve esa estructura y además cuenta dos veces la información compartida.</p>
+            <p>(c) Si \(\tilde x = S^{-1/2}x\), entonces \(\|\tilde x - \tilde z\|^2 = (x-z)^\top S^{-1/2}S^{-1/2}(x-z) = (x-z)^\top S^{-1}(x-z) = d_M(x,z)^2\). Como los vecinos solo dependen del orden de las distancias, ambos procedimientos eligen los mismos vecinos. Con \(S\) diagonal, \(S^{-1/2}\) solo divide cada variable por su desviación: es la estandarización.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Caso con datos reales: Breast Cancer Wisconsin (569 tumores, 30 variables). (a) Compara por validación cruzada de 10 grupos un 5-NN sin escalar y escalado. (b) Elige \(k\) con una rejilla. (c) Agrega 30, 100 y 300 variables de ruido gaussiano puro y mide la exactitud con el \(k\) elegido. (d) Interpreta los resultados a la luz del § 6 y propone una solución.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.datasets <span class="k">import</span> load_breast_cancer
+<span class="k">from</span> sklearn.model_selection <span class="k">import</span> cross_val_score, GridSearchCV, StratifiedKFold
+<span class="k">from</span> sklearn.neighbors <span class="k">import</span> KNeighborsClassifier
+<span class="k">from</span> sklearn.pipeline <span class="k">import</span> make_pipeline
+<span class="k">from</span> sklearn.preprocessing <span class="k">import</span> StandardScaler
+
+X, y = <span class="f">load_breast_cancer</span>(return_X_y=<span class="k">True</span>)
+cv = <span class="f">StratifiedKFold</span>(<span class="n">10</span>, shuffle=<span class="k">True</span>, random_state=<span class="n">0</span>)
+crudo = <span class="f">cross_val_score</span>(<span class="f">KNeighborsClassifier</span>(<span class="n">5</span>), X, y, cv=cv).<span class="f">mean</span>()
+esc = <span class="f">cross_val_score</span>(<span class="f">make_pipeline</span>(<span class="f">StandardScaler</span>(), <span class="f">KNeighborsClassifier</span>(<span class="n">5</span>)), X, y, cv=cv).<span class="f">mean</span>()
+<span class="f">print</span>(<span class="f">round</span>(crudo, <span class="n">3</span>), <span class="f">round</span>(esc, <span class="n">3</span>))                 <span class="c"># ≈ 0.933  0.965</span>
+
+busq = <span class="f">GridSearchCV</span>(<span class="f">make_pipeline</span>(<span class="f">StandardScaler</span>(), <span class="f">KNeighborsClassifier</span>()),
+                    {<span class="s">"kneighborsclassifier__n_neighbors"</span>: <span class="f">range</span>(<span class="n">1</span>, <span class="n">40</span>, <span class="n">2</span>)}, cv=cv).<span class="f">fit</span>(X, y)
+<span class="f">print</span>(busq.best_params_, <span class="f">round</span>(busq.best_score_, <span class="n">3</span>))   <span class="c"># k = 9, ≈ 0.968</span>
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+<span class="k">for</span> extra <span class="k">in</span> [<span class="n">0</span>, <span class="n">30</span>, <span class="n">100</span>, <span class="n">300</span>]:
+    Xr = np.<span class="f">hstack</span>([X, rng.<span class="f">normal</span>(size=(<span class="f">len</span>(X), extra))])
+    acc = <span class="f">cross_val_score</span>(<span class="f">make_pipeline</span>(<span class="f">StandardScaler</span>(), <span class="f">KNeighborsClassifier</span>(<span class="n">9</span>)), Xr, y, cv=cv).<span class="f">mean</span>()
+    <span class="f">print</span>(extra, <span class="f">round</span>(acc, <span class="n">3</span>))      <span class="c"># ≈ 0.968, 0.939, 0.919, 0.879</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(caret)            <span class="c"># train() con validación cruzada y preprocesamiento</span>
+<span class="c"># wdbc.data: versión diagnóstica de 30 variables, del repositorio UCI</span>
+wdbc &lt;- <span class="f">read.csv</span>(<span class="s">"wdbc.data"</span>, header = <span class="k">FALSE</span>)
+y &lt;- <span class="f">factor</span>(wdbc$V2); X &lt;- wdbc[, <span class="n">3</span>:<span class="n">32</span>]
+ctrl &lt;- <span class="f">trainControl</span>(method = <span class="s">"cv"</span>, number = <span class="n">10</span>)
+<span class="f">set.seed</span>(<span class="n">0</span>)
+crudo &lt;- <span class="f">train</span>(X, y, method = <span class="s">"knn"</span>, tuneGrid = <span class="f">data.frame</span>(k = <span class="n">5</span>), trControl = ctrl)
+esc &lt;- <span class="f">train</span>(X, y, method = <span class="s">"knn"</span>, preProcess = <span class="f">c</span>(<span class="s">"center"</span>, <span class="s">"scale"</span>),
+             tuneGrid = <span class="f">data.frame</span>(k = <span class="f">seq</span>(<span class="n">1</span>, <span class="n">39</span>, <span class="n">2</span>)), trControl = ctrl)
+crudo$results$Accuracy; esc$bestTune; <span class="f">max</span>(esc$results$Accuracy)
+<span class="k">for</span> (extra <span class="k">in</span> <span class="f">c</span>(<span class="n">30</span>, <span class="n">100</span>, <span class="n">300</span>)) {
+  Xr &lt;- <span class="f">cbind</span>(X, <span class="f">matrix</span>(<span class="f">rnorm</span>(<span class="f">nrow</span>(X) * extra), <span class="f">nrow</span>(X)))
+  m &lt;- <span class="f">train</span>(Xr, y, method = <span class="s">"knn"</span>, preProcess = <span class="f">c</span>(<span class="s">"center"</span>, <span class="s">"scale"</span>),
+             tuneGrid = <span class="f">data.frame</span>(k = <span class="n">9</span>), trControl = ctrl)
+  <span class="f">cat</span>(extra, m$results$Accuracy, <span class="s">"\n"</span>)       <span class="c"># la exactitud cae con el ruido</span>
+}</code></pre>
+</div>
+            <p>(a) Escalar sube la exactitud de ≈ 93,3 % a ≈ 96,5 %. (b) El mejor \(k\) es 9, con ≈ 96,8 %. (c) Con 30, 100 y 300 variables de ruido, la exactitud cae a ≈ 93,9 %, 91,9 % y 87,9 %. (d) Las variables de ruido, ya estandarizadas, pesan en la distancia igual que las informativas: con 300 variables de ruido y 30 útiles, más del 90 % de la distancia es ruido, y los vecinos se vuelven casi aleatorios. Soluciones: seleccionar variables (por ejemplo con su importancia en un <a href="#trees">random forest</a>), reducir con <a href="#pca">PCA</a> o aprender pesos por variable.</p>
           </div></details>
         </div>
       </div>

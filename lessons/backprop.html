@@ -5,36 +5,54 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Descenso de gradiente y retropropagación</h1>
-      <p>Una red neuronal recién creada no sabe nada: sus pesos son números al azar. Aprender es ajustar millones de perillas para que la pérdida baje. Aquí ves cómo se mide el error, cómo la regla de la cadena dice hacia dónde girar cada perilla y cómo los minilotes y optimizadores como Adam hacen que eso funcione en la práctica.</p>
-      <div class="lmeta"><span>55 min</span><span>Nivel avanzado</span><span>Requiere: el perceptrón y las redes neuronales</span><span>R · Python</span></div>
+      <p>Una red neuronal recién creada no sabe nada: sus pesos son números al azar. Aprender es ajustar millones de perillas para que la pérdida baje. Aquí ves cómo se mide el error, por qué y cuándo converge el descenso de gradiente, cómo la regla de la cadena dice hacia dónde girar cada perilla y cómo los minilotes y optimizadores como Adam hacen que eso funcione en la práctica.</p>
+      <div class="lmeta"><span>100 min</span><span>Nivel avanzado</span><span>Requiere: el perceptrón y las redes neuronales</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#backprop-idea" data-sec="backprop-idea">La idea</a></li>
+        <li><a href="#backprop-intro" data-sec="backprop-intro">Introducción</a></li>
+        <li><a href="#backprop-def" data-sec="backprop-def">Definición</a></li>
         <li><a href="#backprop-perdida" data-sec="backprop-perdida">Funciones de pérdida</a></li>
         <li><a href="#backprop-gd" data-sec="backprop-gd">Descenso de gradiente</a></li>
-        <li><a href="#backprop-lab" data-sec="backprop-lab">Laboratorio: optimizadores</a></li>
         <li><a href="#backprop-cadena" data-sec="backprop-cadena">Regla de la cadena</a></li>
-        <li><a href="#backprop-red" data-sec="backprop-red">Laboratorio: una red por dentro</a></li>
-        <li><a href="#backprop-lotes" data-sec="backprop-lotes">Minilotes y SGD</a></li>
-        <li><a href="#backprop-opt" data-sec="backprop-opt">Momentum, RMSProp y Adam</a></li>
-        <li><a href="#backprop-practica" data-sec="backprop-practica">Diagnóstico práctico</a></li>
+        <li><a href="#backprop-opt" data-sec="backprop-opt">Minilotes y optimizadores</a></li>
+        <li><a href="#backprop-prop" data-sec="backprop-prop">Propiedades</a></li>
+        <li><a href="#backprop-sim" data-sec="backprop-sim">Ejercicios de simulación</a></li>
+        <li><a href="#backprop-apps" data-sec="backprop-apps">Aplicaciones reales</a></li>
         <li><a href="#backprop-code" data-sec="backprop-code">En R y Python</a></li>
-        <li><a href="#backprop-quiz" data-sec="backprop-quiz">Comprueba</a></li>
-        <li><a href="#backprop-ej" data-sec="backprop-ej">Ejercicios</a></li>
+        <li><a href="#backprop-quiz" data-sec="backprop-quiz">Quiz</a></li>
+        <li><a href="#backprop-ej" data-sec="backprop-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="backprop-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="backprop-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Imagina que bajas una montaña de noche, con niebla, y solo puedes sentir la inclinación del suelo bajo tus pies. Una estrategia razonable: mira hacia dónde baja más el terreno, da un paso en esa dirección y repite. No ves el valle, pero cada paso te acerca. Eso es el <b>descenso de gradiente</b>.</p>
       <p>En una red neuronal, la “altura” es la <b>pérdida</b>: un número que mide qué tan mal predice la red en los datos de entrenamiento. Las “coordenadas” son los pesos y sesgos, que en un modelo moderno pueden ser millones. La “inclinación” es el <b>gradiente</b> de la pérdida respecto a cada peso. El problema práctico es calcular ese gradiente rápido, y la respuesta es la <b>retropropagación</b> (<i>backpropagation</i>): una aplicación ordenada de la regla de la cadena que obtiene todas las derivadas en un solo recorrido hacia atrás por la red.</p>
       <p>En la sesión anterior viste que una red con una capa oculta puede aproximar casi cualquier función. Ese resultado dice que <i>existen</i> buenos pesos. Esta sesión trata de cómo <i>encontrarlos</i>.</p>
       <div class="callout"><b>El ciclo de entrenamiento:</b> (1) paso hacia adelante: con los pesos actuales, calcula las predicciones y la pérdida; (2) paso hacia atrás: calcula el gradiente de la pérdida respecto a cada peso; (3) actualiza los pesos un poco en contra del gradiente. Repite miles de veces con distintos lotes de datos.</div>
+      <p><b>Un poco de historia.</b> Augustin Cauchy propuso en 1847 el método del descenso más pronunciado para resolver sistemas de ecuaciones de la astronomía. Herbert Robbins y Sutton Monro (1951) mostraron que se puede optimizar con estimaciones ruidosas del gradiente si la tasa decrece adecuadamente: es el origen del descenso de gradiente estocástico. Boris Polyak (1964) introdujo el momentum. La diferenciación automática en modo inverso, la base matemática de la retropropagación, aparece en la tesis de Seppo Linnainmaa (1970), y Paul Werbos (1974) la propuso para redes neuronales. Se volvió famosa con el artículo de Rumelhart, Hinton y Williams en Nature (1986), que mostró que las capas ocultas aprendían representaciones útiles. Adam, el optimizador más usado hoy, es de Kingma y Ba (2014).</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a elegir la función de pérdida según el tipo de respuesta y a justificarla como una log-verosimilitud;</li>
+          <li>por qué el descenso de gradiente converge, qué tasa de aprendizaje usar y qué papel juega el número de condición;</li>
+          <li>a derivar la retropropagación con la regla de la cadena y a calcularla a mano en una red pequeña;</li>
+          <li>cómo funcionan los minilotes, momentum, RMSProp y Adam, y cómo diagnosticar un entrenamiento que falla;</li>
+          <li>a programar una red desde cero, verificar su gradiente numéricamente y entrenarla con Adam.</li>
+        </ul>
+      </div>
 
-      <h2 id="backprop-perdida"><span class="sec">§ 2</span>Funciones de pérdida</h2>
+      <h2 id="backprop-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Una red define una función \(f(x;\theta)\), donde \(\theta \in \mathbb R^d\) agrupa todos los pesos y sesgos. Con datos \((x_1, y_1), \dots, (x_n, y_n)\) y una pérdida por observación \(\ell(y, \hat y)\):</p>
+      <div class="callout"><b>Definición.</b> El <b>riesgo empírico</b> es \(\mathcal L(\theta) = \frac1n\sum_{i=1}^{n}\ell\big(y_i, f(x_i;\theta)\big)\). Su <b>gradiente</b> \(\nabla\mathcal L(\theta) = \big(\partial\mathcal L/\partial\theta_1, \dots, \partial\mathcal L/\partial\theta_d\big)\) apunta hacia donde la pérdida crece más rápido. El <b>descenso de gradiente</b> con tasa de aprendizaje \(\eta &gt; 0\) es la iteración
+        \[ \theta_{t+1} = \theta_t - \eta\,\nabla\mathcal L(\theta_t) . \]
+        La <b>retropropagación</b> es el algoritmo que calcula \(\nabla\mathcal L\) aplicando la regla de la cadena desde la salida hacia la entrada de la red (diferenciación automática en modo inverso).</div>
+      <p>Otros términos: un <b>minilote</b> es un subconjunto aleatorio de \(m\) observaciones con el que se estima el gradiente; una <b>época</b> es una pasada completa por los datos; un <b>optimizador</b> es la regla concreta que convierte gradientes en actualizaciones (SGD, momentum, Adam); el <b>grafo computacional</b> es la descomposición de \(f\) en operaciones elementales sobre la que actúa la retropropagación.</p>
+      <p><b>Ejemplo numérico.</b> Minimiza \(L(w) = (w - 3)^2\) desde \(w_0 = 0\) con \(\eta = 0{,}1\). Como \(L'(w) = 2(w - 3)\), la iteración es \(w_{t+1} - 3 = (1 - 0{,}2)(w_t - 3) = 0{,}8\,(w_t - 3)\). Así \(w_1 = 0{,}6\), \(w_2 = 1{,}08\), \(w_3 = 1{,}464\): la distancia al mínimo se multiplica por 0,8 en cada paso. Con \(\eta = 0{,}5\) llegarías en un paso; con \(\eta &gt; 1\) divergirías. Todo lo que sigue generaliza esta cuenta.</p>
+
+      <h2 id="backprop-perdida"><span class="sec">§ 3</span>Funciones de pérdida</h2>
       <p>La pérdida resume en un número el desacuerdo entre las predicciones \(\hat y_i = f(x_i;\theta)\) y los valores reales \(y_i\), donde \(\theta\) agrupa todos los pesos y sesgos. Entrenar es resolver</p>
       <div class="eq">\[ \hat\theta = \arg\min_{\theta}\; \mathcal{L}(\theta) = \arg\min_{\theta}\; \frac{1}{n}\sum_{i=1}^{n} \ell\big(y_i, f(x_i;\theta)\big) \]
         <div class="note">\(\ell\) es la pérdida de una observación y \(\mathcal{L}\) su promedio en los datos de entrenamiento (el <i>riesgo empírico</i>). A veces se agrega un término de regularización como \(\lambda\lVert\theta\rVert^2\).</div>
@@ -54,8 +72,9 @@
         <div class="note">El mismo resultado vale para salida lineal con error cuadrático: \(\partial \ell/\partial \hat y = \hat y - y\). El error de predicción es la señal que se propaga hacia atrás.</div>
       </div>
       <div class="callout"><b>Error común:</b> usar error cuadrático con una salida sigmoide en clasificación. Funciona, pero el gradiente se multiplica por \(\hat p(1-\hat p)\), que casi vale cero cuando la red se equivoca con mucha seguridad (\(\hat p \approx 0\) y \(y = 1\)). Justo cuando más debería corregir, apenas aprende. La entropía cruzada no tiene ese problema.</div>
+      <p><b>Por qué la pérdida es una log-verosimilitud.</b> Si suponemos \(y_i \mid x_i \sim N(f(x_i;\theta), \sigma^2)\), la log-verosimilitud es \(-\frac{1}{2\sigma^2}\sum_i(y_i - f(x_i;\theta))^2 + \text{cte}\): maximizarla es minimizar el error cuadrático. Si \(y_i \mid x_i \sim \text{Bernoulli}(\hat p_i)\), la log-verosimilitud es \(\sum_i[y_i\log\hat p_i + (1 - y_i)\log(1 - \hat p_i)]\), el negativo de la entropía cruzada. Entrenar una red es, entonces, estimar por <a href="#ic">máxima verosimilitud</a> un modelo muy flexible, y la regularización \(\lambda\lVert\theta\rVert^2\) equivale a una distribución <i>a priori</i> normal sobre los pesos, como en la <a href="#bayes">estadística bayesiana</a>.</p>
 
-      <h2 id="backprop-gd"><span class="sec">§ 3</span>Descenso de gradiente</h2>
+      <h2 id="backprop-gd"><span class="sec">§ 4</span>Descenso de gradiente y su convergencia</h2>
       <p>El gradiente \(\nabla\mathcal{L}(\theta)\) es el vector de derivadas parciales. Apunta hacia donde la pérdida <i>sube</i> más rápido, así que nos movemos en sentido contrario:</p>
       <div class="eq">\[ \theta_{t+1} = \theta_t - \eta\, \nabla \mathcal{L}(\theta_t) \]
         <div class="note">\(\eta > 0\) es la <b>tasa de aprendizaje</b> (<i>learning rate</i>), el hiperparámetro más importante del entrenamiento. Cada coordenada se mueve en proporción a su propia derivada.</div>
@@ -69,8 +88,118 @@
       </ul>
       <p>En varias dimensiones la curvatura cambia con la dirección (los autovalores \(\lambda_{\min} \le \dots \le \lambda_{\max}\) del hessiano). La tasa debe cumplir \(\eta &lt; 2/\lambda_{\max}\) para no divergir en la dirección más empinada, pero entonces la dirección más plana avanza con factor \(1 - \eta\lambda_{\min}\), casi 1. El cociente \(\kappa = \lambda_{\max}/\lambda_{\min}\), el <b>número de condición</b>, mide qué tan alargado es el valle. Con \(\kappa\) grande, el descenso de gradiente zigzaguea entre las paredes y avanza muy despacio por el fondo.</p>
       <div class="callout"><b>Convexo o no:</b> en regresión lineal o logística la pérdida es convexa y cualquier mínimo local es global. En una red neuronal no: hay muchos mínimos, mesetas y puntos de silla. Sorprendentemente, en redes grandes la mayoría de los mínimos que encuentra el descenso de gradiente son casi igual de buenos; el problema práctico son más las mesetas y los puntos de silla que los mínimos malos.</div>
+      <h3>Teoremas de convergencia</h3>
+      <p>Dos supuestos estándar: \(\mathcal L\) es <b>\(\beta\)-suave</b> (su gradiente es Lipschitz: \(\lVert\nabla\mathcal L(\theta) - \nabla\mathcal L(\theta')\rVert \le \beta\lVert\theta - \theta'\rVert\), o sea, la curvatura está acotada por \(\beta\)) y, a veces, <b>\(\mu\)-fuertemente convexa</b> (curvatura al menos \(\mu &gt; 0\)). La suavidad da la desigualdad clave \(\mathcal L(\theta') \le \mathcal L(\theta) + \nabla\mathcal L(\theta)^\top(\theta' - \theta) + \frac\beta2\lVert\theta' - \theta\rVert^2\). Con \(\theta' = \theta - \eta g\):</p>
+      <div class="eq">\[ \mathcal L(\theta_{t+1}) \le \mathcal L(\theta_t) - \eta\Big(1 - \frac{\beta\eta}{2}\Big)\lVert\nabla\mathcal L(\theta_t)\rVert^2 . \]
+        <div class="note">Si \(\eta &lt; 2/\beta\), cada paso baja la pérdida; con \(\eta = 1/\beta\) la bajada garantizada es \(\lVert g\rVert^2/(2\beta)\). Sumando sobre \(T\) pasos: \(\min_{t &lt; T}\lVert\nabla\mathcal L(\theta_t)\rVert^2 \le 2\beta[\mathcal L(\theta_0) - \mathcal L^*]/T\). Aun sin convexidad, el descenso llega a un punto casi estacionario a ritmo \(O(1/T)\).</div>
+      </div>
+      <div class="callout"><b>Teorema.</b> (a) Si \(\mathcal L\) es convexa y \(\beta\)-suave, con \(\eta = 1/\beta\): \(\mathcal L(\theta_T) - \mathcal L^* \le \beta\lVert\theta_0 - \theta^*\rVert^2/(2T)\). (b) Si además es \(\mu\)-fuertemente convexa: \(\lVert\theta_T - \theta^*\rVert^2 \le (1 - \mu/\beta)^T\lVert\theta_0 - \theta^*\rVert^2\), una convergencia <b>lineal</b> (geométrica) con razón que depende del número de condición \(\kappa = \beta/\mu\).</div>
+      <p>Interpretación: con \(\kappa = 100\), cada paso reduce el error al cuadrado en un factor \(0{,}99\), y bajar el error un millón de veces exige unos \(\ln(10^{6})/0{,}01 \approx 1\,400\) pasos. Con \(\kappa = 10\), unos 130. Por eso estandarizar las entradas, que reduce \(\kappa\), acelera tanto. En una cuadrática \(\frac12\theta^\top A\theta\) el análisis es exacto: en la dirección del autovector \(i\) el error se multiplica por \(1 - \eta\lambda_i\), y la tasa óptima \(\eta^* = 2/(\lambda_{\min} + \lambda_{\max})\) da razón \((\kappa - 1)/(\kappa + 1)\).</p>
 
-      <h2 id="backprop-lab"><span class="sec">§ 4</span>Laboratorio: optimizadores sobre una superficie</h2>
+      <h2 id="backprop-cadena"><span class="sec">§ 5</span>La regla de la cadena y la retropropagación</h2>
+      <p>Una red es una composición de funciones simples. Si \(L\) depende de \(\hat y\), \(\hat y\) de \(h\), y \(h\) de un peso \(w\), la regla de la cadena dice</p>
+      <div class="eq">\[ \frac{\partial L}{\partial w} = \frac{\partial L}{\partial \hat y}\cdot\frac{\partial \hat y}{\partial h}\cdot\frac{\partial h}{\partial w} \]</div>
+      <p>La retropropagación organiza este cálculo para no repetir trabajo. Primero recorre la red <b>hacia adelante</b> guardando los valores intermedios. Luego recorre <b>hacia atrás</b>, desde la pérdida, y en cada nodo multiplica la derivada que le llega (“cuánto cambia la pérdida si este nodo cambia”) por la derivada local del nodo.</p>
+      <h3>Un ejemplo con números</h3>
+      <p>Toma la red más pequeña posible: una entrada, una neurona oculta con \(\tanh\) y una salida lineal, con pérdida \(L = \tfrac12(\hat y - y)^2\). Los datos son \(x = 1{,}5\) y \(y = 2\); los pesos actuales, \(w_1 = 0{,}8\), \(b_1 = -0{,}2\), \(w_2 = 1{,}2\), \(b_2 = 0{,}1\).</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Hacia adelante</th><th>Valor</th><th>Hacia atrás</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr><td>\(z = w_1 x + b_1\)</td><td>1,000</td><td>\(\partial L/\partial \hat y = \hat y - y\)</td><td>−0,986</td></tr>
+          <tr><td>\(h = \tanh(z)\)</td><td>0,762</td><td>\(\partial L/\partial w_2 = (\hat y - y)\,h\)</td><td>−0,751</td></tr>
+          <tr><td>\(\hat y = w_2 h + b_2\)</td><td>1,014</td><td>\(\partial L/\partial h = (\hat y - y)\,w_2\)</td><td>−1,183</td></tr>
+          <tr><td>\(L = \tfrac12(\hat y - y)^2\)</td><td>0,486</td><td>\(\partial L/\partial z = \partial L/\partial h \cdot (1 - h^2)\)</td><td>−0,497</td></tr>
+          <tr><td></td><td></td><td>\(\partial L/\partial w_1 = \partial L/\partial z \cdot x\)</td><td>−0,745</td></tr>
+        </tbody>
+      </table></div>
+      <p>Todas las derivadas son negativas: subir cualquiera de los pesos acerca \(\hat y\) a 2. Con \(\eta = 0{,}1\), un paso da \(w_1 = 0{,}8 + 0{,}0745 = 0{,}875\), \(w_2 = 1{,}275\), y la pérdida baja de 0,486 a 0,284. Observa que \(\partial L/\partial z\) se calculó una vez y se reutilizó para \(w_1\) y \(b_1\): esa reutilización es lo que hace eficiente a la retropropagación.</p>
+      <h3>La forma general</h3>
+      <p>En una red de capas densas, con \(z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}\) y \(a^{(l)} = \sigma(z^{(l)})\), define el <b>error de la capa</b> \(\delta^{(l)} = \partial L/\partial z^{(l)}\). Entonces</p>
+      <div class="eq">\[ \delta^{(L)} = \hat y - y, \qquad \delta^{(l)} = \big(W^{(l+1)}\big)^{\!\top} \delta^{(l+1)} \odot \sigma'\big(z^{(l)}\big), \qquad \frac{\partial L}{\partial W^{(l)}} = \delta^{(l)} \big(a^{(l-1)}\big)^{\!\top}, \quad \frac{\partial L}{\partial b^{(l)}} = \delta^{(l)} \]
+        <div class="note">\(\odot\) es el producto elemento a elemento. El error viaja hacia atrás por las mismas matrices de pesos (transpuestas) que usó la señal hacia adelante, y en cada capa se multiplica por la derivada de la activación.</div>
+      </div>
+      <ul>
+        <li><b>Costo:</b> el paso hacia atrás cuesta del orden de dos o tres pasos hacia adelante, sin importar cuántos parámetros haya. Calcular cada derivada por separado con diferencias finitas costaría un paso hacia adelante <i>por parámetro</i>: imposible con millones.</li>
+        <li><b>Memoria:</b> hay que guardar las activaciones de todas las capas hasta el paso hacia atrás. Por eso entrenar consume mucha más memoria que predecir.</li>
+        <li><b>Diferenciación automática:</b> PyTorch, TensorFlow o torch para R construyen el grafo de operaciones mientras calculas y aplican esta regla por ti (modo inverso). Casi nadie programa la retropropagación a mano, pero entenderla explica por qué fallan algunas redes.</li>
+        <li><b>Gradientes que se desvanecen:</b> \(\delta^{(l)}\) es un producto de muchos factores \(\sigma'(z)\). Con la sigmoide, \(\sigma' \le 0{,}25\), y tras diez capas el error puede ser \(0{,}25^{10} \approx 10^{-6}\) veces más chico: las primeras capas no aprenden. Por eso las redes profundas usan ReLU (\(\sigma' = 1\) en la parte positiva), buena inicialización y conexiones residuales.</li>
+      </ul>
+      <div class="callout"><b>Verificación del gradiente:</b> si programas un gradiente a mano, compáralo con la diferencia centrada \(\big[L(\theta + h e_j) - L(\theta - h e_j)\big]/(2h)\) con \(h \approx 10^{-5}\). Un error relativo menor que \(10^{-6}\) indica que está bien; uno de \(10^{-2}\) o más, que hay un error. El segundo laboratorio de la sección 8 hace esa comparación en cada paso.</div>
+      <h3>Derivación de la recursión</h3>
+      <p>Con \(z^{(l)} = W^{(l)}a^{(l-1)} + b^{(l)}\) y \(a^{(l)} = \sigma(z^{(l)})\), la pérdida depende de \(z^{(l)}\) solo a través de \(z^{(l+1)}\). Por la regla de la cadena para el componente \(j\):</p>
+      <div class="eq">\[ \delta^{(l)}_j = \frac{\partial L}{\partial z^{(l)}_j} = \sum_k \frac{\partial L}{\partial z^{(l+1)}_k}\,\frac{\partial z^{(l+1)}_k}{\partial a^{(l)}_j}\,\frac{\partial a^{(l)}_j}{\partial z^{(l)}_j} = \sum_k \delta^{(l+1)}_k\,W^{(l+1)}_{kj}\,\sigma'\big(z^{(l)}_j\big) . \]
+        <div class="note">En forma matricial es \(\delta^{(l)} = (W^{(l+1)})^\top \delta^{(l+1)} \odot \sigma'(z^{(l)})\). Y como \(z^{(l)}_j = \sum_i W^{(l)}_{ji}a^{(l-1)}_i + b^{(l)}_j\), se tiene \(\partial L/\partial W^{(l)}_{ji} = \delta^{(l)}_j a^{(l-1)}_i\) y \(\partial L/\partial b^{(l)}_j = \delta^{(l)}_j\). Cada peso se usa una vez hacia adelante y una vez hacia atrás: el costo total es proporcional al número de parámetros.</div>
+      </div>
+
+      <h2 id="backprop-opt"><span class="sec">§ 6</span>Minilotes y optimizadores</h2>
+      <h3>Minilotes y descenso de gradiente estocástico</h3>
+      <p>El gradiente exacto de \(\mathcal{L}\) es un promedio sobre las \(n\) observaciones. Con un millón de imágenes, cada paso exigiría procesarlas todas. En lugar de eso, se estima el gradiente con un <b>minilote</b> \(B\) de \(m\) observaciones elegidas al azar:</p>
+      <div class="eq">\[ \hat g_t = \frac{1}{m}\sum_{i\in B_t} \nabla_\theta\, \ell\big(y_i, f(x_i;\theta_t)\big), \qquad E[\hat g_t] = \nabla\mathcal{L}(\theta_t), \qquad \operatorname{Var}(\hat g_t) \approx \frac{\Sigma}{m} \]
+        <div class="note">\(\Sigma\) es la matriz de covarianza de los gradientes individuales. El minilote es un estimador insesgado del gradiente, con varianza que baja como \(1/m\): la misma idea que el error estándar de una media muestral.</div>
+      </div>
+      <ul>
+        <li><b>Descenso por lotes completos</b> (\(m = n\)): gradiente exacto, pasos caros, pocos pasos por unidad de tiempo.</li>
+        <li><b>SGD puro</b> (\(m = 1\)): pasos baratísimos y muy ruidosos.</li>
+        <li><b>Minilotes</b> (\(m\) entre 16 y 512, típicamente potencias de 2): el compromiso usado en la práctica. Aprovecha el paralelismo de las GPU y, con 4 veces más datos por lote, el ruido solo baja a la mitad (\(\sqrt{4} = 2\)), así que lotes enormes rinden poco por cálculo extra.</li>
+      </ul>
+      <p>Una <b>época</b> es una pasada completa por los datos de entrenamiento: con \(n = 50\,000\) y \(m = 100\), son 500 actualizaciones. Lo habitual es barajar los datos al comienzo de cada época y recorrerlos en minilotes sin reemplazo.</p>
+      <div class="callout"><b>El ruido ayuda:</b> el ruido del minilote permite escapar de puntos de silla y mesetas, y suele llevar a mínimos más “anchos”, que generalizan mejor. Pero también impide converger exactamente: con η fija, los parámetros oscilan alrededor del mínimo con una amplitud que crece con \(\eta/m\). Por eso se reduce la tasa a lo largo del entrenamiento y, si multiplicas el tamaño del lote por \(k\), una regla práctica es multiplicar η por \(k\) (o por \(\sqrt k\)).</div>
+      <p><b>Condiciones de Robbins-Monro.</b> Para que el SGD converja al mínimo (y no solo a una nube alrededor), la tasa debe decrecer con \(\sum_t\eta_t = \infty\) (para llegar a cualquier distancia) y \(\sum_t\eta_t^2 &lt; \infty\) (para que el ruido acumulado sea finito). Por ejemplo, \(\eta_t = \eta_0/(1 + t/\tau)\) cumple ambas; una tasa constante no cumple la segunda.</p>
+      <h3>Momentum, RMSProp y Adam</h3>
+      <p>El descenso de gradiente simple tiene dos defectos que verás en el primer laboratorio de la sección 8: zigzaguea en valles alargados y usa la misma tasa para todos los parámetros. Los optimizadores modernos atacan ambos.</p>
+      <p><b>Momentum.</b> Acumula una “velocidad” que es un promedio móvil exponencial de los gradientes. En la dirección del zigzag los gradientes cambian de signo y se cancelan; en la dirección del fondo del valle apuntan siempre igual y se suman:</p>
+      <div class="eq">\[ v_{t+1} = \beta\, v_t + \nabla\mathcal{L}(\theta_t), \qquad \theta_{t+1} = \theta_t - \eta\, v_{t+1} \]
+        <div class="note">Con \(\beta = 0{,}9\), en una pendiente constante la velocidad llega a \(1/(1-\beta) = 10\) veces el gradiente: la tasa efectiva es diez veces mayor en direcciones consistentes.</div>
+      </div>
+      <p><b>RMSProp.</b> Divide cada coordenada del gradiente por la raíz de un promedio móvil de sus cuadrados. Los parámetros con gradientes grandes dan pasos más cortos y los de gradientes chicos, pasos más largos: una tasa adaptativa por parámetro.</p>
+      <div class="eq">\[ s_{t+1} = \rho\, s_t + (1-\rho)\, g_t^2, \qquad \theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{s_{t+1}} + \varepsilon}\, g_t \]</div>
+      <p><b>Adam</b> combina las dos ideas y corrige el sesgo de arrancar los promedios en cero:</p>
+      <div class="eq">\[ m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t, \quad v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \quad \hat m_t = \frac{m_t}{1-\beta_1^t}, \quad \hat v_t = \frac{v_t}{1-\beta_2^t}, \quad \theta_t = \theta_{t-1} - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t} + \varepsilon} \]
+        <div class="note">Valores por defecto: \(\beta_1 = 0{,}9\), \(\beta_2 = 0{,}999\), \(\varepsilon = 10^{-8}\) y \(\eta = 10^{-3}\). Como \(\hat m/\sqrt{\hat v}\) tiene magnitud cercana a 1, cada parámetro se mueve unos \(\eta\) por paso, sin importar la escala de su gradiente.</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Optimizador</th><th>Ventaja</th><th>Cuidado</th></tr></thead>
+        <tbody>
+          <tr><td>SGD</td><td>simple; con buena tasa y calendario generaliza muy bien</td><td>sensible a η y al número de condición</td></tr>
+          <tr><td>SGD + momentum</td><td>acelera en valles alargados; estándar en visión</td><td>un hiperparámetro más (β)</td></tr>
+          <tr><td>RMSProp</td><td>tasa adaptativa; útil en redes recurrentes</td><td>sin momentum puede ser ruidoso</td></tr>
+          <tr><td>Adam / AdamW</td><td>funciona “de fábrica” en casi todo; estándar en transformers</td><td>a veces generaliza algo peor que SGD bien ajustado; usa AdamW para regularizar pesos</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Calendarios de la tasa.</b> Casi siempre conviene cambiar η durante el entrenamiento: un <i>calentamiento</i> (<i>warmup</i>) lineal en los primeros pasos, y luego un decaimiento por escalones, exponencial o en coseno, \(\eta_t = \eta_{\min} + \tfrac12(\eta_{\max} - \eta_{\min})\big(1 + \cos(\pi t/T)\big)\).</p>
+      <h3>Diagnóstico práctico</h3>
+      <p>La herramienta principal es la <b>curva de aprendizaje</b>: la pérdida de entrenamiento y la de validación por época.</p>
+      <ul>
+        <li><b>La pérdida sube o da <code>NaN</code>:</b> η demasiado alta, o una división o logaritmo inestable. Baja η por un factor de 10, revisa los datos y usa las funciones combinadas de las librerías (por ejemplo, entropía cruzada que recibe los logits).</li>
+        <li><b>La pérdida baja muy lento:</b> η demasiado baja, entradas sin estandarizar o gradientes que se desvanecen. Prueba un barrido de η en escala logarítmica (\(10^{-4}, 10^{-3}, 10^{-2}, \dots\)).</li>
+        <li><b>Entrenamiento baja y validación sube:</b> sobreajuste. Usa <i>parada temprana</i> (quedarte con los pesos de la mejor época de validación), regularización \(L_2\) (<i>weight decay</i>), <i>dropout</i> o más datos.</li>
+        <li><b>Ambas altas y planas:</b> el modelo es muy chico, o la tasa es tan alta que rebota sin bajar.</li>
+      </ul>
+      <p><b>Inicialización.</b> Los pesos no pueden empezar todos iguales: neuronas idénticas recibirían gradientes idénticos y seguirían siendo iguales para siempre (problema de simetría). Se inicializan al azar con una varianza elegida para que la señal no crezca ni se encoja de capa en capa: \(\operatorname{Var}(w) = 1/n_{\text{entrada}}\) para tanh (Xavier o Glorot, que en su forma completa usa \(2/(n_{\text{entrada}} + n_{\text{salida}})\)) y \(2/n_{\text{entrada}}\) para ReLU (He).</p>
+      <p><b>Estandariza las entradas.</b> Variables en escalas muy distintas (edad en años, ingreso en pesos) producen valles alargados como el del primer laboratorio. Restar la media y dividir por la desviación típica de cada variable reduce el número de condición y acelera mucho el entrenamiento.</p>
+
+      <h2 id="backprop-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Descenso garantizado con paso pequeño.</b> Si \(\mathcal L\) es \(\beta\)-suave y \(\eta &lt; 2/\beta\), \(\mathcal L(\theta_{t+1}) \le \mathcal L(\theta_t) - \eta(1 - \beta\eta/2)\lVert\nabla\mathcal L\rVert^2\). <i>Justificación:</i> cota cuadrática de la suavidad aplicada a \(\theta - \eta g\).</li>
+        <li><b>Umbral de estabilidad.</b> En una cuadrática con autovalores \(\lambda_i\), el descenso converge si y solo si \(0 &lt; \eta &lt; 2/\lambda_{\max}\). <i>Justificación:</i> el error en cada autodirección se multiplica por \(1 - \eta\lambda_i\).</li>
+        <li><b>Convergencia lineal con convexidad fuerte.</b> Razón \(1 - 1/\kappa\) por paso con \(\eta = 1/\beta\). <i>Justificación:</i> teorema de la sección 4.</li>
+        <li><b>Señal de error simple.</b> Sigmoide con entropía cruzada, softmax con entropía cruzada y salida lineal con error cuadrático dan \(\partial\ell/\partial z = \hat y - y\). <i>Justificación:</i> la derivada de la función de enlace canónica cancela la de la log-verosimilitud.</li>
+        <li><b>Recursión de la retropropagación.</b> \(\delta^{(l)} = (W^{(l+1)})^\top \delta^{(l+1)} \odot \sigma'(z^{(l)})\) y \(\nabla_{W^{(l)}} L = \delta^{(l)}(a^{(l-1)})^\top\). <i>Justificación:</i> regla de la cadena multivariada.</li>
+        <li><b>Costo del gradiente.</b> El paso hacia atrás cuesta un múltiplo constante (2 a 3) del paso hacia adelante, frente a \(d\) pasos con diferencias finitas. <i>Justificación:</i> cada arista del grafo se recorre una vez en cada sentido.</li>
+        <li><b>Minilote insesgado con varianza \(\Sigma/m\).</b> \(E[\hat g] = \nabla\mathcal L\). <i>Justificación:</i> promedio de \(m\) términos intercambiables, como la media muestral.</li>
+        <li><b>Corrección de sesgo de Adam.</b> Si los gradientes son estacionarios con media \(\bar g\), \(E[m_t] = (1 - \beta_1^t)\bar g\), así que \(\hat m_t = m_t/(1 - \beta_1^t)\) es insesgado. <i>Justificación:</i> suma geométrica de los pesos \((1 - \beta_1)\beta_1^{t-k}\).</li>
+      </ol>
+      <h3>Errores comunes</h3>
+      <ul>
+        <li><b>Tasa de aprendizaje mal elegida.</b> Demasiado alta: la pérdida explota o da <code>NaN</code>; demasiado baja: parece que “no aprende”. Haz un barrido logarítmico.</li>
+        <li><b>Inicializar todos los pesos iguales</b> (por ejemplo, en cero): las neuronas de una capa quedan idénticas para siempre.</li>
+        <li><b>Usar sigmoide en capas profundas</b> sin conexiones residuales ni normalización: gradientes que se desvanecen.</li>
+        <li><b>Olvidar poner a cero los gradientes</b> entre pasos en PyTorch (se acumulan por defecto).</li>
+        <li><b>Mirar solo la pérdida de entrenamiento.</b> Sin la curva de validación no puedes detectar el sobreajuste.</li>
+      </ul>
+
+      <h2 id="backprop-sim"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <h3>Laboratorio 1: optimizadores sobre una superficie</h3>
       <p>Cada superficie es una pérdida con dos parámetros. Las curvas de nivel marcan puntos con la misma pérdida, y el fondo más intenso indica pérdida más baja. Tres optimizadores parten del mismo punto con la misma tasa de aprendizaje: descenso de gradiente simple, momentum y Adam. Toca o haz clic en el gráfico para elegir otro punto de partida.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · descenso sobre una superficie de pérdida</span><span class="num" id="backprop-head">–</span></div>
@@ -111,38 +240,18 @@
         </div>
         <figcaption>En el valle alargado, el gradiente simple avanza despacio por el fondo plano y momentum acelera. Sube η hasta cerca de 0,2: el gradiente simple empieza a zigzaguear y luego diverge, como predice la regla η &lt; 2/λ<sub>max</sub>. En “Dos mínimos”, compara dónde termina cada optimizador, y prueba el gradiente ruidoso: el ruido no impide llegar, pero deja a los parámetros temblando alrededor del mínimo.</figcaption>
       </figure>
-
-      <h2 id="backprop-cadena"><span class="sec">§ 5</span>La regla de la cadena y la retropropagación</h2>
-      <p>Una red es una composición de funciones simples. Si \(L\) depende de \(\hat y\), \(\hat y\) de \(h\), y \(h\) de un peso \(w\), la regla de la cadena dice</p>
-      <div class="eq">\[ \frac{\partial L}{\partial w} = \frac{\partial L}{\partial \hat y}\cdot\frac{\partial \hat y}{\partial h}\cdot\frac{\partial h}{\partial w} \]</div>
-      <p>La retropropagación organiza este cálculo para no repetir trabajo. Primero recorre la red <b>hacia adelante</b> guardando los valores intermedios. Luego recorre <b>hacia atrás</b>, desde la pérdida, y en cada nodo multiplica la derivada que le llega (“cuánto cambia la pérdida si este nodo cambia”) por la derivada local del nodo.</p>
-      <h3>Un ejemplo con números</h3>
-      <p>Toma la red más pequeña posible: una entrada, una neurona oculta con \(\tanh\) y una salida lineal, con pérdida \(L = \tfrac12(\hat y - y)^2\). Los datos son \(x = 1{,}5\) y \(y = 2\); los pesos actuales, \(w_1 = 0{,}8\), \(b_1 = -0{,}2\), \(w_2 = 1{,}2\), \(b_2 = 0{,}1\).</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Hacia adelante</th><th>Valor</th><th>Hacia atrás</th><th>Valor</th></tr></thead>
-        <tbody>
-          <tr><td>\(z = w_1 x + b_1\)</td><td>1,000</td><td>\(\partial L/\partial \hat y = \hat y - y\)</td><td>−0,986</td></tr>
-          <tr><td>\(h = \tanh(z)\)</td><td>0,762</td><td>\(\partial L/\partial w_2 = (\hat y - y)\,h\)</td><td>−0,751</td></tr>
-          <tr><td>\(\hat y = w_2 h + b_2\)</td><td>1,014</td><td>\(\partial L/\partial h = (\hat y - y)\,w_2\)</td><td>−1,183</td></tr>
-          <tr><td>\(L = \tfrac12(\hat y - y)^2\)</td><td>0,486</td><td>\(\partial L/\partial z = \partial L/\partial h \cdot (1 - h^2)\)</td><td>−0,497</td></tr>
-          <tr><td></td><td></td><td>\(\partial L/\partial w_1 = \partial L/\partial z \cdot x\)</td><td>−0,745</td></tr>
-        </tbody>
-      </table></div>
-      <p>Todas las derivadas son negativas: subir cualquiera de los pesos acerca \(\hat y\) a 2. Con \(\eta = 0{,}1\), un paso da \(w_1 = 0{,}8 + 0{,}0745 = 0{,}875\), \(w_2 = 1{,}275\), y la pérdida baja de 0,486 a 0,284. Observa que \(\partial L/\partial z\) se calculó una vez y se reutilizó para \(w_1\) y \(b_1\): esa reutilización es lo que hace eficiente a la retropropagación.</p>
-      <h3>La forma general</h3>
-      <p>En una red de capas densas, con \(z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}\) y \(a^{(l)} = \sigma(z^{(l)})\), define el <b>error de la capa</b> \(\delta^{(l)} = \partial L/\partial z^{(l)}\). Entonces</p>
-      <div class="eq">\[ \delta^{(L)} = \hat y - y, \qquad \delta^{(l)} = \big(W^{(l+1)}\big)^{\!\top} \delta^{(l+1)} \odot \sigma'\big(z^{(l)}\big), \qquad \frac{\partial L}{\partial W^{(l)}} = \delta^{(l)} \big(a^{(l-1)}\big)^{\!\top}, \quad \frac{\partial L}{\partial b^{(l)}} = \delta^{(l)} \]
-        <div class="note">\(\odot\) es el producto elemento a elemento. El error viaja hacia atrás por las mismas matrices de pesos (transpuestas) que usó la señal hacia adelante, y en cada capa se multiplica por la derivada de la activación.</div>
-      </div>
-      <ul>
-        <li><b>Costo:</b> el paso hacia atrás cuesta del orden de dos o tres pasos hacia adelante, sin importar cuántos parámetros haya. Calcular cada derivada por separado con diferencias finitas costaría un paso hacia adelante <i>por parámetro</i>: imposible con millones.</li>
-        <li><b>Memoria:</b> hay que guardar las activaciones de todas las capas hasta el paso hacia atrás. Por eso entrenar consume mucha más memoria que predecir.</li>
-        <li><b>Diferenciación automática:</b> PyTorch, TensorFlow o torch para R construyen el grafo de operaciones mientras calculas y aplican esta regla por ti (modo inverso). Casi nadie programa la retropropagación a mano, pero entenderla explica por qué fallan algunas redes.</li>
-        <li><b>Gradientes que se desvanecen:</b> \(\delta^{(l)}\) es un producto de muchos factores \(\sigma'(z)\). Con la sigmoide, \(\sigma' \le 0{,}25\), y tras diez capas el error puede ser \(0{,}25^{10} \approx 10^{-6}\) veces más chico: las primeras capas no aprenden. Por eso las redes profundas usan ReLU (\(\sigma' = 1\) en la parte positiva), buena inicialización y conexiones residuales.</li>
-      </ul>
-      <div class="callout"><b>Verificación del gradiente:</b> si programas un gradiente a mano, compáralo con la diferencia centrada \(\big[L(\theta + h e_j) - L(\theta - h e_j)\big]/(2h)\) con \(h \approx 10^{-5}\). Un error relativo menor que \(10^{-6}\) indica que está bien; uno de \(10^{-2}\) o más, que hay un error. El laboratorio siguiente hace esa comparación en cada paso.</div>
-
-      <h2 id="backprop-red"><span class="sec">§ 6</span>Laboratorio: una red por dentro</h2>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>En el “Valle alargado” con gradiente exacto, fija β = 0 (momentum apagado) y η ≈ 0,02. Compara la pérdida del descenso de gradiente y de Adam a las 100 iteraciones. Luego sube β a 0,9.
+          <details><summary>Qué deberías observar</summary><p>Con β = 0 la curva de momentum coincide con la del descenso simple. Con β = 0,9 momentum baja mucho más rápido por el fondo del valle, como predice el factor \(1/(1 - \beta) = 10\) en direcciones consistentes. Adam avanza a un ritmo parecido en todas las direcciones porque normaliza cada coordenada.</p></details></li>
+        <li>Sube η poco a poco hacia 0,2 en el valle alargado. ¿En qué valor empieza a zigzaguear el descenso simple y en cuál diverge?
+          <details><summary>Qué deberías observar</summary><p>Primero aparecen oscilaciones de pared a pared (\(1/\lambda_{\max} &lt; \eta &lt; 2/\lambda_{\max}\)) y luego, cerca de 0,2, la pérdida del descenso simple crece sin control. Adam no diverge igual porque su paso por coordenada está acotado aproximadamente por η.</p></details></li>
+        <li>Cambia a “Dos mínimos” y toca distintos puntos de partida. ¿Terminan los tres optimizadores en el mismo mínimo?
+          <details><summary>Qué deberías observar</summary><p>No siempre: según el punto de partida y la inercia, cada optimizador puede caer en un mínimo distinto. Momentum a veces “salta” la barrera y llega al mínimo global. En problemas no convexos el resultado depende de la inicialización.</p></details></li>
+        <li>Con el valle curvo, compara “Exacto”, “Minilote” y “Muy ruidoso”. ¿Qué pasa con la pérdida final?
+          <details><summary>Qué deberías observar</summary><p>Con ruido los optimizadores siguen llegando cerca del mínimo, pero la pérdida no baja a cero: tiembla alrededor de un valor positivo que crece con el nivel de ruido. Es la nube estacionaria de amplitud proporcional a \(\eta/m\), que solo desaparece si la tasa decrece.</p></details></li>
+      </ol>
+      <h3>Laboratorio 2: una red por dentro</h3>
       <p>Una red con una entrada, dos neuronas ocultas \(\tanh\) y una salida lineal, entrenada con una sola observación \((x, y)\). En modo “adelante” ves los pesos (grosor de la flecha) y el valor de cada neurona. En modo “atrás” ves el gradiente de la pérdida respecto a cada peso y el error \(\delta\) de cada neurona. Da pasos de gradiente y mira cómo cambian.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · paso hacia adelante y hacia atrás</span><span class="num" id="backprop-net-head">–</span></div>
@@ -175,53 +284,27 @@
         </div>
         <figcaption>Con η = 0,1 la pérdida baja de forma suave. Sube η a 0,6 y da varios pasos: la pérdida puede rebotar. Cambia y a −1,5 después de entrenar: los gradientes cambian de signo y la red se reajusta. En “Hacia atrás”, fíjate en que el gradiente de un peso de entrada es siempre el δ de su neurona por x: con x = 0 esos pesos no aprenden nada en ese paso.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con los valores iniciales, pulsa “1 paso” cinco veces mirando los readouts. ¿Coinciden la derivada por retropropagación y la numérica?
+          <details><summary>Qué deberías observar</summary><p>Coinciden en muchas cifras y el error relativo es del orden de \(10^{-8}\) o menor. La pérdida baja en cada paso.</p></details></li>
+        <li>Fija x = 0 y cambia a la vista “Hacia atrás”. ¿Qué gradiente tienen los pesos de entrada?
+          <details><summary>Qué deberías observar</summary><p>Son exactamente 0, porque \(\partial L/\partial w = \delta \cdot x\). Con x = 0 solo aprenden los sesgos y los pesos de salida. Por eso conviene que las entradas estén centradas pero no constantes.</p></details></li>
+        <li>Sube η a 0,6 y pulsa “10 pasos” varias veces. ¿Baja siempre la pérdida?
+          <details><summary>Qué deberías observar</summary><p>La curva de pérdida puede rebotar o estancarse: el paso es demasiado largo para la curvatura local. Bajar η a 0,1 vuelve a dar un descenso suave.</p></details></li>
+        <li>Entrena hasta que la pérdida sea casi 0 y luego cambia y a −1,5. ¿Qué pasa con el signo de los gradientes?
+          <details><summary>Qué deberías observar</summary><p>Los gradientes cambian de signo (los colores de las flechas en “Hacia atrás” se invierten) y la red se reajusta en pocos pasos: el error \(\hat y - y\) es la señal que se propaga.</p></details></li>
+      </ol>
 
-      <h2 id="backprop-lotes"><span class="sec">§ 7</span>Minilotes y descenso de gradiente estocástico</h2>
-      <p>El gradiente exacto de \(\mathcal{L}\) es un promedio sobre las \(n\) observaciones. Con un millón de imágenes, cada paso exigiría procesarlas todas. En lugar de eso, se estima el gradiente con un <b>minilote</b> \(B\) de \(m\) observaciones elegidas al azar:</p>
-      <div class="eq">\[ \hat g_t = \frac{1}{m}\sum_{i\in B_t} \nabla_\theta\, \ell\big(y_i, f(x_i;\theta_t)\big), \qquad E[\hat g_t] = \nabla\mathcal{L}(\theta_t), \qquad \operatorname{Var}(\hat g_t) \approx \frac{\Sigma}{m} \]
-        <div class="note">\(\Sigma\) es la matriz de covarianza de los gradientes individuales. El minilote es un estimador insesgado del gradiente, con varianza que baja como \(1/m\): la misma idea que el error estándar de una media muestral.</div>
-      </div>
-      <ul>
-        <li><b>Descenso por lotes completos</b> (\(m = n\)): gradiente exacto, pasos caros, pocos pasos por unidad de tiempo.</li>
-        <li><b>SGD puro</b> (\(m = 1\)): pasos baratísimos y muy ruidosos.</li>
-        <li><b>Minilotes</b> (\(m\) entre 16 y 512, típicamente potencias de 2): el compromiso usado en la práctica. Aprovecha el paralelismo de las GPU y, con 4 veces más datos por lote, el ruido solo baja a la mitad (\(\sqrt{4} = 2\)), así que lotes enormes rinden poco por cálculo extra.</li>
-      </ul>
-      <p>Una <b>época</b> es una pasada completa por los datos de entrenamiento: con \(n = 50\,000\) y \(m = 100\), son 500 actualizaciones. Lo habitual es barajar los datos al comienzo de cada época y recorrerlos en minilotes sin reemplazo.</p>
-      <div class="callout"><b>El ruido ayuda:</b> el ruido del minilote permite escapar de puntos de silla y mesetas, y suele llevar a mínimos más “anchos”, que generalizan mejor. Pero también impide converger exactamente: con η fija, los parámetros oscilan alrededor del mínimo con una amplitud que crece con \(\eta/m\). Por eso se reduce la tasa a lo largo del entrenamiento y, si multiplicas el tamaño del lote por \(k\), una regla práctica es multiplicar η por \(k\) (o por \(\sqrt k\)).</div>
-
-      <h2 id="backprop-opt"><span class="sec">§ 8</span>Momentum, RMSProp y Adam</h2>
-      <p>El descenso de gradiente simple tiene dos defectos que viste en el laboratorio: zigzaguea en valles alargados y usa la misma tasa para todos los parámetros. Los optimizadores modernos atacan ambos.</p>
-      <p><b>Momentum.</b> Acumula una “velocidad” que es un promedio móvil exponencial de los gradientes. En la dirección del zigzag los gradientes cambian de signo y se cancelan; en la dirección del fondo del valle apuntan siempre igual y se suman:</p>
-      <div class="eq">\[ v_{t+1} = \beta\, v_t + \nabla\mathcal{L}(\theta_t), \qquad \theta_{t+1} = \theta_t - \eta\, v_{t+1} \]
-        <div class="note">Con \(\beta = 0{,}9\), en una pendiente constante la velocidad llega a \(1/(1-\beta) = 10\) veces el gradiente: la tasa efectiva es diez veces mayor en direcciones consistentes.</div>
-      </div>
-      <p><b>RMSProp.</b> Divide cada coordenada del gradiente por la raíz de un promedio móvil de sus cuadrados. Los parámetros con gradientes grandes dan pasos más cortos y los de gradientes chicos, pasos más largos: una tasa adaptativa por parámetro.</p>
-      <div class="eq">\[ s_{t+1} = \rho\, s_t + (1-\rho)\, g_t^2, \qquad \theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{s_{t+1}} + \varepsilon}\, g_t \]</div>
-      <p><b>Adam</b> combina las dos ideas y corrige el sesgo de arrancar los promedios en cero:</p>
-      <div class="eq">\[ m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t, \quad v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \quad \hat m_t = \frac{m_t}{1-\beta_1^t}, \quad \hat v_t = \frac{v_t}{1-\beta_2^t}, \quad \theta_t = \theta_{t-1} - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t} + \varepsilon} \]
-        <div class="note">Valores por defecto: \(\beta_1 = 0{,}9\), \(\beta_2 = 0{,}999\), \(\varepsilon = 10^{-8}\) y \(\eta = 10^{-3}\). Como \(\hat m/\sqrt{\hat v}\) tiene magnitud cercana a 1, cada parámetro se mueve unos \(\eta\) por paso, sin importar la escala de su gradiente.</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Optimizador</th><th>Ventaja</th><th>Cuidado</th></tr></thead>
-        <tbody>
-          <tr><td>SGD</td><td>simple; con buena tasa y calendario generaliza muy bien</td><td>sensible a η y al número de condición</td></tr>
-          <tr><td>SGD + momentum</td><td>acelera en valles alargados; estándar en visión</td><td>un hiperparámetro más (β)</td></tr>
-          <tr><td>RMSProp</td><td>tasa adaptativa; útil en redes recurrentes</td><td>sin momentum puede ser ruidoso</td></tr>
-          <tr><td>Adam / AdamW</td><td>funciona “de fábrica” en casi todo; estándar en transformers</td><td>a veces generaliza algo peor que SGD bien ajustado; usa AdamW para regularizar pesos</td></tr>
-        </tbody>
-      </table></div>
-      <p><b>Calendarios de la tasa.</b> Casi siempre conviene cambiar η durante el entrenamiento: un <i>calentamiento</i> (<i>warmup</i>) lineal en los primeros pasos, y luego un decaimiento por escalones, exponencial o en coseno, \(\eta_t = \eta_{\min} + \tfrac12(\eta_{\max} - \eta_{\min})\big(1 + \cos(\pi t/T)\big)\).</p>
-
-      <h2 id="backprop-practica"><span class="sec">§ 9</span>Diagnóstico práctico</h2>
-      <p>La herramienta principal es la <b>curva de aprendizaje</b>: la pérdida de entrenamiento y la de validación por época.</p>
-      <ul>
-        <li><b>La pérdida sube o da <code>NaN</code>:</b> η demasiado alta, o una división o logaritmo inestable. Baja η por un factor de 10, revisa los datos y usa las funciones combinadas de las librerías (por ejemplo, entropía cruzada que recibe los logits).</li>
-        <li><b>La pérdida baja muy lento:</b> η demasiado baja, entradas sin estandarizar o gradientes que se desvanecen. Prueba un barrido de η en escala logarítmica (\(10^{-4}, 10^{-3}, 10^{-2}, \dots\)).</li>
-        <li><b>Entrenamiento baja y validación sube:</b> sobreajuste. Usa <i>parada temprana</i> (quedarte con los pesos de la mejor época de validación), regularización \(L_2\) (<i>weight decay</i>), <i>dropout</i> o más datos.</li>
-        <li><b>Ambas altas y planas:</b> el modelo es muy chico, o la tasa es tan alta que rebota sin bajar.</li>
-      </ul>
-      <p><b>Inicialización.</b> Los pesos no pueden empezar todos iguales: neuronas idénticas recibirían gradientes idénticos y seguirían siendo iguales para siempre (problema de simetría). Se inicializan al azar con una varianza elegida para que la señal no crezca ni se encoja de capa en capa: \(\operatorname{Var}(w) = 1/n_{\text{entrada}}\) para tanh (Xavier o Glorot, que en su forma completa usa \(2/(n_{\text{entrada}} + n_{\text{salida}})\)) y \(2/n_{\text{entrada}}\) para ReLU (He).</p>
-      <p><b>Estandariza las entradas.</b> Variables en escalas muy distintas (edad en años, ingreso en pesos) producen valles alargados como el del laboratorio. Restar la media y dividir por la desviación típica de cada variable reduce el número de condición y acelera mucho el entrenamiento.</p>
+      <h2 id="backprop-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Tecnología: entrenar modelos de lenguaje</h3>
+      <p>Los grandes modelos de lenguaje se entrenan minimizando la entropía cruzada de predecir la siguiente palabra con AdamW, calentamiento lineal de la tasa y decaimiento en coseno, en minilotes de millones de tokens. GPT-3 (Brown y colaboradores, 2020), con 175 000 millones de parámetros, se entrenó así sobre unos 300 000 millones de tokens. Cada paso calcula el gradiente de todos los parámetros con retropropagación; sin ese algoritmo, cuyo costo es un múltiplo pequeño del paso hacia adelante, sería imposible. Las decisiones clave son la tasa máxima, el tamaño del lote y el calendario, que se eligen con experimentos pequeños y leyes de escala.</p>
+      <h3>Salud: imágenes médicas</h3>
+      <p>Gulshan y colaboradores (JAMA, 2016) entrenaron una red convolucional con unas 128 000 fotografías de retina para detectar retinopatía diabética, con sensibilidad y especificidad superiores al 90 % en conjuntos de validación independientes. El entrenamiento usó descenso de gradiente estocástico con minilotes y parada temprana según la pérdida de validación. La decisión práctica: usar el modelo como tamizaje en lugares sin oftalmólogos y derivar solo los casos positivos.</p>
+      <h3>Economía y estadística: estimar modelos por máxima verosimilitud</h3>
+      <p>La regresión logística de millones de registros de clics en publicidad en línea se ajusta con SGD en lugar del método de Newton, porque cada paso de Newton necesita invertir una matriz de \(d \times d\) con \(d\) en los millones (variables dispersas). McMahan y colaboradores (Google, 2013) describen un sistema de este tipo para predecir la probabilidad de clic. La decisión: qué anuncio mostrar y cuánto pujar, en milisegundos, con un modelo que se actualiza continuamente con cada minilote nuevo.</p>
+      <h3>Ciencias físicas y ambiente: diferenciación automática más allá de las redes</h3>
+      <p>La retropropagación es diferenciación automática en modo inverso, y se usa para ajustar modelos físicos. En meteorología, el sistema de asimilación de datos 4D-Var del Centro Europeo de Previsiones Meteorológicas a Plazo Medio (ECMWF) calcula el gradiente de la discrepancia entre el modelo y millones de observaciones respecto del estado inicial de la atmósfera con el “modelo adjunto”, que es el mismo paso hacia atrás. El gradiente permite elegir las condiciones iniciales del pronóstico que mejor explican las observaciones.</p>
 
       <h2 id="backprop-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
       <p>Programamos desde cero una red 2 → 16 → 1 (ReLU y sigmoide) para clasificar dos lunas con ruido: paso hacia adelante, retropropagación, verificación numérica del gradiente y entrenamiento con minilotes de 32 y Adam. Al final, la misma red con una librería.</p>
@@ -373,7 +456,7 @@ eta &lt;- <span class="n">0.01</span>; b1 &lt;- <span class="n">0.9</span>; b2 &
       </div>
       <p>Lo que debes ver: la derivada analítica y la numérica coinciden en muchas cifras, la pérdida de entrenamiento baja de cerca de 0,32 tras la primera época a menos de 0,1, y la exactitud en prueba ronda el 95 %. Una regresión logística sobre los mismos datos se queda cerca del 84 %, porque la frontera entre las lunas no es una recta: la capa oculta es la que aprende la curva.</p>
 
-      <h2 id="backprop-quiz"><span class="sec">§ 11</span>Comprueba</h2>
+      <h2 id="backprop-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="En una cuadrática con curvatura a, cada paso multiplica la distancia al mínimo por (1 − ηa). Con a = 10 y η = 0,25 el factor es −1,5: en valor absoluto mayor que 1, así que diverge. El límite es η &lt; 2/a = 0,2." data-wrong="Escribe la actualización θ ← θ − η·a·θ = (1 − ηa)θ y calcula el factor con a = 10 y η = 0,25. ¿Su valor absoluto es menor o mayor que 1?">
         <h3>Minimizas L(θ) = 5θ² (curvatura a = 10) con descenso de gradiente y η = 0,25. ¿Qué ocurre?</h3>
         <div class="opts">
@@ -404,30 +487,39 @@ eta &lt;- <span class="n">0.01</span>; b1 &lt;- <span class="n">0.9</span>; b2 &
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Con β₁ = 0,9 y m₀ = 0, el primer promedio es m₁ = 0,1·g₁, diez veces más chico que el gradiente. Dividir por 1 − β₁¹ = 0,1 lo deja en g₁. Sin corrección, los primeros pasos serían demasiado cortos." data-wrong="Escribe m₁ = β₁·m₀ + (1 − β₁)·g₁ con m₀ = 0. ¿Cuánto vale comparado con g₁ y qué hace la división por 1 − β₁ᵗ?">
+        <h3>¿Para qué sirve dividir por 1 − β₁ᵗ en Adam?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Para que la tasa de aprendizaje decrezca con el tiempo</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Para corregir que los promedios móviles empiezan en cero y subestiman el gradiente al inicio</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Para evitar dividir por cero cuando el gradiente es nulo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Para que Adam sea equivalente a SGD con momentum</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La pérdida de entrenamiento sigue bajando mientras la de validación sube: la red memoriza el ruido de los datos de entrenamiento. La parada temprana guarda los pesos de la mejor época de validación; la regularización y más datos también ayudan." data-wrong="Compara las dos curvas: ¿qué significa que una baje y la otra suba? ¿Es un problema de optimización o de generalización?">
+        <h3>Desde la época 15, la pérdida de entrenamiento sigue bajando pero la de validación sube. ¿Qué haces?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Subir la tasa de aprendizaje para bajar más rápido</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Entrenar el doble de épocas</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Parada temprana en la época 15, o más regularización</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Quitar la verificación del gradiente</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="backprop-ej"><span class="sec">§ 12</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos a mano antes de abrir la solución. El segundo laboratorio te sirve para comprobar el ejercicio 2.</p>
+      <h2 id="backprop-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución. Combinan derivaciones, cuentas a mano y simulación.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Minimizas \(L(w) = (w - 3)^2\) con descenso de gradiente desde \(w_0 = 0\) y \(\eta = 0{,}1\). Calcula \(w_1\), \(w_2\) y \(w_3\). ¿Qué valor de η llevaría al mínimo en un solo paso? ¿A partir de qué η diverge?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(L'(w) = 2(w-3)\), así que \(w_{t+1} = w_t - 0{,}2(w_t - 3)\), es decir \(w_{t+1} - 3 = 0{,}8\,(w_t - 3)\). Desde \(w_0 - 3 = -3\): \(w_1 = 0{,}6\), \(w_2 = 1{,}08\), \(w_3 = 1{,}464\). La curvatura es \(a = 2\): con \(\eta = 1/a = 0{,}5\) el factor es 0 y se llega a \(w = 3\) en un paso. Diverge si \(\eta &gt; 2/a = 1\) (con \(\eta = 1\) exacto oscila entre 0 y 6 para siempre).</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Una neurona con sigmoide recibe \(x = 2\), tiene \(w = 0{,}5\) y \(b = -1\), y la etiqueta es \(y = 1\). La pérdida es la entropía cruzada binaria. Calcula \(\hat p\), la pérdida, \(\partial L/\partial w\) y \(\partial L/\partial b\), y el nuevo \(w\) con \(\eta = 0{,}5\).</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(z = 0{,}5 \cdot 2 - 1 = 0\), así que \(\hat p = \sigma(0) = 0{,}5\) y \(L = -\log 0{,}5 = 0{,}693\). Con sigmoide y entropía cruzada, \(\partial L/\partial z = \hat p - y = -0{,}5\). Entonces \(\partial L/\partial w = -0{,}5 \cdot x = -1\) y \(\partial L/\partial b = -0{,}5\). El nuevo peso es \(w = 0{,}5 - 0{,}5\cdot(-1) = 1\) (y \(b = -0{,}75\)); ahora \(z = 1{,}25\), \(\hat p = 0{,}777\) y la pérdida baja a 0,252.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Tienes 60 000 imágenes de entrenamiento y usas minilotes de 128. (a) ¿Cuántas actualizaciones de pesos hay por época (redondeando hacia arriba)? (b) Entrenas 20 épocas con Adam: ¿cuánto vale la corrección de sesgo \(1 - \beta_1^t\) en el primer paso y en el último, con \(\beta_1 = 0{,}9\)? (c) Un compañero sube el lote a 1 024 y deja η igual: ¿qué esperas que pase y qué ajuste le sugieres?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(\lceil 60\,000/128 \rceil = 469\) actualizaciones (468 lotes completos y uno de 96). (b) En \(t = 1\), \(1 - 0{,}9 = 0{,}1\): sin corregir, \(m_1 = 0{,}1\,g_1\) sería 10 veces más chico que el gradiente; la corrección lo divide entre 0,1. En el último paso, \(t = 20 \times 469 = 9\,380\) y \(0{,}9^{9380} \approx 0\): la corrección vale 1 y ya no hace nada. (c) Con lotes 8 veces más grandes hay 8 veces menos actualizaciones por época (59), cada una con menos ruido. Con la misma η y el mismo número de épocas, la red avanza menos y suele terminar peor. La regla práctica es escalar η por 8 (o por \(\sqrt 8 \approx 2{,}8\) con Adam), con unas épocas de calentamiento para que no diverja al inicio.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Una red tiene entrada \(x \in \mathbb{R}^2\), capa oculta de 2 neuronas ReLU y salida lineal: \(\hat y = v^\top \operatorname{ReLU}(Wx + b) + c\), con pérdida \(\tfrac12(\hat y - y)^2\). Datos: \(x = (1, 2)\), \(y = 1\), \(W = \begin{pmatrix} 0{,}5 &amp; -0{,}5 \\ 0{,}2 &amp; 0{,}3\end{pmatrix}\), \(b = (0, 0)\), \(v = (1, -1)\), \(c = 0{,}5\). Calcula el paso hacia adelante y los gradientes respecto a \(v\), \(c\), \(W\) y \(b\). ¿Qué pasa con la primera neurona oculta y por qué es un riesgo de ReLU?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p><b>Adelante:</b> \(z = Wx + b = (0{,}5 - 1,\; 0{,}2 + 0{,}6) = (-0{,}5,\; 0{,}8)\); \(a = \operatorname{ReLU}(z) = (0,\; 0{,}8)\); \(\hat y = 1\cdot 0 - 1\cdot 0{,}8 + 0{,}5 = -0{,}3\); \(L = \tfrac12(-1{,}3)^2 = 0{,}845\).</p><p><b>Atrás:</b> \(\delta^{\text{sal}} = \hat y - y = -1{,}3\). \(\partial L/\partial v = \delta^{\text{sal}} a = (0,\; -1{,}04)\) y \(\partial L/\partial c = -1{,}3\). Error en la capa oculta: \(\delta = (v\,\delta^{\text{sal}}) \odot \mathbb{1}[z&gt;0] = (-1{,}3,\; 1{,}3)\odot(0, 1) = (0,\; 1{,}3)\). Entonces \(\partial L/\partial W = \delta\, x^\top = \begin{pmatrix} 0 &amp; 0 \\ 1{,}3 &amp; 2{,}6\end{pmatrix}\) y \(\partial L/\partial b = (0,\; 1{,}3)\).</p><p>La primera neurona tiene \(z &lt; 0\): su derivada ReLU es 0 y ninguno de sus pesos recibe gradiente. Si eso le pasa con <i>todas</i> las observaciones (por ejemplo, tras un paso demasiado grande que deja su sesgo muy negativo), la neurona queda “muerta” para siempre. Remedios: tasas más bajas, buena inicialización o variantes como Leaky ReLU, que tiene una pendiente pequeña para \(z &lt; 0\).</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que para la salida softmax \(\hat p_k = e^{z_k}/\sum_j e^{z_j}\) con pérdida \(\ell = -\sum_k y_k\log\hat p_k\) (con \(y\) one-hot) se cumple \(\partial\ell/\partial z = \hat p - y\). (b) Una red ReLU con entrada \(x = (1, 2)\), \(W = \begin{pmatrix} 0{,}5 &amp; -0{,}5 \\ 0{,}2 &amp; 0{,}3\end{pmatrix}\), \(b = 0\), salida lineal \(\hat y = v^\top\text{ReLU}(Wx + b) + c\) con \(v = (1, -1)\), \(c = 0{,}5\), \(y = 1\) y pérdida \(\tfrac12(\hat y - y)^2\): calcula todos los gradientes y explica qué le pasa a la primera neurona.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\ell = -z_c + \log\sum_j e^{z_j}\), con \(c\) la clase verdadera. Derivando: \(\partial\ell/\partial z_k = -\mathbb 1(k = c) + e^{z_k}/\sum_j e^{z_j} = \hat p_k - y_k\).</p>
+            <p>(b) <b>Adelante:</b> \(z = (0{,}5 - 1,\; 0{,}2 + 0{,}6) = (-0{,}5;\ 0{,}8)\); \(a = (0;\ 0{,}8)\); \(\hat y = -0{,}8 + 0{,}5 = -0{,}3\); \(L = 0{,}845\). <b>Atrás:</b> \(\delta^{\text{sal}} = -1{,}3\); \(\partial L/\partial v = (0;\ -1{,}04)\), \(\partial L/\partial c = -1{,}3\); \(\delta = (v\,\delta^{\text{sal}})\odot\mathbb 1[z &gt; 0] = (0;\ 1{,}3)\); \(\partial L/\partial W = \delta x^\top = \begin{pmatrix}0 &amp; 0\\ 1{,}3 &amp; 2{,}6\end{pmatrix}\), \(\partial L/\partial b = (0;\ 1{,}3)\).</p>
+            <p>La primera neurona tiene \(z &lt; 0\): su derivada ReLU es 0 y ninguno de sus pesos recibe gradiente. Si eso le pasa con todas las observaciones, queda “muerta” para siempre. Remedios: tasas más bajas, inicialización de He, Leaky ReLU.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 x, y = np.<span class="f">array</span>([<span class="n">1.</span>, <span class="n">2.</span>]), <span class="n">1.0</span>
 W = np.<span class="f">array</span>([[<span class="n">0.5</span>, -<span class="n">0.5</span>], [<span class="n">0.2</span>, <span class="n">0.3</span>]]); b = np.<span class="f">zeros</span>(<span class="n">2</span>)
@@ -444,7 +536,117 @@ z &lt;- <span class="f">drop</span>(W %*% x + b); a &lt;- <span class="f">pmax</
 d_out &lt;- yhat - y
 d_hid &lt;- v * d_out * (z &gt; <span class="n">0</span>)
 <span class="f">list</span>(yhat = yhat, dv = d_out * a, dW = <span class="f">outer</span>(d_hid, x), db = d_hid)</code></pre>
-</div></div></details>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Sea \(\mathcal L(\theta) = \frac12\theta^\top A\theta\) con \(A\) simétrica definida positiva de autovalores \(\lambda_{\min} = \lambda_1 \le \cdots \le \lambda_d = \lambda_{\max}\). (a) Muestra que el descenso de gradiente da \(\theta_t = (I - \eta A)^t\theta_0\) y que converge si y solo si \(0 &lt; \eta &lt; 2/\lambda_{\max}\). (b) Demuestra que la tasa que minimiza \(\max_i|1 - \eta\lambda_i|\) es \(\eta^* = 2/(\lambda_{\min} + \lambda_{\max})\), con razón \((\kappa - 1)/(\kappa + 1)\). (c) Con \(\kappa = 100\), ¿cuántas iteraciones hacen falta para reducir el error \(10^6\) veces?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\nabla\mathcal L = A\theta\), así que \(\theta_{t+1} = (I - \eta A)\theta_t\). Con \(A = Q\Lambda Q^\top\), en coordenadas \(u = Q^\top\theta\): \(u_{i,t} = (1 - \eta\lambda_i)^t u_{i,0}\). Converge para todo \(\theta_0\) si y solo si \(|1 - \eta\lambda_i| &lt; 1\) para todo \(i\), es decir \(0 &lt; \eta &lt; 2/\lambda_i\); la condición más exigente es la de \(\lambda_{\max}\).</p>
+            <p>(b) \(\max_i|1 - \eta\lambda_i| = \max\{|1 - \eta\lambda_{\min}|, |1 - \eta\lambda_{\max}|\}\), porque \(1 - \eta\lambda\) es lineal en \(\lambda\). El primer término decrece con \(\eta\) y el segundo crece (para \(\eta &gt; 1/\lambda_{\max}\)); el mínimo del máximo está donde se igualan: \(1 - \eta\lambda_{\min} = \eta\lambda_{\max} - 1\), o sea \(\eta^* = 2/(\lambda_{\min} + \lambda_{\max})\). La razón es \(1 - 2\lambda_{\min}/(\lambda_{\min} + \lambda_{\max}) = (\kappa - 1)/(\kappa + 1)\).</p>
+            <p>(c) Razón \(99/101 \approx 0{,}9802\). Necesitamos \(0{,}9802^t \le 10^{-6}\): \(t \ge \ln(10^{6})/(-\ln 0{,}9802) \approx 13{,}8/0{,}0198 \approx 698\) iteraciones. Con momentum óptimo (Polyak), la razón es \((\sqrt\kappa - 1)/(\sqrt\kappa + 1) = 9/11\) y bastan unas 69: momentum convierte \(\kappa\) en \(\sqrt\kappa\).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Sobre Adam. (a) Suponiendo gradientes estacionarios con \(E[g_t] = \bar g\) y \(E[g_t^2] = s\), demuestra que \(E[m_t] = (1 - \beta_1^t)\bar g\) y \(E[v_t] = (1 - \beta_2^t)s\), justificando la corrección de sesgo. (b) Muestra que la actualización de Adam (con \(\varepsilon = 0\)) es invariante si todos los gradientes se multiplican por una constante \(c &gt; 0\). (c) ¿Qué ventaja y qué riesgo tiene esa invariancia?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Desenrollando con \(m_0 = 0\): \(m_t = (1 - \beta_1) \sum_{k=1}^{t} \beta_1^{t-k} g_k\). Tomando esperanza: \(E[m_t] = (1 - \beta_1)\bar g\sum_{j=0}^{t-1}\beta_1^{j} = (1 - \beta_1)\bar g\,\frac{1 - \beta_1^t}{1 - \beta_1} = (1 - \beta_1^t)\bar g\). Igual para \(v_t\) con \(\beta_2\) y \(s\). Dividir por \(1 - \beta^t\) deja estimadores insesgados; con \(\beta_2 = 0{,}999\) la corrección importa durante miles de pasos.</p>
+            <p>(b) Si \(g \mapsto cg\), entonces \(m \mapsto cm\) y \(v \mapsto c^2v\), así que \(\hat m/\sqrt{\hat v} \mapsto cm/(c\sqrt v)\): no cambia.</p>
+            <p>(c) Ventaja: no hay que ajustar η a la escala de cada parámetro ni de la pérdida; capas con gradientes muy distintos avanzan a ritmos parecidos. Riesgo: cerca de un mínimo, donde los gradientes son pequeños, Adam sigue dando pasos de tamaño ≈ η y puede no converger finamente si η no decrece; además, la regularización \(L_2\) añadida al gradiente también se reescala, y por eso se prefiere AdamW (decaimiento de pesos separado).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación: ruido del SGD. Genera \(n = 10\,000\) datos de una regresión lineal con 5 predictores normales, \(\beta = (1, 2, 3, 4, 5)\) y error \(N(0, 1)\). Ajusta con SGD con minilotes durante 20 000 pasos y mide el error cuadrático medio \(\lVert\theta - \beta\rVert^2\) en los últimos 2 000 pasos. (a) Compara \(\eta = 0{,}1;\ 0{,}03;\ 0{,}01\) con \(m = 10\). (b) Compara \(m = 10\) y \(m = 40\) con \(\eta = 0{,}03\). (c) Prueba \(\eta_t = 0{,}1/(1 + t/500)\). Relaciona los resultados con la teoría.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+n, p = <span class="n">10000</span>, <span class="n">5</span>
+X = rng.<span class="f">normal</span>(size=(n, p)); beta = np.<span class="f">arange</span>(<span class="n">1</span>, p + <span class="n">1</span>)
+y = X @ beta + rng.<span class="f">normal</span>(size=n)
+
+<span class="k">def</span> <span class="f">sgd</span>(eta_fn, m=<span class="n">10</span>, pasos=<span class="n">20000</span>):
+    th, hist = np.<span class="f">zeros</span>(p), []
+    <span class="k">for</span> t <span class="k">in</span> <span class="f">range</span>(pasos):
+        idx = rng.<span class="f">integers</span>(<span class="n">0</span>, n, m)
+        g = X[idx].T @ (X[idx] @ th - y[idx]) / m
+        th -= <span class="f">eta_fn</span>(t) * g
+        hist.<span class="f">append</span>(np.<span class="f">sum</span>((th - beta)**<span class="n">2</span>))
+    <span class="k">return</span> np.<span class="f">mean</span>(hist[-<span class="n">2000</span>:])
+
+<span class="k">for</span> eta <span class="k">in</span> [<span class="n">0.1</span>, <span class="n">0.03</span>, <span class="n">0.01</span>]:
+    <span class="f">print</span>(<span class="s">"eta"</span>, eta, <span class="f">sgd</span>(<span class="k">lambda</span> t: eta))           <span class="c"># ≈ 0.029, 0.008, 0.0025</span>
+<span class="k">for</span> m <span class="k">in</span> [<span class="n">10</span>, <span class="n">40</span>]:
+    <span class="f">print</span>(<span class="s">"m"</span>, m, <span class="f">sgd</span>(<span class="k">lambda</span> t: <span class="n">0.03</span>, m=m))         <span class="c"># ≈ 0.009, 0.0027</span>
+<span class="f">print</span>(<span class="s">"decreciente"</span>, <span class="f">sgd</span>(<span class="k">lambda</span> t: <span class="n">0.1</span> / (<span class="n">1</span> + t / <span class="n">500</span>)))   <span class="c"># ≈ 0.0012</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
+n &lt;- <span class="n">10000</span>; p &lt;- <span class="n">5</span>
+X &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(n * p), n); beta &lt;- <span class="n">1</span>:p
+y &lt;- <span class="f">drop</span>(X %*% beta) + <span class="f">rnorm</span>(n)
+sgd &lt;- <span class="k">function</span>(eta_fn, m = <span class="n">10</span>, pasos = <span class="n">20000</span>) {
+  th &lt;- <span class="f">rep</span>(<span class="n">0</span>, p); hist &lt;- <span class="f">numeric</span>(pasos)
+  <span class="k">for</span> (t <span class="k">in</span> <span class="n">1</span>:pasos) {
+    idx &lt;- <span class="f">sample</span>(n, m, replace = <span class="k">TRUE</span>)
+    g &lt;- <span class="f">drop</span>(<span class="f">t</span>(X[idx, ]) %*% (X[idx, ] %*% th - y[idx])) / m
+    th &lt;- th - <span class="f">eta_fn</span>(t) * g
+    hist[t] &lt;- <span class="f">sum</span>((th - beta)^<span class="n">2</span>)
+  }
+  <span class="f">mean</span>(<span class="f">tail</span>(hist, <span class="n">2000</span>))
+}
+<span class="f">sapply</span>(<span class="f">c</span>(<span class="n">0.1</span>, <span class="n">0.03</span>, <span class="n">0.01</span>), <span class="k">function</span>(e) <span class="f">sgd</span>(<span class="k">function</span>(t) e))
+<span class="f">sgd</span>(<span class="k">function</span>(t) <span class="n">0.03</span>, m = <span class="n">40</span>)
+<span class="f">sgd</span>(<span class="k">function</span>(t) <span class="n">0.1</span> / (<span class="n">1</span> + t / <span class="n">500</span>))</code></pre>
+            </div>
+            <p>(a) Con tasa constante el error estacionario es ≈ 0,029, 0,008 y 0,0025: proporcional a η (dividir η por 3 divide el error por ≈ 3). (b) Cuadruplicar el lote baja el error de ≈ 0,009 a ≈ 0,0027, un factor ≈ 3,4, cercano al 4 que predice \(\operatorname{Var}(\hat g) \propto 1/m\): la amplitud de la nube es proporcional a \(\eta/m\). (c) La tasa decreciente, que cumple las condiciones de Robbins-Monro, combina pasos grandes al inicio con precisión al final y da el menor error (≈ 0,0012). Por eso todos los entrenamientos serios usan un calendario de η.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica: el gradiente que se desvanece. Construye una red de 20 capas densas de 64 neuronas. Inicializa con varianza \(1/64\) para la sigmoide y \(2/64\) (He) para la ReLU. Propaga una entrada aleatoria hacia adelante y un error aleatorio hacia atrás, y registra \(\lVert\delta^{(l)}\rVert\) en las capas 1, 10 y 20. Explica los resultados con la recursión de \(\delta\) y discute qué soluciones usan las arquitecturas modernas.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">def</span> <span class="f">normas</span>(act, L=<span class="n">20</span>, w=<span class="n">64</span>, seed=<span class="n">0</span>):
+    r = np.random.<span class="f">default_rng</span>(seed)
+    As, Ws, zs = [r.<span class="f">normal</span>(size=w)], [], []
+    <span class="k">for</span> l <span class="k">in</span> <span class="f">range</span>(L):
+        sd = np.<span class="f">sqrt</span>(<span class="n">2</span> / w) <span class="k">if</span> act == <span class="s">"relu"</span> <span class="k">else</span> np.<span class="f">sqrt</span>(<span class="n">1</span> / w)
+        W = r.<span class="f">normal</span>(scale=sd, size=(w, w)); z = W @ As[-<span class="n">1</span>]
+        a = np.<span class="f">maximum</span>(z, <span class="n">0</span>) <span class="k">if</span> act == <span class="s">"relu"</span> <span class="k">else</span> <span class="n">1</span> / (<span class="n">1</span> + np.<span class="f">exp</span>(-z))
+        Ws.<span class="f">append</span>(W); zs.<span class="f">append</span>(z); As.<span class="f">append</span>(a)
+    d, out = r.<span class="f">normal</span>(size=w), []
+    <span class="k">for</span> l <span class="k">in</span> <span class="f">reversed</span>(<span class="f">range</span>(L)):
+        der = (zs[l] &gt; <span class="n">0</span>) * <span class="n">1.0</span> <span class="k">if</span> act == <span class="s">"relu"</span> <span class="k">else</span> As[l + <span class="n">1</span>] * (<span class="n">1</span> - As[l + <span class="n">1</span>])
+        d = d * der; out.<span class="f">append</span>(np.<span class="f">linalg</span>.<span class="f">norm</span>(d)); d = Ws[l].T @ d
+    <span class="k">return</span> out[::-<span class="n">1</span>]
+<span class="k">for</span> act <span class="k">in</span> [<span class="s">"sigmoide"</span>, <span class="s">"relu"</span>]:
+    nr = <span class="f">normas</span>(act); <span class="f">print</span>(act, nr[<span class="n">0</span>], nr[<span class="n">9</span>], nr[-<span class="n">1</span>])
+<span class="c"># sigmoide ≈ 2e-12  1e-06  2.0      relu ≈ 11  8.8  6.5</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>normas &lt;- <span class="k">function</span>(act, L = <span class="n">20</span>, w = <span class="n">64</span>) {
+  <span class="f">set.seed</span>(<span class="n">0</span>)
+  A &lt;- <span class="f">list</span>(<span class="f">rnorm</span>(w)); Ws &lt;- <span class="f">list</span>(); zs &lt;- <span class="f">list</span>()
+  sd &lt;- <span class="k">if</span> (act == <span class="s">"relu"</span>) <span class="f">sqrt</span>(<span class="n">2</span> / w) <span class="k">else</span> <span class="f">sqrt</span>(<span class="n">1</span> / w)
+  <span class="k">for</span> (l <span class="k">in</span> <span class="n">1</span>:L) {
+    W &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(w * w, sd = sd), w); z &lt;- <span class="f">drop</span>(W %*% A[[l]])
+    A[[l + <span class="n">1</span>]] &lt;- <span class="k">if</span> (act == <span class="s">"relu"</span>) <span class="f">pmax</span>(z, <span class="n">0</span>) <span class="k">else</span> <span class="n">1</span> / (<span class="n">1</span> + <span class="f">exp</span>(-z))
+    Ws[[l]] &lt;- W; zs[[l]] &lt;- z
+  }
+  d &lt;- <span class="f">rnorm</span>(w); out &lt;- <span class="f">numeric</span>(L)
+  <span class="k">for</span> (l <span class="k">in</span> L:<span class="n">1</span>) {
+    der &lt;- <span class="k">if</span> (act == <span class="s">"relu"</span>) <span class="f">as.numeric</span>(zs[[l]] &gt; <span class="n">0</span>) <span class="k">else</span> A[[l + <span class="n">1</span>]] * (<span class="n">1</span> - A[[l + <span class="n">1</span>]])
+    d &lt;- d * der; out[l] &lt;- <span class="f">sqrt</span>(<span class="f">sum</span>(d^<span class="n">2</span>)); d &lt;- <span class="f">drop</span>(<span class="f">t</span>(Ws[[l]]) %*% d)
+  }
+  out[<span class="f">c</span>(<span class="n">1</span>, <span class="n">10</span>, L)]
+}
+<span class="f">normas</span>(<span class="s">"sigmoide"</span>); <span class="f">normas</span>(<span class="s">"relu"</span>)</code></pre>
+            </div>
+            <p>Con sigmoide, la norma del error cae de ≈ 2 en la capa 20 a ≈ \(10^{-6}\) en la 10 y ≈ \(10^{-12}\) en la 1: cada capa multiplica por \(\sigma'(z) \le 0{,}25\) y por \(W^\top\) (cuya escala con varianza \(1/64\) no compensa), así que las primeras capas reciben un gradiente billones de veces menor y prácticamente no aprenden. Con ReLU e inicialización de He la norma se mantiene del mismo orden (≈ 6 a 11): la mitad de las neuronas tiene derivada 1 y el factor 2 de la varianza compensa la otra mitad. Soluciones modernas: activaciones ReLU o GELU, inicialización de He o Xavier, normalización por lotes o por capa, conexiones residuales \(a^{(l+1)} = a^{(l)} + F(a^{(l)})\) (cuyo jacobiano es \(I + \partial F\), que no se desvanece) y, en redes recurrentes, celdas con compuertas como la <a href="#rnn">LSTM</a>.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

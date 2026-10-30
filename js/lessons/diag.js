@@ -99,7 +99,7 @@
     const { ctx, w, h } = f; ctx.clearRect(0, 0, w, h);
     const pad = { l: 40, r: 12, t: 12, b: 26 };
     let xs, ys, xlab, ylab = '', zero = null;
-    const labels = { res: ['Residuos vs ajustados', '— cero'], qq: ['Q-Q normal de residuos estandarizados', '— diagonal'], sl: ['Escala-ubicación: √|r| vs ajustados', ''], lev: ['Residuos estandarizados vs apalancamiento', '┄ Cook 0,5 y 1'] };
+    const labels = { res: ['Residuos vs ajustados', '─ cero'], qq: ['Q-Q normal de residuos estandarizados', '─ diagonal'], sl: ['Escala-ubicación: √|r| vs ajustados', ''], lev: ['Residuos estandarizados vs apalancamiento', '┄ Cook 0,5 y 1'] };
     $('diag-lbl-p').textContent = labels[S.plot][0]; $('diag-lbl-p2').textContent = labels[S.plot][1];
     if (S.plot === 'res') { xs = F.fitted; ys = F.e; zero = 0; }
     else if (S.plot === 'sl') { xs = F.fitted; ys = F.r.map(v => Math.sqrt(Math.abs(v))); }

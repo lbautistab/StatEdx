@@ -5,110 +5,304 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>La distribución normal</h1>
-      <p>La campana aparece en estaturas, errores de medición y promedios de casi cualquier cosa. Aquí aprendes a leerla: qué controlan μ y σ, cómo calcular áreas bajo la curva y cómo comparar valores con puntuaciones z.</p>
-      <div class="lmeta"><span>35 min</span><span>Nivel básico</span><span>Requiere: probabilidad básica</span><span>Python · SciPy</span></div>
+      <p>La campana aparece en estaturas, errores de medición y promedios de casi cualquier cosa. Aquí aprendes a leerla y a usarla con rigor: de dónde sale su fórmula, qué controlan μ y σ, cómo calcular áreas y cuantiles con puntuaciones z, cómo se comportan las sumas de normales, cuándo una normal aproxima a otra distribución y cómo comprobar si tus datos son normales.</p>
+      <div class="lmeta"><span>85 min</span><span>Nivel básico</span><span>Requiere: probabilidad básica</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#normal-idea" data-sec="normal-idea">La campana</a></li>
-        <li><a href="#normal-lab" data-sec="normal-lab">Laboratorio</a></li>
-        <li><a href="#normal-regla" data-sec="normal-regla">Regla 68-95-99,7</a></li>
-        <li><a href="#normal-z" data-sec="normal-z">Puntuaciones z</a></li>
+        <li><a href="#normal-intro" data-sec="normal-intro">Introducción</a></li>
+        <li><a href="#normal-def" data-sec="normal-def">Definición</a></li>
+        <li><a href="#normal-dens" data-sec="normal-dens">La densidad y sus momentos</a></li>
+        <li><a href="#normal-z" data-sec="normal-z">Estandarización y puntuaciones z</a></li>
+        <li><a href="#normal-comb" data-sec="normal-comb">Sumas y aproximaciones</a></li>
+        <li><a href="#normal-check" data-sec="normal-check">¿Son normales mis datos?</a></li>
+        <li><a href="#normal-prop" data-sec="normal-prop">Propiedades</a></li>
+        <li><a href="#normal-lab" data-sec="normal-lab">Ejercicios de simulación</a></li>
+        <li><a href="#normal-apps" data-sec="normal-apps">Aplicaciones reales</a></li>
         <li><a href="#normal-code" data-sec="normal-code">En R y Python</a></li>
-        <li><a href="#normal-quiz" data-sec="normal-quiz">Comprueba</a></li>
-        <li><a href="#normal-ej" data-sec="normal-ej">Ejercicios</a></li>
+        <li><a href="#normal-quiz" data-sec="normal-quiz">Quiz</a></li>
+        <li><a href="#normal-ej" data-sec="normal-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="normal-idea"><span class="sec">§ 1</span>La campana</h2>
-      <p>Piensa en la estatura de las personas adultas de una ciudad. La mayoría está cerca del promedio, hay menos personas muy bajas o muy altas, y la forma es simétrica. Esa forma se describe con dos números: la media \(\mu\), que dice dónde está el centro, y la desviación típica \(\sigma\), que dice qué tan ancha es la campana.</p>
-      <div class="eq">\[ f(x) = \frac{1}{\sigma\sqrt{2\pi}}\; e^{-\frac{(x-\mu)^2}{2\sigma^2}} \]
-        <div class="note">Escribimos \(X \sim \mathcal{N}(\mu, \sigma^2)\). La altura de la curva no es una probabilidad: la probabilidad es el <b>área</b> bajo la curva entre dos valores.</div>
+      <h2 id="normal-intro"><span class="sec">§ 1</span>Introducción</h2>
+      <p>Piensa en la estatura de las personas adultas de una ciudad. La mayoría está cerca del promedio, hay menos personas muy bajas o muy altas, y la forma es simétrica. Lo mismo pasa con el peso de las botellas que llena una máquina, con los errores al medir la distancia a una estrella o con el promedio de notas de un curso. Esa forma de campana se describe con solo dos números: la media \(\mu\), que dice dónde está el centro, y la desviación típica \(\sigma\), que dice qué tan ancha es.</p>
+      <p><b>Un poco de historia.</b> Abraham de Moivre encontró la curva en 1733 como aproximación a la binomial cuando el número de lanzamientos de una moneda es grande. Carl Friedrich Gauss la usó en 1809 como ley de los errores de observación astronómica y justificó con ella el método de mínimos cuadrados; por eso también se la llama <i>gaussiana</i>. Pierre-Simon Laplace demostró en 1810 una primera versión del Teorema del Límite Central, que explica por qué aparece tan a menudo: las sumas de muchos efectos pequeños e independientes tienden a ser normales. En el siglo XIX, Adolphe Quetelet la aplicó a medidas del cuerpo humano y Francis Galton construyó una máquina de bolitas (el <i>quincunx</i>) que la produce físicamente. El nombre “normal” lo popularizaron Galton y Karl Pearson a fines del siglo XIX.</p>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>a escribir la densidad normal y a demostrar que integra 1, con su media y su varianza;</li>
+          <li>a estandarizar con puntuaciones z y a calcular probabilidades y cuantiles con \(\Phi\);</li>
+          <li>a usar la regla 68-95-99,7 y a interpretar valores extremos;</li>
+          <li>a trabajar con sumas y combinaciones lineales de normales y con la aproximación normal a la binomial;</li>
+          <li>a evaluar si un conjunto de datos es compatible con la normal (Q-Q, asimetría, curtosis, Shapiro-Wilk);</li>
+          <li>a aplicar todo esto a control de calidad, salud, educación y finanzas en R y Python.</li>
+        </ul>
       </div>
 
-      <h2 id="normal-lab"><span class="sec">§ 2</span>Laboratorio</h2>
-      <p>Usamos estaturas con \(\mu = 170\) cm y \(\sigma = 8\) cm como punto de partida. Mueve los límites \(a\) y \(b\) para ver qué proporción de personas cae entre ellos, o cambia \(\mu\) y \(\sigma\) para ver cómo se desplaza y se ensancha la campana.</p>
+      <h2 id="normal-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> Una variable aleatoria continua \(X\) tiene <b>distribución normal</b> con parámetros \(\mu \in \mathbb{R}\) y \(\sigma &gt; 0\), y se escribe \(X \sim \mathcal{N}(\mu, \sigma^2)\), si su densidad es
+        \[ f(x) = \frac{1}{\sigma\sqrt{2\pi}}\; \exp\!\Big(-\frac{(x-\mu)^2}{2\sigma^2}\Big), \qquad x \in \mathbb{R}. \]
+        Con \(\mu = 0\) y \(\sigma = 1\) se llama <b>normal estándar</b>, \(Z \sim \mathcal{N}(0,1)\), con densidad \(\varphi(z) = e^{-z^2/2}/\sqrt{2\pi}\) y acumulada \(\Phi(z) = P(Z \le z)\).</div>
+      <p>Cada pieza de la fórmula tiene un papel:</p>
+      <ul>
+        <li>\((x - \mu)^2\): la densidad solo depende de la distancia al centro, así que es <b>simétrica</b> alrededor de \(\mu\), que es a la vez media, mediana y moda.</li>
+        <li>\(2\sigma^2\) en el denominador: \(\sigma\) es la escala. Al duplicarla, la campana se ensancha al doble.</li>
+        <li>\(\frac{1}{\sigma\sqrt{2\pi}}\): la constante que hace que el área total sea 1. Por eso, cuando la campana se ensancha, también baja.</li>
+        <li>El exponente cuadrático: las colas caen muy rápido. Valores a más de 4 desviaciones de la media casi no ocurren.</li>
+      </ul>
+      <p>Atención con la notación: el segundo parámetro de \(\mathcal{N}(\mu, \sigma^2)\) es la <b>varianza</b>, pero R (<code>sd =</code>) y SciPy (<code>scale=</code>) piden la <b>desviación típica</b>. La altura de la curva no es una probabilidad: como en toda <a href="#continuas">distribución continua</a>, la probabilidad es el <b>área</b> bajo la curva.</p>
+      <p><b>Ejemplo numérico.</b> Estaturas \(X \sim \mathcal{N}(170, 8^2)\) cm. La densidad en el centro vale \(f(170) = 1/(8\sqrt{2\pi}) \approx 0{,}0499\) por cm, y en 178 cm vale \(0{,}0499\cdot e^{-1/2} \approx 0{,}0302\). Para la probabilidad de medir menos de 180 cm calculamos \(z = (180 - 170)/8 = 1{,}25\) y \(P(X &lt; 180) = \Phi(1{,}25) \approx 0{,}894\): el 89,4 % de la población mide menos de 180 cm.</p>
+
+      <h2 id="normal-dens"><span class="sec">§ 3</span>La densidad y sus momentos</h2>
+      <p><b>Teorema.</b> \(\int_{-\infty}^{\infty} e^{-z^2/2}\,dz = \sqrt{2\pi}\). En consecuencia \(f\) es una densidad.</p>
+      <p><b>Demostración (truco de Poisson).</b> Llama \(I\) a la integral y calcula su cuadrado como una integral doble, pasando a coordenadas polares \(x = r\cos\theta\), \(y = r\sin\theta\), con \(dx\,dy = r\,dr\,d\theta\):</p>
+      <div class="eq">\[ I^2 = \int\!\!\int e^{-(x^2+y^2)/2}\,dx\,dy = \int_0^{2\pi}\!\!\int_0^\infty e^{-r^2/2}\,r\,dr\,d\theta = 2\pi\Big[-e^{-r^2/2}\Big]_0^\infty = 2\pi \]
+        <div class="note">Así \(I = \sqrt{2\pi}\). Para la normal general, el cambio \(z = (x - \mu)/\sigma\), \(dx = \sigma\,dz\), produce el factor \(\sigma\) del denominador.</div>
+      </div>
+      <p><b>Media.</b> Con \(Z\) estándar, \(E[Z] = \int z\varphi(z)\,dz = 0\) porque el integrando es impar y la integral converge. <b>Varianza.</b> Integrando por partes con \(u = z\) y \(dv = z\varphi(z)\,dz\) (cuya primitiva es \(-\varphi(z)\)):</p>
+      <div class="eq">\[ E[Z^2] = \int_{-\infty}^{\infty} z \cdot z\varphi(z)\,dz = \Big[-z\varphi(z)\Big]_{-\infty}^{\infty} + \int_{-\infty}^{\infty}\varphi(z)\,dz = 0 + 1 = 1 \]
+        <div class="note">Como \(X = \mu + \sigma Z\), por linealidad \(E[X] = \mu\) y \(\operatorname{Var}(X) = \sigma^2\operatorname{Var}(Z) = \sigma^2\). Los parámetros de la fórmula son exactamente la media y la varianza.</div>
+      </div>
+      <p><b>Generadora de momentos.</b> Completando el cuadrado en el exponente, \(tz - z^2/2 = -\tfrac12(z - t)^2 + t^2/2\), se obtiene</p>
+      <div class="eq">\[ M_Z(t) = E[e^{tZ}] = e^{t^2/2}, \qquad M_X(t) = E[e^{t(\mu + \sigma Z)}] = e^{\mu t + \sigma^2 t^2/2} \]
+        <div class="note">Desarrollando \(e^{t^2/2} = \sum_k t^{2k}/(2^k k!)\) se leen todos los momentos: los impares de \(Z\) son 0 y \(E[Z^4] = 3\). Por eso la <b>curtosis</b> de cualquier normal es 3 (exceso 0) y su <b>asimetría</b> es 0, y estos números sirven de referencia para comparar datos.</div>
+      </div>
+      <p><b>Forma de la curva.</b> \(f'(x) = -\frac{x-\mu}{\sigma^2}f(x)\) se anula solo en \(\mu\) (el máximo), y \(f''(x) = \big(\frac{(x-\mu)^2}{\sigma^4} - \frac{1}{\sigma^2}\big)f(x)\) se anula en \(\mu \pm \sigma\): los <b>puntos de inflexión</b> están exactamente a una desviación del centro. Es la forma de “ver” \(\sigma\) en un gráfico.</p>
+
+      <h2 id="normal-z"><span class="sec">§ 4</span>Estandarización y puntuaciones z</h2>
+      <p><b>Teorema (estandarización).</b> Si \(X \sim \mathcal{N}(\mu, \sigma^2)\), entonces \(Z = (X - \mu)/\sigma \sim \mathcal{N}(0, 1)\). Prueba: \(P(Z \le z) = P(X \le \mu + \sigma z) = \int_{-\infty}^{\mu+\sigma z} f(x)\,dx\), y el cambio \(u = (x-\mu)/\sigma\) la convierte en \(\int_{-\infty}^{z}\varphi(u)\,du = \Phi(z)\).</p>
+      <div class="eq">\[ z = \frac{x - \mu}{\sigma}, \qquad P(X \le x) = \Phi\Big(\frac{x - \mu}{\sigma}\Big), \qquad x_p = \mu + \sigma\,z_p \]
+        <div class="note">La puntuación \(z\) dice a cuántas desviaciones típicas está un valor de la media. Sirve para comparar cosas medidas en escalas distintas. \(z_p = \Phi^{-1}(p)\) es el cuantil estándar: \(z_{0{,}90} = 1{,}2816\), \(z_{0{,}95} = 1{,}6449\), \(z_{0{,}975} = 1{,}9600\), \(z_{0{,}995} = 2{,}5758\).</div>
+      </div>
+      <p>\(\Phi\) no tiene fórmula cerrada (se expresa con la función de error, \(\Phi(z) = \tfrac12[1 + \operatorname{erf}(z/\sqrt2)]\)), así que se usa una tabla o una función: <code>pnorm</code> en R, <code>norm.cdf</code> en SciPy. Por simetría, \(\Phi(-z) = 1 - \Phi(z)\): basta tabular los \(z\) positivos.</p>
+      <p><b>La regla 68-95-99,7.</b> Para cualquier normal, sin importar \(\mu\) ni \(\sigma\), \(P(|X - \mu| &lt; k\sigma) = 2\Phi(k) - 1\):</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Intervalo</th><th>Probabilidad dentro</th><th>Fuera (dos colas)</th><th>Fuera, una cola</th></tr></thead>
+        <tbody>
+          <tr><td>\(\mu \pm 1\sigma\)</td><td>68,27 %</td><td>31,73 %</td><td>15,87 %</td></tr>
+          <tr><td>\(\mu \pm 2\sigma\)</td><td>95,45 %</td><td>4,55 %</td><td>2,28 %</td></tr>
+          <tr><td>\(\mu \pm 3\sigma\)</td><td>99,73 %</td><td>0,27 %</td><td>0,13 %</td></tr>
+          <tr><td>\(\mu \pm 1{,}96\sigma\)</td><td>95,00 %</td><td>5,00 %</td><td>2,50 %</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Ejemplo resuelto.</b> Ana sacó 82 en un examen con \(\mu = 70\) y \(\sigma = 8\); Beto sacó 88 en otro examen con \(\mu = 75\) y \(\sigma = 10\). \(z_{\text{Ana}} = 12/8 = 1{,}5\) y \(z_{\text{Beto}} = 13/10 = 1{,}3\). Ana superó al \(\Phi(1{,}5) \approx 93{,}3\,\%\) de su curso y Beto al \(\Phi(1{,}3) \approx 90{,}3\,\%\) del suyo: Ana tuvo mejor desempeño relativo aunque su nota sea menor. Y con estaturas \(\mathcal{N}(170, 8^2)\), el 5 % más alto empieza en \(170 + 1{,}645 \cdot 8 \approx 183{,}2\) cm.</p>
+      <div class="callout"><b>Para recordar:</b> un valor a más de 3σ de la media es muy raro bajo normalidad (3 de cada 1 000). Cuando lo ves en datos reales, vale la pena revisar si es un error, un caso especial o una señal de que la distribución tiene colas más pesadas que la normal (ver <a href="#atipicos">valores atípicos</a>).</div>
+
+      <h2 id="normal-comb"><span class="sec">§ 5</span>Sumas, combinaciones lineales y aproximaciones</h2>
+      <p><b>Teorema (cerradura lineal).</b> Si \(X_1, \dots, X_n\) son independientes con \(X_i \sim \mathcal{N}(\mu_i, \sigma_i^2)\) y \(a_i, b\) son constantes, entonces</p>
+      <div class="eq">\[ b + \sum_{i=1}^n a_i X_i \;\sim\; \mathcal{N}\Big(b + \sum_i a_i\mu_i,\ \sum_i a_i^2\sigma_i^2\Big) \]
+        <div class="note">Prueba con la generadora: \(E[e^{t(b + \sum a_iX_i)}] = e^{bt}\prod_i e^{a_i\mu_i t + a_i^2\sigma_i^2t^2/2}\), que es la generadora de una normal con esa media y esa varianza. Las medias se suman con signo; las varianzas se suman <b>siempre</b> (con \(a_i^2\)), también al restar.</div>
+      </div>
+      <p>Dos consecuencias muy usadas. (1) La <b>media muestral</b> de \(n\) observaciones \(\mathcal{N}(\mu, \sigma^2)\) es exactamente \(\bar X \sim \mathcal{N}(\mu, \sigma^2/n)\): la base de los <a href="#ic">intervalos de confianza</a> y del <a href="#tlc">TLC</a>, que extiende el resultado (de forma aproximada) a cualquier distribución con varianza finita. (2) La <b>diferencia</b> de dos normales independientes es normal con varianza \(\sigma_1^2 + \sigma_2^2\).</p>
+      <p><b>Ejemplo resuelto.</b> Un buje tiene diámetro interior \(B \sim \mathcal{N}(25{,}10;\ 0{,}03^2)\) mm y un eje, diámetro \(E \sim \mathcal{N}(25{,}00;\ 0{,}04^2)\) mm. La holgura \(D = B - E\) es \(\mathcal{N}(0{,}10;\ 0{,}03^2 + 0{,}04^2) = \mathcal{N}(0{,}10;\ 0{,}05^2)\). La pieza no encaja si \(D &lt; 0\): \(P(D &lt; 0) = \Phi(-0{,}10/0{,}05) = \Phi(-2) \approx 0{,}0228\). Un 2,3 % de los pares no encaja, aunque la holgura media sea positiva.</p>
+      <p><b>Aproximación normal a la binomial.</b> Si \(X \sim \text{Bin}(n, p)\) con \(np\) y \(n(1-p)\) mayores que 10, \(X\) es aproximadamente \(\mathcal{N}(np,\ np(1-p))\) (teorema de De Moivre-Laplace, ver <a href="#discretas">discretas</a>). Como la binomial es discreta, se usa la <b>corrección por continuidad</b>: \(P(X \le k) \approx \Phi\big(\frac{k + 0{,}5 - np}{\sqrt{np(1-p)}}\big)\). Con \(n = 400\), \(p = 0{,}3\) y \(k = 105\): la exacta es 0,0555, la normal sin corrección da 0,0509 y con corrección 0,0568.</p>
+      <p><b>Mezclas no son normales.</b> La suma de normales es normal, pero la <i>mezcla</i> no: si en una población hay dos grupos con medias distintas (por ejemplo, estaturas de hombres y mujeres juntas), el histograma puede ser bimodal o achatado. La normalidad se pierde cuando hay subpoblaciones.</p>
+
+      <h2 id="normal-check"><span class="sec">§ 6</span>¿Son normales mis datos?</h2>
+      <p>Muchos métodos (la <a href="#ttest">prueba t</a>, el <a href="#anova">ANOVA</a>, la <a href="#reg">regresión lineal</a>) suponen normalidad, al menos de los residuos. Antes de confiar en ellos conviene revisar el supuesto con tres herramientas complementarias.</p>
+      <ul>
+        <li><b>Gráfico Q-Q normal.</b> Ordena los datos estandarizados \(z_{(1)} \le \cdots \le z_{(n)}\) y grafícalos contra los cuantiles teóricos \(\Phi^{-1}\big(\frac{i - 0{,}5}{n}\big)\). Si los datos son normales, los puntos siguen la recta \(y = x\). Una curva en forma de U indica asimetría a la derecha; una S “acostada” con extremos que se alejan de la recta indica colas pesadas; extremos que se acercan al centro indican colas cortas.</li>
+        <li><b>Asimetría y curtosis muestrales.</b> \(g_1 = \frac1n\sum z_i^3\) y \(g_2 = \frac1n\sum z_i^4 - 3\). Bajo normalidad ambas están cerca de 0, con errores estándar aproximados \(\sqrt{6/n}\) y \(\sqrt{24/n}\).</li>
+        <li><b>Pruebas formales.</b> Shapiro-Wilk (la más potente en muestras pequeñas y medianas), Anderson-Darling o Kolmogorov-Smirnov con corrección de Lilliefors. La hipótesis nula es “los datos son normales”.</li>
+      </ul>
+      <div class="callout"><b>Interpretación crítica:</b> con \(n\) pequeño las pruebas tienen poca potencia y casi nunca rechazan; con \(n\) muy grande rechazan por desviaciones mínimas sin importancia práctica. Por eso el gráfico Q-Q y el contexto pesan más que el valor p. Y recuerda que no rechazar no prueba la normalidad (ver <a href="#ph">pruebas de hipótesis</a>). Si los datos son claramente asimétricos y positivos, una <a href="#transform">transformación logarítmica o Box-Cox</a> suele acercarlos a la normal.</div>
+
+      <h2 id="normal-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Simetría.</b> \(f(\mu + d) = f(\mu - d)\) y \(\Phi(-z) = 1 - \Phi(z)\). Media, mediana y moda coinciden en \(\mu\). Se sigue de que la densidad depende de \((x-\mu)^2\).</li>
+        <li><b>Invariancia por transformaciones afines.</b> Si \(X \sim \mathcal{N}(\mu, \sigma^2)\), \(aX + b \sim \mathcal{N}(a\mu + b,\ a^2\sigma^2)\) para \(a \ne 0\). Prueba: cambio de variable con jacobiano \(1/|a|\). Así, pasar de °C a °F mantiene la normalidad.</li>
+        <li><b>Reproductividad.</b> Combinaciones lineales de normales independientes son normales, con medias que se suman linealmente y varianzas que se suman con coeficientes al cuadrado (§ 5).</li>
+        <li><b>Momentos.</b> \(M_X(t) = e^{\mu t + \sigma^2t^2/2}\); asimetría 0, curtosis 3; \(E|X - \mu| = \sigma\sqrt{2/\pi} \approx 0{,}798\sigma\). Este último resultado relaciona la desviación media absoluta con \(\sigma\).</li>
+        <li><b>Puntos de inflexión en \(\mu \pm \sigma\)</b>, porque \(f''\) se anula donde \((x-\mu)^2 = \sigma^2\).</li>
+        <li><b>Cotas de las colas (razón de Mills).</b> Para \(z &gt; 0\): \(\big(\frac1z - \frac1{z^3}\big)\varphi(z) \le 1 - \Phi(z) \le \frac{\varphi(z)}{z}\). Las colas decaen como \(e^{-z^2/2}\), mucho más rápido que las de la t o la Cauchy.</li>
+        <li><b>Máxima entropía.</b> Entre todas las distribuciones con media y varianza dadas, la normal es la de mayor entropía: es el supuesto “menos informativo” cuando solo conoces esos dos momentos.</li>
+        <li><b>Independencia de \(\bar X\) y \(S^2\).</b> En muestras normales, la media y la varianza muestrales son independientes y \((n-1)S^2/\sigma^2 \sim \chi^2_{n-1}\). Esto caracteriza a la normal (teorema de Geary) y es la base de la distribución t de Student.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes:</b>
+        <ul>
+          <li>Pasar la varianza donde el software pide la desviación: <code>pnorm(x, 170, 64)</code> no es \(\mathcal{N}(170, 8^2)\).</li>
+          <li>Sumar desviaciones típicas en vez de varianzas: la desviación de \(X - Y\) es \(\sqrt{\sigma_X^2 + \sigma_Y^2}\), no \(\sigma_X - \sigma_Y\) ni \(\sigma_X + \sigma_Y\).</li>
+          <li>Suponer que cualquier variable “de la naturaleza” es normal: ingresos, tiempos y conteos suelen ser asimétricos, y los rendimientos financieros tienen colas pesadas.</li>
+          <li>Leer la altura de la curva como probabilidad, o usar la regla 68-95-99,7 en datos claramente asimétricos.</li>
+          <li>Concluir “los datos son normales” porque la prueba de Shapiro-Wilk no rechazó con 15 observaciones.</li>
+        </ul>
+      </div>
+
+      <h2 id="normal-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p>En el primer simulador usamos estaturas con \(\mu = 170\) cm y \(\sigma = 8\) cm como punto de partida. Mueve los límites \(a\) y \(b\) para ver qué proporción de personas cae entre ellos, o cambia \(\mu\) y \(\sigma\) para ver cómo se desplaza y se ensancha la campana.</p>
       <figure class="instrument lab">
-        <div class="instrument-head"><span><span class="dot"></span>simulador · área bajo la normal</span><span class="num" id="nm-head">–</span></div>
+        <div class="instrument-head"><span><span class="dot"></span>simulador · área bajo la normal</span><span class="num" id="normal-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
-            <div class="ctrl"><label for="nm-mu">MEDIA · μ = <b id="nm-mu-v" class="num">170</b> cm</label><input id="nm-mu" type="range" min="150" max="190" value="170"></div>
-            <div class="ctrl"><label for="nm-sd">DESVIACIÓN · σ = <b id="nm-sd-v" class="num">8</b> cm</label><input id="nm-sd" type="range" min="3" max="15" value="8"></div>
+            <div class="ctrl"><label for="normal-mu">MEDIA · μ = <b id="normal-mu-v" class="num">170</b> cm</label><input id="normal-mu" type="range" min="150" max="190" value="170"></div>
+            <div class="ctrl"><label for="normal-sd">DESVIACIÓN · σ = <b id="normal-sd-v" class="num">8</b> cm</label><input id="normal-sd" type="range" min="3" max="15" value="8"></div>
           </div>
           <div class="controls">
-            <div class="ctrl"><label for="nm-a">LÍMITE a = <b id="nm-a-v" class="num">162</b> cm</label><input id="nm-a" type="range" min="130" max="210" value="162"></div>
-            <div class="ctrl"><label for="nm-b">LÍMITE b = <b id="nm-b-v" class="num">178</b> cm</label><input id="nm-b" type="range" min="130" max="210" value="178"></div>
+            <div class="ctrl"><label for="normal-a">LÍMITE a = <b id="normal-a-v" class="num">162</b> cm</label><input id="normal-a" type="range" min="130" max="210" value="162"></div>
+            <div class="ctrl"><label for="normal-b">LÍMITE b = <b id="normal-b-v" class="num">178</b> cm</label><input id="normal-b" type="range" min="130" max="210" value="178"></div>
             <div class="ctrl">
-              <label id="nm-pre-label">ATAJOS</label>
-              <div class="seg" id="nm-pre" role="group" aria-labelledby="nm-pre-label">
+              <label id="normal-pre-label">ATAJOS</label>
+              <div class="seg" id="normal-pre" role="group" aria-labelledby="normal-pre-label">
                 <button data-k="1" aria-pressed="true">μ ± 1σ</button>
                 <button data-k="2" aria-pressed="false">μ ± 2σ</button>
                 <button data-k="3" aria-pressed="false">μ ± 3σ</button>
               </div>
             </div>
           </div>
-          <canvas class="plot" id="c-normal" height="260" aria-label="Curva normal con el área entre a y b sombreada"></canvas>
+          <canvas class="plot" id="normal-c-curve" height="260" aria-label="Curva normal con el área entre a y b sombreada"></canvas>
           <div class="readout">
-            <div><span>P(a &lt; X &lt; b)</span><b id="nm-p">–</b></div>
-            <div><span>z de a</span><b id="nm-za">–</b></div>
-            <div><span>z de b</span><b id="nm-zb">–</b></div>
-            <div><span>fuera del intervalo</span><b id="nm-out">–</b></div>
+            <div><span>P(a &lt; X &lt; b)</span><b id="normal-p">–</b></div>
+            <div><span>z de a</span><b id="normal-za">–</b></div>
+            <div><span>z de b</span><b id="normal-zb">–</b></div>
+            <div><span>fuera del intervalo</span><b id="normal-out">–</b></div>
           </div>
         </div>
         <figcaption>Cambia σ con los atajos activos: los límites se mueven con la campana y el área no cambia. Eso es lo que hace útil a la regla 68-95-99,7.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con el atajo μ ± 2σ activo, mueve σ de 3 a 15. ¿Cambia el área sombreada?
+          <details><summary>Qué deberías observar</summary><p>No: el área se queda en 95,45 % porque los límites se mueven con σ. Lo que importa es la distancia en unidades de σ, es decir, el valor de z. La curva se ensancha y baja, pero el área total sigue siendo 1.</p></details></li>
+        <li>Fija μ = 170 y σ = 8, pon a = 130 y mueve b hasta que el área sea cerca de 90 %.
+          <details><summary>Qué deberías observar</summary><p>Ocurre cerca de b = 180 cm (el percentil 90 exacto es 180,25), y el readout muestra z de b ≈ 1,25 a 1,28. Así se lee un cuantil: el valor que deja una probabilidad dada a la izquierda.</p></details></li>
+        <li>Pon a = 186 y b = 210 con μ = 170 y σ = 8. Luego cambia a σ = 12.
+          <details><summary>Qué deberías observar</summary><p>Con σ = 8, z de a = 2 y el área es ≈ 2,28 %. Con σ = 12, z de a ≈ 1,33 y el área sube a ≈ 9,1 %: un aumento de la dispersión multiplica por cuatro la proporción de personas muy altas. Las colas son muy sensibles a σ.</p></details></li>
+        <li>Fija a = 162 y b = 178 y mueve μ de 170 a 178.
+          <details><summary>Qué deberías observar</summary><p>El área baja de 68,3 % a ≈ 47,7 %: el intervalo ya no está centrado. Un intervalo de largo fijo captura la máxima probabilidad cuando está centrado en la media.</p></details></li>
+      </ol>
+      <p>El segundo simulador genera una muestra de la distribución que elijas, la estandariza y la compara con la normal de dos formas: el histograma con la curva \(\mathcal{N}(0,1)\) y el gráfico Q-Q. Los puntos que se alejan más de media unidad de la recta se marcan con otro color.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · ¿son normales mis datos?</span><span class="num" id="normal-qq-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="normal-qq-dist-label">DATOS</label>
+              <div class="seg" id="normal-qq-dist" role="group" aria-labelledby="normal-qq-dist-label">
+                <button data-d="nor" aria-pressed="true">Normal</button>
+                <button data-d="log" aria-pressed="false">Sesgada</button>
+                <button data-d="t3" aria-pressed="false">Colas t₃</button>
+                <button data-d="uni" aria-pressed="false">Uniforme</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="normal-qq-n">TAMAÑO · n = <b id="normal-qq-n-v" class="num">200</b></label><input id="normal-qq-n" type="range" min="20" max="1000" step="10" value="200"></div>
+            <button class="btn btn-ghost btn-sm" id="normal-qq-new" type="button">Nueva muestra</button>
+          </div>
+          <div>
+            <div class="plot-label"><span>Histograma de los datos estandarizados</span><span>curva: N(0, 1)</span></div>
+            <canvas class="plot" id="normal-c-hist" height="170" aria-label="Histograma de la muestra estandarizada con la densidad normal estándar"></canvas>
+          </div>
+          <div>
+            <div class="plot-label"><span>Gráfico Q-Q normal</span><span>recta: y = x</span></div>
+            <canvas class="plot" id="normal-c-qq" height="250" aria-label="Gráfico cuantil-cuantil de la muestra estandarizada contra la normal estándar"></canvas>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>dato cerca de la recta</span><span><i style="background:var(--hot)"></i>dato a más de 0,5 de la recta</span><span><i style="background:var(--ink)"></i>referencia normal</span></div>
+          <div class="readout">
+            <div><span>dentro de x̄ ± s</span><b id="normal-qq-in1">–</b></div>
+            <div><span>dentro de x̄ ± 2s</span><b id="normal-qq-in2">–</b></div>
+            <div><span>asimetría g₁</span><b id="normal-qq-sk">–</b></div>
+            <div><span>exceso de curtosis g₂</span><b id="normal-qq-ku">–</b></div>
+          </div>
+        </div>
+        <figcaption>Con datos normales, cerca del 68 % y del 95 % caen dentro de 1 y 2 desviaciones, y g₁ y g₂ quedan cerca de 0. Las otras distribuciones rompen la regla de formas distintas, y el gráfico Q-Q muestra cómo.</figcaption>
+      </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Elige “Normal” con n = 20 y pulsa “Nueva muestra” varias veces. Luego repite con n = 1 000.
+          <details><summary>Qué deberías observar</summary><p>Con n = 20, aun siendo normales, los puntos del Q-Q se apartan bastante de la recta en los extremos y g₂ puede valer ±1. Con n = 1 000 los puntos se pegan a la recta. Moraleja: con muestras pequeñas no exijas un Q-Q perfecto.</p></details></li>
+        <li>Elige “Sesgada” (lognormal) con n = 500.
+          <details><summary>Qué deberías observar</summary><p>El Q-Q tiene forma de U (cóncava hacia arriba): los cuantiles bajos quedan por encima de la recta y los altos muy por encima. g₁ suele quedar entre 2 y 3. El histograma muestra una cola larga a la derecha.</p></details></li>
+        <li>Elige “Colas t₃” (t con 3 grados de libertad) con n = 500 y compara el porcentaje dentro de x̄ ± s con 68 %.
+          <details><summary>Qué deberías observar</summary><p>El porcentaje dentro de x̄ ± s sube (suele estar entre 75 % y 88 %) porque la masa se concentra en el centro, mientras unos pocos valores extremos inflan s. El Q-Q tiene forma de S con los extremos fuera de la recta y g₂ es grande y muy variable.</p></details></li>
+        <li>Elige “Uniforme” con n = 500.
+          <details><summary>Qué deberías observar</summary><p>Ningún dato sale de x̄ ± 2s (dentro ≈ 100 %), y g₂ ≈ −1,2: colas más cortas que la normal. En el Q-Q los extremos se curvan hacia el centro, formando una S invertida.</p></details></li>
+      </ol>
 
-      <h2 id="normal-regla"><span class="sec">§ 3</span>La regla 68-95-99,7</h2>
-      <p>Para cualquier normal, sin importar \(\mu\) ni \(\sigma\):</p>
-      <ul>
-        <li>cerca del <b>68 %</b> de los valores cae a menos de 1 desviación de la media,</li>
-        <li>cerca del <b>95 %</b> cae a menos de 2 desviaciones,</li>
-        <li>cerca del <b>99,7 %</b> cae a menos de 3 desviaciones.</li>
-      </ul>
-      <div class="callout"><b>Para recordar:</b> un valor a más de 3σ de la media es muy raro (3 de cada 1 000). Cuando lo ves en datos reales, vale la pena revisar si es un error o un caso especial.</div>
+      <h2 id="normal-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Salud: curvas de crecimiento infantil</h3>
+      <p>Los Patrones de Crecimiento Infantil de la OMS (2006) expresan la talla, el peso y el índice de masa corporal de niños y niñas como puntuaciones z respecto de una población de referencia sana, para cada edad y sexo. Para la talla a los 24 meses, la mediana de referencia en niños es de unos 87 cm con una desviación de unos 3,2 cm. Un niño de 80,5 cm tiene \(z \approx (80{,}5 - 87{,}1)/3{,}2 \approx -2{,}06\). La OMS define el <b>retraso del crecimiento</b> como talla para la edad con \(z &lt; -2\) (bajo la normal de referencia, el 2,3 % de los niños sanos). La decisión: derivar al niño a evaluación nutricional, y a nivel país, medir la prevalencia de desnutrición crónica con un criterio comparable entre poblaciones.</p>
+      <h3>Industria: capacidad de proceso y gráficos de control</h3>
+      <p>Walter Shewhart introdujo en los años 1920, en los Laboratorios Bell, los gráficos de control con límites a \(\pm 3\sigma\): bajo normalidad, un punto fuera de ellos ocurre por azar solo 27 veces en 10 000, así que se interpreta como señal de una causa especial. Una línea llena botellas con especificación \(500 \pm 8\) ml; si el proceso tiene media 501 ml y \(\sigma = 2{,}5\) ml, la fracción fuera de especificación es \(\Phi(-3{,}6) + 1 - \Phi(2{,}8) \approx 0{,}0027\) (unas 2 700 botellas por millón) y el índice de capacidad es \(C_{pk} = \min(508 - 501,\ 501 - 492)/(3 \cdot 2{,}5) \approx 0{,}93\). La práctica industrial exige \(C_{pk} \ge 1{,}33\). La decisión: centrar el proceso y reducir la variabilidad antes de aumentar la producción. El enfoque Seis Sigma usa la misma lógica: 3,4 defectos por millón corresponden a la cola normal más allá de 4,5σ.</p>
+      <h3>Educación y ciencias sociales: puntajes estandarizados</h3>
+      <p>Las escalas de cociente intelectual (como las de Wechsler) se construyen para que la población de referencia tenga media 100 y desviación 15; muchas pruebas de admisión reescalan sus puntajes de forma similar. Un puntaje de 130 equivale a \(z = 2\): lo supera alrededor del 2,3 % de la población de referencia, y el percentil 98 está en \(100 + 15 \cdot 2{,}054 \approx 130{,}8\). La decisión: fijar puntos de corte para programas de apoyo o de talentos con un significado poblacional explícito. La crítica necesaria: la normalidad de estos puntajes es en parte una construcción de la escala, y en los extremos las normas son menos precisas.</p>
+      <h3>Economía y finanzas: el valor en riesgo y sus límites</h3>
+      <p>Un banco con una cartera de 1 millón de dólares cuyos rendimientos diarios tienen media 0,03 % y desviación 1,2 % calcula el <b>VaR</b> al 99 % suponiendo normalidad: \(-(0{,}0003 + 0{,}012 \cdot z_{0{,}01}) \cdot 10^6 \approx 27\,600\) dólares, la pérdida diaria que solo se supera el 1 % de los días. Pero los rendimientos reales tienen colas pesadas: el 19 de octubre de 1987 el índice S&amp;P 500 cayó cerca del 20 % en un día, un movimiento de más de 20 desviaciones típicas que bajo la normal sería prácticamente imposible. Una t con 3 grados de libertad, con la misma varianza, da una probabilidad de superar 4σ unas 100 veces mayor que la normal. La decisión: complementar el VaR normal con pruebas de estrés, VaR histórico o distribuciones de colas pesadas.</p>
 
-      <h2 id="normal-z"><span class="sec">§ 4</span>Puntuaciones z</h2>
-      <p>La puntuación \(z\) dice a cuántas desviaciones típicas está un valor de la media. Sirve para comparar cosas medidas en escalas distintas.</p>
-      <div class="eq">\[ z = \frac{x - \mu}{\sigma} \qquad\Longrightarrow\qquad Z \sim \mathcal{N}(0, 1) \]
-        <div class="note">Ejemplo: una persona de 186 cm tiene \(z = (186-170)/8 = 2\). Está 2 desviaciones por encima del promedio.</div>
-      </div>
-      <p>Con \(z\) calculas cualquier probabilidad usando una sola tabla, o una sola función: \(P(X < x) = \Phi(z)\), donde \(\Phi\) es la función de distribución acumulada de la normal estándar.</p>
-
-      <h2 id="normal-code"><span class="sec">§ 5</span>En R y Python</h2>
+      <h2 id="normal-code"><span class="sec">§ 10</span>Ejemplo resuelto en R y Python</h2>
+      <p>Primero los cálculos básicos con estaturas. Después, un caso de control de calidad completo: 250 botellas medidas en un turno, revisión de la normalidad, fracción fuera de especificación, índice \(C_{pk}\), efecto de centrar el proceso y límites de un gráfico de control de medias.</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> scipy.stats <span class="k">import</span> norm
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
 
-estatura = norm(loc=<span class="n">170</span>, scale=<span class="n">8</span>)
+<span class="c"># --- 1) Cálculos básicos con N(170, 8²) ---</span>
+estatura = stats.<span class="f">norm</span>(loc=<span class="n">170</span>, scale=<span class="n">8</span>)
+<span class="f">print</span>(<span class="f">round</span>(estatura.<span class="f">cdf</span>(<span class="n">178</span>) - estatura.<span class="f">cdf</span>(<span class="n">162</span>), <span class="n">4</span>))   <span class="c"># 0.6827 (μ ± 1σ)</span>
+<span class="f">print</span>(<span class="f">round</span>(estatura.<span class="f">ppf</span>(<span class="n">0.90</span>), <span class="n">2</span>))                       <span class="c"># 180.25: percentil 90</span>
+<span class="f">print</span>((<span class="n">186</span> - <span class="n">170</span>) / <span class="n">8</span>, <span class="f">round</span>(estatura.<span class="f">sf</span>(<span class="n">186</span>), <span class="n">4</span>))        <span class="c"># z = 2.0, P(X &gt; 186) = 0.0228</span>
 
-<span class="c"># proporción entre 162 y 178 cm (μ ± 1σ)</span>
-<span class="f">print</span>(estatura.<span class="f">cdf</span>(<span class="n">178</span>) - estatura.<span class="f">cdf</span>(<span class="n">162</span>))   <span class="c"># 0.6827</span>
+<span class="c"># --- 2) Caso aplicado: llenado de botellas, especificación 500 ± 8 ml ---</span>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">2024</span>)
+llenado = rng.<span class="f">normal</span>(<span class="n">501</span>, <span class="n">2.5</span>, size=<span class="n">250</span>)    <span class="c"># 250 botellas medidas en un turno</span>
+m, s = llenado.<span class="f">mean</span>(), llenado.<span class="f">std</span>(ddof=<span class="n">1</span>)
+<span class="f">print</span>(<span class="f">round</span>(m, <span class="n">2</span>), <span class="f">round</span>(s, <span class="n">2</span>))             <span class="c"># ≈ 500.98  ≈ 2.45</span>
 
-<span class="c"># estatura que deja al 90 % por debajo (percentil 90)</span>
-<span class="f">print</span>(estatura.<span class="f">ppf</span>(<span class="n">0.90</span>))                     <span class="c"># 180.25</span>
+<span class="c"># ¿son normales los datos? Shapiro-Wilk y coeficientes de forma</span>
+<span class="f">print</span>(<span class="f">round</span>(stats.<span class="f">shapiro</span>(llenado).pvalue, <span class="n">2</span>))                 <span class="c"># ≈ 0.86: no hay evidencia contra la normal</span>
+<span class="f">print</span>(<span class="f">round</span>(stats.<span class="f">skew</span>(llenado), <span class="n">2</span>), <span class="f">round</span>(stats.<span class="f">kurtosis</span>(llenado), <span class="n">2</span>))   <span class="c"># ≈ -0.12  ≈ -0.04</span>
 
-<span class="c"># puntuación z de 186 cm</span>
-<span class="f">print</span>((<span class="n">186</span> - <span class="n">170</span>) / <span class="n">8</span>)                       <span class="c"># 2.0</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="c"># proporción entre 162 y 178 cm (μ ± 1σ)</span>
-<span class="f">pnorm</span>(<span class="n">178</span>, mean = <span class="n">170</span>, sd = <span class="n">8</span>) - <span class="f">pnorm</span>(<span class="n">162</span>, mean = <span class="n">170</span>, sd = <span class="n">8</span>)   <span class="c"># 0.6827</span>
+<span class="c"># proporción fuera de especificación según el modelo ajustado</span>
+LIE, LSE = <span class="n">492</span>, <span class="n">508</span>
+fuera = stats.norm.<span class="f">cdf</span>(LIE, m, s) + stats.norm.<span class="f">sf</span>(LSE, m, s)
+<span class="f">print</span>(<span class="f">round</span>(fuera * <span class="n">1e6</span>))                   <span class="c"># ≈ 2 232 botellas por millón</span>
 
-<span class="c"># estatura que deja al 90 % por debajo (percentil 90)</span>
-<span class="f">qnorm</span>(<span class="n">0.9</span>, mean = <span class="n">170</span>, sd = <span class="n">8</span>)                              <span class="c"># 180.25</span>
+<span class="c"># índice de capacidad Cpk: distancia al límite más cercano en unidades de 3σ</span>
+cpk = <span class="f">min</span>(LSE - m, m - LIE) / (<span class="n">3</span> * s)
+<span class="f">print</span>(<span class="f">round</span>(cpk, <span class="n">2</span>))                        <span class="c"># ≈ 0.95 (&lt; 1.33: proceso no capaz)</span>
 
-<span class="c"># puntuación z de 186 cm</span>
-(<span class="n">186</span> - <span class="n">170</span>) / <span class="n">8</span>                                              <span class="c"># 2</span>
+<span class="c"># si se centra el proceso en 500 ml, ¿cuánto mejora?</span>
+fuera_c = <span class="n">2</span> * stats.norm.<span class="f">sf</span>(LSE, <span class="n">500</span>, s)
+<span class="f">print</span>(<span class="f">round</span>(fuera_c * <span class="n">1e6</span>))                 <span class="c"># ≈ 1 115 por millón: la mitad</span>
 
-<span class="c"># dibujar la curva y sombrear μ ± 1σ</span>
-<span class="f">curve</span>(<span class="f">dnorm</span>(x, <span class="n">170</span>, <span class="n">8</span>), from = <span class="n">140</span>, to = <span class="n">200</span>, lwd = <span class="n">2</span>)
-xs &lt;- <span class="f">seq</span>(<span class="n">162</span>, <span class="n">178</span>, length.out = <span class="n">100</span>)
-<span class="f">polygon</span>(<span class="f">c</span>(<span class="n">162</span>, xs, <span class="n">178</span>), <span class="f">c</span>(<span class="n">0</span>, <span class="f">dnorm</span>(xs, <span class="n">170</span>, <span class="n">8</span>), <span class="n">0</span>), col = <span class="s">"lightblue"</span>)</code></pre>
+<span class="c"># límites de control 3σ para medias de subgrupos de 5 botellas</span>
+lc = <span class="n">500</span> + np.<span class="f">array</span>([-<span class="n">3</span>, <span class="n">3</span>]) * s / np.<span class="f">sqrt</span>(<span class="n">5</span>)
+<span class="f">print</span>(lc.<span class="f">round</span>(<span class="n">2</span>))                          <span class="c"># ≈ [496.71 503.29]</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="c"># --- 1) Cálculos básicos con N(170, 8²) ---</span>
+<span class="f">pnorm</span>(<span class="n">178</span>, <span class="n">170</span>, <span class="n">8</span>) - <span class="f">pnorm</span>(<span class="n">162</span>, <span class="n">170</span>, <span class="n">8</span>)          <span class="c"># 0.6827 (μ ± 1σ)</span>
+<span class="f">qnorm</span>(<span class="n">0.90</span>, mean = <span class="n">170</span>, sd = <span class="n">8</span>)                  <span class="c"># 180.25: percentil 90</span>
+<span class="f">c</span>(z = (<span class="n">186</span> - <span class="n">170</span>) / <span class="n">8</span>, p = <span class="f">pnorm</span>(<span class="n">186</span>, <span class="n">170</span>, <span class="n">8</span>, lower.tail = <span class="k">FALSE</span>))   <span class="c"># 2  0.0228</span>
+
+<span class="c"># --- 2) Caso aplicado: llenado de botellas, especificación 500 ± 8 ml ---</span>
+<span class="f">set.seed</span>(<span class="n">2024</span>)
+llenado &lt;- <span class="f">rnorm</span>(<span class="n">250</span>, mean = <span class="n">501</span>, sd = <span class="n">2.5</span>)      <span class="c"># 250 botellas de un turno</span>
+m &lt;- <span class="f">mean</span>(llenado); s &lt;- <span class="f">sd</span>(llenado)
+<span class="f">c</span>(m, s)                                          <span class="c"># ≈ 501  ≈ 2.5</span>
+
+<span class="f">shapiro.test</span>(llenado)$p.value                    <span class="c"># suele ser grande: compatible con normal</span>
+<span class="f">qqnorm</span>(llenado); <span class="f">qqline</span>(llenado)                 <span class="c"># los puntos deben seguir la recta</span>
+
+LIE &lt;- <span class="n">492</span>; LSE &lt;- <span class="n">508</span>
+fuera &lt;- <span class="f">pnorm</span>(LIE, m, s) + <span class="f">pnorm</span>(LSE, m, s, lower.tail = <span class="k">FALSE</span>)
+fuera * <span class="n">1e6</span>                                      <span class="c"># ≈ 2 000-3 000 por millón</span>
+cpk &lt;- <span class="f">min</span>(LSE - m, m - LIE) / (<span class="n">3</span> * s)
+cpk                                              <span class="c"># ≈ 0.93-0.95: proceso no capaz</span>
+<span class="n">2</span> * <span class="f">pnorm</span>(LSE, <span class="n">500</span>, s, lower.tail = <span class="k">FALSE</span>) * <span class="n">1e6</span> <span class="c"># centrado en 500: ≈ 1 100-1 400 por millón</span>
+
+<span class="c"># límites de control 3σ para medias de subgrupos de 5</span>
+<span class="n">500</span> + <span class="f">c</span>(-<span class="n">3</span>, <span class="n">3</span>) * s / <span class="f">sqrt</span>(<span class="n">5</span>)                     <span class="c"># ≈ 496.6  503.4</span>
+
+<span class="c"># curva con la zona fuera de especificación</span>
+<span class="f">curve</span>(<span class="f">dnorm</span>(x, m, s), <span class="n">485</span>, <span class="n">515</span>, lwd = <span class="n">2</span>, ylab = <span class="s">"densidad"</span>, xlab = <span class="s">"ml"</span>)
+<span class="f">abline</span>(v = <span class="f">c</span>(LIE, LSE), lty = <span class="n">2</span>)</code></pre>
 </div>
+      <p>El proceso está algo descentrado y su \(C_{pk}\) queda por debajo de 1,33. Centrarlo en 500 ml reduce los defectos a la mitad, pero para llegar a una capacidad aceptable habría que bajar \(\sigma\) a unos 2 ml (con \(\sigma = 2\), \(C_{pk} = 8/6 = 1{,}33\)).</p>
 
-      <h2 id="normal-quiz"><span class="sec">§ 6</span>Comprueba</h2>
-      <div class="quiz" data-right="186 cm es μ + 2σ. Entre μ ± 2σ queda el 95 %, y el 5 % restante se reparte en dos colas iguales: 2,5 % por arriba." data-wrong="Calcula primero z = (186 − 170) / 8. ¿Qué dice la regla 68-95-99,7 para ese z, y cuánto queda en una sola cola?">
+      <h2 id="normal-quiz"><span class="sec">§ 11</span>Quiz</h2>
+      <div class="quiz" data-right="186 cm es μ + 2σ. Entre μ ± 2σ queda el 95 %, y el 5 % restante se reparte en dos colas iguales: 2,5 % por arriba (exactamente 2,28 %)." data-wrong="Calcula primero z = (186 − 170) / 8. ¿Qué dice la regla 68-95-99,7 para ese z, y cuánto queda en una sola cola?">
         <h3>Con μ = 170 cm y σ = 8 cm, ¿qué porcentaje de personas mide más de 186 cm?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cerca del 5 %</button>
@@ -118,54 +312,119 @@ xs &lt;- <span class="f">seq</span>(<span class="n">162</span>, <span class="n">
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="El área total bajo la curva siempre vale 1. Si la campana se ensancha, tiene que bajar para conservar esa área." data-wrong="μ controla la posición y σ el ancho. Recuerda que el área total bajo la curva siempre es 1.">
+      <div class="quiz" data-right="El área total bajo la curva siempre vale 1. Si la campana se ensancha, tiene que bajar para conservar esa área: la altura máxima es 1/(σ√(2π))." data-wrong="μ controla la posición y σ el ancho. Recuerda que el área total bajo la curva siempre es 1.">
         <h3>Si aumentas σ y dejas μ igual, ¿qué le pasa a la curva?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Se desplaza hacia la derecha</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Se vuelve más ancha y más baja</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se vuelve más alta y más angosta</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Deja de ser simétrica</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Se vuelve más alta y más angosta</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Deja de ser simétrica</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Se vuelve más ancha y más baja</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="z mide la distancia a la media en unidades de σ. El signo negativo indica que el valor está por debajo." data-wrong="Revisa la fórmula z = (x − μ)/σ: el resultado se mide en desviaciones típicas, no en las unidades originales.">
-        <h3>Una puntuación z de −1,5 significa que el valor…</h3>
+      <div class="quiz" data-right="La diferencia de normales independientes es normal con media 0,10 y varianza 0,03² + 0,04² = 0,05². Entonces P(D &lt; 0) = Φ(−2) ≈ 0,023." data-wrong="Al restar variables independientes, las medias se restan pero las varianzas se suman. Calcula la desviación de la holgura y luego su z.">
+        <h3>Buje ~ N(25,10; 0,03²) mm y eje ~ N(25,00; 0,04²) mm, independientes. ¿Qué probabilidad hay de que el eje sea más grueso que el buje?</h3>
         <div class="opts">
-          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>está 1,5 unidades por debajo de la media</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>tiene una probabilidad de 1,5 %</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>es un error de medición</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>está 1,5 desviaciones típicas por debajo de la media</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Cerca de 0,023</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Cerca de 0,0062, usando una desviación de 0,04</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>0, porque el buje es más grande en promedio</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Cerca de 0,16, usando una desviación de 0,01</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Una curva en U en el Q-Q, con los valores altos muy por encima de la recta, es la huella de una asimetría positiva, típica de ingresos y tiempos." data-wrong="Piensa qué pasa con los cuantiles altos de una distribución con cola larga a la derecha: quedan mucho más lejos del centro que en la normal.">
+        <h3>En un gráfico Q-Q normal de ingresos, los puntos forman una curva en U: por encima de la recta en ambos extremos y sobre todo en el superior. ¿Qué indica?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Colas más cortas que la normal</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Que los datos son normales con media alta</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Asimetría a la derecha (cola larga de valores altos)</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Asimetría a la izquierda</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="La media de n normales independientes es normal con desviación σ/√n = 8/√16 = 2. Entonces P(X̄ &gt; 174) = P(Z &gt; 2) ≈ 0,023." data-wrong="La media muestral también es normal, pero su desviación típica es σ/√n, no σ.">
+        <h3>Con estaturas N(170, 8²), eliges al azar 16 personas. ¿Cuál es la probabilidad de que su estatura media supere 174 cm?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cerca de 0,31</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Cerca de 0,50</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Cerca de 0,16</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Cerca de 0,023</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
 
-      <h2 id="normal-ej"><span class="sec">§ 7</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. Puedes usar el laboratorio de arriba para comprobar tus respuestas.</p>
+      <h2 id="normal-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Estos ejercicios piden demostrar, derivar o simular. Intenta resolverlos antes de abrir la solución; los simuladores y el código de § 10 te sirven para comprobar resultados.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Los puntajes de un examen siguen una normal con μ = 70 y σ = 10. ¿Qué proporción de estudiantes obtiene entre 60 y 80 puntos?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>60 y 80 están a una desviación de la media: z = −1 y z = 1. Por la regla 68-95-99,7, cerca del <b>68,3 %</b> de los estudiantes cae en ese rango.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Sea \(Z \sim \mathcal{N}(0,1)\). (a) Demuestra que \(E[Z^{2k}] = (2k-1)!! = 1 \cdot 3 \cdot 5 \cdots (2k-1)\) integrando por partes. (b) Deduce la curtosis de cualquier normal. (c) Demuestra que \(E|X - \mu| = \sigma\sqrt{2/\pi}\) para \(X \sim \mathcal{N}(\mu, \sigma^2)\) y explica por qué el cociente entre la desviación media absoluta y la desviación típica de unos datos sirve como diagnóstico de normalidad.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Con \(u = z^{2k-1}\) y \(dv = z\varphi(z)\,dz\) (primitiva \(-\varphi\)): \(E[Z^{2k}] = [-z^{2k-1}\varphi]_{-\infty}^{\infty} + (2k-1)\int z^{2k-2}\varphi\,dz = (2k-1)E[Z^{2k-2}]\). Como \(E[Z^0] = 1\), por inducción \(E[Z^{2k}] = (2k-1)(2k-3)\cdots 1\). Así \(E[Z^2] = 1\), \(E[Z^4] = 3\), \(E[Z^6] = 15\).</p>
+            <p>(b) La curtosis es \(E[(X-\mu)^4]/\sigma^4 = E[Z^4] = 3\) para cualquier \(\mu, \sigma\), por eso se reporta el exceso \(g_2 = \text{curtosis} - 3\).</p>
+            <p>(c) \(E|Z| = 2\int_0^\infty z\varphi(z)\,dz = 2\big[-\varphi(z)\big]_0^\infty = 2\varphi(0) = \sqrt{2/\pi} \approx 0{,}798\). Multiplicando por \(\sigma\) queda el resultado. En datos normales, DMA/s ≈ 0,80; con colas pesadas el cociente baja (los extremos inflan s más que la DMA) y con colas cortas sube (uniforme: 0,866). Es la idea del test de Geary.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Ana sacó 82 en un examen con μ = 70 y σ = 8. Beto sacó 88 en otro examen con μ = 75 y σ = 10. ¿Quién tuvo un mejor desempeño relativo?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>z de Ana = (82 − 70)/8 = 1,5. z de Beto = (88 − 75)/10 = 1,3. <b>Ana</b> quedó más lejos por encima de su promedio, aunque su nota sea menor.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Tolerancias en un ensamble.</b> Un producto se arma apilando 4 piezas cuyos espesores son independientes y \(\mathcal{N}(10;\ 0{,}05^2)\) mm, y el conjunto debe entrar en una caja cuya profundidad interna es \(\mathcal{N}(40{,}2;\ 0{,}06^2)\) mm. (a) Encuentra la distribución de la holgura. (b) ¿Qué fracción de ensambles no entra? (c) Si el diseñador hubiera sumado las desviaciones (“peor caso lineal”), ¿qué desviación habría usado y qué fracción habría estimado? Discute por qué el enfoque estadístico (raíz de la suma de cuadrados) es el correcto.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) La pila \(P = \sum_{i=1}^4 X_i \sim \mathcal{N}(40;\ 4 \cdot 0{,}05^2) = \mathcal{N}(40;\ 0{,}1^2)\). La holgura \(H = C - P \sim \mathcal{N}(0{,}2;\ 0{,}06^2 + 0{,}1^2)\), con desviación \(\sqrt{0{,}0136} \approx 0{,}1166\) mm.</p>
+            <p>(b) \(P(H &lt; 0) = \Phi(-0{,}2/0{,}1166) = \Phi(-1{,}715) \approx 0{,}043\): un 4,3 % de los ensambles no entra.</p>
+            <p>(c) Sumando desviaciones: \(4 \cdot 0{,}05 + 0{,}06 = 0{,}26\) mm, y \(\Phi(-0{,}2/0{,}26) = \Phi(-0{,}77) \approx 0{,}22\). Sobrestima el problema cinco veces, porque supone que todas las piezas se desvían a la vez en la misma dirección. Con independencia, las desviaciones se compensan en parte y lo que se suma son las varianzas; por eso la desviación de la pila crece como \(\sqrt{4}\) y no como 4.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Con estaturas N(170, 8²), ¿a partir de qué estatura está el 5 % más alto de la población?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Buscamos el percentil 95: x = μ + z<sub>0,95</sub>·σ = 170 + 1,645 × 8 ≈ <b>183,2 cm</b>.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Colas de la normal.</b> (a) Demuestra que para \(z &gt; 0\), \(1 - \Phi(z) \le \varphi(z)/z\), usando que \(t/z \ge 1\) cuando \(t \ge z\). (b) Demuestra la cota inferior \(\big(\frac1z - \frac1{z^3}\big)\varphi(z) \le 1 - \Phi(z)\) derivando \(g(z) = \big(\frac1z - \frac1{z^3}\big)\varphi(z) - (1 - \Phi(z))\). (c) Evalúa ambas cotas en \(z = 4\) y compáralas con el valor exacto; calcula también la cola más allá de 4,5σ en partes por millón.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(1 - \Phi(z) = \int_z^\infty \varphi(t)\,dt \le \int_z^\infty \frac{t}{z}\varphi(t)\,dt = \frac1z\big[-\varphi(t)\big]_z^\infty = \frac{\varphi(z)}{z}\).</p>
+            <p>(b) Usando \(\varphi'(z) = -z\varphi(z)\): \(g'(z) = \big(-\frac1{z^2} + \frac3{z^4}\big)\varphi - \big(\frac1z - \frac1{z^3}\big)z\varphi + \varphi = \frac{3}{z^4}\varphi(z) &gt; 0\). Como \(g\) es creciente y \(g(z) \to 0\) cuando \(z \to \infty\), \(g(z) \le 0\) para todo \(z &gt; 0\), que es la cota pedida.</p>
+            <p>(c) \(\varphi(4) \approx 1{,}338 \cdot 10^{-4}\). Cota superior: \(3{,}35 \cdot 10^{-5}\); inferior: \(3{,}14 \cdot 10^{-5}\); exacto: \(3{,}17 \cdot 10^{-5}\). Las cotas se ajustan cada vez más al crecer \(z\). Más allá de 4,5σ: \(1 - \Phi(4{,}5) \approx 3{,}4 \cdot 10^{-6}\), los famosos 3,4 defectos por millón de Seis Sigma (un proceso a 6σ con un corrimiento de 1,5σ de la media).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Un partido tiene un apoyo real del 30 %. En una encuesta de \(n = 400\) personas, sea \(X\) el número de partidarios. (a) Calcula \(P(X \le 105)\) exactamente, con la aproximación normal sin corrección y con corrección por continuidad. (b) Explica geométricamente por qué la corrección mejora la aproximación. (c) ¿Cuántas personas habría que encuestar para que la proporción muestral esté a menos de 3 puntos del 30 % con probabilidad 0,95?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(np = 120\), \(\sqrt{np(1-p)} = \sqrt{84} \approx 9{,}165\). Exacta: 0,0555 (<code>pbinom(105, 400, 0.3)</code>). Sin corrección: \(\Phi((105-120)/9{,}165) = \Phi(-1{,}637) \approx 0{,}0509\). Con corrección: \(\Phi((105{,}5 - 120)/9{,}165) = \Phi(-1{,}582) \approx 0{,}0568\).</p>
+            <p>(b) Cada probabilidad binomial \(P(X = k)\) es un rectángulo de base 1 centrado en \(k\), que va de \(k - 0{,}5\) a \(k + 0{,}5\). Para incluir el rectángulo de \(k = 105\) completo, el área normal debe llegar hasta 105,5. Sin corrección se pierde medio rectángulo.</p>
+            <p>(c) \(\hat p \approx \mathcal{N}(0{,}3;\ 0{,}21/n)\). Se pide \(1{,}96\sqrt{0{,}21/n} \le 0{,}03\), es decir \(n \ge 1{,}96^2 \cdot 0{,}21/0{,}03^2 \approx 896{,}4\): 897 personas. Es la fórmula de <a href="#tamano">tamaño de muestra</a> para una proporción.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>El método de Box-Muller.</b> Sean \(U_1, U_2\) uniformes independientes en \((0,1)\), \(R = \sqrt{-2\ln U_1}\) y \(\Theta = 2\pi U_2\). (a) Muestra que \(R^2 \sim \text{Exp}(1/2)\) (una \(\chi^2_2\)) y que \(\Theta\) es uniforme en \([0, 2\pi)\). (b) Usando el cambio a coordenadas polares, demuestra que \(Z_1 = R\cos\Theta\) y \(Z_2 = R\sin\Theta\) son normales estándar independientes. (c) Impleméntalo y valida media, desviación, correlación, la regla del 95 % y una prueba de Kolmogorov-Smirnov.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(P(R^2 &gt; r) = P(-2\ln U_1 &gt; r) = P(U_1 &lt; e^{-r/2}) = e^{-r/2}\): exponencial de tasa 1/2, que es la \(\chi^2_2 = \text{Gamma}(1, 1/2)\). \(\Theta\) es uniforme por construcción e independiente de \(R\).</p>
+            <p>(b) La densidad conjunta de \((R, \Theta)\) es \(f(r, \theta) = r e^{-r^2/2}\cdot\frac{1}{2\pi}\) (derivando la supervivencia de \(R\)). Con \(z_1 = r\cos\theta\), \(z_2 = r\sin\theta\) y jacobiano \(dz_1\,dz_2 = r\,dr\,d\theta\): \(f(z_1, z_2) = \frac{1}{2\pi}e^{-(z_1^2+z_2^2)/2} = \varphi(z_1)\varphi(z_2)\). La densidad conjunta se factoriza en dos normales estándar, así que son independientes. Es el mismo argumento polar que prueba que la normal integra 1.</p>
+            <p>(c) Implementación y validación:</p>
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> scipy.stats <span class="k">import</span> norm
-<span class="f">print</span>(norm.<span class="f">ppf</span>(<span class="n">0.95</span>, loc=<span class="n">170</span>, scale=<span class="n">8</span>))   <span class="c"># 183.16</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">qnorm</span>(<span class="n">0.95</span>, mean = <span class="n">170</span>, sd = <span class="n">8</span>)   <span class="c"># 183.16</span></code></pre>
-</div></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Una máquina llena botellas con N(500, 4²) ml. Se rechazan las que tienen menos de 492 ml o más de 508 ml. ¿Qué porcentaje se rechaza? ¿Qué σ necesitaría la máquina para rechazar solo el 1 %?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>492 y 508 están a ±2σ, así que se rechaza 1 − 0,9545 ≈ <b>4,55 %</b>. Para rechazar el 1 %, los límites deben estar a ±2,576σ: 8 = 2,576·σ, de donde <b>σ ≈ 3,11 ml</b>.</p></div></details>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+rng = np.random.<span class="f">default_rng</span>(<span class="n">8</span>)
+n = <span class="n">100_000</span>
+u1, u2 = rng.<span class="f">random</span>(n), rng.<span class="f">random</span>(n)
+r = np.<span class="f">sqrt</span>(-<span class="n">2</span> * np.<span class="f">log</span>(u1))            <span class="c"># radio: R² ~ Exp(1/2), es decir χ² con 2 gl</span>
+z1 = r * np.<span class="f">cos</span>(<span class="n">2</span> * np.pi * u2)
+z2 = r * np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * u2)
+<span class="f">print</span>(z1.<span class="f">mean</span>().<span class="f">round</span>(<span class="n">3</span>), z1.<span class="f">std</span>().<span class="f">round</span>(<span class="n">3</span>))          <span class="c"># ≈ 0.000  ≈ 1.000</span>
+<span class="f">print</span>(np.<span class="f">corrcoef</span>(z1, z2)[<span class="n">0</span>, <span class="n">1</span>].<span class="f">round</span>(<span class="n">3</span>))             <span class="c"># ≈ 0: independientes</span>
+<span class="f">print</span>(stats.<span class="f">kstest</span>(z1, <span class="s">"norm"</span>).pvalue &gt; <span class="n">0.05</span>)          <span class="c"># True (casi siempre)</span>
+<span class="f">print</span>((np.<span class="f">abs</span>(z1) &lt; <span class="n">1.96</span>).<span class="f">mean</span>().<span class="f">round</span>(<span class="n">4</span>))            <span class="c"># ≈ 0.95</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">8</span>)
+n &lt;- <span class="n">1e5</span>
+u1 &lt;- <span class="f">runif</span>(n); u2 &lt;- <span class="f">runif</span>(n)
+r &lt;- <span class="f">sqrt</span>(-<span class="n">2</span> * <span class="f">log</span>(u1))
+z1 &lt;- r * <span class="f">cos</span>(<span class="n">2</span> * pi * u2)
+z2 &lt;- r * <span class="f">sin</span>(<span class="n">2</span> * pi * u2)
+<span class="f">c</span>(<span class="f">mean</span>(z1), <span class="f">sd</span>(z1))                     <span class="c"># ≈ 0  ≈ 1</span>
+<span class="f">cor</span>(z1, z2)                             <span class="c"># ≈ 0</span>
+<span class="f">ks.test</span>(z1, <span class="s">"pnorm"</span>)$p.value            <span class="c"># casi siempre &gt; 0.05</span>
+<span class="f">mean</span>(<span class="f">abs</span>(z1) &lt; <span class="n">1.96</span>)                    <span class="c"># ≈ 0.95</span></code></pre>
+</div>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>

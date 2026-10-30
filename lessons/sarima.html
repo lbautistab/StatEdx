@@ -5,60 +5,93 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Estacionalidad y modelos SARIMA</h1>
-      <p>Cuando julio se parece a julio del año pasado, el ARIMA necesita una segunda dimensión. Aprendes a diferenciar estacionalmente, a leer la notación (p,d,q)(P,D,Q)s, a reconocer los patrones estacionales en la ACF y a elegir un modelo sin caer en las trampas típicas.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: modelos ARIMA</span><span>R · Python</span></div>
+      <p>Cuando julio se parece a julio del año pasado, el ARIMA necesita una segunda dimensión. Aprendes a diferenciar estacionalmente, a leer la notación (p,d,q)(P,D,Q)s, a reconocer los patrones estacionales en la ACF, a pronosticar con el modelo de aerolínea y a elegir un modelo sin caer en las trampas típicas.</p>
+      <div class="lmeta"><span>90 min</span><span>Nivel avanzado</span><span>Requiere: modelos ARIMA</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#sarima-idea" data-sec="sarima-idea">La idea</a></li>
+        <li><a href="#sarima-intro" data-sec="sarima-intro">Introducción</a></li>
+        <li><a href="#sarima-def" data-sec="sarima-def">Definición</a></li>
         <li><a href="#sarima-dif" data-sec="sarima-dif">Diferenciación estacional</a></li>
-        <li><a href="#sarima-not" data-sec="sarima-not">La notación (p,d,q)(P,D,Q)s</a></li>
-        <li><a href="#sarima-ident" data-sec="sarima-ident">Identificación estacional</a></li>
-        <li><a href="#sarima-lab" data-sec="sarima-lab">Laboratorio</a></li>
-        <li><a href="#sarima-sel" data-sec="sarima-sel">Selección de modelos</a></li>
+        <li><a href="#sarima-not" data-sec="sarima-not">Estructura multiplicativa y ACF</a></li>
+        <li><a href="#sarima-ident" data-sec="sarima-ident">Identificación y selección</a></li>
+        <li><a href="#sarima-pron" data-sec="sarima-pron">Pronóstico estacional</a></li>
+        <li><a href="#sarima-prop" data-sec="sarima-prop">Propiedades</a></li>
+        <li><a href="#sarima-sim" data-sec="sarima-sim">Ejercicios de simulación</a></li>
+        <li><a href="#sarima-apl" data-sec="sarima-apl">Aplicaciones reales</a></li>
         <li><a href="#sarima-code" data-sec="sarima-code">En R y Python</a></li>
-        <li><a href="#sarima-quiz" data-sec="sarima-quiz">Comprueba</a></li>
-        <li><a href="#sarima-ej" data-sec="sarima-ej">Ejercicios</a></li>
+        <li><a href="#sarima-quiz" data-sec="sarima-quiz">Quiz</a></li>
+        <li><a href="#sarima-ej" data-sec="sarima-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="sarima-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="sarima-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>La serie de pasajeros aéreos internacionales de 1949 a 1960 es el ejemplo clásico de Box y Jenkins. Cada año hay más pasajeros que el anterior, cada julio y agosto hay un pico de vacaciones y cada noviembre un bajón. Para pronosticar el julio próximo, dos datos dicen mucho: el <b>mes pasado</b> (cómo viene el nivel) y el <b>julio pasado</b> (cómo es la temporada). Un ARIMA solo mira rezagos cortos; un <b>SARIMA</b> agrega la misma maquinaria en los rezagos \(m, 2m, 3m, \dots\), donde \(m\) es el período estacional.</p>
       <p>Con \(m = 12\) en datos mensuales, \(m = 4\) en trimestrales o \(m = 7\) en diarios con patrón semanal, la pregunta es siempre la misma: ¿cuánto del valor de hoy se explica por el mismo momento del ciclo anterior?</p>
+      <p>Un poco de contexto. Antes de los años setenta, la estacionalidad se trataba sobre todo como algo que había que quitar: la Oficina del Censo de Estados Unidos desarrolló en los años cincuenta y sesenta el método X-11 de ajuste estacional, basado en promedios móviles, para publicar cifras de empleo y ventas "desestacionalizadas". Box y Jenkins propusieron en 1970 lo contrario: modelar la estacionalidad junto con la dinámica de corto plazo en un solo modelo estocástico. Su ajuste a los pasajeros aéreos, el SARIMA\((0,1,1)(0,1,1)_{12}\), quedó con el nombre de <b>modelo de aerolínea</b> y hoy es el modelo por defecto de los programas oficiales de ajuste estacional (X-13ARIMA-SEATS, TRAMO-SEATS), que usan un SARIMA para extender la serie antes de desestacionalizarla.</p>
       <div class="callout"><b>Antes de modelar:</b> si la oscilación estacional crece con el nivel, como en los pasajeros aéreos, toma logaritmos primero. El SARIMA es un modelo aditivo; el logaritmo convierte un patrón multiplicativo en uno aditivo y estabiliza la varianza.</div>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>A aplicar y a interpretar la diferencia estacional \(\nabla_m\) y su combinación con \(\nabla\).</li>
+          <li>A leer y escribir la notación SARIMA\((p,d,q)(P,D,Q)_m\) y a expandir sus polinomios.</li>
+          <li>A derivar la ACF del modelo de aerolínea y a reconocer los "satélites" en un correlograma.</li>
+          <li>A distinguir estacionalidad determinista de estocástica y a evitar la sobrediferenciación.</li>
+          <li>A pronosticar con un SARIMA, volver de la escala logarítmica y comparar contra el ingenuo estacional.</li>
+        </ul>
+      </div>
 
-      <h2 id="sarima-dif"><span class="sec">§ 2</span>Diferenciación estacional</h2>
-      <p>La <b>diferencia estacional</b> compara cada valor con el del mismo momento del ciclo anterior:</p>
+      <h2 id="sarima-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Sea \(m\) el <b>período estacional</b>: el número de observaciones que forman un ciclo completo (12 meses, 4 trimestres, 7 días). La <b>diferencia estacional</b> compara cada valor con el del mismo momento del ciclo anterior:</p>
       <div class="eq">\[ \nabla_m\, y_t = (1 - B^m)\, y_t = y_t - y_{t-m} \]
-        <div class="note">Si la serie tiene un patrón estacional que se repite igual cada año más una tendencia lineal \(a + bt\), la diferencia estacional elimina el patrón y convierte la tendencia en una constante \(bm\): el crecimiento interanual. Por eso, a veces, \(\nabla_{12}\) basta para volver estacionaria una serie mensual.</div>
+        <div class="note">\(B^m y_t = y_{t-m}\). No confundas \(\nabla_m\) (una diferencia a distancia \(m\)) con \(\nabla^m\) (\(m\) diferencias sucesivas a distancia 1): \(\nabla_{12}\) quita la estacionalidad; \(\nabla^{12}\) destruiría la serie.</div>
+      </div>
+      <div class="callout"><b>Definición (SARIMA).</b> La serie \(y_t\) sigue un modelo SARIMA\((p,d,q)(P,D,Q)_m\) si
+        <div class="eq">\[ \underbrace{\phi_p(B)\,\Phi_P(B^m)}_{\text{AR}}\;\underbrace{(1-B)^d(1-B^m)^D}_{\text{diferencias}}\; y_t = c + \underbrace{\theta_q(B)\,\Theta_Q(B^m)}_{\text{MA}}\;\varepsilon_t \]</div>
+        donde \(\varepsilon_t\) es ruido blanco de varianza \(\sigma^2\) y los cuatro polinomios tienen sus raíces fuera del círculo unitario.</div>
+      <ul>
+        <li>\(\phi_p(B) = 1 - \phi_1 B - \dots - \phi_p B^p\) y \(\theta_q(B) = 1 + \theta_1 B + \dots + \theta_q B^q\): la parte <b>no estacional</b> (minúsculas), igual que en el <a href="#arima">ARIMA</a>.</li>
+        <li>\(\Phi_P(B^m) = 1 - \Phi_1 B^m - \dots - \Phi_P B^{Pm}\) y \(\Theta_Q(B^m) = 1 + \Theta_1 B^m + \dots + \Theta_Q B^{Qm}\): la parte <b>estacional</b> (mayúsculas), que actúa en los rezagos \(m, 2m, \dots\)</li>
+        <li>\(d\) y \(D\): número de diferencias normales y estacionales. En la práctica, \(D \le 1\) y \(d + D \le 2\).</li>
+        <li>\(c\): constante; con \(d + D \ge 1\) implica una tendencia, y con \(d + D = 2\) casi siempre se omite.</li>
+      </ul>
+      <p><b>Ejemplo numérico.</b> Las ventas trimestrales de dos años fueron 20, 35, 30, 50 y luego 24, 40, 33, 56. Con \(m = 4\), \(\nabla_4\) da 24 − 20 = 4, 40 − 35 = 5, 33 − 30 = 3, 56 − 50 = 6: es el crecimiento interanual de cada trimestre; la estacionalidad desapareció y queda un crecimiento de unas 4,5 unidades por año. Aplicando además \(\nabla\): 5 − 4 = 1, 3 − 5 = −2, 6 − 3 = 3, que mide si el crecimiento interanual se acelera o se frena. Cada diferencia cuesta observaciones: de 8 datos quedan 3. Con datos mensuales, \(\nabla\nabla_{12}\) consume 13.</p>
+
+      <h2 id="sarima-dif"><span class="sec">§ 3</span>Diferenciación estacional</h2>
+      <p><b>Por qué funciona.</b> Supón que la serie es una tendencia lineal más un patrón estacional fijo más ruido: \(y_t = a + bt + s_t + \varepsilon_t\) con \(s_t = s_{t-m}\). Entonces</p>
+      <div class="eq">\[ \nabla_m y_t = \big(a + bt + s_t + \varepsilon_t\big) - \big(a + b(t-m) + s_{t-m} + \varepsilon_{t-m}\big) = bm + \varepsilon_t - \varepsilon_{t-m} \]
+        <div class="note">El patrón se cancela y la tendencia se convierte en una constante \(bm\): el crecimiento interanual. Por eso, a veces, \(\nabla_{12}\) basta para volver estacionaria una serie mensual. Fíjate en el precio: queda un MA estacional con \(\Theta = -1\), justo en la frontera de la invertibilidad.</div>
       </div>
       <p>Si después de \(\nabla_m\) la serie todavía deambula, se agrega una diferencia normal. Ambas conmutan y el resultado combinado es:</p>
       <div class="eq">\[ \nabla\nabla_{12}\, y_t = (1-B)(1-B^{12})\, y_t = y_t - y_{t-1} - y_{t-12} + y_{t-13} \]
-        <div class="note">Se lee como “el cambio de este mes respecto del anterior, menos el mismo cambio hace un año”. Para los pasajeros: ¿cuánto más subió de junio a julio este año que el año pasado?</div>
+        <div class="note">Se lee como "el cambio de este mes respecto del anterior, menos el mismo cambio hace un año". Para los pasajeros: ¿cuánto más subió de junio a julio este año que el año pasado?</div>
       </div>
-      <p><b>Estacionalidad determinista o estocástica.</b> Diferenciar supone que el patrón estacional puede ir cambiando de forma aleatoria año a año (hay una <b>raíz unitaria estacional</b>). Si el patrón es fijo, la alternativa es modelarlo con variables indicadoras de mes o con términos de Fourier dentro de una regresión con errores ARMA. Diferenciar un patrón determinista no es grave, pero deja una estructura MA estacional cercana a la no invertibilidad (\(\Theta \approx -1\)), y esa es una señal de que sobraba la diferencia.</p>
+      <p><b>Estacionalidad determinista o estocástica.</b> El modelo más simple de estacionalidad estocástica es el <b>paseo aleatorio estacional</b>, \(y_t = y_{t-m} + \varepsilon_t\): cada enero es el enero anterior más un choque, y los doce meses evolucionan como doce paseos aleatorios separados. Su varianza crece con el tiempo y el patrón puede cambiar de forma con los años (hay una <b>raíz unitaria estacional</b>: \(1 - z^m = 0\) tiene \(m\) raíces de módulo 1). Si en cambio el patrón es fijo, la alternativa es modelarlo con variables indicadoras de mes o con términos de Fourier dentro de una regresión con errores ARMA. Diferenciar un patrón determinista no es catastrófico, pero, como muestra la cuenta de arriba, deja una estructura MA estacional cercana a la no invertibilidad (\(\Theta \approx -1\)), y esa es la señal de que sobraba la diferencia.</p>
       <ul>
-        <li><b>Cuántas diferencias.</b> En la práctica, \(D \le 1\) y \(d + D \le 2\). Primero decide \(D\) y luego \(d\) sobre la serie ya diferenciada estacionalmente.</li>
-        <li><b>Pruebas.</b> Existen pruebas de raíz unitaria estacional (OCSB, Canova-Hansen). <code>nsdiffs()</code> en R usa por defecto una medida de fuerza estacional basada en STL: diferencia si la estacionalidad explica más del 64 % de la variación desestacionalizada.</li>
-        <li><b>Transformación de Box-Cox.</b> Generaliza el logaritmo: \(w_t = (y_t^\lambda - 1)/\lambda\), con \(\lambda = 0\) igual a \(\log y_t\). Se elige \(\lambda\) para que la amplitud estacional sea parecida en toda la serie.</li>
+        <li><b>Cuántas diferencias.</b> Primero decide \(D\) y luego \(d\) sobre la serie ya diferenciada estacionalmente. Diferenciar dos veces estacionalmente (\(D = 2\)) casi nunca está justificado.</li>
+        <li><b>Pruebas.</b> Existen pruebas de raíz unitaria estacional (OCSB, Canova-Hansen, HEGY). <code>nsdiffs()</code> en R usa por defecto una medida de fuerza estacional basada en STL, \(F_S = \max\big(0,\ 1 - \operatorname{Var}(R_t)/\operatorname{Var}(S_t + R_t)\big)\), y diferencia si \(F_S &gt; 0{,}64\).</li>
+        <li><b>Transformación de Box-Cox.</b> Generaliza el logaritmo: \(w_t = (y_t^\lambda - 1)/\lambda\), con \(\lambda = 0\) igual a \(\log y_t\). Se elige \(\lambda\) para que la amplitud estacional sea parecida en toda la serie. Con el logaritmo, \(\nabla_{12}\log y_t \approx\) tasa de crecimiento interanual.</li>
       </ul>
 
-      <h2 id="sarima-not"><span class="sec">§ 3</span>La notación SARIMA(p,d,q)(P,D,Q)<sub>m</sub></h2>
-      <p>El modelo SARIMA multiplica polinomios en \(B\) (la parte no estacional, en minúsculas) por polinomios en \(B^m\) (la parte estacional, en mayúsculas):</p>
-      <div class="eq">\[ \underbrace{\phi_p(B)\,\Phi_P(B^m)}_{\text{AR}}\;\underbrace{(1-B)^d(1-B^m)^D}_{\text{diferencias}}\; y_t = c + \underbrace{\theta_q(B)\,\Theta_Q(B^m)}_{\text{MA}}\;\varepsilon_t \]
-        <div class="note">\(\Phi_P(B^m) = 1 - \Phi_1 B^m - \dots - \Phi_P B^{Pm}\) y \(\Theta_Q(B^m) = 1 + \Theta_1 B^m + \dots + \Theta_Q B^{Qm}\). Estacionariedad e invertibilidad se exigen a los cuatro polinomios por separado, con la misma regla de raíces del ARIMA.</div>
-      </div>
-      <p>La estructura es <b>multiplicativa</b>, y eso genera términos cruzados. El “modelo de aerolínea”, SARIMA\((0,1,1)(0,1,1)_{12}\), escrito explícitamente queda así:</p>
+      <h2 id="sarima-not"><span class="sec">§ 4</span>Estructura multiplicativa y ACF teórica</h2>
+      <p>La estructura es <b>multiplicativa</b>, y eso genera términos cruzados. El modelo de aerolínea, SARIMA\((0,1,1)(0,1,1)_{12}\), escrito explícitamente queda así:</p>
       <div class="eq">\[ (1-B)(1-B^{12})\,y_t = (1 + \theta B)(1 + \Theta B^{12})\,\varepsilon_t \;\Longrightarrow\; w_t = \varepsilon_t + \theta\,\varepsilon_{t-1} + \Theta\,\varepsilon_{t-12} + \theta\Theta\,\varepsilon_{t-13} \]
         <div class="note">Con \(w_t = \nabla\nabla_{12}\, y_t\). El término \(\theta\Theta\,\varepsilon_{t-13}\) no es un parámetro nuevo: sale de multiplicar los dos polinomios. Con solo 2 parámetros, el modelo describe una serie con tendencia estocástica y estacionalidad cambiante.</div>
       </div>
-      <p>Otro ejemplo: un SARIMA\((1,0,0)(1,0,0)_{12}\) es \((1 - \phi B)(1 - \Phi B^{12})\,y_t = \varepsilon_t\), es decir, \(y_t = \phi\,y_{t-1} + \Phi\,y_{t-12} - \phi\Phi\,y_{t-13} + \varepsilon_t\). El valor de hoy depende del mes pasado, del mismo mes del año pasado y, con signo contrario, del rezago 13.</p>
-      <div class="callout"><b>Por qué multiplicativo y no aditivo:</b> la versión aditiva \(y_t = \phi y_{t-1} + \Phi y_{t-12} + \varepsilon_t\) también es válida, pero la multiplicativa refleja una idea natural: la relación entre meses consecutivos es la misma este año que el anterior. Además, es la que implementan <code>Arima()</code> y <code>SARIMAX</code>.</div>
+      <p><b>Derivación de la ACF.</b> Como \(w_t\) es un MA de orden 13 con solo cuatro coeficientes distintos de cero (\(1, \theta, \Theta, \theta\Theta\) en los rezagos 0, 1, 12, 13), su autocovarianza en el rezago \(k\) es \(\sigma^2\) por la suma de los productos de coeficientes separados \(k\) posiciones:</p>
+      <div class="eq">\[ \begin{aligned} \gamma_0 &amp;= \sigma^2(1 + \theta^2 + \Theta^2 + \theta^2\Theta^2) = \sigma^2(1+\theta^2)(1+\Theta^2) \\ \gamma_1 &amp;= \sigma^2(\theta + \Theta\cdot\theta\Theta) = \sigma^2\theta(1+\Theta^2) \\ \gamma_{11} &amp;= \sigma^2(\theta \cdot \Theta) = \sigma^2\theta\Theta, \qquad \gamma_{13} = \sigma^2(1\cdot\theta\Theta) = \sigma^2\theta\Theta \\ \gamma_{12} &amp;= \sigma^2(\Theta + \theta\cdot\theta\Theta) = \sigma^2\Theta(1+\theta^2) \end{aligned} \]
+        <div class="note">Todos los demás rezagos dan cero, porque no hay pares de coeficientes a esa distancia. Dividiendo por \(\gamma_0\) se obtienen las fórmulas de abajo.</div>
+      </div>
+      <div class="eq">\[ \rho_1 = \frac{\theta}{1 + \theta^2}, \qquad \rho_{12} = \frac{\Theta}{1 + \Theta^2}, \qquad \rho_{11} = \rho_{13} = \rho_1\,\rho_{12} \]
+        <div class="note">Si ves picos en 1 y en 12 y dos barras pequeñas y del mismo signo en 11 y 13, estás frente a la firma de un MA(1)×MA(1)<sub>12</sub>. Con \(\theta, \Theta\) negativos, los picos en 1 y 12 son negativos y los satélites positivos.</div>
+      </div>
+      <p><b>Ejemplo resuelto a mano.</b> Con \(\theta = -0{,}4\) y \(\Theta = -0{,}6\): \(\rho_1 = -0{,}4/1{,}16 \approx -0{,}345\), \(\rho_{12} = -0{,}6/1{,}36 \approx -0{,}441\) y \(\rho_{11} = \rho_{13} \approx (-0{,}345)(-0{,}441) \approx 0{,}152\). La ACF estimada de \(\nabla\nabla_{12}\log\) de los pasajeros aéreos (§ 10) es −0,34 en 1, 0,06 en 11, −0,39 en 12 y 0,15 en 13: muy parecida. La diferencia en el rezago 11 es normal, porque con 131 datos cada \(r_k\) tiene una desviación cercana a \(1/\sqrt{131} \approx 0{,}09\).</p>
+      <p>Otro ejemplo: un SARIMA\((1,0,0)(1,0,0)_{12}\) es \((1 - \phi B)(1 - \Phi B^{12})\,y_t = \varepsilon_t\), es decir, \(y_t = \phi\,y_{t-1} + \Phi\,y_{t-12} - \phi\Phi\,y_{t-13} + \varepsilon_t\). El valor de hoy depende del mes pasado, del mismo mes del año pasado y, con signo contrario, del rezago 13. Y un SARIMA\((1,0,0)(0,1,1)_4\) trimestral, \((1 - \phi B)(1 - B^4)\,y_t = (1 + \Theta B^4)\,\varepsilon_t\), se expande como \(y_t = \phi\,y_{t-1} + y_{t-4} - \phi\,y_{t-5} + \varepsilon_t + \Theta\,\varepsilon_{t-4}\): el trimestre actual es el mismo trimestre del año pasado, corregido por cómo se desvió el trimestre anterior respecto de su propio año previo.</p>
+      <div class="callout"><b>Por qué multiplicativo y no aditivo:</b> la versión aditiva \(y_t = \phi y_{t-1} + \Phi y_{t-12} + \varepsilon_t\) también es válida, pero la multiplicativa refleja una idea natural: la relación entre meses consecutivos es la misma este año que el anterior. Además, es la que implementan <code>Arima()</code> y <code>SARIMAX</code>, y ahorra parámetros: el término del rezago 13 sale gratis.</div>
 
-      <h2 id="sarima-ident"><span class="sec">§ 4</span>Identificación estacional</h2>
+      <h2 id="sarima-ident"><span class="sec">§ 5</span>Identificación y selección de modelos</h2>
       <p>Una vez diferenciada la serie, la ACF y la PACF se leen en dos escalas: los <b>rezagos cortos</b> (1, 2, 3…) sugieren \(p\) y \(q\), y los <b>rezagos estacionales</b> (\(m, 2m, 3m\)) sugieren \(P\) y \(Q\), con las mismas reglas del ARIMA aplicadas a esos rezagos.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Parte estacional</th><th>ACF en m, 2m, 3m</th><th>PACF en m, 2m, 3m</th></tr></thead>
@@ -68,14 +101,54 @@
           <tr><td>Falta diferencia estacional</td><td>Decae muy lento en \(m, 2m, 3m\)</td><td>Pico grande en \(m\)</td></tr>
         </tbody>
       </table></div>
-      <p>La multiplicación de polinomios deja una huella reconocible: <b>satélites</b> alrededor de los rezagos estacionales. Para el modelo de aerolínea, la ACF teórica de \(w_t\) es distinta de cero solo en cuatro rezagos:</p>
-      <div class="eq">\[ \rho_1 = \frac{\theta}{1 + \theta^2}, \qquad \rho_{12} = \frac{\Theta}{1 + \Theta^2}, \qquad \rho_{11} = \rho_{13} = \rho_1\,\rho_{12} \]
-        <div class="note">Si ves picos en 1 y en 12 y dos barras pequeñas y del mismo signo en 11 y 13, estás frente a la firma de un MA(1)×MA(1)<sub>12</sub>. Con \(\theta, \Theta\) negativos, los picos en 1 y 12 son negativos y los satélites positivos.</div>
-      </div>
       <div class="callout"><b>Error común:</b> mirar solo 24 rezagos en datos mensuales. Para distinguir un AR estacional de un MA estacional necesitas ver al menos los rezagos 12, 24 y 36. Pide <code>lag.max = 36</code> o más.</div>
+      <p>La estrategia general es la del ARIMA, con más candidatos. Una receta razonable:</p>
+      <ol>
+        <li>Transforma (logaritmo o Box-Cox) si la varianza crece con el nivel.</li>
+        <li>Decide \(D\) y luego \(d\) con gráficos y pruebas. Fíjalos.</li>
+        <li>Propón órdenes bajos mirando la ACF y la PACF: casi siempre \(p, q \le 2\) y \(P, Q \le 1\).</li>
+        <li>Compara candidatos con el AICc, <b>solo entre modelos con los mismos \(d\), \(D\) y transformación</b>. El logaritmo cambia la escala de la verosimilitud igual que lo hace una diferencia.</li>
+        <li>Revisa los residuos con Ljung-Box usando \(h = 2m\) (24 en mensuales) y descontando los parámetros estimados.</li>
+        <li>Si dudas entre transformaciones o entre valores de \(D\), decide con un conjunto de prueba o con validación de origen móvil (sesión de <a href="#pronost">evaluación de pronósticos</a>), no con el AIC.</li>
+      </ol>
+      <p><b>auto.arima por dentro.</b> El algoritmo de Hyndman y Khandakar (2008) decide \(D\) con la medida de fuerza estacional y \(d\) con pruebas KPSS sucesivas; luego ajusta cuatro modelos iniciales y explora variaciones de ±1 en \(p, q, P, Q\), quedándose con el de menor AICc. Por velocidad, usa una búsqueda escalonada (<code>stepwise</code>) y una verosimilitud aproximada: con <code>stepwise = FALSE, approximation = FALSE</code> explora más modelos y es más fiable, aunque más lento.</p>
+      <div class="callout"><b>Cuando SARIMA no es la herramienta:</b> con períodos largos (datos semanales con patrón anual, \(m \approx 52\); horarios con patrón diario, \(m = 24\), y además semanal) el modelo se vuelve lento e inestable y no admite estacionalidades múltiples. Ahí conviene una regresión con términos de Fourier y errores ARIMA, o métodos como MSTL o TBATS. Con \(K\) pares de Fourier, \(\sum_{k=1}^{K}\big[a_k\sin(2\pi k t/m) + b_k\cos(2\pi k t/m)\big]\), un patrón anual en datos semanales se captura con 6 a 10 coeficientes en lugar de 52.</div>
 
-      <h2 id="sarima-lab"><span class="sec">§ 5</span>Laboratorio: diferencia hasta encontrar la firma</h2>
-      <p>El simulador genera 12 años de una serie mensual con el modelo de aerolínea. Elige qué versión ver: la original, con una diferencia normal, con una estacional o con ambas. Con \(\nabla\nabla_{12}\) aparecen los puntos de la ACF y la PACF teóricas.</p>
+      <h2 id="sarima-pron"><span class="sec">§ 6</span>Pronóstico estacional</h2>
+      <p>Las reglas son las del ARIMA: se despeja \(y_t\), los choques futuros se ponen en 0 y los pasados se reemplazan por residuos. Para el modelo de aerolínea en \(w = \log y\):</p>
+      <div class="eq">\[ \hat w_{T+1} = w_T + w_{T-11} - w_{T-12} + \theta\,\varepsilon_T + \Theta\,\varepsilon_{T-11} + \theta\Theta\,\varepsilon_{T-12} \]
+        <div class="note">La parte principal dice "enero = diciembre + el salto de diciembre a enero del año pasado"; los términos MA corrigen con las sorpresas recientes del mes y del año.</div>
+      </div>
+      <p><b>Ejemplo resuelto a mano.</b> Con \(\theta = -0{,}4\), \(\Theta = -0{,}6\), \(\hat\sigma^2 = 0{,}0014\), \(w_T = 6{,}00\), \(w_{T-11} = 5{,}80\), \(w_{T-12} = 5{,}75\) y residuos \(\varepsilon_T = 0{,}02\), \(\varepsilon_{T-11} = -0{,}01\), \(\varepsilon_{T-12} = 0{,}03\):</p>
+      <div class="eq">\[ \hat w_{T+1} = 6{,}00 + 5{,}80 - 5{,}75 - 0{,}4(0{,}02) - 0{,}6(-0{,}01) + 0{,}24(0{,}03) = 6{,}0552 \]</div>
+      <p>La mediana en la escala original es \(e^{6{,}0552} \approx 426{,}3\) mil pasajeros; el IC al 95 % en logaritmos es \(6{,}0552 \pm 1{,}96\sqrt{0{,}0014} = 6{,}0552 \pm 0{,}0733\), que en la escala original da \([396{,}2;\ 458{,}8]\), un intervalo asimétrico como corresponde a datos positivos.</p>
+      <p><b>Volver a la escala original.</b> Si modelaste \(\log y_t\), el pronóstico \(e^{\hat w_{T+h}}\) es la <b>mediana</b> del pronóstico, no la media. Si \(w \sim N(\mu, \sigma_h^2)\), entonces \(E[e^w] = e^{\mu + \sigma_h^2/2}\), y para \(\sigma_h\) pequeño:</p>
+      <div class="eq">\[ \hat y_{T+h} = e^{\hat w_{T+h} + \hat\sigma_h^2/2} \approx e^{\hat w_{T+h}}\left(1 + \tfrac{1}{2}\hat\sigma_h^2\right) \]
+        <div class="note">\(\hat\sigma_h^2\) es la varianza del pronóstico en la escala logarítmica. En el ejemplo, la media es \(426{,}3 \cdot 1{,}0007 \approx 426{,}6\): casi nada a 1 paso, pero la corrección crece con el horizonte. Los extremos del intervalo, en cambio, se transforman directamente con la exponencial, porque los cuantiles se conservan bajo funciones crecientes.</div>
+      </div>
+      <p><b>Cómo se abre el intervalo.</b> En el paseo aleatorio estacional \(y_t = y_{t-m} + \varepsilon_t\), los pesos de Wold son \(\psi_j = 1\) si \(j\) es múltiplo de \(m\) y 0 en otro caso. Por eso \(\operatorname{Var}(e_{T+h}) = \sigma^2\big(\lfloor (h-1)/m \rfloor + 1\big)\): el intervalo es constante durante todo el primer año, salta al empezar el segundo, y así sucesivamente. Su pronóstico es exactamente el <b>ingenuo estacional</b> (repetir el último ciclo), el punto de comparación obligatorio de cualquier SARIMA. En el modelo de aerolínea, la diferencia normal agrega además un crecimiento suave de la varianza dentro de cada año.</p>
+
+      <h2 id="sarima-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>La diferencia estacional elimina patrones fijos.</b> Si \(s_t = s_{t-m}\), entonces \(\nabla_m s_t = 0\), y una tendencia \(a + bt\) se convierte en la constante \(bm\). <i>Justificación:</i> § 3.</li>
+        <li><b>Conmutatividad.</b> \(\nabla\nabla_m = \nabla_m\nabla = 1 - B - B^m + B^{m+1}\). <i>Justificación:</i> los polinomios en \(B\) se multiplican como polinomios ordinarios.</li>
+        <li><b>ACF del modelo de aerolínea.</b> Distinta de cero solo en los rezagos 1, \(m-1\), \(m\) y \(m+1\), con \(\rho_{m\pm1} = \rho_1\rho_m\). <i>Justificación:</i> derivación del § 4.</li>
+        <li><b>Condiciones por separado.</b> El SARIMA es estacionario (tras diferenciar) e invertible si y solo si \(\phi_p\), \(\Phi_P\), \(\theta_q\) y \(\Theta_Q\) cumplen cada uno la regla de raíces. <i>Justificación:</i> las raíces de un producto de polinomios son la unión de las raíces de los factores; \(\Phi_P(z^m) = 0\) tiene raíces fuera del círculo si y solo si las de \(\Phi_P(u) = 0\) lo están, con \(u = z^m\).</li>
+        <li><b>Paseo aleatorio estacional.</b> SARIMA\((0,0,0)(0,1,0)_m\) pronostica \(\hat y_{T+h} = y_{T+h-km}\) con \(k = \lfloor (h-1)/m\rfloor + 1\) y varianza \(\sigma^2 k\). <i>Justificación:</i> pesos \(\psi_j = 1\) en los múltiplos de \(m\).</li>
+        <li><b>Sobrediferenciación estacional.</b> Si el patrón es determinista, \(\nabla_m\) produce un MA estacional con \(\Theta = -1\) (no invertible). <i>Justificación:</i> \(\nabla_m(s_t + \varepsilon_t) = (1 - B^m)\varepsilon_t\).</li>
+        <li><b>Sesgo de retransformación.</b> Si \(w = \log y\) es normal, \(e^{\hat w}\) es la mediana de \(y\) y la media es \(e^{\hat w + \sigma^2_h/2}\). <i>Justificación:</i> media de la distribución lognormal.</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li>Comparar el AICc de un modelo en logaritmos con otro en la escala original, o de modelos con distinto \(D\).</li>
+        <li>Usar \(D = 1\) y \(d = 1\) sin verificar que hagan falta las dos: a veces \(\nabla_{12}\) ya basta.</li>
+        <li>Mirar la ACF solo hasta el rezago 24 en datos mensuales.</li>
+        <li>No comparar contra el ingenuo estacional: un SARIMA que no le gana a "repetir el año pasado" no aporta nada.</li>
+        <li>Forzar un SARIMA con \(m = 52\) o \(m = 168\) en lugar de usar Fourier o métodos de estacionalidad múltiple.</li>
+      </ul>
+
+      <h2 id="sarima-sim"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio: diferencia hasta encontrar la firma.</b> El simulador genera 12 años de una serie mensual con el modelo de aerolínea (\(\sigma = 1{,}6\)). Elige qué versión ver: la original, con una diferencia normal, con una estacional o con ambas. Con \(\nabla\nabla_{12}\) aparecen los puntos de la ACF y la PACF teóricas.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · SARIMA(0,1,1)(0,1,1)₁₂</span><span class="num" id="sarima-head">–</span></div>
         <div class="lab-body">
@@ -118,25 +191,29 @@
         </div>
         <figcaption>En la serie original la ACF casi no baja de 1. Con ∇y queda una ola con picos en 12, 24 y 36: falta la diferencia estacional. Con ∇₁₂y la ACF todavía decae lento. Con ∇∇₁₂y solo sobreviven los rezagos 1, 11, 12 y 13. Pon θ = 0: desaparecen el pico en 1 y los satélites.</figcaption>
       </figure>
-
-      <h2 id="sarima-sel"><span class="sec">§ 6</span>Selección de modelos</h2>
-      <p>La estrategia general es la del ARIMA, con más candidatos. Una receta razonable:</p>
+      <p><b>Experimentos guiados</b></p>
       <ol>
-        <li>Transforma (logaritmo o Box-Cox) si la varianza crece con el nivel.</li>
-        <li>Decide \(D\) y luego \(d\) con gráficos y pruebas. Fíjalos.</li>
-        <li>Propón órdenes bajos mirando la ACF y la PACF: casi siempre \(p, q \le 2\) y \(P, Q \le 1\).</li>
-        <li>Compara candidatos con el AICc, <b>solo entre modelos con los mismos \(d\), \(D\) y transformación</b>. El logaritmo cambia la escala de la verosimilitud igual que lo hace una diferencia.</li>
-        <li>Revisa los residuos con Ljung-Box usando \(h = 2m\) (24 en mensuales) y descontando los parámetros estimados.</li>
-        <li>Si dudas entre transformaciones o entre valores de \(D\), decide con un conjunto de prueba o con validación de origen móvil (la próxima sesión), no con el AIC.</li>
+        <li>Mira la serie original \(y_t\) y después \(\nabla y\). Fíjate en los rezagos 12, 24 y 36 de la ACF.
+          <details><summary>Qué deberías observar</summary><p>En \(y_t\) la ACF casi no baja de 1: hay una tendencia estocástica. Con \(\nabla y\) aparece una ola con picos en 12, 24 y 36 que decaen muy lento: es la firma de que falta la diferencia estacional (tercera fila de la tabla del § 5).</p></details></li>
+        <li>Con los valores iniciales (\(\theta = -0{,}4\), \(\Theta = -0{,}6\)) elige \(\nabla\nabla_{12}y\) y compara r₁ y r₁₂ con los teóricos −0,345 y −0,441. Pulsa "Nueva serie" varias veces.
+          <details><summary>Qué deberías observar</summary><p>Los valores estimados oscilan alrededor de los teóricos con una variación de ±0,1 o algo más, del orden de \(1/\sqrt{131}\). La desviación típica de \(\nabla\nabla_{12}y\) ronda \(1{,}6\sqrt{1{,}16 \cdot 1{,}36} \approx 2{,}0\). Una sola muestra de 12 años puede engañar, por eso conviene llevar varios candidatos a la estimación.</p></details></li>
+        <li>Pon \(\theta = 0\) y mira los rezagos 1, 11 y 13.
+          <details><summary>Qué deberías observar</summary><p>Desaparecen el pico en 1 y los satélites en 11 y 13, porque \(\rho_{11} = \rho_{13} = \rho_1\rho_{12} = 0\). Solo queda el pico en 12: un MA estacional puro. El conteo de rezagos fuera de bandas baja.</p></details></li>
+        <li>Lleva \(\Theta\) a −0,9 y compara r₁₂ con \(\Theta = -0{,}3\). Después pon \(\Theta = +0{,}6\).
+          <details><summary>Qué deberías observar</summary><p>Con \(\Theta = -0{,}9\), \(\rho_{12} = -0{,}9/1{,}81 \approx -0{,}50\), cerca del máximo posible en módulo; con −0,3, solo −0,28. Con \(\Theta\) positivo el pico en 12 se vuelve positivo y los satélites cambian de signo (pasan a ser negativos si \(\theta &lt; 0\)). Un \(\Theta\) estimado cerca de −1 en datos reales sugiere que la diferencia estacional sobraba.</p></details></li>
       </ol>
-      <p><b>auto.arima por dentro.</b> El algoritmo de Hyndman y Khandakar (2008) decide \(D\) con la medida de fuerza estacional y \(d\) con pruebas KPSS sucesivas; luego ajusta cuatro modelos iniciales y explora variaciones de ±1 en \(p, q, P, Q\), quedándose con el de menor AICc. Por velocidad, usa una búsqueda escalonada (<code>stepwise</code>) y una verosimilitud aproximada: con <code>stepwise = FALSE, approximation = FALSE</code> explora más modelos y es más fiable, aunque más lento.</p>
-      <p><b>Volver a la escala original.</b> Si modelaste \(\log y_t\), el pronóstico \(e^{\hat w_{T+h}}\) es la <b>mediana</b> del pronóstico, no la media. Para obtener la media se corrige el sesgo:</p>
-      <div class="eq">\[ \hat y_{T+h} \approx e^{\hat w_{T+h}}\left(1 + \tfrac{1}{2}\hat\sigma_h^2\right) \]
-        <div class="note">\(\hat\sigma_h^2\) es la varianza del pronóstico en la escala logarítmica. La corrección importa poco a 1 paso y más a horizontes largos, donde \(\hat\sigma_h\) crece. Los extremos del intervalo, en cambio, se transforman directamente con la exponencial.</div>
-      </div>
-      <div class="callout"><b>Cuando SARIMA no es la herramienta:</b> con períodos largos (datos semanales con patrón anual, \(m \approx 52\); horarios con patrón diario, \(m = 24\), y además semanal) el modelo se vuelve lento e inestable y no admite estacionalidades múltiples. Ahí conviene una regresión con términos de Fourier y errores ARIMA, o métodos como MSTL o TBATS.</div>
 
-      <h2 id="sarima-code"><span class="sec">§ 7</span>Ejemplo resuelto en R y Python</h2>
+      <h2 id="sarima-apl"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Ambiente: el CO₂ de Mauna Loa</h3>
+      <p>La serie mensual de concentración de CO₂ medida en Mauna Loa desde 1958 (dataset <code>co2</code> de R y <code>sm.datasets.co2</code> en statsmodels) tiene una tendencia creciente y un ciclo anual de unos 6 ppm de amplitud: la vegetación del hemisferio norte absorbe CO₂ en primavera y verano y lo libera en otoño e invierno. Como la amplitud casi no cambia con el nivel, no hace falta logaritmo. Un SARIMA\((0,1,1)(0,1,1)_{12}\) sobre los datos originales deja residuos cercanos al ruido blanco y pronostica un crecimiento del orden de 2 a 2,5 ppm por año en las décadas recientes. Los climatólogos usan este tipo de pronóstico como línea base: si la concentración observada se aparta de la banda pronosticada, hay que buscar una causa (un año de El Niño fuerte, un cambio en las emisiones).</p>
+      <h3>Salud: muertes por enfermedades pulmonares en el Reino Unido</h3>
+      <p>Las series <code>ldeaths</code>, <code>mdeaths</code> y <code>fdeaths</code> de R registran las muertes mensuales por bronquitis, enfisema y asma en el Reino Unido entre 1974 y 1979. Tienen un pico marcado cada invierno, de más del doble que el valle de verano, y casi ninguna tendencia. Al aplicar \(\nabla_{12}\) la estacionalidad desaparece y la ACF restante sugiere un MA estacional. Un servicio de salud que pronostica este pico con un SARIMA puede decidir con meses de anticipación cuántas camas de invierno habilitar y cuándo lanzar campañas de vacunación. Aquí la comparación contra el ingenuo estacional es exigente, porque el patrón es muy estable: si el SARIMA no lo mejora, el ingenuo es suficiente.</p>
+      <h3>Economía: ajuste estacional de estadísticas oficiales</h3>
+      <p>La Oficina del Censo de Estados Unidos publica el empleo, las ventas minoristas y la producción industrial "desestacionalizados" con el programa X-13ARIMA-SEATS, y muchas oficinas de estadística de América Latina y Europa usan TRAMO-SEATS o el mismo X-13. El primer paso de ambos es ajustar un SARIMA (con frecuencia el de aerolínea, en logaritmos) para extender la serie con pronósticos y así poder aplicar filtros simétricos hasta el último dato. La decisión que permite es de política pública: un aumento del desempleo en enero solo es noticia si supera lo que la estacionalidad ya explica.</p>
+      <h3>Energía: demanda eléctrica con estacionalidad múltiple</h3>
+      <p>Un operador de red con datos horarios ve dos ciclos a la vez: el diario (\(m = 24\)) y el semanal (\(m = 168\)), más un patrón anual por la calefacción y el aire acondicionado. Un SARIMA con \(m = 168\) es inmanejable. La práctica habitual es una regresión con, por ejemplo, 10 pares de Fourier para el ciclo diario, 5 para el semanal, la temperatura como covariable y errores ARIMA de orden bajo. Con un error típico de 2 % a 3 % a un día de horizonte, el operador decide cuántas centrales despachar y cuánta energía comprar en el mercado del día siguiente.</p>
+
+      <h2 id="sarima-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>Modelamos los pasajeros aéreos en logaritmo, reservamos 1959 y 1960 como prueba, comparamos candidatos con \(d = D = 1\) fijos, diagnosticamos el modelo de aerolínea y lo comparamos con el ingenuo estacional en la escala original.</p>
 <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
@@ -219,9 +296,9 @@ f &lt;- <span class="f">forecast</span>(aero, h = <span class="n">24</span>, bia
 <span class="f">accuracy</span>(<span class="f">snaive</span>(train, h = <span class="n">24</span>), test)[, <span class="f">c</span>(<span class="s">"RMSE"</span>, <span class="s">"MAPE"</span>, <span class="s">"MASE"</span>)]
 <span class="f">autoplot</span>(f) + <span class="f">autolayer</span>(test)</code></pre>
 </div>
-      <p>Qué deberías ver: la ACF de \(\nabla\nabla_{12}\log y\) tiene picos negativos en 1 y 12 y un satélite positivo en 13, la firma del modelo de aerolínea. La búsqueda por AICc lo elige, aunque un \((1,1,0)(0,1,1)_{12}\) queda a menos de medio punto: dos modelos casi igual de buenos. Los coeficientes son cercanos a los clásicos de Box y Jenkins, Ljung-Box no detecta autocorrelación pendiente y el SARIMA reduce el error porcentual del ingenuo estacional casi a la mitad, porque este último ignora el crecimiento de un año al siguiente.</p>
+      <p>Qué deberías ver: la ACF de \(\nabla\nabla_{12}\log y\) tiene picos negativos en 1 y 12 y un satélite positivo en 13, la firma del modelo de aerolínea. La búsqueda por AICc lo elige, aunque un \((1,1,0)(0,1,1)_{12}\) queda a menos de medio punto: dos modelos casi igual de buenos. Los coeficientes (θ ≈ −0,34, Θ ≈ −0,54) son cercanos a los clásicos de Box y Jenkins, Ljung-Box no detecta autocorrelación pendiente (p ≈ 0,71) y el SARIMA reduce el error porcentual del ingenuo estacional casi a la mitad (8,5 % contra 15,5 %), porque este último ignora el crecimiento de un año al siguiente. Para una aerolínea, esa diferencia se traduce en planificar mejor la flota y el personal de cada temporada.</p>
 
-      <h2 id="sarima-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <h2 id="sarima-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="(1 − B)(1 − B¹²) = 1 − B − B¹² + B¹³. Aplicado a y_t da y_t − y_(t−1) − y_(t−12) + y_(t−13)." data-wrong="Multiplica los dos polinomios (1 − B)(1 − B¹²) y aplica cada potencia de B como un rezago.">
         <h3>¿Cómo se escribe \(\nabla\nabla_{12}\, y_t\) en términos de la serie original?</h3>
         <div class="opts">
@@ -252,43 +329,149 @@ f &lt;- <span class="f">forecast</span>(aero, h = <span class="n">24</span>, bia
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Si log y es normal, exp de su pronóstico es la mediana de y. La media es mayor: exp(ŵ + σ²/2). La diferencia crece con el horizonte." data-wrong="La exponencial conserva los cuantiles, no las medias. ¿Qué cuantil de w es su pronóstico puntual?">
+        <h3>Modelaste log y con un SARIMA y calculas exp(ŵ) para volver a la escala original. ¿Qué obtienes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La media del pronóstico de y</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>La mediana del pronóstico de y</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El límite superior del intervalo al 95 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Un valor sin interpretación, hay que ajustar otro modelo</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con ψ_j = 1 solo en los múltiplos de 12, la varianza es σ² durante los primeros 12 meses y 2σ² del mes 13 al 24. El intervalo se mantiene igual y luego salta." data-wrong="Escribe los pesos ψ del paseo aleatorio estacional y suma sus cuadrados hasta h − 1.">
+        <h3>En un paseo aleatorio estacional mensual con σ = 10, ¿cuánto vale la desviación del error de pronóstico a h = 6 y a h = 18?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>√6 · 10 y √18 · 10</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>10 en ambos casos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>10 y √2 · 10 ≈ 14,1</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>60 y 180</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="sarima-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>El laboratorio del § 5 te sirve para comprobar el ejercicio 3.</p>
+      <h2 id="sarima-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Cada pregunta pide una derivación, un cálculo con datos o una simulación. Puedes usar el laboratorio del § 8 para la primera.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Escribe explícitamente, como una ecuación para \(y_t\), el modelo SARIMA\((1,0,0)(0,1,1)_4\) para datos trimestrales.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Generaliza la derivación del § 4 a un SARIMA\((0,1,1)(0,1,1)_m\) con período \(m\) cualquiera. (a) Escribe todas las autocovarianzas no nulas de \(w_t = \nabla\nabla_m y_t\). (b) Para \(m = 4\), \(\theta = -0{,}5\) y \(\Theta = -0{,}5\), calcula la ACF en los rezagos 1 a 5. (c) ¿Qué pasa con la firma cuando \(m = 2\)?</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>El modelo es \((1 - \phi B)(1 - B^4)\,y_t = (1 + \Theta B^4)\,\varepsilon_t\). Multiplicando a la izquierda: \((1 - \phi B - B^4 + \phi B^5)\,y_t\). Entonces:</p>
-            <div class="eq">\[ y_t = \phi\,y_{t-1} + y_{t-4} - \phi\,y_{t-5} + \varepsilon_t + \Theta\,\varepsilon_{t-4} \]</div>
-            <p>El trimestre actual se construye con el mismo trimestre del año pasado, corregido por cómo se desvió el trimestre anterior respecto de su propio año previo.</p>
+            <p>(a) \(w_t = \varepsilon_t + \theta\varepsilon_{t-1} + \Theta\varepsilon_{t-m} + \theta\Theta\varepsilon_{t-m-1}\). Sumando productos de coeficientes a distancia \(k\): \(\gamma_0 = \sigma^2(1+\theta^2)(1+\Theta^2)\), \(\gamma_1 = \sigma^2\theta(1+\Theta^2)\), \(\gamma_{m-1} = \gamma_{m+1} = \sigma^2\theta\Theta\), \(\gamma_m = \sigma^2\Theta(1+\theta^2)\). Esto vale para \(m \ge 3\), cuando los rezagos \(1, m-1, m, m+1\) son distintos.</p>
+            <p>(b) \(\rho_1 = -0{,}5/1{,}25 = -0{,}4\), \(\rho_4 = -0{,}4\), \(\rho_3 = \rho_5 = 0{,}16\), \(\rho_2 = 0\).</p>
+            <p>(c) Con \(m = 2\), el rezago \(m - 1\) coincide con el 1, así que \(\gamma_1 = \sigma^2[\theta(1+\Theta^2) + \theta\Theta]\): el satélite se suma al pico no estacional y la firma deja de distinguirse. Por eso los modelos estacionales tienen sentido para \(m \ge 4\).</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Las ventas trimestrales de dos años fueron 20, 35, 30, 50 y luego 24, 40, 33, 56. Calcula \(\nabla_4\, y_t\) y después \(\nabla\nabla_4\, y_t\). ¿Qué interpretas en cada caso?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Para el modelo de aerolínea \(w_t = \log y_t\) con \(\theta = -0{,}4\), \(\Theta = -0{,}6\) y \(\sigma^2 = 0{,}0014\): (a) obtén los pesos \(\psi_0, \dots, \psi_{13}\) de \(w_t\) (la serie integrada). (b) Calcula la desviación del error de pronóstico a 1, 12 y 13 pasos. (c) Explica por qué hay un salto entre \(h = 12\) y \(h = 13\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>\(\nabla_4\): 24 − 20 = 4, 40 − 35 = 5, 33 − 30 = 3, 56 − 50 = 6. Es el crecimiento interanual de cada trimestre: la estacionalidad desapareció y queda un crecimiento de unas 4,5 unidades por año.</p>
-            <p>\(\nabla\nabla_4\): 5 − 4 = 1, 3 − 5 = −2, 6 − 3 = 3. Mide si el crecimiento interanual se acelera o se frena de un trimestre al siguiente. Con tan pocos datos no se puede modelar, pero ilustra que cada diferencia cuesta observaciones: de 8 datos quedan 3.</p>
+            <p>(a) \(\Psi(B) = \frac{(1+\theta B)(1+\Theta B^{12})}{(1-B)(1-B^{12})}\). Dividir por \((1-B)\) acumula: los pesos de \((1+\theta B)/(1-B)\) son \(1, 1+\theta, 1+\theta, \dots = 1, 0{,}6, 0{,}6, \dots\). Para \(j &lt; 12\), el factor estacional aún no actúa, así que \(\psi_0 = 1\) y \(\psi_1 = \dots = \psi_{11} = 0{,}6\). En \(j = 12\) entra \((1+\Theta)/(1-B^{12})\): \(\psi_{12} = 0{,}6 + (1+\Theta)\cdot 1 = 0{,}6 + 0{,}4 = 1{,}0\) y \(\psi_{13} = 0{,}6 + 0{,}4 \cdot 0{,}6 = 0{,}84\).</p>
+            <p>(b) \(\sigma_1 = \sqrt{0{,}0014} \approx 0{,}0374\). \(\sigma_{12} = 0{,}0374\sqrt{1 + 11 \cdot 0{,}36} = 0{,}0374\sqrt{4{,}96} \approx 0{,}0833\). \(\sigma_{13} = 0{,}0374\sqrt{4{,}96 + 1{,}0} \approx 0{,}0913\). En porcentaje, el error típico pasa de un 3,7 % a un mes a un 8,3 % a un año.</p>
+            <p>(c) A 13 pasos entra por primera vez un choque que afecta "al mismo mes del año siguiente": la parte estacional suma \(1 + \Theta\) al peso, y la varianza da un salto. Puedes comprobarlo:</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+th, Th, s2, H = -<span class="n">0.4</span>, -<span class="n">0.6</span>, <span class="n">0.0014</span>, <span class="n">24</span>
+ma = np.<span class="f">zeros</span>(H); ma[[<span class="n">0</span>, <span class="n">1</span>, <span class="n">12</span>, <span class="n">13</span>]] = [<span class="n">1</span>, th, Th, th * Th]   <span class="c"># (1+θB)(1+ΘB¹²)</span>
+ar = np.<span class="f">zeros</span>(H); ar[[<span class="n">0</span>, <span class="n">1</span>, <span class="n">12</span>, <span class="n">13</span>]] = [<span class="n">1</span>, -<span class="n">1</span>, -<span class="n">1</span>, <span class="n">1</span>]        <span class="c"># (1−B)(1−B¹²)</span>
+psi = np.<span class="f">zeros</span>(H)
+<span class="k">for</span> j <span class="k">in</span> <span class="f">range</span>(H):                      <span class="c"># división de polinomios: ar · psi = ma</span>
+    psi[j] = ma[j] - <span class="f">sum</span>(ar[i] * psi[j - i] <span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="n">1</span>, j + <span class="n">1</span>))
+sd = np.<span class="f">sqrt</span>(s2 * np.<span class="f">cumsum</span>(psi ** <span class="n">2</span>))
+<span class="f">print</span>(psi[:<span class="n">14</span>].<span class="f">round</span>(<span class="n">2</span>))                <span class="c"># 1 0.6 … 0.6 1.0 0.84</span>
+<span class="f">print</span>(sd[[<span class="n">0</span>, <span class="n">11</span>, <span class="n">12</span>]].<span class="f">round</span>(<span class="n">4</span>))          <span class="c"># 0.0374 0.0833 0.0913</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>th &lt;- -<span class="n">0.4</span>; Th &lt;- -<span class="n">0.6</span>; s2 &lt;- <span class="n">0.0014</span>; H &lt;- <span class="n">24</span>
+ma &lt;- <span class="f">numeric</span>(H); ma[<span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">13</span>, <span class="n">14</span>)] &lt;- <span class="f">c</span>(<span class="n">1</span>, th, Th, th * Th)
+ar &lt;- <span class="f">numeric</span>(H); ar[<span class="f">c</span>(<span class="n">1</span>, <span class="n">2</span>, <span class="n">13</span>, <span class="n">14</span>)] &lt;- <span class="f">c</span>(<span class="n">1</span>, -<span class="n">1</span>, -<span class="n">1</span>, <span class="n">1</span>)
+psi &lt;- <span class="f">numeric</span>(H)
+<span class="k">for</span> (j <span class="k">in</span> <span class="n">1</span>:H) psi[j] &lt;- ma[j] - <span class="f">sum</span>(ar[<span class="f">seq_len</span>(j - <span class="n">1</span>) + <span class="n">1</span>] * psi[j - <span class="f">seq_len</span>(j - <span class="n">1</span>)])
+<span class="f">round</span>(psi[<span class="n">1</span>:<span class="n">14</span>], <span class="n">2</span>)                         <span class="c"># 1 0.6 … 0.6 1.0 0.84</span>
+<span class="f">round</span>(<span class="f">sqrt</span>(s2 * <span class="f">cumsum</span>(psi^<span class="n">2</span>))[<span class="f">c</span>(<span class="n">1</span>, <span class="n">12</span>, <span class="n">13</span>)], <span class="n">4</span>)</code></pre>
+</div>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Para un modelo de aerolínea con \(\theta = -0{,}4\) y \(\Theta = -0{,}6\), calcula la ACF teórica de \(w_t = \nabla\nabla_{12}\, y_t\) en los rezagos 1, 11, 12 y 13. Compárala con la ACF estimada de los pasajeros aéreos del § 7 (−0,34; 0,06; −0,39; 0,15).</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estacionalidad determinista. (a) Demuestra que si \(y_t = \mu + s_t + \varepsilon_t\) con \(s_t\) periódico de período \(m\) y \(\varepsilon_t\) ruido blanco, entonces \(\nabla_m y_t\) es un MA estacional no invertible. (b) Simula 10 años de una serie mensual con un patrón sinusoidal fijo, ajústale un SARIMA\((0,0,0)(0,1,1)_{12}\) y comenta \(\hat\Theta\). (c) ¿Qué modelo usarías en su lugar y por qué no puedes comparar sus AIC?</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>\(\rho_1 = -0{,}4/1{,}16 \approx -0{,}345\). \(\rho_{12} = -0{,}6/1{,}36 \approx -0{,}441\). \(\rho_{11} = \rho_{13} = (-0{,}345)(-0{,}441) \approx 0{,}152\). Todos los demás rezagos valen 0.</p>
-            <p>Los pasajeros aéreos se parecen mucho en 1, 12 y 13. En 11 la estimación (0,06) queda por debajo de la teórica, lo que es normal con 131 observaciones: la desviación de cada \(r_k\) es del orden de \(1/\sqrt{131} \approx 0{,}09\).</p>
+            <p>(a) \(\nabla_m y_t = (s_t - s_{t-m}) + \varepsilon_t - \varepsilon_{t-m} = (1 - B^m)\varepsilon_t\): un MA estacional con \(\Theta = -1\). La raíz de \(1 - z^m\) está sobre el círculo unitario, así que no es invertible.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> statsmodels.tsa.statespace.sarimax <span class="k">import</span> SARIMAX
+rng = np.random.<span class="f">default_rng</span>(<span class="n">7</span>)
+meses = np.<span class="f">arange</span>(<span class="n">120</span>) % <span class="n">12</span>
+y = <span class="n">50</span> + <span class="n">10</span> * np.<span class="f">sin</span>(<span class="n">2</span> * np.pi * meses / <span class="n">12</span>) + rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">2</span>, <span class="n">120</span>)   <span class="c"># patrón FIJO</span>
+m = <span class="f">SARIMAX</span>(y, order=(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>), seasonal_order=(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">12</span>)).<span class="f">fit</span>(disp=<span class="k">False</span>)
+<span class="f">print</span>(m.params.<span class="f">round</span>(<span class="n">3</span>))       <span class="c"># ma.S.L12 ≈ −0.999: la diferencia sobraba</span>
+
+<span class="c"># Alternativa: regresión con indicadoras de mes (o Fourier) y errores ARMA</span>
+X = np.<span class="f">eye</span>(<span class="n">12</span>)[meses][:, <span class="n">1</span>:]
+r = <span class="f">SARIMAX</span>(y, exog=X, order=(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>), trend=<span class="s">"c"</span>).<span class="f">fit</span>(disp=<span class="k">False</span>)
+<span class="f">print</span>(r.params[-<span class="n">1</span>].<span class="f">round</span>(<span class="n">2</span>))    <span class="c"># varianza residual ≈ 2.6, sin ninguna raíz en la frontera</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(forecast)
+<span class="f">set.seed</span>(<span class="n">7</span>)
+mes &lt;- <span class="f">rep</span>(<span class="n">0</span>:<span class="n">11</span>, <span class="n">10</span>)
+y &lt;- <span class="f">ts</span>(<span class="n">50</span> + <span class="n">10</span> * <span class="f">sin</span>(<span class="n">2</span> * pi * mes / <span class="n">12</span>) + <span class="f">rnorm</span>(<span class="n">120</span>, <span class="n">0</span>, <span class="n">2</span>), frequency = <span class="n">12</span>)
+<span class="f">Arima</span>(y, seasonal = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>))          <span class="c"># sma1 ≈ −1</span>
+<span class="f">tslm</span>(y ~ season)                          <span class="c"># patrón fijo con indicadoras</span>
+<span class="f">Arima</span>(y, xreg = <span class="f">fourier</span>(y, K = <span class="n">1</span>))        <span class="c"># un par de Fourier basta aquí</span></code></pre>
+</div>
+            <p>(b) \(\hat\Theta \approx -1\), en la frontera: el optimizador "deshace" la diferencia. (c) Una regresión con indicadoras de mes o con un par de Fourier y errores ARMA. Sus AIC no se comparan con el del SARIMA porque uno se calcula sobre \(y_t\) y el otro sobre \(\nabla_{12}y_t\), que tiene 12 datos menos y otra escala de variación; la comparación justa es fuera de la muestra.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Ajustaste un modelo de aerolínea a \(w = \log y\) con \(\theta = -0{,}4\), \(\Theta = -0{,}6\) y \(\hat\sigma^2 = 0{,}0014\). Los datos que necesitas son: diciembre actual \(w_T = 6{,}00\), enero del año pasado \(w_{T-11} = 5{,}80\), diciembre del año pasado \(w_{T-12} = 5{,}75\), y los residuos \(\varepsilon_T = 0{,}02\), \(\varepsilon_{T-11} = -0{,}01\), \(\varepsilon_{T-12} = 0{,}03\). (a) Escribe la ecuación de pronóstico para \(w_{T+1}\) y calcúlalo. (b) Pronostica los pasajeros de enero en la escala original, como mediana y como media.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Escribe explícitamente el SARIMA\((1,0,0)(0,1,1)_4\) trimestral como ecuación en diferencias. (b) Con \(\phi = 0{,}5\), \(\Theta = -0{,}3\), datos \(y_{T-4} = 30\), \(y_{T-3} = 50\), \(y_{T} = 33\) y residuo \(\varepsilon_{T-3} = 1\), pronostica \(y_{T+1}\). (c) Explica por qué este modelo, a diferencia del de aerolínea, no tiene tendencia estocástica en el nivel anual.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) Despejando \(w_t\) del modelo de aerolínea y poniendo \(\varepsilon_{T+1} = 0\):</p>
-            <div class="eq">\[ \hat w_{T+1} = w_T + w_{T-11} - w_{T-12} + \theta\,\varepsilon_T + \Theta\,\varepsilon_{T-11} + \theta\Theta\,\varepsilon_{T-12} \]</div>
-            <p>\(= 6{,}00 + 5{,}80 - 5{,}75 - 0{,}4(0{,}02) - 0{,}6(-0{,}01) + 0{,}24(0{,}03) = 6{,}05 - 0{,}008 + 0{,}006 + 0{,}0072 = 6{,}0552\). La parte principal dice: “enero = diciembre + el salto de diciembre a enero del año pasado”; los términos MA lo corrigen con las sorpresas recientes.</p>
-            <p>(b) Mediana: \(e^{6{,}0552} \approx 426{,}3\) mil pasajeros. A un paso, \(\hat\sigma_1^2 = \hat\sigma^2\), así que la media es \(426{,}3 \cdot (1 + 0{,}0007) \approx 426{,}6\). La diferencia es mínima a un paso, pero crece con el horizonte.</p>
+            <p>(a) \((1-\phi B)(1-B^4)\,y_t = (1+\Theta B^4)\varepsilon_t\) se expande como \(y_t = \phi y_{t-1} + y_{t-4} - \phi y_{t-5} + \varepsilon_t + \Theta\varepsilon_{t-4}\).</p>
+            <p>(b) \(\hat y_{T+1} = \phi y_T + y_{T-3} - \phi y_{T-4} + \Theta\varepsilon_{T-3} = 0{,}5(33) + 50 - 0{,}5(30) - 0{,}3(1) = 16{,}5 + 50 - 15 - 0{,}3 = 51{,}2\). Es el mismo trimestre del año pasado (50), más la mitad de cuánto se desvió el último trimestre respecto de su homólogo (33 − 30 = 3, la mitad es 1,5), menos una corrección por la sorpresa de hace un año.</p>
+            <p>(c) La única diferencia es estacional, y la parte AR actúa sobre \(\nabla_4 y_t\), que es estacionaria. El crecimiento interanual \(\nabla_4 y_t\) vuelve a su media (cero, sin constante): las sorpresas de crecimiento se disipan a ritmo \(\phi^h\). En el modelo de aerolínea, la diferencia adicional \(\nabla\) hace que el crecimiento interanual también deambule.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudio de Monte Carlo de cobertura. Simula 200 series de 156 meses con un modelo de aerolínea (\(\theta = -0{,}4\), \(\Theta = -0{,}6\), \(\sigma = 1\)). En cada una, ajusta el modelo con los primeros 144 meses y verifica si el IC al 95 % contiene el valor real a \(h = 1\) y a \(h = 12\). (a) ¿Qué cobertura obtienes? (b) ¿Por qué podría quedar por debajo de 95 %? (c) ¿Qué precisión tiene tu estimación de la cobertura?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> statsmodels.tsa.statespace.sarimax <span class="k">import</span> SARIMAX
+rng = np.random.<span class="f">default_rng</span>(<span class="n">11</span>)
+th, Th, n, R = -<span class="n">0.4</span>, -<span class="n">0.6</span>, <span class="n">144</span>, <span class="n">200</span>
+
+<span class="k">def</span> <span class="f">sim_aero</span>(n):
+    e = rng.<span class="f">normal</span>(<span class="n">0</span>, <span class="n">1</span>, n + <span class="n">25</span>)
+    w = e[<span class="n">13</span>:] + th * e[<span class="n">12</span>:-<span class="n">1</span>] + Th * e[<span class="n">1</span>:-<span class="n">12</span>] + th * Th * e[:-<span class="n">13</span>]
+    y = np.<span class="f">zeros</span>(<span class="f">len</span>(w))
+    <span class="k">for</span> t <span class="k">in</span> <span class="f">range</span>(<span class="f">len</span>(w)):            <span class="c"># y_t = y_{t-1} + y_{t-12} − y_{t-13} + w_t</span>
+        y[t] = w[t] + (y[t-<span class="n">1</span>] <span class="k">if</span> t &gt;= <span class="n">1</span> <span class="k">else</span> <span class="n">0</span>) + (y[t-<span class="n">12</span>] <span class="k">if</span> t &gt;= <span class="n">12</span> <span class="k">else</span> <span class="n">0</span>) - (y[t-<span class="n">13</span>] <span class="k">if</span> t &gt;= <span class="n">13</span> <span class="k">else</span> <span class="n">0</span>)
+    <span class="k">return</span> y[-(n + <span class="n">12</span>):]
+
+c1, c12, Th_hat = [], [], []
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(R):
+    y = <span class="f">sim_aero</span>(n); tr, te = y[:n], y[n:]
+    f = <span class="f">SARIMAX</span>(tr, order=(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>), seasonal_order=(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">12</span>)).<span class="f">fit</span>(disp=<span class="k">False</span>)
+    ic = f.<span class="f">get_forecast</span>(<span class="n">12</span>).<span class="f">conf_int</span>(alpha=<span class="n">0.05</span>)
+    c1.<span class="f">append</span>(ic[<span class="n">0</span>, <span class="n">0</span>] &lt;= te[<span class="n">0</span>] &lt;= ic[<span class="n">0</span>, <span class="n">1</span>])
+    c12.<span class="f">append</span>(ic[<span class="n">11</span>, <span class="n">0</span>] &lt;= te[<span class="n">11</span>] &lt;= ic[<span class="n">11</span>, <span class="n">1</span>])
+    Th_hat.<span class="f">append</span>(f.params[<span class="n">1</span>])
+<span class="f">print</span>(np.<span class="f">mean</span>(c1), np.<span class="f">mean</span>(c12), np.<span class="f">mean</span>(Th_hat))   <span class="c"># ≈ 0.94  0.93  −0.60  (tarda unos 2 min)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(forecast)
+<span class="f">set.seed</span>(<span class="n">11</span>)
+th &lt;- -<span class="n">0.4</span>; Th &lt;- -<span class="n">0.6</span>
+cubre &lt;- <span class="f">replicate</span>(<span class="n">200</span>, {
+  <span class="c"># w = (1+θB)(1+ΘB¹²)ε como un MA(13) con ceros en medio, luego se integra</span>
+  w &lt;- <span class="f">arima.sim</span>(<span class="f">list</span>(ma = <span class="f">c</span>(th, <span class="f">rep</span>(<span class="n">0</span>, <span class="n">10</span>), Th, th * Th)), n = <span class="n">143</span>)
+  y &lt;- <span class="f">ts</span>(<span class="f">diffinv</span>(<span class="f">diffinv</span>(w, lag = <span class="n">12</span>), lag = <span class="n">1</span>), frequency = <span class="n">12</span>)   <span class="c"># 156 datos</span>
+  tr &lt;- <span class="f">ts</span>(y[<span class="n">1</span>:<span class="n">144</span>], frequency = <span class="n">12</span>); te &lt;- y[<span class="n">145</span>:<span class="n">156</span>]
+  f &lt;- <span class="f">forecast</span>(<span class="f">Arima</span>(tr, order = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>), seasonal = <span class="f">c</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">1</span>)), h = <span class="n">12</span>, level = <span class="n">95</span>)
+  <span class="f">c</span>(f$lower[<span class="n">1</span>] &lt;= te[<span class="n">1</span>] &amp; te[<span class="n">1</span>] &lt;= f$upper[<span class="n">1</span>], f$lower[<span class="n">12</span>] &lt;= te[<span class="n">12</span>] &amp; te[<span class="n">12</span>] &lt;= f$upper[<span class="n">12</span>])
+})
+<span class="f">rowMeans</span>(cubre)                          <span class="c"># ≈ 0.94 y 0.93</span></code></pre>
+</div>
+            <p>(a) Coberturas de alrededor de 0,94 a 1 paso y 0,93 a 12 pasos, y \(\hat\Theta\) promedio ≈ −0,60, sin sesgo visible. (b) Los intervalos tratan los parámetros estimados como si fueran los verdaderos, y no incluyen esa incertidumbre extra; con series cortas o \(\Theta\) cerca de −1, la subcobertura es mayor. (c) El error estándar Monte Carlo de una proporción cercana a 0,95 con \(R = 200\) es \(\sqrt{0{,}95 \cdot 0{,}05/200} \approx 0{,}015\): las coberturas observadas son compatibles con 0,95 o con una ligera subcobertura. Para afirmarlo con más precisión, necesitas \(R\) del orden de 2 000.</p>
           </div></details>
         </div>
       </div>

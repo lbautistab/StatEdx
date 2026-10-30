@@ -5,41 +5,68 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Exploración multivariada</h1>
-      <p>Con dos variables basta un diagrama de dispersión. Con seis ya hay 15 pares, y las relaciones interesantes suelen involucrar a tres o más a la vez. Aquí aprendes a leer matrices de correlación, a usar gráficos de pares y mapas de calor ordenados, a separar efectos con la correlación parcial y a ver muchas dimensiones juntas con coordenadas paralelas.</p>
-      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: visualización de datos</span><span>R · Python</span></div>
+      <p>Con dos variables basta un diagrama de dispersión. Con seis ya hay 15 pares, y las relaciones interesantes suelen involucrar a tres o más a la vez. Aquí aprendes a construir y leer matrices de covarianza y correlación (y por qué no cualquier matriz sirve), a separar efectos con la correlación parcial, a hacer inferencia sobre una correlación, a usar gráficos de pares y mapas de calor ordenados y a ver muchas dimensiones juntas con coordenadas paralelas.</p>
+      <div class="lmeta"><span>90 min</span><span>Nivel intermedio</span><span>Requiere: visualización de datos</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#multivar-idea" data-sec="multivar-idea">La idea</a></li>
-        <li><a href="#multivar-matriz" data-sec="multivar-matriz">Matrices de covarianza y correlación</a></li>
+        <li><a href="#multivar-intro" data-sec="multivar-intro">Introducción</a></li>
+        <li><a href="#multivar-def" data-sec="multivar-def">Definición</a></li>
+        <li><a href="#multivar-matriz" data-sec="multivar-matriz">Correlación y su inferencia</a></li>
         <li><a href="#multivar-parcial" data-sec="multivar-parcial">Correlación parcial</a></li>
-        <li><a href="#multivar-lab" data-sec="multivar-lab">Laboratorio: la matriz</a></li>
-        <li><a href="#multivar-pares" data-sec="multivar-pares">Gráficos de pares</a></li>
-        <li><a href="#multivar-calor" data-sec="multivar-calor">Mapas de calor</a></li>
-        <li><a href="#multivar-paralelas" data-sec="multivar-paralelas">Coordenadas paralelas</a></li>
+        <li><a href="#multivar-graf" data-sec="multivar-graf">Gráficos multivariados</a></li>
+        <li><a href="#multivar-props" data-sec="multivar-props">Propiedades</a></li>
+        <li><a href="#multivar-sim" data-sec="multivar-sim">Ejercicios de simulación</a></li>
+        <li><a href="#multivar-apps" data-sec="multivar-apps">Aplicaciones reales</a></li>
         <li><a href="#multivar-code" data-sec="multivar-code">En R y Python</a></li>
-        <li><a href="#multivar-quiz" data-sec="multivar-quiz">Comprueba</a></li>
-        <li><a href="#multivar-ej" data-sec="multivar-ej">Ejercicios</a></li>
+        <li><a href="#multivar-quiz" data-sec="multivar-quiz">Quiz</a></li>
+        <li><a href="#multivar-ej" data-sec="multivar-ej">Preguntas avanzadas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="multivar-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="multivar-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una inmobiliaria tiene datos de 300 viviendas: superficie, habitaciones, baños, distancia al centro, antigüedad y precio. Alguien calcula la correlación entre distancia y precio y obtiene −0,19: “la ubicación casi no importa”. Pero las casas lejanas también son más grandes. Si comparas viviendas de <i>igual superficie</i>, la relación entre distancia y precio resulta fuertemente negativa, cerca de −0,7.</p>
       <p>Mirar las variables de dos en dos no basta: una tercera variable puede esconder, inflar o invertir una relación. La exploración multivariada busca tres cosas: <b>qué variables se mueven juntas</b> (y forman grupos), <b>qué relaciones sobreviven</b> cuando controlas otras, y <b>qué observaciones se parecen</b> entre sí en todas las dimensiones a la vez.</p>
+      <p>Las herramientas tienen más de un siglo. Francis Galton introdujo la correlación en 1888 al estudiar estaturas de padres e hijos, y Karl Pearson le dio su fórmula actual en 1896. George Udny Yule definió la correlación parcial (1897-1907) y describió las asociaciones espurias que hoy llamamos paradoja de Simpson. En el lado gráfico, John Hartigan propuso la matriz de diagramas de dispersión en 1975, Alfred Inselberg las coordenadas paralelas en 1985 (Edward Wegman las llevó a la estadística en 1990) y los mapas de calor con dendrogramas se volvieron famosos con los microarreglos de genes de Eisen y colaboradores (1998).</p>
       <div class="callout"><b>La idea central:</b> con \(p\) variables hay \(p(p-1)/2\) pares. Las herramientas de esta clase te permiten verlos todos de un vistazo, ordenarlos para que aparezca la estructura y luego bajar al detalle del par o del grupo que importa.</div>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Escribir el vector de medias, la matriz de covarianzas y la de correlaciones en forma matricial, y calcularlas a mano.</li>
+          <li>Demostrar que una matriz de correlaciones es semidefinida positiva y deducir qué correlaciones son compatibles entre sí.</li>
+          <li>Construir intervalos para una correlación con la transformación z de Fisher.</li>
+          <li>Calcular e interpretar correlaciones parciales, y saber cuándo controlar ayuda y cuándo crea asociaciones falsas.</li>
+          <li>Leer gráficos de pares, mapas de calor reordenados y coordenadas paralelas sin caer en comparaciones múltiples.</li>
+        </ul>
+      </div>
 
-      <h2 id="multivar-matriz"><span class="sec">§ 2</span>Matrices de covarianza y correlación</h2>
-      <p>Organiza los datos en una matriz \(\mathbf{X}\) de \(n\) filas (observaciones) por \(p\) columnas (variables), y sea \(\mathbf{X}_c\) la matriz con cada columna centrada en su media. La <b>matriz de covarianzas</b> reúne todas las covarianzas en una sola expresión:</p>
-      <div class="eq">\[ \mathbf{S} = \frac{1}{n-1}\,\mathbf{X}_c^{\top}\mathbf{X}_c, \qquad S_{jk} = \frac{1}{n-1}\sum_{i=1}^{n}(x_{ij} - \bar x_j)(x_{ik} - \bar x_k) \]
-        <div class="note">En la diagonal quedan las varianzas \(S_{jj} = s_j^2\). La covarianza depende de las unidades: la de superficie (m²) con precio (miles) no se puede comparar con la de habitaciones con baños.</div>
+      <h2 id="multivar-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Organiza los datos en una matriz \(\mathbf{X}\) de \(n\) filas (observaciones) por \(p\) columnas (variables). Cada fila es un vector \(\mathbf x_i \in \mathbb R^p\).</p>
+      <div class="callout"><b>Definiciones.</b>
+        <ul>
+          <li><b>Vector de medias</b> \(\bar{\mathbf x}\): el promedio de las filas, con componentes \(\bar x_j\).</li>
+          <li><b>Matriz centrada</b> \(\mathbf X_c\): \(\mathbf X\) con cada columna menos su media.</li>
+          <li><b>Matriz de covarianzas</b> \(\mathbf S\) (\(p \times p\)): en la celda \((j, k)\) la covarianza de las variables \(j\) y \(k\); en la diagonal, las varianzas \(s_j^2\).</li>
+          <li><b>Matriz de correlaciones</b> \(\mathbf R\): la covarianza de los datos estandarizados (puntuaciones z), con \(r_{jk} = S_{jk}/(s_j s_k)\).</li>
+        </ul></div>
+      <div class="eq">\[ \bar{\mathbf x} = \tfrac1n\mathbf X^\top\mathbf 1, \qquad \mathbf X_c = \mathbf X - \mathbf 1\bar{\mathbf x}^\top, \qquad \mathbf{S} = \frac{1}{n-1}\mathbf{X}_c^{\top}\mathbf{X}_c \]
+        <div class="note">Celda por celda, \(S_{jk} = \frac{1}{n-1}\sum_{i}(x_{ij} - \bar x_j)(x_{ik} - \bar x_k)\).</div>
       </div>
-      <p>Para comparar, se estandariza cada covarianza por las desviaciones de sus dos variables. Eso da la <b>matriz de correlaciones</b>, que es la covarianza de los datos en puntuaciones z:</p>
-      <div class="eq">\[ \mathbf{R} = \mathbf{D}^{-1/2}\,\mathbf{S}\,\mathbf{D}^{-1/2}, \qquad r_{jk} = \frac{S_{jk}}{s_j\,s_k}, \qquad \mathbf{D} = \operatorname{diag}(s_1^2, \dots, s_p^2) \]
-        <div class="note">Propiedades: \(\mathbf{R}\) es simétrica, tiene unos en la diagonal, sus elementos están en \([-1, 1]\) y es <b>semidefinida positiva</b>. Por eso no puedes elegir las correlaciones al azar: si \(r_{12} = 0{,}9\) y \(r_{13} = 0{,}9\), necesariamente \(r_{23} \ge 0{,}62\).</div>
+      <div class="eq">\[ \mathbf{R} = \mathbf{D}^{-1/2}\,\mathbf{S}\,\mathbf{D}^{-1/2}, \qquad \mathbf D = \operatorname{diag}(s_1^2, \dots, s_p^2) \]</div>
+      <p>La covarianza depende de las unidades: la de superficie (m²) con precio (miles) no se puede comparar con la de habitaciones con baños. La correlación no tiene unidades y vive en \([-1, 1]\).</p>
+      <p><b>Ejemplo numérico.</b> Tres viviendas con superficie (en decenas de m²) y precio (en decenas de miles): \((1, 2)\), \((2, 4)\), \((3, 5)\). Medias: \(\bar x = (2;\ 3{,}667)\). Desvíos: \((-1;\ -1{,}667)\), \((0;\ 0{,}333)\), \((1;\ 1{,}333)\).</p>
+      <div class="eq">\[ \mathbf S = \frac12\begin{pmatrix} 1 + 0 + 1 &amp; 1{,}667 + 0 + 1{,}333 \\ 3 &amp; 2{,}778 + 0{,}111 + 1{,}778 \end{pmatrix} = \begin{pmatrix} 1 &amp; 1{,}5 \\ 1{,}5 &amp; 2{,}333 \end{pmatrix}, \qquad r = \frac{1{,}5}{\sqrt{1 \cdot 2{,}333}} = 0{,}982. \]</div>
+      <p>Con más variables la cuenta es la misma, celda por celda; el álgebra matricial solo la escribe de una vez.</p>
+
+      <h2 id="multivar-matriz"><span class="sec">§ 3</span>Correlación: medidas, restricciones e inferencia</h2>
+      <p><b>¿Por qué \(\mathbf R\) es semidefinida positiva?</b> Para cualquier vector de pesos \(\mathbf a\), la combinación lineal \(y_i = \mathbf a^\top\mathbf x_i\) tiene varianza muestral \(\frac{1}{n-1}\sum_i(\mathbf a^\top(\mathbf x_i - \bar{\mathbf x}))^2 = \mathbf a^\top\mathbf S\mathbf a\). Una varianza nunca es negativa, así que \(\mathbf a^\top\mathbf S\mathbf a \ge 0\) para todo \(\mathbf a\): \(\mathbf S\) es semidefinida positiva, y \(\mathbf R\) también (es la \(\mathbf S\) de los datos estandarizados). Además, \(\operatorname{rango}(\mathbf S) \le \min(n - 1, p)\): con menos observaciones que variables, \(\mathbf S\) es singular.</p>
+      <p><b>Consecuencia: no puedes elegir correlaciones al azar.</b> Para tres variables, \(\det\mathbf R = 1 - r_{12}^2 - r_{13}^2 - r_{23}^2 + 2r_{12}r_{13}r_{23} \ge 0\). Visto como desigualdad cuadrática en \(r_{23}\), sus raíces dan</p>
+      <div class="eq">\[ r_{12}r_{13} - \sqrt{(1 - r_{12}^2)(1 - r_{13}^2)} \;\le\; r_{23} \;\le\; r_{12}r_{13} + \sqrt{(1 - r_{12}^2)(1 - r_{13}^2)}. \]
+        <div class="note">Si \(r_{12} = 0{,}9\) y \(r_{13} = 0{,}9\): \(0{,}81 - 0{,}19 = 0{,}62 \le r_{23} \le 1\). Dos variables muy correlacionadas con una tercera tienen que estar correlacionadas entre sí. Con \(r_{12} = r_{13} = 0{,}5\) el rango es amplio: \(-0{,}5 \le r_{23} \le 1\).</div>
       </div>
+      <p><b>Tres medidas de asociación.</b></p>
       <div class="tablewrap"><table>
         <thead><tr><th>Medida</th><th>Qué mide</th><th>Cuándo preferirla</th></tr></thead>
         <tbody>
@@ -49,17 +76,69 @@
         </tbody>
       </table></div>
       <div class="callout"><b>Error común:</b> leer una correlación cercana a 0 como “no hay relación”. Pearson solo detecta tendencias lineales: \(y = x^2\) con \(x\) simétrico alrededor de 0 da \(r \approx 0\) con una dependencia perfecta. Y una correlación alta tampoco implica causalidad ni que la relación valga para todos los subgrupos.</div>
+      <p><b>Inferencia sobre una correlación.</b> Si \((X, Y)\) es normal bivariada con correlación \(\rho\), la distribución de \(r\) es asimétrica cuando \(\rho \ne 0\) (está pegada a \(\pm1\)). Ronald Fisher (1915) encontró que</p>
+      <div class="eq">\[ z = \operatorname{atanh}(r) = \tfrac12\ln\frac{1 + r}{1 - r} \;\approx\; \mathcal N\!\left(\operatorname{atanh}(\rho),\ \frac{1}{n - 3}\right). \]
+        <div class="note">La transformación estabiliza la varianza (es la idea del método delta, ver <a href="#transform">transformaciones</a>): la varianza aproximada de \(r\) es \((1 - \rho^2)^2/n\), y \(\frac{d}{d\rho}\operatorname{atanh}\rho = \frac{1}{1 - \rho^2}\) la vuelve constante. Para probar \(H_0: \rho = 0\) también se usa \(t = r\sqrt{n-2}/\sqrt{1 - r^2} \sim t_{n-2}\).</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> En las 300 viviendas, \(r = 0{,}49\) entre habitaciones y precio. \(z = \operatorname{atanh}(0{,}49) = \tfrac12\ln(1{,}49/0{,}51) = \tfrac12\ln 2{,}922 = 0{,}536\). Error estándar \(1/\sqrt{297} = 0{,}058\). Intervalo en escala z: \(0{,}536 \pm 1{,}96 \times 0{,}058 = [0{,}422;\ 0{,}650]\). Volviendo con \(\tanh\): \([0{,}399;\ 0{,}572]\). Observa que no es simétrico alrededor de 0,49.</p>
 
-      <h2 id="multivar-parcial"><span class="sec">§ 3</span>Correlación parcial: controlar una tercera variable</h2>
-      <p>La <b>correlación parcial</b> \(r_{xy \cdot z}\) mide la asociación lineal entre \(x\) e \(y\) una vez descontado lo que ambas comparten con \(z\). Se obtiene correlacionando los <b>residuos</b> de regresar \(x\) sobre \(z\) y de regresar \(y\) sobre \(z\), o con la fórmula directa:</p>
+      <h2 id="multivar-parcial"><span class="sec">§ 4</span>Correlación parcial: controlar una tercera variable</h2>
+      <p>La <b>correlación parcial</b> \(r_{xy \cdot z}\) mide la asociación lineal entre \(x\) e \(y\) una vez descontado lo que ambas comparten con \(z\). Se define como la correlación entre los <b>residuos</b> de regresar \(x\) sobre \(z\) y de regresar \(y\) sobre \(z\).</p>
+      <p><b>Derivación.</b> Trabaja con variables estandarizadas (media 0, varianza 1). La regresión de \(x\) sobre \(z\) tiene pendiente \(r_{xz}\), así que el residuo es \(e_x = x - r_{xz}z\); igual, \(e_y = y - r_{yz}z\). Entonces</p>
+      <ul>
+        <li>\(\operatorname{Cov}(e_x, e_y) = r_{xy} - r_{yz}r_{xz} - r_{xz}r_{yz} + r_{xz}r_{yz} = r_{xy} - r_{xz}r_{yz}\);</li>
+        <li>\(\operatorname{Var}(e_x) = 1 - 2r_{xz}^2 + r_{xz}^2 = 1 - r_{xz}^2\), y \(\operatorname{Var}(e_y) = 1 - r_{yz}^2\).</li>
+      </ul>
+      <p>Dividiendo la covarianza por el producto de las desviaciones:</p>
       <div class="eq">\[ r_{xy\cdot z} = \frac{r_{xy} - r_{xz}\,r_{yz}}{\sqrt{(1 - r_{xz}^2)(1 - r_{yz}^2)}} \]
         <div class="note">Con las viviendas: \(r_{\text{hab, precio}} = 0{,}49\), pero controlando la superficie queda en \(0{,}02\). Las habitaciones no agregan nada al precio una vez que sabes el tamaño; su correlación era “prestada” de la superficie. Con la distancia pasa lo contrario: −0,19 sin controlar, −0,72 controlando.</div>
       </div>
-      <p>Con varias variables de control se usa la matriz de precisión \(\mathbf{P} = \mathbf{R}^{-1}\): la correlación parcial de \(j\) y \(k\) dadas <i>todas</i> las demás es \(-P_{jk}/\sqrt{P_{jj}P_{kk}}\). Es la base de los modelos gráficos, que dibujan una arista entre dos variables solo si su correlación parcial es distinta de cero.</p>
-      <div class="callout"><b>Para recordar:</b> controlar no es automático ni inocente. Controlar por una causa común (la superficie) aclara la relación; controlar por una consecuencia común de \(x\) e \(y\) puede <i>crear</i> una asociación que no existía. La decisión de qué controlar es de diseño, no de cálculo.</div>
+      <p><b>Ejemplo resuelto.</b> En datos diarios de una playa, helados y rescates de salvavidas tienen \(r = 0{,}6\); la temperatura correlaciona 0,8 con helados y 0,75 con rescates. Numerador: \(0{,}6 - 0{,}8 \times 0{,}75 = 0\). La parcial es exactamente 0: toda la asociación se explica por la temperatura, una causa común. En cambio, si \(r_{xy} = 0{,}8\), \(r_{xz} = 0{,}6\) y \(r_{yz} = 0{,}7\): \(\frac{0{,}8 - 0{,}42}{\sqrt{0{,}64 \times 0{,}51}} = \frac{0{,}38}{0{,}571} = 0{,}665\). Parte de la relación pasa por \(z\) pero queda una asociación fuerte.</p>
+      <p>Con varias variables de control se usa la matriz de precisión \(\mathbf{P} = \mathbf{R}^{-1}\): la correlación parcial de \(j\) y \(k\) dadas <i>todas</i> las demás es \(-P_{jk}/\sqrt{P_{jj}P_{kk}}\). Es la base de los modelos gráficos gaussianos, que dibujan una arista entre dos variables solo si su correlación parcial es distinta de cero, y está ligada a la regresión múltiple: \(r_{xy\cdot z}\) tiene el mismo signo que el coeficiente de \(x\) en la regresión de \(y\) sobre \(x\) y \(z\) (ver <a href="#regmult">regresión múltiple</a>).</p>
+      <p><b>La paradoja de Simpson</b> es el caso extremo: la correlación global tiene un signo y la correlación dentro de cada grupo, el contrario. En los datos de iris, la correlación entre largo y ancho del sépalo es −0,12 para las 150 flores, pero 0,74, 0,53 y 0,46 dentro de cada especie. El signo global negativo lo producen las diferencias entre especies.</p>
+      <div class="callout"><b>Para recordar:</b> controlar no es automático ni inocente. Controlar por una causa común (la superficie) aclara la relación; controlar por una consecuencia común de \(x\) e \(y\) (un <i>colisionador</i>) puede <i>crear</i> una asociación que no existía. Si \(x\) e \(y\) son independientes y \(z = x + y + \varepsilon\), la parcial \(r_{xy\cdot z}\) es negativa. La decisión de qué controlar es de diseño, no de cálculo.</div>
 
-      <h2 id="multivar-lab"><span class="sec">§ 4</span>Laboratorio: la matriz de correlaciones</h2>
-      <p>Seis variables de viviendas simuladas. Toca una celda del mapa para ver el diagrama de dispersión de ese par. Cambia entre Pearson y Spearman, reordena las variables agrupándolas por similitud y mira cómo la correlación parcial con la superficie cambia la historia de algunos pares.</p>
+      <h2 id="multivar-graf"><span class="sec">§ 5</span>Gráficos de pares, mapas de calor y coordenadas paralelas</h2>
+      <p><b>Gráficos de pares.</b> Una <b>matriz de diagramas de dispersión</b> (<i>scatterplot matrix</i> o <i>pairs plot</i>) pone en la celda \((j, k)\) el diagrama de la variable \(j\) contra la \(k\). En la diagonal suele ir un histograma o una densidad de cada variable, y en el triángulo superior el coeficiente de correlación. Es la versión gráfica de la matriz \(\mathbf{R}\), y muestra lo que el número esconde: curvaturas, grupos, atípicos y variables discretas que forman franjas.</p>
+      <ul>
+        <li><b>Escala:</b> con \(p\) variables hay \(p^2\) paneles. Hasta unas 8 variables funciona bien; con más, selecciona primero con la matriz de correlaciones o con conocimiento del tema.</li>
+        <li><b>Sobreposición:</b> con miles de puntos usa transparencia, puntos pequeños o paneles de densidad hexagonal (<i>hexbin</i>).</li>
+        <li><b>Color por grupo:</b> colorear por una variable categórica (zona, segmento, especie) revela si una correlación global viene de diferencias entre grupos, como en la paradoja de Simpson.</li>
+        <li><b>Transformaciones:</b> variables con cola larga (precio, superficie) se leen mejor en escala logarítmica; la correlación de Pearson también suele ser más representativa ahí.</li>
+      </ul>
+      <p><b>Mapas de calor y reordenamiento.</b> Un <b>mapa de calor</b> codifica una matriz con color. Para correlaciones usa una paleta <b>divergente</b> centrada en 0: un color para positivas, otro para negativas e intensidad proporcional a \(|r|\) (ver <a href="#viz">visualización</a>). Con una paleta secuencial, −0,8 y 0,8 parecerían distintos en intensidad cuando son igual de fuertes.</p>
+      <p>El orden de las filas importa mucho. Por defecto aparece el orden de las columnas en el archivo, que no tiene significado. Al <b>reordenar</b> (seriación) con un agrupamiento jerárquico usando la distancia \(d_{jk} = 1 - |r_{jk}|\), las variables parecidas quedan juntas y aparecen bloques: aquí, un bloque de “tamaño” (superficie, habitaciones, baños, precio) y otro de “ubicación” (distancia, antigüedad). El mismo principio se aplica a un mapa de calor de los datos (observaciones × variables estandarizadas) con dendrogramas en ambos ejes (ver <a href="#jerarq">clustering jerárquico</a>). Si quieres ir más allá y resumir los bloques en pocas dimensiones, el paso siguiente es el <a href="#pca">análisis de componentes principales</a>.</p>
+      <div class="callout"><b>Comparaciones múltiples:</b> si las variables fueran independientes, cada \(r\) tendría un error estándar cercano a \(1/\sqrt{n}\), y \(|r| &gt; 2/\sqrt{n}\) aparecería por azar en un 5 % de los pares. Con 45 pares (10 variables) esperas unos 2 pares “significativos” sin ninguna relación real. Trata los patrones de un mapa de calor como hipótesis para confirmar, no como hallazgos.</div>
+      <p><b>Coordenadas paralelas.</b> Cada variable es un eje vertical, todos lado a lado, y cada observación es una línea quebrada que une sus valores en cada eje (normalmente reescalados a [0, 1] por eje). Permiten ver muchas dimensiones a la vez y detectar perfiles: grupos de líneas que viajan juntas.</p>
+      <p>¿Por qué una correlación negativa forma una X? Hay una <b>dualidad punto-recta</b>: si entre dos ejes vecinos (a distancia \(d\)) todos los puntos cumplen \(y = mx + b\), sus segmentos pasan por un mismo punto. Con \(m &lt; 0\) ese punto cae <i>entre</i> los dos ejes (las líneas se cruzan en X); con \(m &gt; 0\) cae fuera, y los segmentos se ven casi paralelos. Con \(m = -1\) y escalas iguales, el cruce está justo a mitad de camino.</p>
+      <ul>
+        <li>Solo ves bien las relaciones entre ejes <b>adyacentes</b>: el orden de los ejes cambia lo que se aprecia. Con \(p\) ejes hay \(p!/2\) órdenes distintos; prueba varios.</li>
+        <li>Con muchas líneas el gráfico se satura: usa transparencia y <b>resalta</b> (<i>brushing</i>) un grupo para compararlo con el resto.</li>
+        <li>Para cuantificar qué eje separa mejor un grupo usa \(\eta^2 = SC_{\text{entre}}/SC_{\text{total}}\), la proporción de varianza explicada por el grupo, la misma idea del <a href="#anova">ANOVA</a>.</li>
+      </ul>
+
+      <h2 id="multivar-props"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>\(\mathbf S\) y \(\mathbf R\) son simétricas y semidefinidas positivas.</b> \(\mathbf a^\top\mathbf S\mathbf a\) es la varianza de \(\mathbf a^\top\mathbf x\), que no puede ser negativa. Sus valores propios son \(\ge 0\) y la traza de \(\mathbf R\) es \(p\).</li>
+        <li><b>Invarianza de la correlación.</b> Si \(x' = a + bx\) e \(y' = c + dy\) con \(bd &gt; 0\), \(r_{x'y'} = r_{xy}\); con \(bd &lt; 0\) cambia el signo. Por eso \(\mathbf R\) no depende de las unidades.</li>
+        <li><b>Compatibilidad de correlaciones.</b> \(\det\mathbf R \ge 0\) restringe cada correlación dadas las demás: \(r_{23} \in r_{12}r_{13} \pm \sqrt{(1 - r_{12}^2)(1 - r_{13}^2)}\).</li>
+        <li><b>Parcial como correlación de residuos.</b> \(r_{xy\cdot z} = (r_{xy} - r_{xz}r_{yz})/\sqrt{(1 - r_{xz}^2)(1 - r_{yz}^2)}\), y es 0 exactamente cuando \(r_{xy} = r_{xz}r_{yz}\).</li>
+        <li><b>Parciales desde la matriz de precisión.</b> \(r_{jk\cdot\text{resto}} = -P_{jk}/\sqrt{P_{jj}P_{kk}}\) con \(\mathbf P = \mathbf R^{-1}\). En una normal multivariada, \(P_{jk} = 0\) equivale a independencia condicional de \(j\) y \(k\) dadas las demás.</li>
+        <li><b>Transformación de Fisher.</b> \(\operatorname{atanh}(r) \approx \mathcal N(\operatorname{atanh}\rho, 1/(n-3))\). Permite intervalos y comparar correlaciones de dos muestras independientes con \(Z = (z_1 - z_2)/\sqrt{1/(n_1 - 3) + 1/(n_2 - 3)}\).</li>
+        <li><b>Comparaciones múltiples.</b> Con \(m = p(p-1)/2\) pares independientes al nivel \(\alpha\), esperas \(m\alpha\) falsos positivos. Bonferroni usa \(\alpha/m\) por par y garantiza una probabilidad de al menos un falso positivo \(\le \alpha\).</li>
+        <li><b>Rangos y normalidad.</b> Spearman es Pearson sobre rangos, invariante ante transformaciones monótonas crecientes de cada variable. En una normal bivariada, \(\tau = \frac{2}{\pi}\arcsin\rho\) y \(\rho_S = \frac{6}{\pi}\arcsin\frac{\rho}{2}\): con \(\rho = 0{,}5\), \(\tau = 0{,}33\) y \(\rho_S = 0{,}48\).</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li>Leer \(r \approx 0\) como independencia, o \(r\) alto como causalidad.</li>
+        <li>Reportar los pares “significativos” de un mapa de calor grande sin corregir por comparaciones múltiples.</li>
+        <li>Controlar por cualquier variable disponible, incluidos colisionadores o mediadores, y creer que así la relación se vuelve “más causal”.</li>
+        <li>Usar una paleta secuencial o arcoíris para correlaciones, o dejar las variables en el orden del archivo.</li>
+        <li>Mezclar grupos distintos en una sola correlación sin mirar el gráfico coloreado por grupo (paradoja de Simpson).</li>
+      </ul>
+
+      <h2 id="multivar-sim"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: la matriz de correlaciones.</b> Seis variables de viviendas simuladas. Toca una celda del mapa para ver el diagrama de dispersión de ese par. Cambia entre Pearson y Spearman, reordena las variables agrupándolas por similitud y mira cómo la correlación parcial con la superficie cambia la historia de algunos pares.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · matriz de correlaciones</span><span class="num" id="multivar-hm-head">–</span></div>
         <div class="lab-body">
@@ -101,29 +180,18 @@
         </div>
         <figcaption>Selecciona distancia y precio: la correlación es débil, pero la parcial dada la superficie es fuerte y negativa. Con habitaciones y precio pasa lo opuesto. Baja n a 20 y pulsa “Nueva muestra” varias veces: las correlaciones pequeñas cambian de signo por puro azar.</figcaption>
       </figure>
+      <ol>
+        <li>Selecciona el par distancia y precio. Compara r con la parcial dada la superficie. Luego haz lo mismo con habitaciones y precio.
+          <details><summary>Qué deberías observar</summary><p>Distancia y precio: r débil (cerca de −0,2) pero parcial fuerte y negativa (cerca de −0,7): la superficie la escondía. Habitaciones y precio: r moderada (cerca de 0,5) y parcial casi 0: era una correlación prestada de la superficie.</p></details></li>
+        <li>Cambia el orden a <i>Agrupado</i>.
+          <details><summary>Qué deberías observar</summary><p>Las variables de tamaño (superficie, habitaciones, baños, precio) quedan juntas y forman un bloque del mismo color; distancia y antigüedad forman otro. La estructura estaba en los datos, pero el orden original la ocultaba.</p></details></li>
+        <li>Baja n a 20 y pulsa <i>Nueva muestra</i> varias veces, mirando un par con correlación pequeña y el umbral 2/√n.
+          <details><summary>Qué deberías observar</summary><p>El umbral sube a cerca de 0,45 y las correlaciones pequeñas cambian de signo de una muestra a otra. El intervalo de Fisher con n = 20 para r = 0,3 va aproximadamente de −0,17 a 0,66: casi no informa.</p></details></li>
+        <li>Alterna entre Pearson y Spearman en el par superficie y precio.
+          <details><summary>Qué deberías observar</summary><p>Ambos dan valores parecidos pero no iguales. Si la relación es creciente con algo de curvatura o hay valores extremos, Spearman tiende a ser algo distinto de Pearson. Una gran diferencia entre ambos es una señal para mirar el diagrama.</p></details></li>
+      </ol>
 
-      <h2 id="multivar-pares"><span class="sec">§ 5</span>Gráficos de pares</h2>
-      <p>Una <b>matriz de diagramas de dispersión</b> (<i>scatterplot matrix</i> o <i>pairs plot</i>) pone en la celda \((j, k)\) el diagrama de la variable \(j\) contra la \(k\). En la diagonal suele ir un histograma o una densidad de cada variable, y en el triángulo superior el coeficiente de correlación. Es la versión gráfica de la matriz \(\mathbf{R}\), y muestra lo que el número esconde: curvaturas, grupos, atípicos y variables discretas que forman franjas.</p>
-      <ul>
-        <li><b>Escala:</b> con \(p\) variables hay \(p^2\) paneles. Hasta unas 8 variables funciona bien; con más, selecciona primero con la matriz de correlaciones o con conocimiento del tema.</li>
-        <li><b>Sobreposición:</b> con miles de puntos usa transparencia, puntos pequeños o paneles de densidad hexagonal (<i>hexbin</i>).</li>
-        <li><b>Color por grupo:</b> colorear por una variable categórica (zona, segmento) revela si una correlación global viene de diferencias entre grupos, como en la paradoja de Simpson.</li>
-        <li><b>Transformaciones:</b> variables con cola larga (precio, superficie) se leen mejor en escala logarítmica; la correlación de Pearson también suele ser más representativa ahí.</li>
-      </ul>
-
-      <h2 id="multivar-calor"><span class="sec">§ 6</span>Mapas de calor y reordenamiento</h2>
-      <p>Un <b>mapa de calor</b> codifica una matriz con color. Para correlaciones usa una paleta <b>divergente</b> centrada en 0: un color para positivas, otro para negativas e intensidad proporcional a \(|r|\). Con una paleta secuencial, −0,8 y 0,8 parecerían distintos en intensidad cuando son igual de fuertes.</p>
-      <p>El orden de las filas importa mucho. Por defecto aparece el orden de las columnas en el archivo, que no tiene significado. Al <b>reordenar</b> con un agrupamiento jerárquico usando la distancia \(d_{jk} = 1 - |r_{jk}|\), las variables parecidas quedan juntas y aparecen bloques: aquí, un bloque de “tamaño” (superficie, habitaciones, baños, precio) y otro de “ubicación” (distancia, antigüedad). El mismo principio se aplica a un mapa de calor de los datos (observaciones × variables estandarizadas) con dendrogramas en ambos ejes, muy usado en genómica y en segmentación de clientes.</p>
-      <div class="callout"><b>Comparaciones múltiples:</b> si las variables fueran independientes, cada \(r\) tendría un error estándar cercano a \(1/\sqrt{n}\), y \(|r| &gt; 2/\sqrt{n}\) aparecería por azar en un 5 % de los pares. Con 45 pares (10 variables) esperas unos 2 pares “significativos” sin ninguna relación real. Trata los patrones de un mapa de calor como hipótesis para confirmar, no como hallazgos.</div>
-
-      <h2 id="multivar-paralelas"><span class="sec">§ 7</span>Coordenadas paralelas</h2>
-      <p>En las <b>coordenadas paralelas</b> cada variable es un eje vertical, todos lado a lado, y cada observación es una línea quebrada que une sus valores en cada eje (normalmente reescalados a [0, 1] por eje). Permiten ver muchas dimensiones a la vez y detectar perfiles: grupos de líneas que viajan juntas.</p>
-      <ul>
-        <li>Entre dos ejes vecinos, líneas casi paralelas indican correlación <b>positiva</b>; líneas que se cruzan en un punto (forma de X) indican correlación <b>negativa</b>.</li>
-        <li>Solo ves bien las relaciones entre ejes <b>adyacentes</b>: el orden de los ejes cambia lo que se aprecia. Prueba varios órdenes.</li>
-        <li>Con muchas líneas el gráfico se satura: usa transparencia y <b>resalta</b> (<i>brushing</i>) un grupo para compararlo con el resto.</li>
-      </ul>
-      <p>El simulador muestra 150 clientes de una tienda con 5 variables, simulados en tres segmentos. Resalta un segmento para ver su perfil. El indicador \(\eta^2\) dice, para cada eje, qué parte de la varianza explica la pertenencia al segmento (la razón entre la suma de cuadrados entre grupos y la total); el eje con mayor \(\eta^2\) es el que mejor lo separa.</p>
+      <p><b>Laboratorio 2: coordenadas paralelas.</b> El simulador muestra 150 clientes de una tienda con 5 variables, simulados en tres segmentos. Resalta un segmento para ver su perfil. El indicador \(\eta^2\) dice, para cada eje, qué parte de la varianza explica la pertenencia al segmento (la razón entre la suma de cuadrados entre grupos y la total); el eje con mayor \(\eta^2\) es el que mejor lo separa.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · coordenadas paralelas</span><span class="num" id="multivar-pc-head">–</span></div>
         <div class="lab-body">
@@ -156,10 +224,30 @@
         </div>
         <figcaption>En el orden 1, visitas y ticket están juntos y sus líneas se cruzan en X: correlación negativa (quien visita mucho compra poco cada vez). En el orden 2 quedan separados y esa relación ya no se ve. El segmento C se distingue sobre todo por la edad y la antigüedad como cliente.</figcaption>
       </figure>
+      <ol>
+        <li>En el orden 1, mira las líneas entre los ejes de visitas y ticket y la correlación de los ejes 1 y 2.
+          <details><summary>Qué deberías observar</summary><p>Las líneas se cruzan en X entre ambos ejes y la correlación es negativa: quien visita mucho compra poco cada vez. Es la dualidad punto-recta: pendiente negativa, cruce entre los ejes.</p></details></li>
+        <li>Cambia al orden 2.
+          <details><summary>Qué deberías observar</summary><p>Visitas y ticket dejan de ser vecinos y la relación ya no se ve, aunque los datos son los mismos. El orden de los ejes decide qué relaciones puedes leer.</p></details></li>
+        <li>Resalta cada segmento (A, B, C) y anota el eje que más separa y su η².
+          <details><summary>Qué deberías observar</summary><p>Cada segmento tiene su propio eje distintivo; por ejemplo, el C se distingue sobre todo por la edad y la antigüedad como cliente. Un η² cercano a 1 significa que casi toda la variación de ese eje se debe al segmento.</p></details></li>
+        <li>Sube la opacidad al 100 % sin resaltar nada, y luego bájala al 5 %.
+          <details><summary>Qué deberías observar</summary><p>Con opacidad total las 150 líneas forman una maraña donde no se distingue nada; con poca opacidad aparecen las zonas donde se concentran muchas líneas, igual que en un diagrama de dispersión con transparencia.</p></details></li>
+      </ol>
 
-      <h2 id="multivar-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
-      <p>Simulamos las viviendas, calculamos las dos matrices de correlación, la correlación parcial por residuos y los pares que superan el umbral \(2/\sqrt{n}\), y dibujamos los tres gráficos de la clase.</p>
-<div class="codetabs">
+      <h2 id="multivar-apps"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Finanzas: correlaciones y diversificación</h3>
+      <p>La varianza de una cartera con pesos \(\mathbf w\) es \(\mathbf w^\top\boldsymbol\Sigma\mathbf w\): toda la matriz de covarianzas entra en el riesgo. Con dos activos de volatilidad anual 20 % cada uno y pesos 50/50, la volatilidad de la cartera es \(\sqrt{0{,}25\cdot0{,}04\cdot2 + 2\cdot0{,}25\cdot\rho\cdot0{,}04}\): 16,1 % si \(\rho = 0{,}3\) y 19,0 % si \(\rho = 0{,}8\). Está bien documentado que las correlaciones entre acciones suben en las crisis (en 2008 casi todos los mercados cayeron juntos), justo cuando más se necesita la diversificación. Los gestores siguen mapas de calor de correlaciones móviles para decidir cuánto riesgo asumir; y como \(\boldsymbol\Sigma\) estimada con pocos datos y muchos activos es casi singular (propiedad 1), se usan estimadores encogidos como el de Ledoit y Wolf.</p>
+      <h3>Biología: los datos de iris y la paradoja de Simpson</h3>
+      <p>Los 150 lirios que midió Edgar Anderson y analizó Fisher en 1936 (tres especies, cuatro medidas en cm) son el ejemplo clásico de gráfico de pares. La correlación entre largo y ancho del sépalo es −0,12 en las 150 flores, pero positiva dentro de cada especie (0,74 en setosa, 0,53 en versicolor y 0,46 en virginica). Un gráfico de pares sin color llevaría a concluir que sépalos más largos son algo más angostos; coloreado por especie, muestra que la conclusión correcta es la opuesta dentro de cada especie. Las variables del pétalo (largo y ancho, r = 0,96) son las que separan las especies, y por eso dominan cualquier clasificación.</p>
+      <h3>Genómica: mapas de calor con dendrogramas</h3>
+      <p>Eisen, Spellman, Brown y Botstein (PNAS, 1998) midieron la expresión de miles de genes de levadura en decenas de condiciones y la mostraron como un mapa de calor (genes en filas, condiciones en columnas) reordenado con agrupamiento jerárquico sobre la correlación. Aparecieron bloques de genes que se activan juntos, y muchos resultaron compartir funciones biológicas. Hoy es una figura estándar en estudios de expresión génica; la decisión que permite es priorizar qué grupos de genes estudiar en el laboratorio. Con miles de genes, el problema de las comparaciones múltiples es enorme y se controla la tasa de falsos descubrimientos.</p>
+      <h3>Industria: monitoreo multivariado de un proceso</h3>
+      <p>Una planta química registra cada minuto temperatura, presión, caudal, pH y concentración de un reactor. Cada variable por separado está dentro de sus límites, pero el operador ve en un gráfico de coordenadas paralelas que los lotes defectuosos combinan presión alta con caudal bajo, algo que en los lotes buenos no ocurre (correlación positiva entre ambas en régimen normal). La correlación parcial entre presión y concentración, controlando la temperatura, ayuda a decidir si ajustar la válvula de presión o el calentador. En producción, este tipo de patrón se vigila con la distancia de Mahalanobis (el estadístico \(T^2\) de Hotelling), que viste en <a href="#atipicos">atípicos</a>.</p>
+
+      <h2 id="multivar-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Caso completo: simulamos las viviendas, calculamos las dos matrices de correlación, la correlación parcial por residuos y los pares que superan el umbral \(2/\sqrt{n}\), y dibujamos los tres gráficos de la clase.</p>
+      <div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
@@ -241,8 +329,48 @@ zona &lt;- <span class="f">cut</span>(df$distancia, <span class="f">c</span>(<sp
 <span class="f">parcoord</span>(df, col = <span class="f">adjustcolor</span>(<span class="f">c</span>(<span class="s">"tomato"</span>, <span class="s">"gray50"</span>, <span class="s">"steelblue"</span>)[zona], <span class="n">0.4</span>))</code></pre>
 </div>
       <p>En R, <code>heatmap</code> reordena filas y columnas con un agrupamiento jerárquico usando la distancia que le pases; aquí \(1 - |r|\). En Python, <code>sns.clustermap</code> hace lo mismo y dibuja los dendrogramas.</p>
+      <p>Complemento con datos reales: la paradoja de Simpson en iris, la correlación parcial desde la matriz de precisión y el intervalo de Fisher.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">import</span> seaborn <span class="k">as</span> sns
+<span class="k">from</span> sklearn.datasets <span class="k">import</span> load_iris
 
-      <h2 id="multivar-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+iris = <span class="f">load_iris</span>(as_frame=<span class="k">True</span>).frame
+iris[<span class="s">"especie"</span>] = iris.target.<span class="f">map</span>({<span class="n">0</span>: <span class="s">"setosa"</span>, <span class="n">1</span>: <span class="s">"versicolor"</span>, <span class="n">2</span>: <span class="s">"virginica"</span>})
+num = iris.columns[:<span class="n">4</span>]
+R = iris[num].<span class="f">corr</span>()
+<span class="f">print</span>(R.<span class="f">round</span>(<span class="n">2</span>))                        <span class="c"># sépalo largo-ancho: -0.12</span>
+<span class="f">print</span>(iris.<span class="f">groupby</span>(<span class="s">"especie"</span>)[[num[<span class="n">0</span>], num[<span class="n">1</span>]]].<span class="f">corr</span>().<span class="f">iloc</span>[<span class="n">0</span>::<span class="n">2</span>, <span class="n">1</span>].<span class="f">round</span>(<span class="n">2</span>))
+<span class="c"># setosa 0.74, versicolor 0.53, virginica 0.46: Simpson</span>
+
+<span class="c"># correlaciones parciales dadas todas las demás, desde la matriz de precisión</span>
+P = np.linalg.<span class="f">inv</span>(R.values)
+parc = -P / np.<span class="f">sqrt</span>(np.<span class="f">outer</span>(np.<span class="f">diag</span>(P), np.<span class="f">diag</span>(P)))
+np.<span class="f">fill_diagonal</span>(parc, <span class="n">1</span>)
+<span class="f">print</span>(parc.<span class="f">round</span>(<span class="n">2</span>)[<span class="n">0</span>, <span class="n">1</span>])                   <span class="c"># ≈ 0.63: positiva al controlar los pétalos</span>
+
+<span class="c"># intervalo de Fisher para r = 0.49 con n = 300</span>
+z, se = np.<span class="f">arctanh</span>(<span class="n">0.49</span>), <span class="n">1</span> / np.<span class="f">sqrt</span>(<span class="n">300</span> - <span class="n">3</span>)
+<span class="f">print</span>(np.<span class="f">tanh</span>([z - <span class="n">1.96</span> * se, z + <span class="n">1.96</span> * se]).<span class="f">round</span>(<span class="n">3</span>))   <span class="c"># [0.399 0.572]</span>
+
+sns.<span class="f">pairplot</span>(iris.<span class="f">drop</span>(columns=<span class="s">"target"</span>), hue=<span class="s">"especie"</span>, corner=<span class="k">True</span>)</code></pre>
+<pre class="code" data-lang="r" hidden><code>num &lt;- iris[, <span class="n">1</span>:<span class="n">4</span>]
+R &lt;- <span class="f">cor</span>(num); <span class="f">round</span>(R, <span class="n">2</span>)                       <span class="c"># Sepal.Length-Sepal.Width: -0.12</span>
+<span class="f">sapply</span>(<span class="f">split</span>(iris, iris$Species),
+       <span class="k">function</span>(d) <span class="f">cor</span>(d$Sepal.Length, d$Sepal.Width))   <span class="c"># 0.74 0.53 0.46</span>
+
+P &lt;- <span class="f">solve</span>(R)
+parc &lt;- -P / <span class="f">sqrt</span>(<span class="f">outer</span>(<span class="f">diag</span>(P), <span class="f">diag</span>(P))); <span class="f">diag</span>(parc) &lt;- <span class="n">1</span>
+<span class="f">round</span>(parc[<span class="n">1</span>, <span class="n">2</span>], <span class="n">2</span>)                              <span class="c"># ≈ 0.63</span>
+
+z &lt;- <span class="f">atanh</span>(<span class="n">0.49</span>); se &lt;- <span class="n">1</span> / <span class="f">sqrt</span>(<span class="n">297</span>)
+<span class="f">tanh</span>(z + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * <span class="n">1.96</span> * se)                    <span class="c"># 0.399 0.572</span>
+
+<span class="f">pairs</span>(num, col = iris$Species, pch = <span class="n">19</span>, cex = <span class="n">.6</span>)</code></pre>
+      </div>
+
+      <h2 id="multivar-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="Con p variables hay p(p − 1)/2 pares distintos: 10 · 9 / 2 = 45. La matriz tiene 100 celdas, pero la diagonal vale 1 y es simétrica." data-wrong="La matriz es simétrica y su diagonal es siempre 1. ¿Cuántas celdas quedan por encima de la diagonal?">
         <h3>Con 10 variables, ¿cuántas correlaciones distintas (sin contar la diagonal) tiene la matriz de correlaciones?</h3>
         <div class="opts">
@@ -273,55 +401,134 @@ zona &lt;- <span class="f">cut</span>(df$distancia, <span class="f">c</span>(<sp
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="El determinante de R no puede ser negativo. Con r₁₂ = r₁₃ = 0,9, r₂₃ debe estar entre 0,81 − 0,19 = 0,62 y 1. Un valor de 0,1 da una matriz que no es semidefinida positiva." data-wrong="Usa la cota r₂₃ ≥ r₁₂·r₁₃ − √((1 − r₁₂²)(1 − r₁₃²)). ¿Cuánto vale con 0,9 y 0,9?">
+        <h3>Un informe dice que r₁₂ = 0,9, r₁₃ = 0,9 y r₂₃ = 0,1. ¿Qué concluyes?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Es imposible: con esas dos correlaciones, r₂₃ debe ser al menos 0,62</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Es posible: cada correlación se calcula por separado</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Es posible solo si n es pequeño</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Indica una paradoja de Simpson</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Si x e y son independientes y z depende de ambas, al fijar z un valor alto de x obliga a un y más bajo para dar el mismo z. La parcial es negativa: controlar por un colisionador crea una asociación falsa." data-wrong="Piensa en z = x + y. Si fijas z = 10 y x es grande, ¿cómo tiene que ser y?">
+        <h3>x e y son independientes, y z = x + y + ruido. ¿Qué signo tiene la correlación parcial de x e y dado z?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Cero, porque x e y son independientes</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Positivo, porque ambas aumentan z</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Negativo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No está definida</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="multivar-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. El primer laboratorio te sirve para explorar el último.</p>
+      <h2 id="multivar-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Para tres variables sabes que \(r_{xy} = 0{,}8\), \(r_{xz} = 0{,}6\) y \(r_{yz} = 0{,}7\). Escribe la matriz de correlaciones completa y calcula la correlación parcial entre \(x\) e \(y\) controlando \(z\).</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que \(\mathbf S = \frac{1}{n-1}\mathbf X_c^\top\mathbf X_c\) es semidefinida positiva y que su rango es a lo sumo \(\min(n-1, p)\). (b) Para una matriz de correlaciones \(3\times3\), calcula \(\det\mathbf R\) y deduce el intervalo admisible de \(r_{23}\) dados \(r_{12}\) y \(r_{13}\). (c) Interpreta geométricamente el resultado pensando en las variables estandarizadas como vectores de \(\mathbb R^n\) y en \(r_{jk}\) como el coseno del ángulo entre ellos.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <div class="eq">\[ \mathbf{R} = \begin{pmatrix} 1 &amp; 0{,}8 &amp; 0{,}6 \\ 0{,}8 &amp; 1 &amp; 0{,}7 \\ 0{,}6 &amp; 0{,}7 &amp; 1 \end{pmatrix} \]</div>
-            <p>\(r_{xy\cdot z} = \dfrac{0{,}8 - 0{,}6 \cdot 0{,}7}{\sqrt{(1 - 0{,}36)(1 - 0{,}49)}} = \dfrac{0{,}38}{\sqrt{0{,}64 \cdot 0{,}51}} \approx \dfrac{0{,}38}{0{,}571} \approx 0{,}665\). Parte de la asociación pasa por \(z\), pero queda una relación fuerte.</p>
+            <p>(a) \(\mathbf a^\top\mathbf S\mathbf a = \frac{1}{n-1}\|\mathbf X_c\mathbf a\|^2 \ge 0\). Las columnas de \(\mathbf X_c\) son ortogonales a \(\mathbf 1\) (suman cero), así que viven en un subespacio de dimensión \(n - 1\); por tanto \(\operatorname{rango}(\mathbf X_c) \le \min(n - 1, p)\), y \(\operatorname{rango}(\mathbf X_c^\top\mathbf X_c) = \operatorname{rango}(\mathbf X_c)\).</p>
+            <p>(b) \(\det\mathbf R = 1 - r_{12}^2 - r_{13}^2 - r_{23}^2 + 2r_{12}r_{13}r_{23}\). Como polinomio en \(r_{23}\): \(-r_{23}^2 + 2r_{12}r_{13}r_{23} + (1 - r_{12}^2 - r_{13}^2) \ge 0\). Las raíces son \(r_{12}r_{13} \pm \sqrt{r_{12}^2r_{13}^2 + 1 - r_{12}^2 - r_{13}^2} = r_{12}r_{13} \pm \sqrt{(1 - r_{12}^2)(1 - r_{13}^2)}\), y el polinomio (con coeficiente principal negativo) es \(\ge 0\) entre ellas.</p>
+            <p>(c) Con \(\mathbf u_j = \mathbf x_{c,j}/\|\mathbf x_{c,j}\|\), \(r_{jk} = \mathbf u_j^\top\mathbf u_k = \cos\theta_{jk}\). Los ángulos entre tres vectores cumplen la desigualdad triangular esférica \(\theta_{23} \le \theta_{12} + \theta_{13}\) y \(\theta_{23} \ge |\theta_{12} - \theta_{13}|\). Con \(r_{12} = r_{13} = 0{,}9\), \(\theta = 25{,}8°\), así que \(\theta_{23} \le 51{,}7°\) y \(r_{23} \ge \cos 51{,}7° = 0{,}62\): el mismo resultado.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Calculas la matriz de correlaciones de 10 variables con \(n = 100\) observaciones. ¿Qué umbral aproximado de \(|r|\) usarías para un nivel del 5 %? Si en realidad ninguna variable estuviera relacionada con otra, ¿cuántos pares esperarías que superen ese umbral?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que la correlación entre los residuos de \(x\) sobre \(z\) y de \(y\) sobre \(z\) es la fórmula de la correlación parcial. (b) Para \(p\) variables, muestra que \(-P_{12}/\sqrt{P_{11}P_{22}}\), con \(\mathbf P = \mathbf R^{-1}\), coincide con esa fórmula cuando \(p = 3\). (c) Calcula la parcial de \(x\) e \(y\) dado \(z\) para \(r_{xy} = 0{,}5\), \(r_{xz} = 0{,}8\), \(r_{yz} = 0{,}8\) e interpreta el cambio de signo.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>Umbral \(\approx 2/\sqrt{100} = 0{,}2\). Hay \(10 \cdot 9/2 = 45\) pares, y bajo independencia cada uno lo supera con probabilidad cercana a 0,05: se esperan \(45 \times 0{,}05 \approx 2{,}25\) pares “significativos” por azar. Por eso conviene corregir (Bonferroni, por ejemplo, usaría 0,05/45 para cada par) o confirmar con datos nuevos.</p>
+            <p>(a) Ver § 4: con variables estandarizadas, \(e_x = x - r_{xz}z\), \(e_y = y - r_{yz}z\), \(\operatorname{Cov}(e_x, e_y) = r_{xy} - r_{xz}r_{yz}\) y \(\operatorname{Var}(e_x) = 1 - r_{xz}^2\). Dividir da la fórmula.</p>
+            <p>(b) Para \(\mathbf R\) de \(3\times3\), la inversa es la adjunta dividida por el determinante: \(P_{12} = -(r_{12} - r_{13}r_{23})/\det\mathbf R\), \(P_{11} = (1 - r_{23}^2)/\det\mathbf R\), \(P_{22} = (1 - r_{13}^2)/\det\mathbf R\). Entonces \(-P_{12}/\sqrt{P_{11}P_{22}} = (r_{12} - r_{13}r_{23})/\sqrt{(1 - r_{13}^2)(1 - r_{23}^2)}\), que es \(r_{12\cdot3}\). Los determinantes se cancelan.</p>
+            <p>(c) \((0{,}5 - 0{,}64)/\sqrt{0{,}36 \cdot 0{,}36} = -0{,}14/0{,}36 = -0{,}39\). Positiva sin controlar, negativa al controlar: la asociación global se debe a que ambas dependen fuertemente de \(z\); a \(z\) fijo, valores altos de \(x\) van con valores algo menores de \(y\). Es una paradoja de Simpson en versión continua.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>En datos diarios de una playa, la correlación entre venta de helados y rescates de salvavidas es 0,6. La temperatura correlaciona 0,8 con los helados y 0,75 con los rescates. Calcula la correlación parcial entre helados y rescates controlando la temperatura e interpreta.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Usando el método delta y \(\operatorname{Var}(r) \approx (1 - \rho^2)^2/n\), muestra que \(\operatorname{atanh}(r)\) tiene varianza aproximadamente constante. (b) En dos ciudades se mide la correlación entre horas de estudio y nota: \(r_1 = 0{,}55\) con \(n_1 = 120\) y \(r_2 = 0{,}35\) con \(n_2 = 150\). ¿Son distintas al 5 %? (c) Diseña una simulación que verifique que el intervalo de Fisher al 95 % tiene cobertura cercana al 95 % con \(\rho = 0{,}8\) y \(n = 25\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>\(r_{hs\cdot t} = \dfrac{0{,}6 - 0{,}8 \cdot 0{,}75}{\sqrt{(1 - 0{,}64)(1 - 0{,}5625)}} = \dfrac{0{,}6 - 0{,}6}{\cdots} = 0\).</p>
-            <p>Toda la asociación entre helados y rescates se explica por la temperatura: los días calurosos hay más gente en la playa, que compra más helados y se mete más al mar. Es una correlación espuria por una causa común.</p>
+            <p>(a) \(g(\rho) = \operatorname{atanh}\rho\), \(g'(\rho) = 1/(1 - \rho^2)\). \(\operatorname{Var}[g(r)] \approx \frac{1}{(1-\rho^2)^2}\cdot\frac{(1-\rho^2)^2}{n} = \frac1n\), que no depende de \(\rho\). La corrección \(n - 3\) mejora la aproximación en muestras chicas.</p>
+            <p>(b) \(z_1 = \operatorname{atanh}(0{,}55) = 0{,}618\), \(z_2 = \operatorname{atanh}(0{,}35) = 0{,}365\). \(SE = \sqrt{1/117 + 1/147} = \sqrt{0{,}00855 + 0{,}00680} = 0{,}124\). \(Z = 0{,}253/0{,}124 = 2{,}04\), valor p bilateral \(\approx 0{,}041\). Hay evidencia (al 5 %) de que la asociación es más fuerte en la primera ciudad.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+rho, n, R = <span class="n">0.8</span>, <span class="n">25</span>, <span class="n">20_000</span>
+C = [[<span class="n">1</span>, rho], [rho, <span class="n">1</span>]]
+cubre = <span class="n">0</span>
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(R):
+    x = rng.<span class="f">multivariate_normal</span>([<span class="n">0</span>, <span class="n">0</span>], C, size=n)
+    z = np.<span class="f">arctanh</span>(np.<span class="f">corrcoef</span>(x.T)[<span class="n">0</span>, <span class="n">1</span>]); se = <span class="n">1</span> / np.<span class="f">sqrt</span>(n - <span class="n">3</span>)
+    lo, hi = np.<span class="f">tanh</span>(z - <span class="n">1.96</span> * se), np.<span class="f">tanh</span>(z + <span class="n">1.96</span> * se)
+    cubre += lo &lt;= rho &lt;= hi
+<span class="f">print</span>(cubre / R)      <span class="c"># ≈ 0.95</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(MASS)
+<span class="f">set.seed</span>(<span class="n">0</span>); rho &lt;- <span class="n">0.8</span>; n &lt;- <span class="n">25</span>
+cubre &lt;- <span class="f">replicate</span>(<span class="n">20000</span>, {
+  x &lt;- <span class="f">mvrnorm</span>(n, <span class="f">c</span>(<span class="n">0</span>, <span class="n">0</span>), <span class="f">matrix</span>(<span class="f">c</span>(<span class="n">1</span>, rho, rho, <span class="n">1</span>), <span class="n">2</span>))
+  ic &lt;- <span class="f">tanh</span>(<span class="f">atanh</span>(<span class="f">cor</span>(x)[<span class="n">1</span>, <span class="n">2</span>]) + <span class="f">c</span>(-<span class="n">1</span>, <span class="n">1</span>) * <span class="n">1.96</span> / <span class="f">sqrt</span>(n - <span class="n">3</span>))
+  ic[<span class="n">1</span>] &lt;= rho &amp;&amp; rho &lt;= ic[<span class="n">2</span>]
+})
+<span class="f">mean</span>(cubre)          <span class="c"># ≈ 0.95  (cor.test(x, y)$conf.int usa el mismo método)</span></code></pre>
+            </div>
+            <p>(c) La simulación da una cobertura muy cercana a 0,95. Si repites con el intervalo ingenuo \(r \pm 1{,}96(1 - r^2)/\sqrt n\), la cobertura baja, porque la distribución de \(r\) cerca de 0,8 es asimétrica.</p>
           </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>(a) Sea \(x = 1, 2, \dots, 10\) e \(y = e^{x}\). Calcula la correlación de Pearson y la de Spearman y explica la diferencia. (b) Ahora toma \(y = x\) para esos 10 puntos y agrega un único punto \((30, 0)\). ¿Qué pasa con cada coeficiente? ¿Qué te dice esto sobre cuál mostrar en un mapa de calor?</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simula 2 000 conjuntos de datos con 20 variables normales <i>independientes</i> y \(n = 50\). En cada uno cuenta cuántos de los 190 pares tienen \(|r| &gt; 2/\sqrt n\), y si algún par supera el umbral de Bonferroni. Compara con lo esperado en teoría y explica qué implica para leer un mapa de calor de 20 variables.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) La relación es perfectamente creciente pero muy curva: Spearman vale exactamente 1 (los rangos coinciden) y Pearson \(\approx 0{,}72\), porque una recta ajusta mal una exponencial.</p>
-            <p>(b) Con el punto \((30, 0)\), Pearson cae a \(\approx -0{,}15\): un solo atípico con mucho apalancamiento invierte el signo. Spearman baja a 0,5, porque solo ve que ese punto tiene el mayor rango en \(x\) y el menor en \(y\). Para explorar, conviene mirar ambos: si difieren mucho, hay curvatura o atípicos y el gráfico de pares te dirá cuál.</p>
-<div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">from</span> scipy <span class="k">import</span> stats
-x = np.<span class="f">arange</span>(<span class="n">1</span>, <span class="n">11</span>)
-<span class="f">print</span>(stats.<span class="f">pearsonr</span>(x, np.<span class="f">exp</span>(x))[<span class="n">0</span>], stats.<span class="f">spearmanr</span>(x, np.<span class="f">exp</span>(x))[<span class="n">0</span>])   <span class="c"># 0.717  1.0</span>
-x2, y2 = np.<span class="f">append</span>(x, <span class="n">30</span>), np.<span class="f">append</span>(x, <span class="n">0</span>)
-<span class="f">print</span>(stats.<span class="f">pearsonr</span>(x2, y2)[<span class="n">0</span>], stats.<span class="f">spearmanr</span>(x2, y2)[<span class="n">0</span>])               <span class="c"># -0.152  0.5</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="n">1</span>:<span class="n">10</span>
-<span class="f">c</span>(<span class="f">cor</span>(x, <span class="f">exp</span>(x)), <span class="f">cor</span>(x, <span class="f">exp</span>(x), method = <span class="s">"spearman"</span>))   <span class="c"># 0.717  1</span>
-x2 &lt;- <span class="f">c</span>(x, <span class="n">30</span>); y2 &lt;- <span class="f">c</span>(x, <span class="n">0</span>)
-<span class="f">c</span>(<span class="f">cor</span>(x2, y2), <span class="f">cor</span>(x2, y2, method = <span class="s">"spearman"</span>))         <span class="c"># -0.152  0.5</span></code></pre>
-</div>
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+n, p, R = <span class="n">50</span>, <span class="n">20</span>, <span class="n">2000</span>
+m = p * (p - <span class="n">1</span>) // <span class="n">2</span>                                  <span class="c"># 190 pares</span>
+iu = np.<span class="f">triu_indices</span>(p, <span class="n">1</span>)
+t_b = stats.t.<span class="f">ppf</span>(<span class="n">1</span> - <span class="n">0.05</span> / (<span class="n">2</span> * m), n - <span class="n">2</span>)
+r_b = t_b / np.<span class="f">sqrt</span>(n - <span class="n">2</span> + t_b**<span class="n">2</span>)                   <span class="c"># umbral de |r| con Bonferroni</span>
+conteo, alguno = [], <span class="n">0</span>
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(R):
+    r = np.<span class="f">corrcoef</span>(rng.<span class="f">normal</span>(size=(n, p)).T)[iu]
+    conteo.<span class="f">append</span>((np.<span class="f">abs</span>(r) &gt; <span class="n">2</span> / np.<span class="f">sqrt</span>(n)).<span class="f">sum</span>())
+    alguno += (np.<span class="f">abs</span>(r) &gt; r_b).<span class="f">any</span>()
+<span class="f">print</span>(np.<span class="f">mean</span>(conteo), r_b, alguno / R)   <span class="c"># ≈ 8.8 pares, umbral ≈ 0.494, ≈ 0.05</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>); n &lt;- <span class="n">50</span>; p &lt;- <span class="n">20</span>; m &lt;- p * (p - <span class="n">1</span>) / <span class="n">2</span>
+tb &lt;- <span class="f">qt</span>(<span class="n">1</span> - <span class="n">0.05</span> / (<span class="n">2</span> * m), n - <span class="n">2</span>); rb &lt;- tb / <span class="f">sqrt</span>(n - <span class="n">2</span> + tb^<span class="n">2</span>)
+res &lt;- <span class="f">replicate</span>(<span class="n">2000</span>, {
+  r &lt;- <span class="f">cor</span>(<span class="f">matrix</span>(<span class="f">rnorm</span>(n * p), n))[<span class="f">upper.tri</span>(<span class="f">diag</span>(p))]
+  <span class="f">c</span>(<span class="f">sum</span>(<span class="f">abs</span>(r) &gt; <span class="n">2</span> / <span class="f">sqrt</span>(n)), <span class="f">any</span>(<span class="f">abs</span>(r) &gt; rb))
+})
+<span class="f">rowMeans</span>(res)     <span class="c"># ≈ 8.8 y ≈ 0.05</span></code></pre>
+            </div>
+            <p>Teoría: con \(n = 50\), \(P(|r| &gt; 0{,}283) \approx 0{,}046\) bajo independencia, así que esperas \(190 \times 0{,}046 \approx 8{,}8\) pares “significativos” en datos de puro ruido: un mapa de calor de 20 variables sin ninguna relación mostrará unas nueve celdas llamativas. El umbral de Bonferroni sube a \(|r| &gt; 0{,}494\) y la probabilidad de que <i>algún</i> par lo supere queda cerca del 5 %. En la práctica: usa el mapa para generar hipótesis y confírmalas con datos nuevos o con una corrección (Bonferroni, Holm o control de la tasa de falsos descubrimientos).</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Sean \(X, Y\) independientes \(\mathcal N(0,1)\) y \(Z = X + Y + \varepsilon\) con \(\varepsilon \sim \mathcal N(0, \sigma^2)\) independiente. (a) Calcula \(r_{xz}\), \(r_{yz}\) y la correlación parcial \(r_{xy\cdot z}\) en función de \(\sigma^2\). (b) ¿Qué vale con \(\sigma^2 = 1\) y cuando \(\sigma^2 \to 0\)? (c) Verifícalo por simulación y da un ejemplo real donde controlar por un colisionador lleve a una conclusión errónea.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\operatorname{Var}(Z) = 2 + \sigma^2\), \(\operatorname{Cov}(X, Z) = 1\), así \(r_{xz} = r_{yz} = 1/\sqrt{2 + \sigma^2}\) y \(r_{xy} = 0\). Entonces \(r_{xy\cdot z} = \dfrac{0 - \frac{1}{2+\sigma^2}}{1 - \frac{1}{2 + \sigma^2}} = -\dfrac{1}{1 + \sigma^2}\).</p>
+            <p>(b) Con \(\sigma^2 = 1\): \(-0{,}5\). Cuando \(\sigma^2 \to 0\): \(-1\), porque a \(Z\) fijo, \(Y = Z - X\) exactamente.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
+x, y = rng.<span class="f">normal</span>(size=(<span class="n">2</span>, <span class="n">100_000</span>))
+z = x + y + rng.<span class="f">normal</span>(size=<span class="n">100_000</span>)                <span class="c"># σ² = 1</span>
+<span class="k">def</span> <span class="f">parcial</span>(a, b, c):
+    ra = a - np.<span class="f">polyval</span>(np.<span class="f">polyfit</span>(c, a, <span class="n">1</span>), c)
+    rb = b - np.<span class="f">polyval</span>(np.<span class="f">polyfit</span>(c, b, <span class="n">1</span>), c)
+    <span class="k">return</span> np.<span class="f">corrcoef</span>(ra, rb)[<span class="n">0</span>, <span class="n">1</span>]
+<span class="f">print</span>(np.<span class="f">corrcoef</span>(x, y)[<span class="n">0</span>, <span class="n">1</span>], <span class="f">parcial</span>(x, y, z))    <span class="c"># ≈ 0.00  ≈ -0.50</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>); x &lt;- <span class="f">rnorm</span>(<span class="n">1e5</span>); y &lt;- <span class="f">rnorm</span>(<span class="n">1e5</span>); z &lt;- x + y + <span class="f">rnorm</span>(<span class="n">1e5</span>)
+<span class="f">cor</span>(<span class="f">resid</span>(<span class="f">lm</span>(x ~ z)), <span class="f">resid</span>(<span class="f">lm</span>(y ~ z)))           <span class="c"># ≈ -0.50</span></code></pre>
+            </div>
+            <p>(c) Ejemplo: entre los estudiantes admitidos a una universidad que selecciona por la suma de nota del examen y puntaje de entrevista, ambas medidas parecen correlacionar negativamente, aunque en la población de postulantes sean independientes. Condicionar a “ser admitido” (función de la suma) es controlar por un colisionador. Lo mismo ocurre con muestras hospitalarias (sesgo de Berkson).</p>
           </div></details>
         </div>
       </div>
+
       <div class="next"></div>
     </article>
   </div>
