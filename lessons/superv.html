@@ -6,36 +6,53 @@
       <div class="crumbs"></div>
       <h1>Conceptos de análisis de supervivencia</h1>
       <p>¿Cuánto tarda un cliente en cancelar, un paciente en recaer o una máquina en fallar? Cuando la pregunta es “cuánto tiempo hasta que pase algo”, casi nunca ves el final de todas las historias. Aquí aprendes a describir el tiempo hasta el evento con la función de supervivencia y la función de riesgo, y a tratar bien la censura.</p>
-      <div class="lmeta"><span>40 min</span><span>Nivel intermedio</span><span>Requiere: distribuciones continuas</span><span>R · Python</span></div>
+      <div class="lmeta"><span>80 min</span><span>Nivel intermedio</span><span>Requiere: distribuciones continuas</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#superv-idea" data-sec="superv-idea">La idea</a></li>
-        <li><a href="#superv-censura" data-sec="superv-censura">Tiempo al evento y censura</a></li>
-        <li><a href="#superv-lab-cens" data-sec="superv-lab-cens">Laboratorio: el sesgo de ignorar la censura</a></li>
+        <li><a href="#superv-intro" data-sec="superv-intro">Introducción</a></li>
+        <li><a href="#superv-def" data-sec="superv-def">Definición</a></li>
+        <li><a href="#superv-censura" data-sec="superv-censura">Tipos de censura</a></li>
         <li><a href="#superv-funciones" data-sec="superv-funciones">Supervivencia y riesgo</a></li>
-        <li><a href="#superv-formas" data-sec="superv-formas">Formas del riesgo</a></li>
-        <li><a href="#superv-lab" data-sec="superv-lab">Laboratorio: del riesgo a la curva</a></li>
         <li><a href="#superv-verosim" data-sec="superv-verosim">La censura en la verosimilitud</a></li>
+        <li><a href="#superv-prop" data-sec="superv-prop">Propiedades</a></li>
+        <li><a href="#superv-sim" data-sec="superv-sim">Ejercicios de simulación</a></li>
+        <li><a href="#superv-apps" data-sec="superv-apps">Aplicaciones reales</a></li>
         <li><a href="#superv-code" data-sec="superv-code">En R y Python</a></li>
-        <li><a href="#superv-quiz" data-sec="superv-quiz">Comprueba</a></li>
-        <li><a href="#superv-ej" data-sec="superv-ej">Ejercicios</a></li>
+        <li><a href="#superv-quiz" data-sec="superv-quiz">Quiz</a></li>
+        <li><a href="#superv-ej" data-sec="superv-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="superv-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="superv-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una plataforma de streaming quiere saber cuánto tiempo se queda un suscriptor antes de cancelar. Durante el primer año entran clientes nuevos cada semana y el análisis se hace en el mes 24. Al cierre, muchos clientes siguen activos: sabes que llevan, por ejemplo, 15 meses suscritos, pero no sabes cuándo van a cancelar. Su tiempo hasta la cancelación es <b>al menos</b> 15 meses.</p>
-      <p>Si calculas el promedio de meses solo con los que ya cancelaron, ignoras justo a los clientes más fieles y la duración te sale demasiado corta. Si usas los 15 meses como si fueran una cancelación, también te equivocas, porque ese cliente va a durar más. Y si conviertes todo en “canceló sí o no” para usar una regresión logística, tiras la información del tiempo y mezclas clientes que llevan 2 meses con clientes que llevan 20.</p>
-      <div class="callout"><b>Qué vas a aprender:</b> el análisis de supervivencia es el conjunto de métodos para variables del tipo “tiempo hasta un evento” cuando parte de los tiempos está incompleta. El nombre viene de la medicina (el evento era la muerte), pero el mismo marco sirve para cancelaciones, fallas, reingresos, el primer empleo o la próxima compra.</div>
+      <p>Si calculas el promedio de meses solo con los que ya cancelaron, ignoras justo a los clientes más fieles y la duración te sale demasiado corta. Si usas los 15 meses como si fueran una cancelación, también te equivocas, porque ese cliente va a durar más. Y si conviertes todo en “canceló sí o no” para usar una <a href="#logit">regresión logística</a>, tiras la información del tiempo y mezclas clientes que llevan 2 meses con clientes que llevan 20.</p>
+      <p><b>Un poco de historia.</b> John Graunt publicó en 1662 las primeras tablas de mortalidad a partir de los registros de defunciones de Londres, y Edmond Halley construyó en 1693 una tabla de vida para la ciudad de Breslau con la que calculó precios de rentas vitalicias: el origen de la ciencia actuarial. El tratamiento moderno de la censura llegó con Edward Kaplan y Paul Meier en 1958, cuyo estimador verás en la <a href="#km">próxima sesión</a>, y con el modelo de riesgos proporcionales de David Cox en 1972, uno de los artículos más citados de la estadística. La ingeniería de confiabilidad desarrolló en paralelo los modelos de Weibull para la vida de materiales y componentes.</p>
+      <div class="callout"><b>Qué es el análisis de supervivencia:</b> el conjunto de métodos para variables del tipo “tiempo hasta un evento” cuando parte de los tiempos está incompleta. El nombre viene de la medicina (el evento era la muerte), pero el mismo marco sirve para cancelaciones, fallas, reingresos, el primer empleo o la próxima compra.</div>
+      <div class="callout"><b>En esta sesión aprenderás:</b>
+        <ul>
+          <li>A definir el tiempo hasta el evento, la censura y el par observado \((Y, \delta)\).</li>
+          <li>A distinguir censura por la derecha, por la izquierda y por intervalo, truncamiento y riesgos competitivos, y a juzgar el supuesto de censura no informativa.</li>
+          <li>A definir y relacionar la función de supervivencia, la densidad, el riesgo y el riesgo acumulado, derivando cada identidad.</li>
+          <li>A interpretar las formas del riesgo y el efecto de la heterogeneidad no observada.</li>
+          <li>A construir la verosimilitud con censura y estimar la tasa de un modelo exponencial con su intervalo de confianza.</li>
+        </ul>
+      </div>
 
-      <h2 id="superv-censura"><span class="sec">§ 2</span>Tiempo hasta el evento y censura</h2>
+      <h2 id="superv-def"><span class="sec">§ 2</span>Definición</h2>
       <p>Para cada individuo hay un <b>tiempo de evento</b> \(T \ge 0\), medido desde un origen bien definido (la fecha de suscripción, el diagnóstico, la instalación de la pieza), y un <b>tiempo de censura</b> \(C\), el momento en que dejamos de observarlo. Solo vemos el menor de los dos y una marca que dice cuál ocurrió primero:</p>
       <div class="eq">\[ Y_i = \min(T_i,\, C_i), \qquad \delta_i = \mathbf{1}\{T_i \le C_i\} = \begin{cases} 1 &amp; \text{se observó el evento} \\ 0 &amp; \text{censurado} \end{cases} \]
         <div class="note">Los datos de supervivencia siempre vienen en pares \((Y_i, \delta_i)\), a veces con covariables \(x_i\). En R el par se escribe <code>Surv(tiempo, evento)</code>. Un tiempo censurado suele marcarse con “+”: 15+ significa “más de 15”.</div>
       </div>
+      <p>Tres elementos tienen que estar definidos sin ambigüedad: el <b>origen</b> del tiempo (cuándo empieza el reloj para cada individuo), la <b>escala</b> (días, meses, kilómetros recorridos, ciclos de carga) y el <b>evento</b> (qué cuenta exactamente como cancelación o falla). Cambiar cualquiera de los tres cambia la pregunta.</p>
+      <div class="callout"><b>Definición (funciones de supervivencia y de riesgo).</b> Sea \(T\) continua con densidad \(f(t)\) y distribución acumulada \(F(t) = P(T \le t)\). La <b>función de supervivencia</b> es \(S(t) = P(T > t) = 1 - F(t)\), la probabilidad de que el evento todavía no haya ocurrido en \(t\). La <b>función de riesgo</b> (<i>hazard</i>) es la tasa instantánea de evento entre quienes siguen en riesgo: \[ h(t) = \lim_{\Delta t \to 0} \frac{P(t \le T &lt; t + \Delta t \mid T \ge t)}{\Delta t} \] El <b>riesgo acumulado</b> es \(H(t) = \int_0^t h(u)\,du\).</div>
+      <p>\(h(t)\) no es una probabilidad: es una tasa por unidad de tiempo y puede ser mayor que 1. Para un \(\Delta t\) pequeño, \(h(t)\,\Delta t \approx\) probabilidad de tener el evento en el siguiente instante dado que llegaste a \(t\) sin tenerlo. Si \(h = 0{,}05\) por mes, cerca del 5 % de los activos cancela en el mes siguiente.</p>
+      <p><b>Ejemplo numérico.</b> Para un tipo de batería, \(S(1) = 0{,}90\), \(S(2) = 0{,}72\) y \(S(3) = 0{,}50\) (en años). La proporción del total que falla durante el segundo año es \(S(1) - S(2) = 0{,}18\). Pero entre las que llegan funcionando al inicio del segundo año, la proporción que falla es la probabilidad condicional \((S(1) - S(2))/S(1) = 0{,}18/0{,}90 = 0{,}20\): esa es la idea del riesgo. En el tercer año, \((0{,}72 - 0{,}50)/0{,}72 = 0{,}31\): el riesgo crece, señal de desgaste. Y como \(S(3) = 0{,}50\), la mediana es 3 años.</p>
+
+      <h2 id="superv-censura"><span class="sec">§ 3</span>Tipos de censura y supuestos</h2>
       <p>Hay varios tipos de datos incompletos y conviene distinguirlos:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Tipo</th><th>Qué sabes de T</th><th>Ejemplo</th></tr></thead>
@@ -46,16 +63,92 @@
           <tr><td><b>Truncamiento por la izquierda</b></td><td>solo entra si \(T &gt; a\)</td><td>Un estudio de jubilados solo incluye a quienes llegaron vivos a los 65 años (entrada tardía).</td></tr>
         </tbody>
       </table></div>
-      <p>La censura por la derecha es, por lejos, la más común, y es la que tratan las sesiones de este bloque. Puede ser <b>administrativa</b> (el estudio termina en una fecha fija y cada persona entró en un momento distinto) o por <b>pérdida de seguimiento</b> (la persona se muda, deja de responder o se retira).</p>
-      <div class="callout"><b>El supuesto clave: censura no informativa.</b> Todos los métodos de este bloque suponen que, condicionado a las covariables, \(T\) y \(C\) son independientes: quien se censura en el tiempo \(t\) tiene el mismo riesgo futuro que quien sigue en observación. Se rompe si, por ejemplo, los pacientes más enfermos abandonan el estudio porque se sienten peor. Ninguna prueba con los datos observados puede verificarlo: hay que argumentarlo con el diseño.</div>
+      <p>La censura por la derecha es, por lejos, la más común, y es la que tratan las sesiones de este bloque. Puede ser <b>administrativa</b> (el estudio termina en una fecha fija y cada persona entró en un momento distinto), de <b>tipo I</b> (todos se siguen el mismo tiempo fijo, como en un ensayo de laboratorio de 1 000 horas), de <b>tipo II</b> (el ensayo se detiene cuando falla la \(r\)-ésima unidad) o por <b>pérdida de seguimiento</b> (la persona se muda, deja de responder o se retira). La diferencia entre censura y truncamiento es importante: un censurado está en la muestra con información parcial; un truncado ni siquiera aparece, y eso sesga la muestra si no se corrige.</p>
+      <div class="callout"><b>El supuesto clave: censura no informativa.</b> Todos los métodos de este bloque suponen que, condicionado a las covariables, \(T\) y \(C\) son independientes: quien se censura en el tiempo \(t\) tiene el mismo riesgo futuro que quien sigue en observación. Se rompe si, por ejemplo, los pacientes más enfermos abandonan el estudio porque se sienten peor. Ninguna prueba con los datos observados puede verificarlo (Tsiatis, 1975, mostró que la distribución conjunta de \(T\) y \(C\) no es identificable a partir de \((Y, \delta)\)): hay que argumentarlo con el diseño y hacer análisis de sensibilidad.</div>
+      <h3>Riesgos competitivos</h3>
+      <p>Si hay otro evento que impide para siempre observar el de interés (morir por otra causa antes de reinfectarse, que un cliente se cambie de plan antes de cancelar), no es una censura ordinaria: es un <b>riesgo competitivo</b>. Tratarlo como censura estima la probabilidad del evento en un mundo hipotético donde el evento competidor no existe, y sobreestima la probabilidad real. Para eso se usan la función de incidencia acumulada y los modelos de Fine y Gray.</p>
+      <p><b>Ejemplo resuelto.</b> Un estudio sigue a pacientes desde una cirugía hasta su primera reinfección, con cierre el 31 de diciembre. Ana se reinfecta a los 40 días: evento, (40, 1). Luis se muda al día 75 sin reinfección: censura por pérdida de seguimiento, (75, 0). Marta llega al cierre con 120 días sin reinfección: censura administrativa, (120, 0). Pedro muere en un accidente al día 60 sin reinfección: se suele registrar como (60, 0), pero es un riesgo competitivo; si hay pocas muertes la diferencia es menor, si hay muchas conviene usar la incidencia acumulada.</p>
       <p>Dos errores clásicos con datos censurados:</p>
       <ul>
         <li><b>Borrar a los censurados.</b> Solo quedan los tiempos cortos (los que alcanzaron a tener el evento) y subestimas la duración.</li>
         <li><b>Tratar la censura como evento.</b> Cortas las historias antes de tiempo y también subestimas la duración, aunque un poco menos.</li>
       </ul>
-      <p>Pruébalo en el laboratorio de abajo antes de pasar a la teoría.</p>
 
-      <h2 id="superv-lab-cens"><span class="sec">§ 3</span>Laboratorio: el sesgo de ignorar la censura</h2>
+      <h2 id="superv-funciones"><span class="sec">§ 4</span>Supervivencia, riesgo y sus relaciones</h2>
+      <h3>Las identidades fundamentales</h3>
+      <p>Parte de la definición del riesgo. Como \(P(t \le T &lt; t + \Delta t \mid T \ge t) = \frac{F(t + \Delta t) - F(t)}{S(t)}\), al dividir por \(\Delta t\) y tomar el límite:</p>
+      <div class="eq">\[ h(t) = \frac{f(t)}{S(t)} = \frac{-S'(t)}{S(t)} = -\frac{d}{dt}\ln S(t) \]
+        <div class="note">Se usó \(f = F' = -S'\). La diferencia entre \(f\) y \(h\) es el denominador: \(f(t)\,\Delta t\) es la probabilidad, vista desde el inicio, de tener el evento cerca de \(t\); \(h(t)\,\Delta t\) es esa misma probabilidad condicionada a haber llegado a \(t\).</div>
+      </div>
+      <p>Integrando entre 0 y \(t\), con \(S(0) = 1\) (\(\ln S(0) = 0\)), se obtiene la relación entre todas las funciones:</p>
+      <div class="eq">\[ H(t) = \int_0^t h(u)\,du = -\ln S(t), \qquad S(t) = e^{-H(t)}, \qquad f(t) = h(t)\,e^{-H(t)} \]
+        <div class="note">Cualquiera de las cuatro funciones \(f, F, S, h\) determina a las otras tres. Por eso los modelos de supervivencia suelen especificar el riesgo: es la cantidad que se modela en Cox y en los modelos paramétricos, porque describe lo que le pasa a quien todavía está en juego.</div>
+      </div>
+      <h3>Media, mediana y media restringida</h3>
+      <p>La <b>mediana</b> es el tiempo \(t_{0{,}5}\) en que \(S(t_{0{,}5}) = 0{,}5\). Es robusta y existe aunque haya mucha censura, siempre que la curva baje del 50 %. La <b>media</b> es el área bajo la curva. Integrando por partes, con \(u = t\) y \(dv = f(t)dt = -dS\):</p>
+      <div class="eq">\[ \mathbb{E}[T] = \int_0^\infty t f(t)\,dt = \Big[-t\,S(t)\Big]_0^\infty + \int_0^\infty S(t)\,dt = \int_0^\infty S(t)\,dt \]
+        <div class="note">El término de borde se anula si \( \mathbb{E}[T]\) es finita (\(tS(t) \to 0\)). Con censura casi nunca se puede estimar la media completa, porque no ves la cola; se usa la <b>media restringida</b> \(\text{RMST}(\tau) = \int_0^\tau S(t)\,dt = \mathbb{E}[\min(T, \tau)]\), el tiempo libre de evento esperado durante los primeros \(\tau\) meses.</div>
+      </div>
+      <div class="callout"><b>Error común:</b> leer \(1 - S(t)\) como “probabilidad de tener el evento en el instante \(t\)”. Es la probabilidad acumulada de haberlo tenido <b>hasta</b> \(t\). Lo instantáneo es el riesgo.</div>
+      <h3>Formas del riesgo</h3>
+      <p>La forma de \(h(t)\) cuenta una historia sobre el proceso. Antes de elegir un modelo vale la pena pensar cuál es plausible:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Forma de h(t)</th><th>Qué significa</th><th>Ejemplo</th><th>Modelo típico</th></tr></thead>
+        <tbody>
+          <tr><td>Constante</td><td>El pasado no importa: falta de memoria</td><td>Fallas por golpes aleatorios en componentes electrónicos</td><td>Exponencial</td></tr>
+          <tr><td>Creciente</td><td>Envejecimiento o desgaste</td><td>Rodamientos, mortalidad en adultos mayores</td><td>Weibull con forma &gt; 1</td></tr>
+          <tr><td>Decreciente</td><td>Los frágiles salen primero; quien sobrevive al inicio se consolida</td><td>Cancelaciones en el período de prueba, rechazo tras un trasplante</td><td>Weibull con forma &lt; 1</td></tr>
+          <tr><td>Bañera</td><td>Fallas tempranas, período estable y desgaste</td><td>Vida humana completa, equipos industriales</td><td>Mezclas, modelos por tramos</td></tr>
+        </tbody>
+      </table></div>
+      <p>Un riesgo constante \(h(t) = \lambda\) da \(H(t) = \lambda t\) y \(S(t) = e^{- \lambda t}\), la distribución exponencial, con mediana \(\ln 2 / \lambda\) y media \(1/ \lambda\). Es el punto de referencia de todo el bloque y la única distribución continua sin memoria: \(P(T > t + s \mid T > t) = e^{- \lambda s} = P(T > s)\). La <a href="#weibull">Weibull</a> generaliza con \(h(t) = \frac{k}{b}\left( \frac{t}{b}\right)^{k-1}\), \(S(t) = e^{-(t/b)^k}\) y mediana \(b(\ln 2)^{1/k}\): forma \(k &lt; 1\) da riesgo decreciente, \(k = 1\) constante y \(k > 1\) creciente.</p>
+      <h3>Heterogeneidad no observada</h3>
+      <p>Un detalle importante sobre el riesgo decreciente: aunque cada persona tuviera riesgo constante, si la población mezcla personas de riesgo alto y bajo, el riesgo <b>poblacional</b> baja con el tiempo, porque las de riesgo alto se van primero. <b>Ejemplo resuelto:</b> la mitad de los clientes tiene \( \lambda_1 = 0{,}20\) y la otra mitad \( \lambda_2 = 0{,}02\) por mes. Entonces \(S(t) = 0{,}5e^{-0{,}2t} + 0{,}5e^{-0{,}02t}\) y \(h(t) = f(t)/S(t)\). En \(t = 0\), \(h = 0{,}11\). En \(t = 24\): \(e^{-4{,}8} = 0{,}0082\) y \(e^{-0{,}48} = 0{,}619\), así que \(f = 0{,}5(0{,}2 \times 0{,}0082 + 0{,}02 \times 0{,}619) = 0{,}0070\), \(S = 0{,}314\) y \(h(24) = 0{,}022\). El riesgo cayó a la quinta parte sin que ningún cliente cambiara: a los 24 meses el grupo de riesgo alto es apenas el 1,3 % de los que quedan. Es el efecto de la <b>fragilidad</b>, y explica por qué un riesgo decreciente no siempre significa que “la fidelidad crece con el tiempo”.</p>
+
+      <h2 id="superv-verosim"><span class="sec">§ 5</span>Cómo entra la censura en la verosimilitud</h2>
+      <p>La censura no es información perdida: un censurado en 15+ te dice que \(T > 15\), y eso tiene probabilidad \(S(15)\). Un evento en 15 aporta la densidad \(f(15)\). Si la censura es no informativa (y su distribución no depende de los parámetros \(\theta\)), los factores que vienen de \(C\) no dependen de \(\theta\) y la verosimilitud es:</p>
+      <div class="eq">\[ L(\theta) = \prod_{i=1}^{n} f(y_i)^{\delta_i}\, S(y_i)^{1-\delta_i} = \prod_{i=1}^{n} h(y_i)^{\delta_i}\, S(y_i) \]
+        <div class="note">La segunda forma usa \(f = h\,S\). En logaritmos: \(\ell(\theta) = \sum_i \big[\delta_i \ln h(y_i) - H(y_i)\big]\). Cada persona aporta su riesgo acumulado mientras estuvo en observación, y los eventos aportan además el riesgo en el instante del evento.</div>
+      </div>
+      <h3>El modelo exponencial</h3>
+      <p>Con riesgo constante \(h(t) = \lambda\), queda \(\ell( \lambda) = d \ln \lambda - \lambda \sum_i y_i\), donde \(d = \sum_i \delta_i\) es el número de eventos. Derivando, \(\ell'( \lambda) = d/ \lambda - \sum y_i = 0\), y la segunda derivada \(-d/ \lambda^2\) da la información observada:</p>
+      <div class="eq">\[ \hat\lambda = \frac{d}{\sum_{i} y_i} = \frac{\text{eventos}}{\text{persona-tiempo en riesgo}}, \qquad \operatorname{EE}(\hat\lambda) \approx \frac{\hat\lambda}{\sqrt{d}}, \qquad \operatorname{EE}(\ln\hat\lambda) \approx \frac{1}{\sqrt d} \]
+        <div class="note">Es la <b>tasa de incidencia</b> de la epidemiología. El intervalo se construye mejor en escala logarítmica: \(\hat \lambda\,e^{\pm 1{,}96/\sqrt d}\), que siempre es positivo. La precisión depende del número de eventos, no del número de personas.</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> En un programa de fidelización se siguió a 8 clientes (meses hasta abandonar; “+” indica censura): 3, 5+, 6, 8+, 10, 12+, 12+, 15.</p>
+      <ol>
+        <li>Eventos: \(d = 4\) (en 3, 6, 10 y 15). Persona-tiempo: \(3 + 5 + 6 + 8 + 10 + 12 + 12 + 15 = 71\) meses.</li>
+        <li>\(\hat \lambda = 4/71 = 0{,}0563\) por mes, con \( \operatorname{EE} = 0{,}0563/\sqrt4 = 0{,}028\).</li>
+        <li>Intervalo del 95 %: \(0{,}0563\,e^{\pm 1{,}96/2} = [0{,}021;\ 0{,}150]\). Muy ancho: solo hay 4 eventos.</li>
+        <li>Mediana estimada: \(\ln 2/0{,}0563 = 12{,}3\) meses; \( \hat S(12) = e^{-0{,}0563 \times 12} = 0{,}51\).</li>
+        <li>Borrando a los censurados quedan 3, 6, 10 y 15, con mediana 8 meses: subestima mucho, porque los censurados (5, 8, 12, 12 meses y contando) son justo los que siguen activos.</li>
+      </ol>
+      <div class="callout"><b>Para recordar:</b> en supervivencia la información la dan los <b>eventos</b>. Un estudio con 5 000 personas y 12 eventos estima el riesgo con mucha menos precisión que uno con 300 personas y 150 eventos. Por eso el tamaño de muestra se planifica en número de eventos (ver <a href="#tamano">tamaño de muestra</a>).</div>
+      <p>Para la Weibull la log-verosimilitud no tiene solución cerrada y se maximiza numéricamente, pero la estructura es la misma. Sin modelo paramétrico, la verosimilitud se maximiza con un salto de \(S\) en cada tiempo de evento: el resultado es el estimador de <a href="#km">Kaplan-Meier</a>.</p>
+
+      <h2 id="superv-prop"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>Supervivencia.</b> \(S(0) = 1\), \(S\) es no creciente, continua por la derecha, y \(S(\infty) = 0\) si todos tienen el evento alguna vez (si no, hay una fracción curada \(S(\infty) > 0\)). Sale de que \(S = 1 - F\) y \(F\) es una función de distribución.</li>
+        <li><b>Riesgo y supervivencia.</b> \(h = f/S = -(\ln S)'\) y \(S(t) = e^{-H(t)}\). Demostración: derivar \(\ln S\) e integrar desde 0 (§ 4).</li>
+        <li><b>Riesgo acumulado.</b> \(H\) es no decreciente, \(H(0) = 0\) y \(H(t) \to \infty\) si \(S(\infty) = 0\). Además \(H(T) \sim \text{Exp}(1)\), porque \(P(H(T) > u) = P(T > H^{-1}(u)) = e^{-u}\): es la base de los residuos de Cox-Snell.</li>
+        <li><b>Media como área.</b> \( \mathbb{E}[T] = \int_0^\infty S(t)dt\) y \(\text{RMST}(\tau) = \mathbb{E}[\min(T, \tau)] = \int_0^\tau S(t)dt\), por integración por partes.</li>
+        <li><b>Falta de memoria.</b> El riesgo es constante si y solo si \(T\) es exponencial: \(S(t+s) = S(t)S(s)\) para todo \(t, s\), cuya única solución continua decreciente es \(e^{- \lambda t}\).</li>
+        <li><b>Verosimilitud con censura.</b> Con censura no informativa, \(\ell(\theta) = \sum[\delta_i\ln h(y_i) - H(y_i)]\): los censurados contribuyen solo con \(-H(y_i)\).</li>
+        <li><b>Estimador de la tasa.</b> En el modelo exponencial, \(\hat \lambda = d/ \sum y_i\) con \( \operatorname{Var}(\ln\hat \lambda) \approx 1/d\): la información la aportan los eventos.</li>
+        <li><b>Mezclas.</b> La mezcla de exponenciales con tasas distintas tiene riesgo decreciente: \(h(t)\) es el promedio de las tasas ponderado por la fracción de cada grupo que sigue en riesgo, que se desplaza hacia las tasas bajas.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes:</b>
+        <ul>
+          <li>Borrar a los censurados o tratarlos como eventos: ambos subestiman la duración.</li>
+          <li>Reportar la media de los tiempos observados, o la media de una curva que no llega a 0, en lugar de la mediana o la RMST.</li>
+          <li>Tratar un riesgo competitivo (muerte por otra causa) como censura no informativa.</li>
+          <li>Leer un riesgo decreciente como “efecto de la antigüedad” sin considerar la heterogeneidad entre individuos.</li>
+          <li>Definir mal el origen del tiempo, por ejemplo contar desde el diagnóstico a unos y desde la cirugía a otros.</li>
+        </ul>
+      </div>
+
+      <h2 id="superv-sim"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
+      <h3 id="superv-lab-cens">Laboratorio 1: el sesgo de ignorar la censura</h3>
       <p>Cada línea es un suscriptor. En la vista de <b>calendario</b> ves que entraron en distintos momentos del primer año y que el estudio cierra en el mes 24 para todos. En la vista de <b>seguimiento</b> todos arrancan en cero: así se analizan. Sube el abandono para agregar censura por pérdida de seguimiento y mira cómo se alejan las estimaciones ingenuas de la mediana real.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · censura por la derecha</span><span class="num" id="superv-cs-head">–</span></div>
@@ -84,44 +177,17 @@
         </div>
         <figcaption>Las medianas se calculan con los 400 suscriptores simulados (tiempo real Weibull de forma 0,8 y escala 20 meses). Las dos estimaciones ingenuas quedan por debajo de la real, y la brecha crece con la censura. El estimador de Kaplan-Meier de la próxima sesión corrige este sesgo.</figcaption>
       </figure>
-
-      <h2 id="superv-funciones"><span class="sec">§ 4</span>Función de supervivencia y función de riesgo</h2>
-      <p>Sea \(T\) continua con densidad \(f(t)\) y distribución acumulada \(F(t) = P(T \le t)\). En supervivencia se trabaja con dos funciones que responden preguntas más naturales.</p>
-      <p>La <b>función de supervivencia</b> es la probabilidad de que el evento todavía no haya ocurrido en \(t\):</p>
-      <div class="eq">\[ S(t) = P(T &gt; t) = 1 - F(t) = \int_t^{\infty} f(u)\,du \]
-        <div class="note">\(S(0) = 1\), es no creciente y tiende a 0 si todos tienen el evento alguna vez. “\(S(12) = 0{,}60\)” se lee: el 60 % de los suscriptores sigue activo al mes 12.</div>
-      </div>
-      <p>La <b>función de riesgo</b> (<i>hazard</i>) es la tasa instantánea de evento entre quienes siguen en riesgo:</p>
-      <div class="eq">\[ h(t) = \lim_{\Delta t \to 0} \frac{P(t \le T &lt; t + \Delta t \mid T \ge t)}{\Delta t} = \frac{f(t)}{S(t)} \]
-        <div class="note">\(h(t)\) no es una probabilidad: es una tasa por unidad de tiempo y puede ser mayor que 1. Para un \(\Delta t\) pequeño, \(h(t)\,\Delta t \approx\) probabilidad de tener el evento en el siguiente instante dado que llegaste vivo a \(t\). Si \(h = 0{,}05\) por mes, cerca del 5 % de los activos cancela en el mes siguiente.</div>
-      </div>
-      <p>La diferencia entre \(f\) y \(h\) es el denominador. \(f(t)\,\Delta t\) es la probabilidad, vista desde el inicio, de tener el evento cerca de \(t\). \(h(t)\,\Delta t\) es esa misma probabilidad pero <b>condicionada</b> a haber llegado a \(t\). Por eso el riesgo es la cantidad que se modela en Cox y en los modelos paramétricos: describe lo que le pasa a quien todavía está en juego.</p>
-      <p>Acumulando el riesgo se obtiene la <b>función de riesgo acumulado</b>, y con ella se recupera todo lo demás:</p>
-      <div class="eq">\[ H(t) = \int_0^t h(u)\,du, \qquad S(t) = e^{-H(t)}, \qquad f(t) = h(t)\,e^{-H(t)} \]
-        <div class="note">Se deduce de \(h(t) = f(t)/S(t) = -\frac{d}{dt}\ln S(t)\). Cualquiera de las cuatro funciones \(f, F, S, h\) determina a las otras tres.</div>
-      </div>
-      <p>Dos resúmenes muy usados salen directamente de \(S\):</p>
-      <ul>
-        <li><b>Mediana de supervivencia:</b> el tiempo \(t_{0{,}5}\) en que \(S(t_{0{,}5}) = 0{,}5\). Es robusta y existe aunque haya mucha censura, siempre que la curva baje del 50 %.</li>
-        <li><b>Media:</b> \(E[T] = \int_0^\infty S(t)\,dt\), el área bajo la curva. Con censura casi nunca se puede estimar completa, porque no ves la cola; se usa la <b>media restringida</b> \(\text{RMST}(\tau) = \int_0^\tau S(t)\,dt\), el tiempo libre de evento esperado durante los primeros \(\tau\) meses.</li>
-      </ul>
-      <div class="callout"><b>Error común:</b> leer \(1 - S(t)\) como “probabilidad de tener el evento en el instante \(t\)”. Es la probabilidad acumulada de haberlo tenido <b>hasta</b> \(t\). Lo instantáneo es el riesgo.</div>
-
-      <h2 id="superv-formas"><span class="sec">§ 5</span>Formas del riesgo</h2>
-      <p>La forma de \(h(t)\) cuenta una historia sobre el proceso. Antes de elegir un modelo vale la pena pensar cuál es plausible:</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Forma de h(t)</th><th>Qué significa</th><th>Ejemplo</th><th>Modelo típico</th></tr></thead>
-        <tbody>
-          <tr><td>Constante</td><td>El pasado no importa: falta de memoria</td><td>Fallas por golpes aleatorios en componentes electrónicos</td><td>Exponencial</td></tr>
-          <tr><td>Creciente</td><td>Envejecimiento o desgaste</td><td>Rodamientos, mortalidad en adultos mayores</td><td>Weibull con forma &gt; 1</td></tr>
-          <tr><td>Decreciente</td><td>Los frágiles salen primero; quien sobrevive al inicio se consolida</td><td>Cancelaciones en el período de prueba, rechazo tras un trasplante</td><td>Weibull con forma &lt; 1</td></tr>
-          <tr><td>Bañera</td><td>Fallas tempranas, período estable y desgaste</td><td>Vida humana completa, equipos industriales</td><td>Mezclas, modelos por tramos</td></tr>
-        </tbody>
-      </table></div>
-      <p>Un riesgo constante \(h(t) = \lambda\) da \(H(t) = \lambda t\) y \(S(t) = e^{-\lambda t}\), la distribución exponencial, con mediana \(\ln 2 / \lambda\) y media \(1/\lambda\). Es el punto de referencia de todo el bloque.</p>
-      <p>Un detalle importante sobre el riesgo decreciente: aunque cada persona tuviera riesgo constante, si la población mezcla personas de riesgo alto y bajo, el riesgo <b>poblacional</b> baja con el tiempo, porque las de riesgo alto se van primero y quedan las de riesgo bajo. Es el efecto de la <b>heterogeneidad no observada</b> (o fragilidad), y explica por qué un riesgo decreciente no siempre significa que “la fidelidad crece con el tiempo”.</p>
-
-      <h2 id="superv-lab"><span class="sec">§ 6</span>Laboratorio: del riesgo a la curva de supervivencia</h2>
+      <ol>
+        <li>Con abandono 0 %, cambia entre <b>Calendario</b> y <b>Seguimiento</b>. ¿Qué tienen en común los censurados en la vista de seguimiento?
+          <details><summary>Qué deberías observar</summary><p>En calendario, todos los censurados terminan en el mes 24. En seguimiento, los censurados terminan entre los meses 12 y 24: quien entró tarde tiene menos tiempo de seguimiento posible. Es la censura administrativa con entrada escalonada.</p></details></li>
+        <li>Con abandono 0 %, compara las tres medianas. ¿Cuál de las dos estimaciones ingenuas se equivoca más?
+          <details><summary>Qué deberías observar</summary><p>Borrar a los censurados da una mediana muy por debajo de la real (alrededor de 5 meses frente a 12,65): se queda solo con los que cancelaron pronto. Tratar la censura como evento se equivoca menos, porque con censura solo administrativa los censurados ya llevan bastante tiempo.</p></details></li>
+        <li>Sube el abandono a 4 % y después a 8 % por mes. ¿Qué pasa con el porcentaje de censura y con la brecha entre las medianas ingenuas y la real?
+          <details><summary>Qué deberías observar</summary><p>La censura sube mucho (de cerca de 40 % a más de 60 %) y las dos medianas ingenuas caen cada vez más lejos de la real, que no cambia porque el tiempo real de cancelación es el mismo. Más censura, más sesgo de los métodos que no la respetan.</p></details></li>
+        <li>Pulsa <b>Nueva muestra</b> varias veces con abandono 4 %. ¿Varía la conclusión?
+          <details><summary>Qué deberías observar</summary><p>Los números cambian un poco con cada muestra, pero el orden es siempre el mismo: borrar censurados queda más abajo, censura como evento en el medio, la mediana real arriba. El sesgo es sistemático, no un accidente de la muestra.</p></details></li>
+      </ol>
+      <h3 id="superv-lab">Laboratorio 2: del riesgo a la curva de supervivencia</h3>
       <p>Elige la forma del riesgo y su nivel. A la izquierda ves \(h(t)\) y el área acumulada \(H(t_0)\) hasta el tiempo que marques; a la derecha, la curva \(S(t) = e^{-H(t)}\) que resulta. Fíjate en que dos riesgos muy distintos pueden dar la misma mediana.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · riesgo y supervivencia</span><span class="num" id="superv-hz-head">–</span></div>
@@ -160,48 +226,76 @@
         </div>
         <figcaption>Comprueba la identidad S(t₀) = e^(−H(t₀)) con los números del panel. Con el riesgo decreciente, la curva cae rápido al principio y después se aplana: muchos cancelan en los primeros meses, pero quien pasa ese período tiende a quedarse.</figcaption>
       </figure>
+      <ol>
+        <li>Con riesgo <b>Constante</b> y nivel ×1,00, lee \(h(t_0)\), \(H(t_0)\) y \(S(t_0)\) en \(t_0 = 12\). Comprueba que \(S = e^{-H}\) y calcula la mediana como \(\ln 2/h\).
+          <details><summary>Qué deberías observar</summary><p>Con riesgo constante, \(H(12) = 12h\) y \(S(12) = e^{-12h}\); la mediana del panel coincide con \(\ln 2/h\). Al duplicar el nivel, la mediana se reduce exactamente a la mitad.</p></details></li>
+        <li>Cambia a <b>Creciente</b> y ajusta el nivel hasta que la mediana sea parecida a la del riesgo constante. Compara las dos curvas de supervivencia.
+          <details><summary>Qué deberías observar</summary><p>Con riesgo creciente la curva cae lento al principio y rápido después (forma de hombro); con riesgo constante cae de manera más pareja. Dos riesgos muy distintos pueden dar la misma mediana: la mediana sola no describe el proceso.</p></details></li>
+        <li>Elige <b>Decreciente</b> y mueve \(t_0\) de 0 a 36. ¿Cómo cambia el área sombreada \(H(t_0)\) por cada mes adicional?
+          <details><summary>Qué deberías observar</summary><p>Los primeros meses agregan mucha área y los últimos muy poca: la curva \(S\) cae rápido al principio y después se aplana. Es el patrón típico de cancelaciones en un período de prueba.</p></details></li>
+        <li>Elige <b>Bañera</b>. ¿Dónde está el mínimo del riesgo y qué forma tiene \(S(t)\)?
+          <details><summary>Qué deberías observar</summary><p>El riesgo es alto al principio (fallas tempranas), llega a su mínimo cerca del mes 8 (alrededor de 0,018 por mes) y vuelve a subir al final (desgaste). La curva \(S\) cae rápido, después baja más despacio y al final vuelve a acelerar su caída. Ningún modelo exponencial o Weibull simple reproduce esa forma.</p></details></li>
+      </ol>
 
-      <h2 id="superv-verosim"><span class="sec">§ 7</span>Cómo entra la censura en la verosimilitud</h2>
-      <p>La censura no es información perdida: un censurado en 15+ te dice que \(T &gt; 15\), y eso tiene probabilidad \(S(15)\). Un evento en 15 aporta la densidad \(f(15)\). Si la censura es no informativa, la verosimilitud de un modelo con parámetros \(\theta\) es:</p>
-      <div class="eq">\[ L(\theta) = \prod_{i=1}^{n} f(y_i)^{\delta_i}\, S(y_i)^{1-\delta_i} = \prod_{i=1}^{n} h(y_i)^{\delta_i}\, S(y_i) \]
-        <div class="note">La segunda forma usa \(f = h\,S\). En logaritmos: \(\ell(\theta) = \sum_i \big[\delta_i \ln h(y_i) - H(y_i)\big]\). Cada persona aporta su riesgo acumulado mientras estuvo en observación, y los eventos aportan además el riesgo en el instante del evento.</div>
-      </div>
-      <p>Con riesgo constante \(h(t) = \lambda\), queda \(\ell(\lambda) = d \ln \lambda - \lambda \sum_i y_i\), donde \(d = \sum_i \delta_i\) es el número de eventos. Derivando e igualando a cero:</p>
-      <div class="eq">\[ \hat\lambda = \frac{d}{\sum_{i} y_i} = \frac{\text{eventos}}{\text{persona-tiempo en riesgo}}, \qquad \operatorname{EE}(\hat\lambda) \approx \frac{\hat\lambda}{\sqrt{d}} \]
-        <div class="note">Es la <b>tasa de incidencia</b> de la epidemiología. Ejemplo: 25 cancelaciones en 400 clientes-mes dan \(\hat\lambda = 0{,}0625\) por mes y una mediana estimada de \(\ln 2 / 0{,}0625 \approx 11{,}1\) meses. La precisión depende del número de eventos, no del número de personas.</div>
-      </div>
-      <div class="callout"><b>Para recordar:</b> en supervivencia la información la dan los <b>eventos</b>. Un estudio con 5 000 personas y 12 eventos estima el riesgo con mucha menos precisión que uno con 300 personas y 150 eventos. Por eso el tamaño de muestra se planifica en número de eventos.</div>
+      <h2 id="superv-apps"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Salud: cáncer de pulmón avanzado (NCCTG)</h3>
+      <p>El conjunto <code>lung</code> del paquete <code>survival</code> de R tiene 228 pacientes con cáncer de pulmón avanzado del North Central Cancer Treatment Group, con su tiempo de supervivencia en días, 165 muertes y 63 censurados, más la edad, el sexo y escalas de estado funcional. La mediana de supervivencia por Kaplan-Meier es de unos 310 días. Con estos datos se estudia, por ejemplo, si el estado funcional evaluado por el médico predice la supervivencia, para decidir qué pacientes pueden tolerar tratamientos agresivos. Borrar a los 63 censurados subestimaría la supervivencia de todo el grupo.</p>
+      <h3>Tecnología y negocios: abandono de clientes</h3>
+      <p>El conjunto de ejemplo “Telco Customer Churn” de IBM, muy usado en cursos, tiene unos 7 000 clientes de una telefónica con su antigüedad en meses y si se fueron en el último mes (alrededor del 26 % lo hizo). Tratado como supervivencia, la antigüedad es el tiempo, la baja es el evento y los clientes activos están censurados. El riesgo de baja es alto en los primeros meses y cae después, sobre todo en contratos mensuales frente a anuales. La decisión: concentrar los incentivos de retención en los primeros meses y en los clientes sin contrato de largo plazo.</p>
+      <h3>Industria: confiabilidad de componentes</h3>
+      <p>En un ensayo de vida acelerada se prueban 50 rodamientos durante 2 000 horas y fallan 18; los otros 32 terminan el ensayo funcionando (censura de tipo I). Un modelo Weibull con forma mayor que 1 (por ejemplo 1,8) indica desgaste: el riesgo crece con el uso. Con la curva \(S(t)\) se fija el intervalo de mantenimiento preventivo para que menos del 5 % falle antes del recambio, y se calcula la garantía que el fabricante puede ofrecer.</p>
+      <h3>Economía: duración del desempleo</h3>
+      <p>Los estudios de duración del desempleo, a partir de encuestas de hogares, siguen a las personas desde que pierden el empleo hasta que encuentran otro; quienes siguen desempleados al final de la encuesta están censurados. El riesgo de salir del desempleo suele bajar con la duración (dependencia negativa de la duración), en parte por desánimo o estigma y en parte por heterogeneidad no observada. Distinguir ambas explicaciones cambia la política: capacitar a desempleados de larga duración frente a focalizar desde el inicio a quienes tienen menos oportunidades.</p>
 
-      <h2 id="superv-code"><span class="sec">§ 8</span>Ejemplo resuelto en R y Python</h2>
-      <p>Simulamos 500 suscriptores con el mismo diseño del laboratorio: tiempo real Weibull, entrada escalonada durante 12 meses y cierre en el mes 24. Construimos los pares (tiempo, evento), comparamos los resúmenes ingenuos con la verdad y damos un primer vistazo a la curva de supervivencia estimada.</p>
-      <div class="codetabs">
-        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+      <h2 id="superv-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Simulamos 500 suscriptores con el mismo diseño del laboratorio: tiempo real Weibull (forma 0,8, escala 20 meses), entrada escalonada durante 12 meses y cierre en el mes 24. Construimos los pares (tiempo, evento), comparamos un resumen ingenuo con la verdad, ajustamos un modelo exponencial y uno Weibull por máxima verosimilitud con censura, y damos un primer vistazo a la curva de Kaplan-Meier y a la media restringida.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
+<span class="k">from</span> scipy.optimize <span class="k">import</span> minimize
 <span class="k">from</span> statsmodels.duration.survfunc <span class="k">import</span> SurvfuncRight
 
 rng = np.random.<span class="f">default_rng</span>(<span class="n">1</span>)
 n = <span class="n">500</span>
-T = <span class="n">20</span> * rng.<span class="f">weibull</span>(<span class="n">0.8</span>, n)          <span class="c"># tiempo real hasta cancelar (meses)</span>
+T = <span class="n">20</span> * rng.<span class="f">weibull</span>(<span class="n">0.8</span>, n)             <span class="c"># tiempo real hasta cancelar (meses)</span>
 entrada = rng.<span class="f">uniform</span>(<span class="n">0</span>, <span class="n">12</span>, n)          <span class="c"># mes de suscripción</span>
 C = <span class="n">24</span> - entrada                         <span class="c"># censura administrativa: cierre en el mes 24</span>
 df = pd.<span class="f">DataFrame</span>({<span class="s">"tiempo"</span>: np.<span class="f">minimum</span>(T, C),
-                   <span class="s">"evento"</span>: (T &lt;= C).<span class="f">astype</span>(<span class="f">int</span>)})
+                   <span class="s">"evento"</span>: (T &lt;= C).<span class="f">astype</span>(int)})
 
-<span class="f">print</span>(<span class="s">"censurados:"</span>, <span class="n">1</span> - df.evento.<span class="f">mean</span>())                 <span class="c"># ≈ 0.38</span>
-<span class="f">print</span>(<span class="s">"mediana real:"</span>, <span class="n">20</span> * np.<span class="f">log</span>(<span class="n">2</span>) ** (<span class="n">1</span> / <span class="n">0.8</span>))       <span class="c"># 12.65</span>
-<span class="f">print</span>(<span class="s">"media solo eventos:"</span>, df.tiempo[df.evento == <span class="n">1</span>].<span class="f">mean</span>())  <span class="c"># ≈ 6.6, muy sesgada</span>
+<span class="f">print</span>(<span class="s">"censurados:"</span>, <span class="f">round</span>(<span class="n">1</span> - df.evento.<span class="f">mean</span>(), <span class="n">2</span>))                   <span class="c"># 0.38</span>
+<span class="f">print</span>(<span class="s">"mediana real:"</span>, <span class="f">round</span>(<span class="n">20</span> * np.<span class="f">log</span>(<span class="n">2</span>) ** (<span class="n">1</span> / <span class="n">0.8</span>), <span class="n">2</span>))          <span class="c"># 12.65</span>
+<span class="f">print</span>(<span class="s">"mediana solo eventos:"</span>, <span class="f">round</span>(df.tiempo[df.evento == <span class="n">1</span>].<span class="f">median</span>(), <span class="n">1</span>))   <span class="c"># 5.1: muy sesgada</span>
 
-<span class="c"># tasa de incidencia: eventos / persona-tiempo (MLE exponencial)</span>
-lam = df.evento.<span class="f">sum</span>() / df.tiempo.<span class="f">sum</span>()
-<span class="f">print</span>(<span class="s">"tasa por mes:"</span>, lam, <span class="s">" mediana exp.:"</span>, np.<span class="f">log</span>(<span class="n">2</span>) / lam)
+<span class="c"># 1) Modelo exponencial: tasa = eventos / persona-tiempo, con IC del 95 %</span>
+d, PT = df.evento.<span class="f">sum</span>(), df.tiempo.<span class="f">sum</span>()
+lam = d / PT
+ic = lam * np.<span class="f">exp</span>(np.<span class="f">array</span>([-<span class="n">1.96</span>, <span class="n">1.96</span>]) / np.<span class="f">sqrt</span>(d))   <span class="c"># IC en escala log</span>
+<span class="f">print</span>(<span class="s">"tasa por mes:"</span>, <span class="f">round</span>(lam, <span class="n">4</span>), ic.<span class="f">round</span>(<span class="n">4</span>), <span class="s">" mediana exp.:"</span>, <span class="f">round</span>(np.<span class="f">log</span>(<span class="n">2</span>) / lam, <span class="n">1</span>))
+<span class="c"># 0.0575 [0.0514 0.0643]  mediana exp. 12.1</span>
 
-<span class="c"># curva de supervivencia que respeta la censura (Kaplan-Meier)</span>
+<span class="c"># 2) Modelo Weibull por máxima verosimilitud con censura: l = Σ [δ log h(y) − H(y)]</span>
+y, delta = df.tiempo.<span class="f">to_numpy</span>(), df.evento.<span class="f">to_numpy</span>()
+<span class="k">def</span> <span class="f">menos_logver</span>(par):
+    k, esc = np.<span class="f">exp</span>(par)                                  <span class="c"># forma y escala &gt; 0</span>
+    H = (y / esc) ** k
+    log_h = np.<span class="f">log</span>(k / esc) + (k - <span class="n">1</span>) * np.<span class="f">log</span>(y / esc)
+    <span class="k">return</span> -(delta * log_h - H).<span class="f">sum</span>()
+k_hat, esc_hat = np.<span class="f">exp</span>(<span class="f">minimize</span>(menos_logver, [<span class="n">0</span>, np.<span class="f">log</span>(<span class="n">10</span>)]).x)
+<span class="f">print</span>(<span class="s">"Weibull: forma"</span>, <span class="f">round</span>(k_hat, <span class="n">2</span>), <span class="s">"escala"</span>, <span class="f">round</span>(esc_hat, <span class="n">1</span>),
+      <span class="s">"mediana"</span>, <span class="f">round</span>(esc_hat * np.<span class="f">log</span>(<span class="n">2</span>) ** (<span class="n">1</span> / k_hat), <span class="n">1</span>))
+<span class="c"># forma 0.81 (real 0.8), escala 18.4 (real 20), mediana 11.7</span>
+
+<span class="c"># 3) Curva de supervivencia que respeta la censura (Kaplan-Meier) y media restringida</span>
 km = <span class="f">SurvfuncRight</span>(df.tiempo, df.evento)
-<span class="f">print</span>(<span class="s">"mediana KM:"</span>, km.<span class="f">quantile</span>(<span class="n">0.5</span>))                   <span class="c"># ≈ 11.6</span>
-<span class="f">print</span>(<span class="s">"S(12):"</span>, km.surv_prob[km.surv_times &lt;= <span class="n">12</span>][-<span class="n">1</span>])     <span class="c"># ≈ 0.49 (real: 0.51)</span>
-km.<span class="f">plot</span>()</code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="f">print</span>(<span class="s">"mediana KM:"</span>, <span class="f">round</span>(km.<span class="f">quantile</span>(<span class="n">0.5</span>), <span class="n">1</span>))                        <span class="c"># 11.6</span>
+<span class="f">print</span>(<span class="s">"S(12):"</span>, <span class="f">round</span>(km.surv_prob[km.surv_times &lt;= <span class="n">12</span>][-<span class="n">1</span>], <span class="n">2</span>),
+      <span class="s">"(real:"</span>, <span class="f">round</span>(np.<span class="f">exp</span>(-(<span class="n">12</span> / <span class="n">20</span>) ** <span class="n">0.8</span>), <span class="n">2</span>), <span class="s">")"</span>)   <span class="c"># 0.49 (real 0.51)</span>
+t_km = np.<span class="f">concatenate</span>([[<span class="n">0</span>], km.surv_times[km.surv_times &lt;= <span class="n">18</span>], [<span class="n">18</span>]])
+s_km = np.<span class="f">concatenate</span>([[<span class="n">1</span>], km.surv_prob[km.surv_times &lt;= <span class="n">18</span>]])
+<span class="f">print</span>(<span class="s">"RMST(18):"</span>, <span class="f">round</span>(np.<span class="f">sum</span>(np.<span class="f">diff</span>(t_km) * s_km), <span class="n">1</span>), <span class="s">"meses"</span>)   <span class="c"># 10.8 (real 11.2)</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(survival)
 
 <span class="f">set.seed</span>(<span class="n">1</span>)
 n &lt;- <span class="n">500</span>
@@ -211,25 +305,33 @@ C &lt;- <span class="n">24</span> - entrada                           <span clas
 df &lt;- <span class="f">data.frame</span>(tiempo = <span class="f">pmin</span>(t_real, C), evento = <span class="f">as.integer</span>(t_real &lt;= C))
 
 <span class="f">mean</span>(df$evento == <span class="n">0</span>)                        <span class="c"># proporción censurada ≈ 0.38</span>
-<span class="n">20</span> * <span class="f">log</span>(<span class="n">2</span>)^(<span class="n">1</span> / <span class="n">0.8</span>)                        <span class="c"># mediana real: 12.65</span>
-<span class="f">mean</span>(df$tiempo[df$evento == <span class="n">1</span>])            <span class="c"># media solo eventos: muy sesgada</span>
+<span class="n">20</span> * <span class="f">log</span>(<span class="n">2</span>)^(<span class="n">1</span> / <span class="n">0.8</span>)                       <span class="c"># mediana real: 12.65</span>
+<span class="f">median</span>(df$tiempo[df$evento == <span class="n">1</span>])           <span class="c"># mediana solo eventos: muy sesgada</span>
 
-<span class="c"># el objeto Surv: los censurados se imprimen con "+"</span>
+<span class="c"># El objeto Surv: los censurados se imprimen con "+"</span>
 <span class="f">head</span>(<span class="f">Surv</span>(df$tiempo, df$evento))
 
-<span class="c"># tasa de incidencia y mediana bajo riesgo constante</span>
-lam &lt;- <span class="f">sum</span>(df$evento) / <span class="f">sum</span>(df$tiempo)
-<span class="f">c</span>(tasa = lam, mediana_exp = <span class="f">log</span>(<span class="n">2</span>) / lam)
+<span class="c"># 1) Modelo exponencial: tasa, IC del 95 % y mediana</span>
+d &lt;- <span class="f">sum</span>(df$evento); PT &lt;- <span class="f">sum</span>(df$tiempo)
+lam &lt;- d / PT
+<span class="f">c</span>(tasa = lam, li = lam * <span class="f">exp</span>(-<span class="n">1.96</span> / <span class="f">sqrt</span>(d)), ls = lam * <span class="f">exp</span>(<span class="n">1.96</span> / <span class="f">sqrt</span>(d)),
+  mediana_exp = <span class="f">log</span>(<span class="n">2</span>) / lam)
 
-<span class="c"># curva de supervivencia que respeta la censura (Kaplan-Meier)</span>
+<span class="c"># 2) Modelo Weibull por máxima verosimilitud (survreg usa escala log)</span>
+w &lt;- <span class="f">survreg</span>(<span class="f">Surv</span>(tiempo, evento) ~ <span class="n">1</span>, data = df, dist = <span class="s">"weibull"</span>)
+<span class="f">c</span>(forma = <span class="n">1</span> / w$scale, escala = <span class="f">exp</span>(<span class="f">coef</span>(w)))   <span class="c"># ≈ 0.8 y ≈ 20</span>
+<span class="f">exp</span>(<span class="f">coef</span>(w)) * <span class="f">log</span>(<span class="n">2</span>)^(w$scale)                 <span class="c"># mediana Weibull</span>
+
+<span class="c"># 3) Kaplan-Meier y media restringida a 18 meses</span>
 km &lt;- <span class="f">survfit</span>(<span class="f">Surv</span>(tiempo, evento) ~ <span class="n">1</span>, data = df)
-km                                           <span class="c"># mediana ≈ 12</span>
+km                                          <span class="c"># mediana ≈ 12</span>
 <span class="f">summary</span>(km, times = <span class="f">c</span>(<span class="n">6</span>, <span class="n">12</span>, <span class="n">18</span>))
+<span class="f">print</span>(km, rmean = <span class="n">18</span>)                       <span class="c"># RMST(18) ≈ 11 meses (real: 11.2)</span>
 <span class="f">plot</span>(km, xlab = <span class="s">"meses"</span>, ylab = <span class="s">"S(t)"</span>)</code></pre>
-      </div>
-      <p>La mediana bajo riesgo constante sale cerca de 12 meses, pero no te fíes del todo: aquí el riesgo real es decreciente (forma 0,8), así que la exponencial sobreestima la supervivencia temprana y la subestima en la cola. Elegir bien la forma del riesgo es el tema de la sesión de modelos paramétricos.</p>
+</div>
+      <p>La mediana bajo riesgo constante sale en 12,1 meses, cerca de la real, pero no te fíes del todo: aquí el riesgo real es decreciente (forma 0,8), así que la exponencial sobreestima la supervivencia temprana y la subestima en la cola. La Weibull recupera la forma (0,81) y Kaplan-Meier, sin suponer ningún modelo, da una mediana de 11,6 meses y \(S(12) = 0{,}49\) frente al 0,51 real. La mediana de los que cancelaron (5,1 meses) es el error que hay que evitar.</p>
 
-      <h2 id="superv-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <h2 id="superv-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="Exacto. El cliente sigue activo: solo sabes que su tiempo hasta cancelar supera los 9 meses. Es censura por la derecha, y aporta S(9) a la verosimilitud." data-wrong="Pregúntate qué sabes de su tiempo de evento: ¿lo viste ocurrir, sabes que fue antes de una fecha, o solo sabes que fue después de 9 meses?">
         <h3>Un cliente se suscribió hace 9 meses y sigue activo el día del análisis. ¿Cómo entra en los datos?</h3>
         <div class="opts">
@@ -260,40 +362,117 @@ km                                           <span class="c"># mediana ≈ 12</s
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="S(t) = e^(−H(t)), así que S(6) = e^(−0,4) ≈ 0,67: cerca de dos tercios sigue sin el evento a los 6 meses." data-wrong="Usa la identidad S(t) = exp(−H(t)). No confundas el riesgo acumulado con la probabilidad acumulada 1 − S.">
+        <h3>El riesgo acumulado a los 6 meses es H(6) = 0,4. ¿Cuánto vale S(6)?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,60</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>0,67</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>0,40</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>0,33</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Exacto. Si quienes abandonan son los que estaban peor, los que quedan en observación tienen menos riesgo que el grupo completo, y la supervivencia estimada sale optimista. Es censura informativa." data-wrong="Piensa en qué supuesto exige que quien se censura en t tenga el mismo riesgo futuro que quien sigue en el estudio.">
+        <h3>En un ensayo clínico, los pacientes que empeoran tienden a abandonar el seguimiento. ¿Qué le pasa a la supervivencia estimada con métodos estándar?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Nada, los métodos de supervivencia ya corrigen cualquier censura</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Sale pesimista, porque hay menos datos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Solo se ve afectado el intervalo, no la estimación</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Sale optimista, porque la censura es informativa</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="superv-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. El segundo laboratorio te sirve para comprobar los cálculos con riesgo constante.</p>
+      <h2 id="superv-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución. El segundo laboratorio te sirve para comprobar los cálculos con riesgo constante.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un estudio sigue a pacientes desde una cirugía hasta su primera reinfección, con cierre el 31 de diciembre. Clasifica cada caso como evento (δ = 1) o censura (δ = 0) y di qué tiempo registras: (a) Ana se reinfecta a los 40 días; (b) Luis se muda al día 75 sin reinfección; (c) Marta llega al cierre con 120 días sin reinfección; (d) Pedro muere en un accidente al día 60 sin reinfección.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) Evento: (40, 1). (b) Censura por pérdida de seguimiento: (75, 0). (c) Censura administrativa: (120, 0). (d) Se suele registrar como censura (60, 0), pero ojo: la muerte impide para siempre la reinfección. Es un <b>riesgo competitivo</b>, no una censura ordinaria; si hay muchas muertes, tratarlas como censura sobreestima la probabilidad de reinfección y conviene usar métodos de incidencia acumulada.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que \( \mathbb{E}[\min(T, \tau)] = \int_0^\tau S(t)\,dt\). (b) Para la Weibull con \(S(t) = e^{-(t/b)^k}\), deduce \(h(t)\), \(H(t)\) y la mediana, y muestra que el riesgo es decreciente si \(k &lt; 1\). (c) Demuestra que \(H(T) \sim \text{Exp}(1)\) para cualquier \(T\) continua y explica cómo usarías este resultado para simular tiempos Weibull a partir de uniformes.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\min(T, \tau) = \int_0^\tau \mathbf{1}\{T > t\}\,dt\). Tomando esperanza y aplicando Fubini, \( \mathbb{E}[\min(T,\tau)] = \int_0^\tau P(T > t)\,dt = \int_0^\tau S(t)\,dt\). Con \(\tau \to \infty\) se recupera \( \mathbb{E}[T] = \int_0^\infty S\).</p>
+            <p>(b) \(H(t) = -\ln S(t) = (t/b)^k\), \(h(t) = H'(t) = \frac{k}{b}(t/b)^{k-1}\). La mediana resuelve \((t/b)^k = \ln 2\): \(t_{0{,}5} = b(\ln 2)^{1/k}\). Como \(h'(t) = \frac{k(k-1)}{b^2}(t/b)^{k-2}\), es negativa si \(k &lt; 1\). Con \(k = 0{,}8\) y \(b = 20\), la mediana es \(20 \times 0{,}693^{1{,}25} = 12{,}65\) meses, la del laboratorio.</p>
+            <p>(c) \(H\) es continua y creciente, así que \(P(H(T) > u) = P(T > H^{-1}(u)) = S(H^{-1}(u)) = e^{-u}\). Para simular: genera \(E = -\ln U\) con \(U\) uniforme (es Exp(1)) y resuelve \(H(T) = E\): \(T = b(-\ln U)^{1/k}\). En Python, <code>b * (-np.log(rng.uniform(size=n)))**(1/k)</code>.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Para un tipo de batería, S(1) = 0,90, S(2) = 0,72 y S(3) = 0,50 (en años). (a) ¿Qué proporción falla durante el segundo año? (b) Entre las que llegan funcionando al inicio del segundo año, ¿qué proporción falla durante ese año? (c) ¿Cuál es la mediana?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) S(1) − S(2) = 0,90 − 0,72 = <b>0,18</b>: el 18 % del total. (b) Es una probabilidad condicional: (S(1) − S(2)) / S(1) = 0,18 / 0,90 = <b>0,20</b>. Esa idea, “de los que siguen en riesgo, ¿cuántos caen?”, es la base del riesgo y del estimador de Kaplan-Meier. (c) S(3) = 0,50, así que la mediana es <b>3 años</b>.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con los 8 clientes 3, 5+, 6, 8+, 10, 12+, 12+, 15 y un modelo exponencial: (a) escribe la log-verosimilitud y deduce \(\hat \lambda\) y su error estándar por la información observada; (b) construye el intervalo del 95 % para \( \lambda\) en escala log y para la mediana; (c) prueba \(H_0: \lambda = 0{,}10\) con la razón de verosimilitudes; (d) ¿qué cambiaría si los 4 censurados se trataran como eventos?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\ell( \lambda) = 4\ln \lambda - 71 \lambda\). \(\ell' = 4/ \lambda - 71 = 0\) da \(\hat \lambda = 4/71 = 0{,}0563\). \(\ell'' = -4/ \lambda^2\), así que \( \operatorname{EE} = \hat \lambda/\sqrt4 = 0{,}028\).</p>
+            <p>(b) \( \operatorname{EE}(\ln\hat \lambda) = 1/\sqrt4 = 0{,}5\): \( \lambda \in 0{,}0563\,e^{\pm 0{,}98} = [0{,}021;\ 0{,}150]\). Como la mediana \(\ln 2/ \lambda\) es decreciente en \( \lambda\), su intervalo es \([\ln 2/0{,}150;\ \ln 2/0{,}021] = [4{,}6;\ 32{,}8]\) meses. Con 4 eventos, la incertidumbre es enorme.</p>
+            <p>(c) \(\ell(\hat \lambda) = 4\ln 0{,}0563 - 4 = -15{,}51\); \(\ell(0{,}10) = 4\ln 0{,}1 - 7{,}1 = -16{,}31\). El estadístico es \(2(-15{,}51 + 16{,}31) = 1{,}61 &lt; 3{,}84\): no se rechaza \( \lambda = 0{,}10\) al 5 %.</p>
+            <p>(d) Con 8 eventos y el mismo persona-tiempo, \(\hat \lambda = 8/71 = 0{,}113\) y la mediana \(6{,}2\) meses: la mitad de la estimación correcta, y con un error estándar falsamente más pequeño (\(1/\sqrt8\)).</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>En un programa de fidelización se siguió a 8 clientes (meses hasta abandonar; “+” indica censura): 3, 5+, 6, 8+, 10, 12+, 12+, 15. Suponiendo riesgo constante, estima λ, la mediana y S(12). Compara con la mediana que obtendrías borrando a los censurados.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Eventos: d = 4 (3, 6, 10, 15). Persona-tiempo: 3 + 5 + 6 + 8 + 10 + 12 + 12 + 15 = 71 meses. \(\hat\lambda = 4/71 \approx 0{,}0563\) por mes. Mediana \(= \ln 2 / 0{,}0563 \approx\) <b>12,3 meses</b>. \(\hat S(12) = e^{-0{,}0563 \cdot 12} \approx\) <b>0,51</b>. Borrando censurados quedan 3, 6, 10, 15, con mediana 8 meses: subestima mucho, porque los clientes censurados (5, 8, 12, 12 meses y contando) son justo los que siguen activos.</p><div class="codetabs">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Simulación: con tiempos reales Weibull (forma 0,8, escala 20), 400 clientes por muestra, entrada uniforme en 12 meses, cierre en el mes 24 y pérdida de seguimiento exponencial de 0 %, 2 % y 5 % mensual, repite 500 veces y compara el promedio de cuatro estimadores de la mediana: borrar censurados, tratar la censura como evento, el exponencial \(\ln 2 \cdot \sum y/d\) y Kaplan-Meier. ¿Cuáles son insesgados y por qué?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+<div class="codetabs">
   <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-t = np.<span class="f">array</span>([<span class="n">3</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">8</span>, <span class="n">10</span>, <span class="n">12</span>, <span class="n">12</span>, <span class="n">15</span>])
-d = np.<span class="f">array</span>([<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">1</span>])
-lam = d.<span class="f">sum</span>() / t.<span class="f">sum</span>()
-<span class="f">print</span>(lam, np.<span class="f">log</span>(<span class="n">2</span>) / lam, np.<span class="f">exp</span>(-lam * <span class="n">12</span>))   <span class="c"># 0.0563 12.3 0.509</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>t &lt;- <span class="f">c</span>(<span class="n">3</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">8</span>, <span class="n">10</span>, <span class="n">12</span>, <span class="n">12</span>, <span class="n">15</span>)
-d &lt;- <span class="f">c</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">1</span>)
-lam &lt;- <span class="f">sum</span>(d) / <span class="f">sum</span>(t)
-<span class="f">c</span>(lam, <span class="f">log</span>(<span class="n">2</span>) / lam, <span class="f">exp</span>(-lam * <span class="n">12</span>))   <span class="c"># 0.0563 12.3 0.509</span></code></pre>
-</div></div></details>
+<span class="k">from</span> statsmodels.duration.survfunc <span class="k">import</span> SurvfuncRight
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">2</span>)
+forma, escala, n = <span class="n">0.8</span>, <span class="n">20</span>, <span class="n">400</span>
+med_real = escala * np.<span class="f">log</span>(<span class="n">2</span>) ** (<span class="n">1</span> / forma)          <span class="c"># 12.65 meses</span>
+
+<span class="k">for</span> abandono <span class="k">in</span> [<span class="n">0.0</span>, <span class="n">0.02</span>, <span class="n">0.05</span>]:                    <span class="c"># tasa mensual de pérdida de seguimiento</span>
+    r = {<span class="s">"borrar"</span>: [], <span class="s">"como_evento"</span>: [], <span class="s">"exponencial"</span>: [], <span class="s">"KM"</span>: []}
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">500</span>):
+        T = escala * rng.<span class="f">weibull</span>(forma, n)
+        C = np.<span class="f">minimum</span>(<span class="n">24</span> - rng.<span class="f">uniform</span>(<span class="n">0</span>, <span class="n">12</span>, n),      <span class="c"># cierre administrativo</span>
+                       rng.<span class="f">exponential</span>(<span class="n">1</span> / abandono, n) <span class="k">if</span> abandono <span class="k">else</span> np.inf)
+        y, d = np.<span class="f">minimum</span>(T, C), T &lt;= C
+        r[<span class="s">"borrar"</span>].<span class="f">append</span>(np.<span class="f">median</span>(y[d]))
+        r[<span class="s">"como_evento"</span>].<span class="f">append</span>(np.<span class="f">median</span>(y))
+        r[<span class="s">"exponencial"</span>].<span class="f">append</span>(np.<span class="f">log</span>(<span class="n">2</span>) * y.<span class="f">sum</span>() / d.<span class="f">sum</span>())
+        r[<span class="s">"KM"</span>].<span class="f">append</span>(<span class="f">SurvfuncRight</span>(y, d.<span class="f">astype</span>(int)).<span class="f">quantile</span>(<span class="n">0.5</span>))
+    <span class="f">print</span>(f<span class="s">"abandono {abandono:.0%}: censura ≈ {1 - d.mean():.0%}  "</span> +
+          <span class="s">"  "</span>.<span class="f">join</span>(f<span class="s">"{k}={np.mean(v):.1f}"</span> <span class="k">for</span> k, v <span class="k">in</span> r.<span class="f">items</span>()), f<span class="s">"(real {med_real:.2f})"</span>)</code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="k">library</span>(survival)
+<span class="f">set.seed</span>(<span class="n">2</span>)
+forma &lt;- <span class="n">0.8</span>; escala &lt;- <span class="n">20</span>; n &lt;- <span class="n">400</span>
+med_real &lt;- escala * <span class="f">log</span>(<span class="n">2</span>)^(<span class="n">1</span> / forma)              <span class="c"># 12.65 meses</span>
+
+<span class="k">for</span> (abandono <span class="k">in</span> <span class="f">c</span>(<span class="n">0</span>, <span class="n">0.02</span>, <span class="n">0.05</span>)) {                 <span class="c"># pérdida de seguimiento mensual</span>
+  r &lt;- <span class="f">replicate</span>(<span class="n">500</span>, {
+    T &lt;- <span class="f">rweibull</span>(n, forma, escala)
+    C &lt;- <span class="n">24</span> - <span class="f">runif</span>(n, <span class="n">0</span>, <span class="n">12</span>)                         <span class="c"># cierre administrativo</span>
+    <span class="k">if</span> (abandono &gt; <span class="n">0</span>) C &lt;- <span class="f">pmin</span>(C, <span class="f">rexp</span>(n, abandono))
+    y &lt;- <span class="f">pmin</span>(T, C); d &lt;- <span class="f">as.integer</span>(T &lt;= C)
+    km &lt;- <span class="f">survfit</span>(<span class="f">Surv</span>(y, d) ~ <span class="n">1</span>)
+    <span class="f">c</span>(borrar = <span class="f">median</span>(y[d == <span class="n">1</span>]), como_evento = <span class="f">median</span>(y),
+      exponencial = <span class="f">log</span>(<span class="n">2</span>) * <span class="f">sum</span>(y) / <span class="f">sum</span>(d),
+      KM = <span class="f">unname</span>(<span class="f">summary</span>(km)$table[<span class="s">"median"</span>]))
+  })
+  <span class="f">cat</span>(<span class="s">"abandono"</span>, abandono, <span class="s">":"</span>, <span class="f">round</span>(<span class="f">rowMeans</span>(r), <span class="n">1</span>), <span class="s">" real"</span>, <span class="f">round</span>(med_real, <span class="n">2</span>), <span class="s">"\n"</span>)
+}
+<span class="c"># ≈ borrar 5,5 / 4,8 / 4,0 · como evento 12,1 / 8,8 / 6,1 · exponencial 12,9 / 12,6 / 12,1 · KM ≈ 12,7</span></code></pre>
+</div>
+            <p>Resultados aproximados (real 12,65): borrar censurados da ≈ 5,5, 4,8 y 4,0; censura como evento, ≈ 12,1, 8,8 y 6,1; el exponencial, ≈ 12,9, 12,6 y 12,1; Kaplan-Meier, ≈ 12,7 en los tres casos. Solo Kaplan-Meier es aproximadamente insesgado en todos los escenarios, porque respeta la censura sin suponer una forma del riesgo. El exponencial también respeta la censura, pero está mal especificado (el riesgo real no es constante), y su sesgo depende de cuánto seguimiento hay: cambia con el patrón de censura, una señal de alarma. Los métodos ingenuos empeoran a medida que crece la censura.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Una población mezcla dos tipos de clientes con riesgo constante: el 50 % tiene λ₁ = 0,20 por mes y el 50 % tiene λ₂ = 0,02 por mes. (a) Escribe S(t) y h(t) de la población. (b) Calcula h(0) y h(24). (c) ¿Por qué el riesgo poblacional baja aunque ningún cliente cambie su riesgo?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(S(t) = 0{,}5\,e^{-0{,}2t} + 0{,}5\,e^{-0{,}02t}\) y \(f(t) = 0{,}5 \cdot 0{,}2\,e^{-0{,}2t} + 0{,}5 \cdot 0{,}02\,e^{-0{,}02t}\), así que \(h(t) = f(t)/S(t)\). (b) \(h(0) = (0{,}1 + 0{,}01)/1 =\) <b>0,11</b>. En \(t = 24\): \(e^{-4{,}8} \approx 0{,}0082\) y \(e^{-0{,}48} \approx 0{,}619\), así que \(f \approx 0{,}5(0{,}2 \cdot 0{,}0082 + 0{,}02 \cdot 0{,}619) \approx 0{,}0070\), \(S \approx 0{,}5(0{,}0082 + 0{,}619) \approx 0{,}3136\) y \(h(24) \approx\) <b>0,022</b>. (c) Al principio el grupo de riesgo alto es la mitad de los que están en riesgo; a los 24 meses es apenas el 1,3 % de los que quedan (\(0{,}0082/0{,}627\)). El riesgo poblacional es un promedio ponderado por quién sigue en riesgo, y esa composición cambia: es la selección por fragilidad.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Fragilidad gamma. Cada cliente tiene riesgo constante \(Z \lambda\), donde \(Z\) es una fragilidad no observada con distribución gamma de media 1 y varianza \(\theta\). (a) Demuestra que la supervivencia poblacional es \(S(t) = (1 + \theta \lambda t)^{-1/\theta}\). (b) Deduce el riesgo poblacional \(h(t) = \lambda/(1 + \theta \lambda t)\). (c) Con \( \lambda = 0{,}1\) y \(\theta = 1\), calcula \(h(0)\), \(h(12)\) y \(h(24)\). (d) ¿Qué pasa cuando \(\theta \to 0\)? ¿Qué implica para interpretar un riesgo decreciente estimado con datos reales?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(S(t) = \mathbb{E}[e^{-Z \lambda t}]\), la transformada de Laplace de la gamma evaluada en \( \lambda t\). Para una gamma de forma \(1/\theta\) y escala \(\theta\), \( \mathbb{E}[e^{-sZ}] = (1 + \theta s)^{-1/\theta}\). Con \(s = \lambda t\) queda el resultado.</p>
+            <p>(b) \(H(t) = -\ln S(t) = \frac1\theta\ln(1 + \theta \lambda t)\) y \(h(t) = H'(t) = \frac{ \lambda}{1 + \theta \lambda t}\).</p>
+            <p>(c) \(h(0) = 0{,}1\); \(h(12) = 0{,}1/2{,}2 = 0{,}045\); \(h(24) = 0{,}1/3{,}4 = 0{,}029\). El riesgo poblacional cae a menos de un tercio, aunque el de cada cliente es constante.</p>
+            <p>(d) Si \(\theta \to 0\), \((1 + \theta \lambda t)^{-1/\theta} \to e^{- \lambda t}\): sin heterogeneidad se recupera la exponencial. Un riesgo decreciente en datos reales puede deberse a que cada individuo mejora con el tiempo o a pura selección de los más robustos; con un solo evento por persona y sin covariables, ambas explicaciones son indistinguibles. Hacen falta eventos repetidos o covariables para separarlas.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Un hospital evalúa un programa de rehabilitación cardíaca: “de los 300 pacientes que completaron el programa de 6 meses, solo el 4 % murió en los dos años siguientes, frente a un 15 % de los 300 que no lo hicieron. El programa reduce la mortalidad un 73 %”. Además, 40 pacientes del programa lo abandonaron por complicaciones y no se incluyeron. (a) Identifica al menos tres problemas de diseño o de análisis desde la óptica de supervivencia. (b) ¿Qué es el sesgo del tiempo inmortal y cómo aparece aquí? (c) ¿Qué es censura informativa aquí? (d) Propón un análisis correcto.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Para estar en el grupo “completó” hay que sobrevivir los 6 meses del programa: los que murieron antes quedan automáticamente en el otro grupo. Excluir a los 40 que abandonaron por complicaciones elimina justo a los de peor pronóstico del grupo tratado. Los porcentajes a 2 años ignoran el tiempo y la censura (¿todos fueron seguidos 2 años?). Y los grupos no son comparables: quien completa un programa suele estar más sano y motivado (confusión).</p>
+            <p>(b) Tiempo inmortal: el período entre el inicio del seguimiento y el momento en que alguien queda clasificado como “tratado”, durante el cual, por definición, no pudo morir. Si el reloj empieza en el alta para todos, los 6 meses del programa son tiempo inmortal del grupo tratado y le regalan supervivencia.</p>
+            <p>(c) Los 40 que abandonaron por complicaciones salieron del análisis por una razón ligada a su riesgo: si se trataran como censurados en el momento del abandono, la censura sería informativa (tienen más riesgo que quienes siguen) y la supervivencia del grupo tratado saldría optimista.</p>
+            <p>(d) Definir el mismo origen para todos (el alta), analizar por intención de tratar (asignados u ofrecidos al programa, incluidos los que abandonaron), usar el tratamiento como covariable dependiente del tiempo si se inicia en distintos momentos, estimar curvas de Kaplan-Meier y un modelo de <a href="#cox">Cox</a> ajustado por edad, gravedad y comorbilidades, y hacer análisis de sensibilidad sobre la censura. Idealmente, un ensayo aleatorizado.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>
