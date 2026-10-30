@@ -6,47 +6,78 @@
       <div class="crumbs"></div>
       <h1>Muestreo aleatorio simple</h1>
       <p>Es el diseño más sencillo y la vara con la que se miden todos los demás: cada grupo de \(n\) unidades tiene la misma probabilidad de ser la muestra. Aquí aprendes a estimar medias, totales y proporciones con su error estándar, la diferencia entre sortear con y sin reemplazo, y cuándo importa la corrección por población finita.</p>
-      <div class="lmeta"><span>45 min</span><span>Nivel intermedio</span><span>Requiere: fundamentos del muestreo e intervalos de confianza</span><span>R · Python</span></div>
+      <div class="lmeta"><span>85 min</span><span>Nivel intermedio</span><span>Requiere: fundamentos del muestreo e intervalos de confianza</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#mas-idea" data-sec="mas-idea">La idea</a></li>
-        <li><a href="#mas-def" data-sec="mas-def">Definición y sorteo</a></li>
+        <li><a href="#mas-intro" data-sec="mas-intro">Introducción</a></li>
+        <li><a href="#mas-def" data-sec="mas-def">Definición</a></li>
         <li><a href="#mas-est" data-sec="mas-est">Medias, totales y proporciones</a></li>
         <li><a href="#mas-fpc" data-sec="mas-fpc">Con y sin reemplazo</a></li>
-        <li><a href="#mas-lab" data-sec="mas-lab">Laboratorio</a></li>
-        <li><a href="#mas-ic" data-sec="mas-ic">Intervalos y dominios</a></li>
+        <li><a href="#mas-ic" data-sec="mas-ic">Intervalos, tamaño y dominios</a></li>
+        <li><a href="#mas-prop" data-sec="mas-prop">Propiedades</a></li>
+        <li><a href="#mas-lab" data-sec="mas-lab">Ejercicios de simulación</a></li>
+        <li><a href="#mas-apl" data-sec="mas-apl">Aplicaciones reales</a></li>
         <li><a href="#mas-code" data-sec="mas-code">En R y Python</a></li>
-        <li><a href="#mas-quiz" data-sec="mas-quiz">Comprueba</a></li>
-        <li><a href="#mas-ej" data-sec="mas-ej">Ejercicios</a></li>
+        <li><a href="#mas-quiz" data-sec="mas-quiz">Quiz</a></li>
+        <li><a href="#mas-ej" data-sec="mas-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="mas-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="mas-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una cooperativa eléctrica tiene 1 200 hogares socios y quiere saber cuánto gastan en promedio en luz al mes, cuánto suman entre todos y qué fracción paga más de 800 pesos. Revisar todas las facturas a mano es caro, así que decide sortear 120 hogares de su padrón y revisar solo esas.</p>
       <p>Tres preguntas guían la clase: ¿cómo se hace el sorteo para que sea justo?, ¿cómo pasar de los 120 hogares a números sobre los 1 200? y ¿qué tan lejos puede quedar la estimación del valor real? La respuesta a la tercera es el <b>error estándar</b>, y en una población finita tiene un detalle que no aparece en los cursos introductorios: si sorteas una parte grande de la población, la incertidumbre baja más de lo que diría la fórmula \(\sigma/\sqrt{n}\).</p>
-
-      <h2 id="mas-def"><span class="sec">§ 2</span>Definición y sorteo</h2>
-      <p>Un <b>muestreo aleatorio simple sin reemplazo</b> (MAS) de tamaño \(n\) de una población de \(N\) unidades es un diseño en el que todos los subconjuntos posibles de \(n\) unidades tienen la misma probabilidad:</p>
-      <div class="eq">\[ P(s) = \binom{N}{n}^{-1}, \qquad \pi_i = \frac{n}{N} = f, \qquad \pi_{ij} = \frac{n(n-1)}{N(N-1)} \quad (i \neq j) \]
-        <div class="note">\(\pi_i\) es la probabilidad de que la unidad \(i\) entre a la muestra y \(\pi_{ij}\) la de que entren \(i\) y \(j\) juntas. En el ejemplo, \(f = 120/1\,200 = 0{,}1\): cada hogar tiene 10 % de probabilidad de salir y su peso es \(w_i = 1/f = 10\).</div>
+      <p><b>Un poco de historia.</b> Sortear bien es más difícil de lo que parece. En 1927 Leonard Tippett publicó una tabla de 41 600 dígitos “aleatorios” tomados de datos del censo, y en 1955 la corporación RAND publicó el libro <i>A Million Random Digits with 100,000 Normal Deviates</i>, generado con una ruleta electrónica, que durante décadas fue la herramienta estándar para sortear muestras. La importancia de un sorteo bien hecho quedó clara en 1969, en la lotería del reclutamiento militar de Estados Unidos: se metieron en una urna 366 cápsulas con las fechas de nacimiento, mes por mes, y se mezclaron poco. Las fechas de diciembre, que entraron al final, salieron mucho antes: su número promedio fue cerca de 121, frente a cerca de 201 en enero. Stephen Fienberg lo analizó en <i>Science</i> (1971) y la lotería del año siguiente se hizo con números generados por computadora.</p>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Definir el MAS con y sin reemplazo y hacer un sorteo reproducible.</li>
+          <li>Demostrar que la media muestral es insesgada y derivar su varianza con la corrección por población finita.</li>
+          <li>Estimar medias, totales y proporciones con su error estándar e intervalo de confianza.</li>
+          <li>Calcular el tamaño de muestra para un margen de error dado.</li>
+          <li>Estimar en subpoblaciones (dominios) y reconocer cuándo el intervalo normal falla por asimetría.</li>
+        </ul>
       </div>
-      <p>En la práctica el sorteo se hace con una computadora: se asigna a cada unidad del marco un número aleatorio uniforme, se ordena la lista por ese número y se toman las primeras \(n\). Es equivalente a sacar papelitos de una urna sin devolverlos. Si cada papelito se devuelve antes de la siguiente extracción, el diseño es <b>con reemplazo</b> (MAS-CR): una unidad puede salir dos veces y las extracciones son independientes.</p>
+
+      <h2 id="mas-def"><span class="sec">§ 2</span>Definición</h2>
+      <div class="callout"><b>Definición.</b> Un <b>muestreo aleatorio simple sin reemplazo</b> (MAS) de tamaño \(n\) de una población de \(N\) unidades es el diseño en el que todos los subconjuntos posibles de \(n\) unidades tienen la misma probabilidad:
+        \[ p(s) = \binom{N}{n}^{-1}, \qquad \pi_i = \frac{n}{N} = f, \qquad \pi_{ij} = \frac{n(n-1)}{N(N-1)} \quad (i \neq j). \]
+        En el <b>MAS con reemplazo</b> (MAS-CR) se hacen \(n\) extracciones independientes, cada una con probabilidad \(1/N\) para cada unidad; una unidad puede salir varias veces.</div>
+      <ul>
+        <li>\(f = n/N\) es la <b>fracción de muestreo</b>. En el ejemplo, \(f = 120/1\,200 = 0{,}1\): cada hogar tiene 10 % de probabilidad de salir.</li>
+        <li>El peso de cada unidad muestreada es \(w_i = 1/f = N/n = 10\): cada hogar representa a 10.</li>
+        <li>\(\pi_{ij}\) es menor que \(\pi_i\pi_j = f^2\): sin reemplazo, que entre \(i\) hace un poco menos probable que entre \(j\), porque quedan menos lugares.</li>
+      </ul>
+      <p><b>Ejemplo numérico pequeño.</b> Con \(N = 5\) y \(n = 2\) hay \(\binom52 = 10\) muestras posibles, cada una con probabilidad 0,1. Cada unidad aparece en 4 de ellas (\(\pi_i = 4/10 = 2/5 = n/N\)) y cada par en una (\(\pi_{ij} = 0{,}1 = \frac{2 \cdot 1}{5 \cdot 4}\)). Con reemplazo hay \(5^2 = 25\) secuencias ordenadas igual de probables, y la probabilidad de que una unidad salga al menos una vez es \(1 - (4/5)^2 = 0{,}36\), menor que 0,4: algunas extracciones se “desperdician” en repetidos.</p>
+      <p><b>Cómo se sortea.</b> Se asigna a cada unidad del marco un número aleatorio uniforme, se ordena la lista por ese número y se toman las primeras \(n\). Es equivalente a sacar papelitos de una urna sin devolverlos, pero bien mezclados, y es lo que hacen <code>sample()</code> en R y <code>rng.choice(..., replace=False)</code> en Python.</p>
       <div class="callout"><b>Guarda la semilla.</b> Un sorteo reproducible (con la semilla anotada en el informe) permite que otra persona verifique que la muestra no se “acomodó”. Es parte de la transparencia del diseño.</div>
 
       <h2 id="mas-est"><span class="sec">§ 3</span>Medias, totales y proporciones</h2>
-      <p>Bajo MAS, la media muestral es un estimador insesgado de la media poblacional: como cada unidad tiene la misma probabilidad de entrar, \(E[\bar y] = \bar Y\). Su varianza depende de la <b>varianza poblacional</b> \(S^2\), definida con \(N-1\) en el denominador:</p>
+      <p><b>Insesgamiento.</b> Escribe la media muestral con indicadoras: \(\bar y = \frac1n\sum_{i=1}^N I_iy_i\). Como \(E[I_i] = n/N\), \(E[\bar y] = \frac1n\sum_i \frac nN y_i = \bar Y\). Es el estimador de Horvitz-Thompson de la sesión de <a href="#muestreo">fundamentos del muestreo</a>, dividido por \(N\).</p>
+      <p><b>Varianza, paso a paso.</b></p>
+      <ol>
+        <li>Momentos de las indicadoras: \(\operatorname{Var}(I_i) = f(1-f)\) y, para \(i \ne j\), \(\operatorname{Cov}(I_i, I_j) = \frac{n(n-1)}{N(N-1)} - f^2 = -\frac{f(1-f)}{N-1}\).</li>
+        <li>Como \(\bar y - \bar Y = \frac1n\sum_i I_i(y_i - \bar Y)\) (porque \(\sum_i I_i = n\)), con \(d_i = y_i - \bar Y\) y \(\sum d_i = 0\):
+          \[ \operatorname{Var}(\bar y) = \frac{1}{n^2}\Big[f(1-f)\sum_i d_i^2 - \frac{f(1-f)}{N-1}\sum_{i\ne j}d_id_j\Big]. \]</li>
+        <li>Como \(\sum_{i\ne j}d_id_j = (\sum d_i)^2 - \sum d_i^2 = -\sum d_i^2\), el corchete vale \(f(1-f)\sum d_i^2\,\big(1 + \frac{1}{N-1}\big) = f(1-f)\,\frac{N}{N-1}\sum d_i^2 = f(1-f)NS^2\).</li>
+        <li>Con \(fN = n\): \(\operatorname{Var}(\bar y) = \frac{n(1-f)S^2}{n^2} = (1-f)\,\frac{S^2}{n}\).</li>
+      </ol>
       <div class="eq">\[ \bar y = \frac{1}{n}\sum_{i\in s} y_i, \qquad V(\bar y) = (1 - f)\,\frac{S^2}{n}, \qquad S^2 = \frac{1}{N-1}\sum_{i=1}^{N}(y_i - \bar Y)^2 \]
-        <div class="note">\(S^2\) es desconocida, pero la varianza muestral \(s^2 = \frac{1}{n-1}\sum_{i\in s}(y_i-\bar y)^2\) es un estimador <b>insesgado</b> de \(S^2\) bajo MAS. Por eso \(v(\bar y) = (1-f)\,s^2/n\) estima sin sesgo a \(V(\bar y)\), y el error estándar estimado es \(\widehat{EE}(\bar y) = \sqrt{v(\bar y)}\).</div>
+        <div class="note">\(S^2\) es desconocida, pero la varianza muestral \(s^2 = \frac{1}{n-1}\sum_{i\in s}(y_i-\bar y)^2\) es un estimador <b>insesgado</b> de \(S^2\) bajo MAS (lo demuestras en las preguntas propuestas). Por eso \(v(\bar y) = (1-f)\,s^2/n\) estima sin sesgo a \(V(\bar y)\), y el error estándar estimado es \(\widehat{EE}(\bar y) = \sqrt{v(\bar y)}\).</div>
       </div>
       <p>El <b>total</b> es \(N\) veces la media, así que su estimador y su varianza se escalan por \(N\) y \(N^2\). La <b>proporción</b> es la media de una variable 0/1, y su varianza toma una forma especial porque \(s^2 = \frac{n}{n-1}\hat p(1-\hat p)\):</p>
       <div class="eq">\[ \hat Y = N\bar y, \quad v(\hat Y) = N^2(1-f)\frac{s^2}{n}; \qquad\quad \hat p = \frac{a}{n}, \quad v(\hat p) = (1-f)\,\frac{\hat p(1-\hat p)}{n-1} \]
         <div class="note">\(a\) es el número de unidades de la muestra con la característica. Fíjate en el \(n-1\) de la proporción: con muestras grandes da casi lo mismo que \(n\), pero es la versión insesgada.</div>
       </div>
-      <p>Con los 120 hogares de la cooperativa se obtuvo \(\bar y = 612\) pesos, \(s = 245\) pesos y 30 hogares con gasto mayor a 800 pesos:</p>
+      <p><b>Ejemplo resuelto.</b> Con los 120 hogares de la cooperativa se obtuvo \(\bar y = 612\) pesos, \(s = 245\) pesos y 30 hogares con gasto mayor a 800 pesos:</p>
+      <ol>
+        <li>Corrección: \(1 - f = 0{,}9\) y \(\sqrt{0{,}9} = 0{,}949\).</li>
+        <li>Media: \(\widehat{EE} = 0{,}949 \cdot 245/\sqrt{120} = 0{,}949 \cdot 22{,}37 = 21{,}2\); IC 95 %: \(612 \pm 1{,}96 \cdot 21{,}2 = 612 \pm 41{,}6\).</li>
+        <li>Total: \(\hat Y = 1\,200 \cdot 612 = 734\,400\) con \(\widehat{EE} = 1\,200 \cdot 21{,}2 = 25\,460\).</li>
+        <li>Proporción: \(\hat p = 30/120 = 0{,}25\), \(\widehat{EE} = \sqrt{0{,}9 \cdot 0{,}25 \cdot 0{,}75/119} = 0{,}038\).</li>
+      </ol>
       <div class="tablewrap"><table>
         <thead><tr><th>Parámetro</th><th>Estimación</th><th>Error estándar</th><th>IC 95 %</th></tr></thead>
         <tbody>
@@ -58,17 +89,54 @@
 
       <h2 id="mas-fpc"><span class="sec">§ 4</span>Con y sin reemplazo: la corrección por población finita</h2>
       <p>El factor \(1 - f\) se llama <b>corrección por población finita</b> (CPF, o <i>fpc</i> en inglés). Para entender de dónde sale, compara con el diseño con reemplazo, donde las \(n\) extracciones son independientes y cada una tiene varianza \(\sigma^2 = \frac{1}{N}\sum (y_i - \bar Y)^2 = \frac{N-1}{N}S^2\):</p>
-      <div class="eq">\[ V_{CR}(\bar y) = \frac{\sigma^2}{n}, \qquad \frac{V_{MAS}(\bar y)}{V_{CR}(\bar y)} = \frac{(1-f)\,S^2}{\sigma^2} = \frac{N-n}{N-1} \]
+      <div class="eq">\[ V_{CR}(\bar y) = \frac{\sigma^2}{n}, \qquad \frac{V_{MAS}(\bar y)}{V_{CR}(\bar y)} = \frac{(1-f)\,S^2}{\sigma^2} = \frac{(N-n)/N}{(N-1)/N} = \frac{N-n}{N-1} \]
         <div class="note">Sin reemplazo cada unidad nueva es distinta de las anteriores, así que aporta información nueva. En el extremo \(n = N\) observas a toda la población y la varianza es cero; con reemplazo seguiría siendo \(\sigma^2/N\).</div>
       </div>
-      <p>El error estándar se multiplica por \(\sqrt{1-f}\). Eso tiene dos consecuencias que sorprenden la primera vez:</p>
+      <p>Este cociente es el <b>efecto de diseño</b> del MAS frente al MAS-CR: siempre es menor que 1, así que sortear sin reemplazo nunca es peor. El error estándar se multiplica por \(\sqrt{1-f}\), lo que tiene dos consecuencias que sorprenden la primera vez:</p>
       <ul>
         <li>Cuando \(f\) es pequeña la corrección es despreciable. Con \(f = 5\,\%\), \(\sqrt{0{,}95} = 0{,}975\): el error estándar baja solo 2,5 %. Por eso muchas veces se omite cuando \(f &lt; 0{,}05\).</li>
         <li>La precisión depende de \(n\), no de \(f\). Una muestra de 1 000 personas da prácticamente el mismo error estándar en una ciudad de 100 000 habitantes que en un país de 100 millones. No hace falta “sortear el 10 % de la población” para tener una buena encuesta.</li>
       </ul>
+      <p><b>Relación con la hipergeométrica.</b> Para una proporción, el número de “éxitos” en un MAS sigue una distribución hipergeométrica, y en el MAS-CR una binomial. La varianza de la hipergeométrica es la binomial multiplicada por \((N-n)/(N-1)\): la misma CPF que viste en <a href="#discretas">distribuciones discretas</a>.</p>
       <div class="callout"><b>Error común:</b> usar \(\sigma/\sqrt{n}\) cuando se sorteó una fracción grande de la población (por ejemplo, 300 de 600 empleados). El intervalo sale un 41 % más ancho de lo necesario, porque \(1/\sqrt{0{,}5} \approx 1{,}41\).</div>
 
-      <h2 id="mas-lab"><span class="sec">§ 5</span>Laboratorio</h2>
+      <h2 id="mas-ic"><span class="sec">§ 5</span>Intervalos, tamaño de muestra y dominios</h2>
+      <p><b>Teorema central del límite para poblaciones finitas.</b> Jaroslav Hájek demostró en 1960 que, si \(n \to \infty\) y \(N - n \to \infty\) con una condición sobre los valores extremos de la población, \((\bar y - \bar Y)/\sqrt{V(\bar y)} \to N(0,1)\). Por eso el intervalo usual funciona:</p>
+      <div class="eq">\[ \bar y \pm z_{\alpha/2}\,\sqrt{(1-f)\,\frac{s^2}{n}} \qquad\text{y}\qquad \hat p \pm z_{\alpha/2}\,\sqrt{(1-f)\,\frac{\hat p(1-\hat p)}{n-1}} \]
+        <div class="note">Con muestras chicas se usa \(t_{n-1}\) en lugar de \(z\). Para la proporción, si \(n\hat p\) o \(n(1-\hat p)\) son menores que 10, conviene un intervalo de Wilson o uno exacto (revisa la sesión de <a href="#ic">intervalos de confianza</a>).</div>
+      </div>
+      <p>La normalidad tarda más en llegar cuando la población es muy asimétrica (ingresos, ventas, tamaños de empresa). Una regla práctica de Cochran pide \(n &gt; 25\,G_1^2\), donde \(G_1\) es el coeficiente de asimetría de la población. Con \(G_1 = 2\) necesitarías al menos 100 unidades para confiar en el intervalo normal.</p>
+      <p><b>Tamaño de muestra para un margen de error.</b> Si quieres que la semiamplitud del IC sea \(e\), despejas \(n\) de \(z\sqrt{(1-f)S^2/n} = e\):</p>
+      <div class="eq">\[ n_0 = \frac{z_{\alpha/2}^2\,S^2}{e^2}, \qquad n = \frac{n_0}{1 + n_0/N} \]
+        <div class="note">Derivación: \(e^2 = z^2S^2(1/n - 1/N)\), de donde \(1/n = e^2/(z^2S^2) + 1/N = 1/n_0 + 1/N\). Para la cooperativa, con \(S \approx 245\) y \(e = 40\) pesos: \(n_0 = 1{,}96^2 \cdot 245^2/40^2 = 144{,}1\) y \(n = 144{,}1/(1 + 144{,}1/1\,200) = 128{,}7\), es decir, 129 hogares. Para proporciones se usa \(S^2 \approx P(1-P)\), con \(P = 0{,}5\) en el peor caso. La sesión de <a href="#tamano">tamaño de muestra</a> amplía este cálculo.</div>
+      </div>
+      <p><b>Dominios.</b> A menudo interesa una <b>subpoblación</b>: por ejemplo, el gasto medio de los hogares rurales. Si en la muestra hay \(n_d\) hogares rurales, la estimación es su media \(\bar y_d\) y, condicionando en \(n_d\), su varianza es aproximadamente \((1-f)\,s_d^2/n_d\). Condicionado en \(n_d\), esa submuestra es un MAS de tamaño \(n_d\) del dominio. Dos cuidados:</p>
+      <ul>
+        <li>\(n_d\) es aleatorio y puede ser pequeño: un dominio con 15 hogares tiene un error estándar enorme aunque la muestra total sea de 1 200.</li>
+        <li>No borres del archivo las unidades fuera del dominio antes de usar software de encuestas: el programa necesita el diseño completo para calcular bien la varianza (en R, usa <code>subset()</code> sobre el objeto de diseño).</li>
+      </ul>
+
+      <h2 id="mas-prop"><span class="sec">§ 6</span>Propiedades</h2>
+      <ol>
+        <li><b>Insesgamiento de la media y el total.</b> \(E[\bar y] = \bar Y\) y \(E[N\bar y] = Y\). Justificación: \(E[I_i] = f\) para toda unidad.</li>
+        <li><b>Varianza con CPF.</b> \(V(\bar y) = (1-f)S^2/n\). Justificación: \(\operatorname{Cov}(I_i, I_j) = -f(1-f)/(N-1)\) y \(\sum_i (y_i - \bar Y) = 0\) (derivación en § 3).</li>
+        <li><b>Insesgamiento de \(s^2\).</b> \(E[s^2] = S^2\) bajo MAS (no \(\sigma^2\)): por eso \(v(\bar y) = (1-f)s^2/n\) es insesgado para \(V(\bar y)\).</li>
+        <li><b>Sin reemplazo nunca es peor.</b> \(V_{MAS}/V_{CR} = (N-n)/(N-1) \le 1\), con igualdad solo si \(n = 1\).</li>
+        <li><b>La precisión la da \(n\), no \(f\).</b> Para \(N \to \infty\) con \(n\) fijo, \(V(\bar y) \to S^2/n\). Duplicar \(N\) apenas cambia el error estándar; duplicar \(n\) lo divide por \(\sqrt 2\).</li>
+        <li><b>Varianza de la proporción.</b> \(V(\hat p) = \frac{N-n}{N-1}\,\frac{P(1-P)}{n}\), la de una hipergeométrica; su máximo es en \(P = 0{,}5\).</li>
+        <li><b>Tamaño de muestra.</b> \(n = n_0/(1 + n_0/N)\) con \(n_0 = z^2S^2/e^2\): \(n\) crece con \(S^2\), con la confianza y con \(1/e^2\), y se estabiliza cuando \(N\) es grande.</li>
+        <li><b>Normalidad asintótica.</b> Por el teorema de Hájek, \(\bar y\) es aproximadamente normal si \(n\) y \(N - n\) son grandes; la rapidez depende de la asimetría (regla \(n &gt; 25G_1^2\)).</li>
+      </ol>
+      <p><b>Errores comunes</b></p>
+      <ul>
+        <li><b>Olvidar la CPF</b> cuando \(f\) es grande, o aplicarla dos veces (algunos programas ya la incluyen).</li>
+        <li><b>Creer que se necesita un porcentaje fijo de la población</b> (“el 10 %”): la precisión depende de \(n\).</li>
+        <li><b>Usar \(n\) en lugar de \(n-1\)</b> en la varianza muestral y luego hablar de estimador insesgado.</li>
+        <li><b>Confiar en el intervalo normal con poblaciones muy asimétricas y \(n\) pequeño</b>: la cobertura real puede quedar muy por debajo del 95 %.</li>
+        <li><b>Recortar la base al dominio</b> antes de declarar el diseño en el software: los errores estándar salen mal.</li>
+      </ul>
+
+      <h2 id="mas-lab"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
       <p>La población son los gastos de \(N\) hogares, con la cola larga a la derecha típica de los montos de dinero. El simulador saca 1 000 muestras de tamaño \(n\) y dibuja sus medias. A la derecha, el error estándar teórico según \(n\) con y sin reemplazo, y el punto que marca tu elección.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · corrección por población finita</span><span class="num" id="mas-head">–</span></div>
@@ -107,21 +175,30 @@
         </div>
         <figcaption>Pon n = 600 con N = 1 200 y alterna entre los dos sorteos: sin reemplazo el histograma es mucho más angosto. Luego sube N a 5 000 con n fijo: la curva sin reemplazo se pega a la de con reemplazo y la corrección deja de importar. El encabezado muestra qué fracción de los intervalos del 95 % contuvo la media real.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Con N = 1 200 y n = 120 sin reemplazo, pulsa “Otras 1 000 muestras” varias veces y compara el EE teórico con el simulado.
+          <details><summary>Qué deberías observar</summary><p>El factor \(\sqrt{1-f}\) vale 0,949 y los dos EE coinciden con una diferencia de 1 a 3 % que cambia en cada tanda: el EE simulado es una estimación basada en 1 000 muestras, con su propio error. La cobertura del encabezado ronda el 94 % al 95 %.</p></details></li>
+        <li>Fija N = 1 200 y n = 600. Alterna entre “Sin reemplazo” y “Con reemplazo”.
+          <details><summary>Qué deberías observar</summary><p>Con \(f = 0{,}5\), el factor es \(\sqrt{0{,}5} = 0{,}707\): sin reemplazo el histograma es casi un 30 % más angosto. En el gráfico de la derecha, tu punto sobre la curva sin reemplazo queda claramente por debajo de la curva con reemplazo. Si con reemplazo usaras la fórmula con CPF, subestimarías el error.</p></details></li>
+        <li>Deja n = 120 y mueve N de 200 a 5 000.
+          <details><summary>Qué deberías observar</summary><p>Con N = 200, \(f = 0{,}6\) y el factor es 0,63; con N = 1 200, 0,95; con N = 5 000, 0,988. A partir de unos pocos miles, el tamaño de la población casi no influye: el EE teórico se estabiliza en \(S/\sqrt{120}\). Es la propiedad 5 en acción.</p></details></li>
+        <li>Con N = 1 200, baja n a 5 y luego a 20, y mira la forma del histograma y la cobertura del encabezado.
+          <details><summary>Qué deberías observar</summary><p>Con n = 5 el histograma de medias conserva la asimetría a la derecha de la población y la cobertura del IC normal queda por debajo del 95 % (suele rondar 88 % a 91 %). Con n = 20 ya se ve más simétrico y la cobertura sube. El TLC de Hájek funciona, pero necesita más datos cuanto más larga es la cola.</p></details></li>
+      </ol>
 
-      <h2 id="mas-ic"><span class="sec">§ 6</span>Intervalos de confianza y dominios</h2>
-      <p>Por una versión del teorema del límite central para poblaciones finitas (Hájek), si \(n\) y \(N - n\) son grandes, \(\bar y\) es aproximadamente normal y el intervalo usual funciona:</p>
-      <div class="eq">\[ \bar y \pm z_{\alpha/2}\,\sqrt{(1-f)\,\frac{s^2}{n}} \qquad\text{y}\qquad \hat p \pm z_{\alpha/2}\,\sqrt{(1-f)\,\frac{\hat p(1-\hat p)}{n-1}} \]
-        <div class="note">Con muestras chicas se usa \(t_{n-1}\) en lugar de \(z\). Para la proporción, si \(n\hat p\) o \(n(1-\hat p)\) son menores que 10, conviene un intervalo de Wilson o uno exacto.</div>
-      </div>
-      <p>La normalidad tarda más en llegar cuando la población es muy asimétrica (ingresos, ventas, tamaños de empresa). Una regla práctica de Cochran pide \(n &gt; 25\,G_1^2\), donde \(G_1\) es el coeficiente de asimetría de la población. Con \(G_1 = 2\) necesitarías al menos 100 unidades para confiar en el intervalo normal.</p>
-      <p>A menudo interesa una <b>subpoblación</b> o dominio: por ejemplo, el gasto medio de los hogares rurales. Si en la muestra hay \(n_d\) hogares rurales, la estimación es su media \(\bar y_d\) y, condicionando en \(n_d\), su varianza es aproximadamente \((1-f)\,s_d^2/n_d\). Dos cuidados:</p>
-      <ul>
-        <li>\(n_d\) es aleatorio y puede ser pequeño: un dominio con 15 hogares tiene un error estándar enorme aunque la muestra total sea de 1 200.</li>
-        <li>No borres del archivo las unidades fuera del dominio antes de usar software de encuestas: el programa necesita el diseño completo para calcular bien la varianza (en R, usa <code>subset()</code> sobre el objeto de diseño).</li>
-      </ul>
+      <h2 id="mas-apl"><span class="sec">§ 8</span>Aplicaciones reales</h2>
+      <h3>Salud y auditoría: recuperar pagos indebidos</h3>
+      <p>La Oficina del Inspector General del Departamento de Salud de Estados Unidos audita reclamos de Medicare por muestreo y extrapola el monto pagado de más. Su software público RAT-STATS hace el sorteo y los cálculos, y por política exige devolver el <b>límite inferior</b> del intervalo bilateral del 90 %, para no cobrar de más al proveedor. Con números plausibles: 4 000 reclamos, MAS de 100, sobrepago medio de 42,5 dólares con \(s = 80\). Total estimado: \(4\,000 \cdot 42{,}5 = 170\,000\); \(EE = 4\,000\sqrt{0{,}975}\cdot 80/10 = 31\,600\); límite inferior \(170\,000 - 1{,}66 \cdot 31\,600 \approx 117\,500\) dólares. <b>Decisión:</b> se reclaman unos 117 500 dólares, una cifra defendible en tribunales porque el sorteo es reproducible con su semilla.</p>
+      <h3>Política y sociedad: la lotería del reclutamiento de 1969</h3>
+      <p>Las 366 fechas de nacimiento debían ordenarse al azar para decidir quién iba primero a la guerra de Vietnam. El análisis de Fienberg (1971) encontró una correlación de −0,23 entre el día del año y el número asignado: con 366 datos, una correlación así tiene un valor p del orden de \(10^{-5}\). Un “sorteo” mal mezclado no es un MAS. <b>Decisión:</b> desde 1970 los sorteos se hicieron con dos urnas y números aleatorios preparados de antemano, y la lección pasó a los manuales de muestreo: el azar hay que fabricarlo, no suponerlo.</p>
+      <h3>Ambiente: inventario forestal</h3>
+      <p>Un bosque de 2 000 hectáreas se divide en una grilla de 8 000 parcelas de 0,25 ha. Se sortean 160 por MAS y en cada una se mide el volumen de madera. Datos plausibles: media 52 m³ por parcela con \(s = 21\). Volumen total: \(8\,000 \cdot 52 = 416\,000\) m³, con \(EE = 8\,000\sqrt{0{,}98}\cdot 21/\sqrt{160} = 13\,150\) m³, un 3,2 % del total. <b>Decisión:</b> fijar la cuota anual de corta con un margen de ±6 %; si el margen fuera inaceptable, la fórmula de tamaño de muestra dice cuántas parcelas más medir, y la sesión de <a href="#estrat">muestreo estratificado</a> enseña a hacerlo más barato.</p>
+      <h3>Tecnología: estimar la precisión de un clasificador</h3>
+      <p>Un sistema marca 50 000 publicaciones como posible fraude y el equipo no puede revisar todas. Sortea 400 por MAS y un analista las revisa: 312 son fraude real. \(\hat p = 0{,}78\), \(EE = \sqrt{0{,}992 \cdot 0{,}78 \cdot 0{,}22/399} = 0{,}021\), IC 95 % \([0{,}74;\ 0{,}82]\). <b>Decisión:</b> la precisión del sistema está entre 74 % y 82 %; con eso se dimensiona el equipo de revisión (unas 11 000 publicaciones legítimas mal marcadas, entre 9 000 y 13 000). Revisar “las primeras 400” de la lista, en cambio, habría dado una estimación sesgada si la lista está ordenada por puntaje.</p>
 
-      <h2 id="mas-code"><span class="sec">§ 7</span>En R y Python</h2>
-      <p>Simulamos la población de 1 200 hogares, sacamos un MAS de 120 y estimamos media, total y proporción. En R usamos el paquete <code>survey</code>, el estándar para datos de encuestas: le dices el diseño una vez y todas las estimaciones salen con la varianza correcta.</p>
+      <h2 id="mas-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Simulamos la población de 1 200 hogares, sacamos un MAS de 120 y estimamos media, total y proporción, comprobamos la fórmula del EE y calculamos el tamaño de muestra. En R usamos el paquete <code>survey</code>, el estándar para datos de encuestas: le dices el diseño una vez y todas las estimaciones salen con la varianza correcta.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
@@ -153,7 +230,11 @@ ee_p = np.<span class="f">sqrt</span>((<span class="n">1</span> - f) * p * (<spa
 <span class="c"># comprobar la fórmula del EE con 5 000 muestras</span>
 medias = [rng.<span class="f">choice</span>(gasto, size=n, replace=<span class="k">False</span>).<span class="f">mean</span>() <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">5000</span>)]
 S = gasto.<span class="f">std</span>(ddof=<span class="n">1</span>)
-<span class="f">print</span>(np.<span class="f">sqrt</span>((<span class="n">1</span> - f) * S**<span class="n">2</span> / n), np.<span class="f">std</span>(medias))   <span class="c"># ≈ 22.6 y ≈ 23.0</span></code></pre>
+<span class="f">print</span>(np.<span class="f">sqrt</span>((<span class="n">1</span> - f) * S**<span class="n">2</span> / n), np.<span class="f">std</span>(medias))   <span class="c"># ≈ 22.6 y ≈ 23.0</span>
+
+<span class="c"># tamaño de muestra para un margen de ±40 pesos al 95 %</span>
+n0 = z**<span class="n">2</span> * <span class="n">245</span>**<span class="n">2</span> / <span class="n">40</span>**<span class="n">2</span>
+<span class="f">print</span>(n0, np.<span class="f">ceil</span>(n0 / (<span class="n">1</span> + n0 / N)))      <span class="c"># ≈ 144.1  129</span></code></pre>
 <pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survey)
 <span class="f">set.seed</span>(<span class="n">7</span>)
 N &lt;- <span class="n">1200</span>
@@ -177,11 +258,15 @@ ee &lt;- <span class="f">sqrt</span>((<span class="n">1</span> - f) * <span clas
 
 <span class="c"># sin la CPF (diseño con reemplazo): el EE sube un factor 1/√0.9 ≈ 1.054</span>
 muestra$w &lt;- N / n
-<span class="f">svymean</span>(~gasto, <span class="f">svydesign</span>(ids = ~<span class="n">1</span>, weights = ~w, data = muestra))</code></pre>
+<span class="f">svymean</span>(~gasto, <span class="f">svydesign</span>(ids = ~<span class="n">1</span>, weights = ~w, data = muestra))
+
+<span class="c"># tamaño de muestra para un margen de ±40 pesos al 95 %</span>
+n0 &lt;- <span class="n">1.96</span>^<span class="n">2</span> * <span class="n">245</span>^<span class="n">2</span> / <span class="n">40</span>^<span class="n">2</span>
+<span class="f">ceiling</span>(n0 / (<span class="n">1</span> + n0 / N))         <span class="c"># 129</span></code></pre>
       </div>
       <p>Los números de R no coinciden con los de Python porque los generadores aleatorios son distintos, pero las fórmulas sí: compruébalo calculando \(\sqrt{(1-f)\,s^2/n}\) a mano y comparándolo con la salida de <code>svymean</code>.</p>
 
-      <h2 id="mas-quiz"><span class="sec">§ 8</span>Comprueba</h2>
+      <h2 id="mas-quiz"><span class="sec">§ 10</span>Quiz</h2>
       <div class="quiz" data-right="En la ciudad f = 0,1 y √0,9 ≈ 0,95; en el país f ≈ 0,001 y el factor es casi 1. La diferencia de errores estándar es de apenas 5 %: lo que manda es n." data-wrong="Calcula √(1 − f) en ambos casos. ¿El error estándar depende de n, de N, o de los dos?">
         <h3>Con MAS de n = 1 000 personas, ¿cómo se compara el error estándar en una ciudad de N = 10 000 con el de un país de N = 1 000 000 (misma S)?</h3>
         <div class="opts">
@@ -212,43 +297,120 @@ muestra$w &lt;- N / n
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="n₀ = 1,96² · 245² / 40² ≈ 144,1 y con la corrección n = 144,1 / (1 + 144,1/1 200) ≈ 128,7, es decir 129 hogares." data-wrong="Calcula primero n₀ = z²S²/e² y después corrige por población finita dividiendo entre 1 + n₀/N. Redondea hacia arriba.">
+        <h3>En la cooperativa (N = 1 200, S ≈ 245 pesos) quieres un margen de ±40 pesos al 95 %. ¿Cuántos hogares necesitas?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>145</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>120, el 10 % de la población</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>129</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>38</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con f ≈ 0,1, el EE es √0,9 · 200/√15 ≈ 49 pesos: el dominio rural tiene solo 15 hogares y su estimación es mucho menos precisa que la general, aunque la muestra total sea grande." data-wrong="La precisión de un dominio depende de cuántas unidades del dominio hay en la muestra, no del tamaño total de la muestra.">
+        <h3>En un MAS de 120 de 1 200 hogares solo 15 son rurales, con s = 200 pesos. ¿Cuál es aproximadamente el EE del gasto medio rural?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Unos 17 pesos, como el de la muestra completa</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Cero, porque la muestra es aleatoria</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>200 pesos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Unos 49 pesos</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="mas-ej"><span class="sec">§ 9</span>Ejercicios propuestos</h2>
-      <p>Intenta resolverlos antes de abrir la solución. Usa \(z = 1{,}96\) para el 95 %.</p>
+      <h2 id="mas-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Una empresa tiene 500 empleados. En un MAS de 50, el promedio de días de ausencia en el año fue 8,2 con desviación estándar 4,5. Estima el promedio y el total de días de ausencia de la empresa, con su intervalo del 95 %.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(f = 50/500 = 0{,}1\). \(\widehat{EE}(\bar y) = \sqrt{0{,}9}\cdot 4{,}5/\sqrt{50} = 0{,}949 \cdot 0{,}636 = 0{,}604\) días.</p><p>Media: 8,2 ± 1,96 · 0,604 = 8,2 ± 1,18, es decir <b>[7,02; 9,38]</b> días.</p><p>Total: \(\hat Y = 500 \cdot 8{,}2 = 4\,100\) días, con EE = 500 · 0,604 = 302 e intervalo 4 100 ± 592, es decir <b>[3 508; 4 692]</b> días.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Demostración.</b> Bajo MAS sin reemplazo: (a) demuestra que \(\operatorname{Cov}(I_i, I_j) = -f(1-f)/(N-1)\) para \(i \ne j\); (b) usa ese resultado para derivar \(V(\bar y) = (1-f)S^2/n\); (c) deduce \(V(\hat p)\) para una variable binaria y verifica que coincide con la varianza de una hipergeométrica dividida por \(n^2\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> \(\operatorname{Cov}(I_i,I_j) = \pi_{ij} - \pi_i\pi_j = \frac{n(n-1)}{N(N-1)} - \frac{n^2}{N^2} = \frac nN\cdot\frac{N(n-1) - n(N-1)}{N(N-1)} = \frac nN\cdot\frac{n - N}{N(N-1)} = -\frac{f(1-f)}{N-1}\).</p>
+            <p><b>(b)</b> Con \(d_i = y_i - \bar Y\), \(\bar y - \bar Y = \frac1n\sum I_id_i\). \(V = \frac{1}{n^2}\big[f(1-f)\sum d_i^2 + \sum_{i\ne j}d_id_j\operatorname{Cov}(I_i,I_j)\big]\). Como \(\sum_{i \ne j}d_id_j = -\sum d_i^2\), queda \(\frac{f(1-f)}{n^2}\sum d_i^2\cdot\frac{N}{N-1} = \frac{f(1-f)NS^2}{n^2} = \frac{(1-f)S^2}{n}\).</p>
+            <p><b>(c)</b> Con \(y \in \{0,1\}\), \(S^2 = \frac{N}{N-1}P(1-P)\), así que \(V(\hat p) = \frac{N-n}{N-1}\cdot\frac{P(1-P)}{n}\). El número de éxitos \(a = n\hat p\) es hipergeométrico con varianza \(n P(1-P)\frac{N-n}{N-1}\); dividiendo por \(n^2\) se obtiene lo mismo.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Una cooperativa con 2 000 socios sortea 200 para preguntarles si apoyan un cambio de estatutos. 64 dicen que sí. Estima la proporción de apoyo con un intervalo del 95 % y el número de socios que lo apoyan.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(\hat p = 64/200 = 0{,}32\), \(f = 0{,}1\). \(v(\hat p) = 0{,}9 \cdot 0{,}32 \cdot 0{,}68 / 199 = 0{,}000984\), así que \(\widehat{EE} = 0{,}0314\).</p><p>IC 95 %: 0,32 ± 0,0615 = <b>[0,259; 0,381]</b>. En número de socios: \(2\,000 \cdot 0{,}32 = 640\), entre unos <b>517 y 763</b>.</p></div></details>
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Insesgamiento de \(s^2\).</b> Demuestra que bajo MAS \(E[s^2] = S^2\), con \(s^2 = \frac{1}{n-1}\sum_{i\in s}(y_i - \bar y)^2\). Pista: escribe \(\sum_s (y_i - \bar y)^2 = \sum_s (y_i - \bar Y)^2 - n(\bar y - \bar Y)^2\). ¿Qué estimaría \(s^2\) en un MAS con reemplazo?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Con la identidad de la pista, \(E\big[\sum_s (y_i - \bar Y)^2\big] = \sum_{i=1}^N f\,d_i^2 = f(N-1)S^2 = \frac{n(N-1)}{N}S^2\), y \(E[n(\bar y - \bar Y)^2] = nV(\bar y) = (1-f)S^2 = \frac{N-n}{N}S^2\).</p>
+            <p>Restando: \(E\big[\sum_s(y_i - \bar y)^2\big] = \frac{S^2}{N}\big[n(N-1) - (N-n)\big] = \frac{S^2}{N}(nN - N) = (n-1)S^2\). Dividiendo por \(n-1\): \(E[s^2] = S^2\).</p>
+            <p>Con reemplazo las extracciones son iid con varianza \(\sigma^2 = \frac{N-1}{N}S^2\), y \(s^2\) es insesgado para \(\sigma^2\). Por eso la fórmula natural con reemplazo es \(s^2/n\), sin CPF.</p>
+          </div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>En una escuela de 800 estudiantes sorteas 400 sin reemplazo para medir horas de sueño (S = 1,2 horas). ¿Cuál es el error estándar de la media? ¿Cuánto sería si ignoraras la CPF? ¿Cuántas extracciones <i>con</i> reemplazo necesitarías para lograr la misma precisión que tu MAS?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Con CPF: \(\sqrt{0{,}5}\cdot 1{,}2/\sqrt{400} = 0{,}707 \cdot 0{,}06 = \) <b>0,042 h</b>. Sin CPF: \(1{,}2/20 = \) <b>0,060 h</b>, un 41 % más.</p><p>Con reemplazo (tomando \(\sigma \approx S\)), necesitas \(\sigma^2/n' = (1-f)S^2/n\), o sea \(n' = n/(1-f) = 400/0{,}5 = \) <b>800 extracciones</b>. Repetirías muchos estudiantes y harías el doble de trabajo para la misma precisión.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Una población tiene \(N = 4\) unidades con valores 2, 4, 9 y 13. Enumera todas las muestras posibles de tamaño \(n = 2\) sin reemplazo, calcula la media de cada una y comprueba que (a) el promedio de las medias es \(\bar Y\) y (b) su varianza coincide con \((1-f)S^2/n\). ¿Cuánto valdría la varianza con reemplazo?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Hay \(\binom{4}{2} = 6\) muestras: {2,4} → 3; {2,9} → 5,5; {2,13} → 7,5; {4,9} → 6,5; {4,13} → 8,5; {9,13} → 11.</p><p>(a) Promedio de las medias: 42/6 = 7 = \(\bar Y\). Insesgado.</p><p>(b) Desvíos respecto de 7: −4, −1,5, 0,5, −0,5, 1,5, 4; suma de cuadrados 37; varianza 37/6 = 6,167. Con la fórmula: \(S^2 = (25+9+4+36)/3 = 24{,}667\) y \((1 - 0{,}5)\cdot 24{,}667/2 = \) <b>6,167</b>. Coinciden.</p><p>Con reemplazo: \(\sigma^2 = 74/4 = 18{,}5\) y \(V = 18{,}5/2 = \) <b>9,25</b>, un 50 % más.</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">from</span> itertools <span class="k">import</span> combinations
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Enumeración completa.</b> Una población tiene \(N = 4\) unidades con valores 2, 4, 9 y 13. (a) Enumera todas las muestras posibles de tamaño \(n = 2\) sin reemplazo, calcula la media de cada una y comprueba que su promedio es \(\bar Y\) y su varianza coincide con \((1-f)S^2/n\). (b) Haz lo mismo con las 16 secuencias con reemplazo. (c) Comprueba que el cociente de varianzas es \((N-n)/(N-1)\). (d) Verifica que \(E[s^2] = S^2\) sin reemplazo.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> Las 6 muestras: {2,4} → 3; {2,9} → 5,5; {2,13} → 7,5; {4,9} → 6,5; {4,13} → 8,5; {9,13} → 11. Promedio 42/6 = 7 = \(\bar Y\). Varianza: desvíos −4, −1,5, 0,5, −0,5, 1,5, 4; suma de cuadrados 37; \(37/6 = 6{,}167\). Fórmula: \(S^2 = (25 + 9 + 4 + 36)/3 = 24{,}667\) y \(0{,}5 \cdot 24{,}667/2 = 6{,}167\).</p>
+            <p><b>(b)</b> Con reemplazo: \(\sigma^2 = 74/4 = 18{,}5\) y \(V = 18{,}5/2 = 9{,}25\). <b>(c)</b> \(6{,}167/9{,}25 = 0{,}667 = (4-2)/(4-1)\).</p>
+            <p><b>(d)</b> En cada muestra de dos, \(s^2 = (a-b)^2/2\): 2; 24,5; 60,5; 12,5; 40,5; 8. Promedio \(148/6 = 24{,}667 = S^2\).</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">from</span> itertools <span class="k">import</span> combinations, product
 <span class="k">import</span> numpy <span class="k">as</span> np
 y = [<span class="n">2</span>, <span class="n">4</span>, <span class="n">9</span>, <span class="n">13</span>]
-medias = [np.<span class="f">mean</span>(c) <span class="k">for</span> c <span class="k">in</span> <span class="f">combinations</span>(y, <span class="n">2</span>)]
-<span class="f">print</span>(np.<span class="f">mean</span>(medias), np.<span class="f">var</span>(medias))           <span class="c"># 7.0 6.1667</span>
-<span class="f">print</span>((<span class="n">1</span> - <span class="n">2</span>/<span class="n">4</span>) * np.<span class="f">var</span>(y, ddof=<span class="n">1</span>) / <span class="n">2</span>)        <span class="c"># 6.1667</span></code></pre>
+sin = [np.<span class="f">mean</span>(c) <span class="k">for</span> c <span class="k">in</span> <span class="f">combinations</span>(y, <span class="n">2</span>)]
+con = [np.<span class="f">mean</span>(c) <span class="k">for</span> c <span class="k">in</span> <span class="f">product</span>(y, repeat=<span class="n">2</span>)]
+<span class="f">print</span>(np.<span class="f">mean</span>(sin), np.<span class="f">var</span>(sin), np.<span class="f">var</span>(con))          <span class="c"># 7.0  6.1667  9.25</span>
+<span class="f">print</span>(np.<span class="f">var</span>(sin) / np.<span class="f">var</span>(con), (<span class="n">4</span> - <span class="n">2</span>) / (<span class="n">4</span> - <span class="n">1</span>))     <span class="c"># 0.6667  0.6667</span>
+<span class="f">print</span>(np.<span class="f">mean</span>([np.<span class="f">var</span>(c, ddof=<span class="n">1</span>) <span class="k">for</span> c <span class="k">in</span> <span class="f">combinations</span>(y, <span class="n">2</span>)]), np.<span class="f">var</span>(y, ddof=<span class="n">1</span>))   <span class="c"># 24.667 24.667</span></code></pre>
 <pre class="code" data-lang="r" hidden><code>y &lt;- <span class="f">c</span>(<span class="n">2</span>, <span class="n">4</span>, <span class="n">9</span>, <span class="n">13</span>)
-medias &lt;- <span class="f">colMeans</span>(<span class="f">combn</span>(y, <span class="n">2</span>))
-<span class="f">c</span>(<span class="f">mean</span>(medias), <span class="f">mean</span>((medias - <span class="f">mean</span>(medias))^<span class="n">2</span>))   <span class="c"># 7 6.1667</span>
-(<span class="n">1</span> - <span class="n">2</span>/<span class="n">4</span>) * <span class="f">var</span>(y) / <span class="n">2</span>                               <span class="c"># 6.1667</span></code></pre>
-</div></div></details>
+sin &lt;- <span class="f">colMeans</span>(<span class="f">combn</span>(y, <span class="n">2</span>))
+con &lt;- <span class="f">rowMeans</span>(<span class="f">expand.grid</span>(y, y))
+v &lt;- <span class="k">function</span>(x) <span class="f">mean</span>((x - <span class="f">mean</span>(x))^<span class="n">2</span>)
+<span class="f">c</span>(<span class="f">mean</span>(sin), <span class="f">v</span>(sin), <span class="f">v</span>(con), <span class="f">v</span>(sin) / <span class="f">v</span>(con))          <span class="c"># 7  6.167  9.25  0.667</span>
+<span class="f">mean</span>(<span class="f">apply</span>(<span class="f">combn</span>(y, <span class="n">2</span>), <span class="n">2</span>, var)); <span class="f">var</span>(y)              <span class="c"># 24.667 24.667</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Simulación de cobertura con una población asimétrica.</b> Genera una población de \(N = 20\,000\) valores lognormales con \(\sigma = 1{,}5\) en escala log (como ingresos muy desiguales). Calcula su asimetría \(G_1\) y la regla de Cochran. Estima por Monte Carlo la cobertura real del IC normal del 95 % para \(n = 30, 100, 400\) y \(1\,600\). Interpreta y propone una alternativa.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>La asimetría poblacional sale enorme (\(G_1 \approx 10\) en una realización), así que la regla de Cochran pide \(n &gt; 25 G_1^2 \approx 2\,800\). Las coberturas aproximadas: 0,78 con \(n = 30\); 0,85 con \(n = 100\); 0,91 con \(n = 400\); 0,94 con \(n = 1\,600\).</p>
+            <p>El intervalo falla casi siempre por el mismo lado: las muestras que no incluyen valores de la cola tienen media baja y además \(s\) pequeña, así que el intervalo es estrecho y queda debajo de \(\bar Y\). Alternativas: estratificar por tamaño (incluyendo con certeza las unidades más grandes, como se hace en encuestas de empresas), usar un estimador de razón con una variable auxiliar, o intervalos bootstrap, que mejoran algo pero no hacen milagros con colas tan pesadas.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+rng = np.random.<span class="f">default_rng</span>(<span class="n">5</span>)
+N = <span class="n">20_000</span>
+y = rng.<span class="f">lognormal</span>(<span class="n">0</span>, <span class="n">1.5</span>, N); Yb = y.<span class="f">mean</span>()
+G1 = stats.<span class="f">skew</span>(y); <span class="f">print</span>(G1, <span class="n">25</span> * G1**<span class="n">2</span>)          <span class="c"># ≈ 10.6  ≈ 2800</span>
+<span class="k">for</span> n <span class="k">in</span> [<span class="n">30</span>, <span class="n">100</span>, <span class="n">400</span>, <span class="n">1600</span>]:
+    cubre = <span class="n">0</span>
+    <span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(<span class="n">4000</span>):
+        s = y[rng.<span class="f">choice</span>(N, n, replace=<span class="k">False</span>)]
+        ee = np.<span class="f">sqrt</span>((<span class="n">1</span> - n / N) * s.<span class="f">var</span>(ddof=<span class="n">1</span>) / n)
+        cubre += <span class="f">abs</span>(s.<span class="f">mean</span>() - Yb) &lt; <span class="n">1.96</span> * ee
+    <span class="f">print</span>(n, cubre / <span class="n">4000</span>)   <span class="c"># ≈ 0.78, 0.85, 0.91, 0.94</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">5</span>)
+N &lt;- <span class="n">20000</span>
+y &lt;- <span class="f">rlnorm</span>(N, <span class="n">0</span>, <span class="n">1.5</span>); Yb &lt;- <span class="f">mean</span>(y)
+G1 &lt;- <span class="f">mean</span>((y - Yb)^<span class="n">3</span>) / <span class="f">mean</span>((y - Yb)^<span class="n">2</span>)^<span class="n">1.5</span>; <span class="f">c</span>(G1, <span class="n">25</span> * G1^<span class="n">2</span>)
+<span class="k">for</span> (n <span class="k">in</span> <span class="f">c</span>(<span class="n">30</span>, <span class="n">100</span>, <span class="n">400</span>, <span class="n">1600</span>)) {
+  cubre &lt;- <span class="f">replicate</span>(<span class="n">4000</span>, {
+    s &lt;- <span class="f">sample</span>(y, n); ee &lt;- <span class="f">sqrt</span>((<span class="n">1</span> - n / N) * <span class="f">var</span>(s) / n)
+    <span class="f">abs</span>(<span class="f">mean</span>(s) - Yb) &lt; <span class="n">1.96</span> * ee
+  })
+  <span class="f">print</span>(<span class="f">c</span>(n, <span class="f">mean</span>(cubre)))   <span class="c"># ≈ 0.78, 0.85, 0.91, 0.94</span>
+}</code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p><b>Caso de auditoría e interpretación crítica.</b> Un auditor revisa por MAS 100 de 4 000 reclamos médicos: el sobrepago medio es 42,5 dólares con \(s = 80\), y 70 de los 100 reclamos tienen sobrepago 0. (a) Estima el total pagado de más, su EE y el límite inferior del intervalo bilateral del 90 %. (b) ¿Por qué la autoridad cobra el límite inferior y no la estimación puntual? (c) ¿Qué problema crea que el 70 % de los valores sea 0? (d) El proveedor alega que “una muestra del 2,5 % no representa nada”. Responde con argumentos de esta sesión.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> \(\hat Y = 4\,000 \cdot 42{,}5 = 170\,000\); \(EE = 4\,000\sqrt{1 - 0{,}025}\cdot 80/\sqrt{100} = 31\,600\). Con \(t_{0{,}05;\,99} = 1{,}66\), el límite inferior es \(170\,000 - 1{,}66 \cdot 31\,600 \approx 117\,500\) dólares.</p>
+            <p><b>(b)</b> Porque el error de muestreo no debe perjudicar al auditado: con el límite inferior, la probabilidad de cobrar más que el sobrepago real es como máximo 5 %. Es una regla de decisión asimétrica que refleja que el costo de cobrar de más es mayor.</p>
+            <p><b>(c)</b> La distribución es una mezcla: muchos ceros y una cola larga de sobrepagos. Es muy asimétrica, la regla de Cochran pediría más de 100 casos, y la cobertura del intervalo normal puede quedar por debajo de la nominal. Una mejora es estratificar por monto del reclamo y revisar al 100 % los más grandes.</p>
+            <p><b>(d)</b> La precisión depende de \(n\), no de \(f\) (propiedad 5): con \(n = 100\) el EE relativo del total es 18,6 %, y sería casi igual con 40 000 reclamos. Lo que hace representativa la muestra es el sorteo con probabilidades conocidas y documentado con su semilla, no el porcentaje revisado. El argumento válido del proveedor sería pedir más precisión (más \(n\) o estratificación), no negar la validez del muestreo.</p>
+          </div></details>
         </div>
       </div>
+
       <div class="next"></div>
     </article>
   </div>

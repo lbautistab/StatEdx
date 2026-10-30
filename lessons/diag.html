@@ -5,42 +5,55 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Diagnóstico de regresión</h1>
-      <p>Un R² de 0,96 no garantiza que el modelo sea bueno. Los errores estándar, los intervalos y los valores p dependen de supuestos que hay que revisar, y un solo punto puede mover toda la recta. Aquí aprendes a leer los residuos, a detectar puntos con apalancamiento e influencia, a diagnosticar heterocedasticidad y a corregirla con transformaciones o errores robustos.</p>
-      <div class="lmeta"><span>50 min</span><span>Nivel avanzado</span><span>Requiere: regresión lineal múltiple</span><span>R · Python</span></div>
+      <p>Un R² de 0,96 no garantiza que el modelo sea bueno. Los errores estándar, los intervalos y los valores p dependen de supuestos que hay que revisar, y un solo punto puede mover toda la recta. Aquí aprendes a leer los residuos, a detectar puntos con apalancamiento e influencia, a diagnosticar heterocedasticidad y a corregirla con transformaciones o errores robustos, con las derivaciones que justifican cada herramienta.</p>
+      <div class="lmeta"><span>95 min</span><span>Nivel avanzado</span><span>Requiere: regresión lineal múltiple</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#diag-idea" data-sec="diag-idea">La idea</a></li>
-        <li><a href="#diag-res" data-sec="diag-res">Tipos de residuos</a></li>
-        <li><a href="#diag-graf" data-sec="diag-graf">Los cuatro gráficos</a></li>
-        <li><a href="#diag-lab" data-sec="diag-lab">Laboratorio</a></li>
+        <li><a href="#diag-idea" data-sec="diag-idea">Introducción</a></li>
+        <li><a href="#diag-res" data-sec="diag-res">Definición</a></li>
+        <li><a href="#diag-graf" data-sec="diag-graf">Residuos y gráficos</a></li>
         <li><a href="#diag-infl" data-sec="diag-infl">Apalancamiento e influencia</a></li>
         <li><a href="#diag-het" data-sec="diag-het">Heterocedasticidad</a></li>
         <li><a href="#diag-trans" data-sec="diag-trans">Transformaciones</a></li>
+        <li><a href="#diag-prop" data-sec="diag-prop">Propiedades</a></li>
+        <li><a href="#diag-lab" data-sec="diag-lab">Ejercicios de simulación</a></li>
+        <li><a href="#diag-apps" data-sec="diag-apps">Aplicaciones reales</a></li>
         <li><a href="#diag-code" data-sec="diag-code">En R y Python</a></li>
-        <li><a href="#diag-quiz" data-sec="diag-quiz">Comprueba</a></li>
-        <li><a href="#diag-ej" data-sec="diag-ej">Ejercicios</a></li>
+        <li><a href="#diag-quiz" data-sec="diag-quiz">Quiz</a></li>
+        <li><a href="#diag-ej" data-sec="diag-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="diag-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="diag-idea"><span class="sec">§ 1</span>Introducción</h2>
       <p>Una encuesta registra el ingreso mensual de 16 hogares y su gasto en alimentos, ambos en cientos de dólares:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Ingreso</th><td>12</td><td>15</td><td>18</td><td>20</td><td>22</td><td>25</td><td>28</td><td>30</td><td>35</td><td>40</td><td>45</td><td>50</td><td>60</td><td>70</td><td>85</td><td>110</td></tr></thead>
         <tbody><tr><th>Gasto</th><td>4,3</td><td>5,6</td><td>5,9</td><td>4,8</td><td>7,7</td><td>7,8</td><td>7,2</td><td>9,3</td><td>10,1</td><td>11,1</td><td>11,6</td><td>13,9</td><td>12,7</td><td>16,0</td><td>17,6</td><td>26,3</td></tr></tbody>
       </table></div>
       <p>La regresión da \(\widehat{\text{gasto}} = 2{,}29 + 0{,}203\cdot\text{ingreso}\) con \(R^2 = 0{,}963\) y una pendiente con \(t = 19\). Parece un modelo excelente. Pero al mirar los residuos aparecen tres problemas: la dispersión crece con el ingreso (embudo), el hogar de ingreso 110 está muy lejos de los demás y él solo tira de la recta, y los errores estándar clásicos subestiman la incertidumbre a la mitad.</p>
+      <p>Un poco de historia. Francis Anscombe insistió en los años sesenta y setenta en que había que <i>mirar</i> los residuos, y su cuarteto de 1973 se volvió el argumento clásico. En 1964 George Box y David Cox propusieron la familia de transformaciones que lleva su nombre. Dennis Cook introdujo en 1977 la distancia que mide la influencia de cada observación; Halbert White (1980) propuso los errores estándar robustos a la heterocedasticidad, y Trevor Breusch y Adrian Pagan (1979) la prueba que la detecta. El libro de Belsley, Kuh y Welsch (1980) sistematizó el diagnóstico de regresión como disciplina.</p>
       <div class="callout"><b>El diagnóstico no es opcional.</b> Mínimos cuadrados siempre produce una recta y un R². Lo que no te dice es si los supuestos (linealidad, independencia, varianza constante, normalidad) se cumplen, ni si unos pocos puntos deciden el resultado. Eso lo dicen los residuos.</div>
+      <div class="callout"><b>En esta sesión aprenderás</b>
+        <ul>
+          <li>A definir y calcular residuos crudos, estandarizados y estudentizados.</li>
+          <li>A leer los cuatro gráficos de diagnóstico y reconocer cada patrón.</li>
+          <li>A medir apalancamiento e influencia y derivar la distancia de Cook.</li>
+          <li>A detectar heterocedasticidad con Breusch y Pagan y corregir la inferencia con errores robustos.</li>
+          <li>A elegir transformaciones (log, Box y Cox) e interpretar los coeficientes resultantes.</li>
+          <li>A decidir qué hacer con un punto influyente sin borrarlo en silencio.</li>
+        </ul>
+      </div>
 
-      <h2 id="diag-res"><span class="sec">§ 2</span>Tipos de residuos y la matriz sombrero</h2>
-      <p>Los valores ajustados son una transformación lineal de las respuestas: \(\hat{\mathbf y} = H\mathbf y\), con la <b>matriz sombrero</b> (le “pone el sombrero” a \(\mathbf y\)):</p>
+      <h2 id="diag-res"><span class="sec">§ 2</span>Definición: residuos y matriz sombrero</h2>
+      <p>Los valores ajustados son una transformación lineal de las respuestas: \(\hat{\mathbf y} = H\mathbf y\), con la <b>matriz sombrero</b> (le “pone el sombrero” a \(\mathbf y\)). Como \(\mathbf e = (I-H)\mathbf y = (I-H)\boldsymbol\varepsilon\) y \(I - H\) es simétrica e idempotente, \(\operatorname{Var}(\mathbf e) = \sigma^2(I - H)\):</p>
       <div class="eq">\[ H = X(X^\top X)^{-1}X^\top, \qquad \mathbf e = (I - H)\,\mathbf y, \qquad \operatorname{Var}(e_i) = \sigma^2(1 - h_{ii}) \]
         <div class="note">\(h_{ii}\), el elemento \(i\) de la diagonal de \(H\), es el <b>apalancamiento</b> de la observación \(i\). Cumple \(1/n \le h_{ii} \le 1\) y \(\sum h_{ii} = p + 1\). Los residuos crudos no tienen todos la misma varianza: los puntos con mucho apalancamiento tienen residuos más pequeños porque “atraen” la recta.</div>
       </div>
-      <p>Para comparar residuos en la misma escala se estandarizan:</p>
+      <div class="callout"><b>Definición.</b> Para la observación \(i\) de un modelo con \(p\) predictores e intercepto, con \(s^2 = SSE/(n-p-1)\) y \(s_{(i)}^2\) la misma cantidad calculada sin la observación \(i\): el <b>residuo estandarizado</b> es \(r_i = e_i/(s\sqrt{1-h_{ii}})\), el <b>residuo estudentizado</b> es \(t_i = e_i/(s_{(i)}\sqrt{1-h_{ii}})\), y la <b>distancia de Cook</b> es \(D_i = \sum_j (\hat y_j - \hat y_{j(i)})^2/[(p+1)s^2]\), donde \(\hat y_{j(i)}\) es el ajuste del modelo estimado sin \(i\).</div>
       <div class="tablewrap"><table>
         <thead><tr><th>Residuo</th><th>Fórmula</th><th>Para qué sirve</th></tr></thead>
         <tbody>
@@ -49,10 +62,11 @@
           <tr><td>Estudentizado (externo)</td><td>\(t_i = \dfrac{e_i}{s_{(i)}\sqrt{1-h_{ii}}} \sim t_{n-p-2}\)</td><td>Detectar atípicos: \(s_{(i)}\) se calcula sin la observación \(i\), que así no esconde su propio desvío</td></tr>
         </tbody>
       </table></div>
-      <p>En el ejemplo, el hogar de ingreso 85 tiene \(t_i = -2{,}24\) y el de 110 tiene \(t_i = 2{,}23\). Con 16 datos esperarías ver alrededor de un residuo fuera de ±2 por azar, así que dos no es alarmante por sí solo; lo preocupante es <i>dónde</i> están.</p>
+      <p>En regresión simple, \(h_{ii} = \frac1n + \frac{(x_i - \bar x)^2}{S_{xx}}\) (ver <a href="#reg">regresión simple</a>). <b>Ejemplo numérico pequeño.</b> Con \(x = 1, 2, 3, 4, 10\): \(\bar x = 4\), \(S_{xx} = 9 + 4 + 1 + 0 + 36 = 50\). Los apalancamientos son \(0{,}2 + 9/50 = 0{,}38\); 0,28; 0,22; 0,20 y \(0{,}2 + 36/50 = 0{,}92\). Suman 2 \(= p + 1\). El punto con \(x = 10\) tiene casi todo el control de la pendiente: si su residuo crudo fuera 1, su residuo estandarizado sería \(1/(s\sqrt{0{,}08}) = 3{,}5/s\).</p>
+      <p>En los hogares, el de ingreso 85 tiene \(t_i = -2{,}24\) y el de 110 tiene \(t_i = 2{,}23\). Con 16 datos esperarías ver alrededor de un residuo fuera de ±2 por azar, así que dos no es alarmante por sí solo; lo preocupante es <i>dónde</i> están.</p>
 
-      <h2 id="diag-graf"><span class="sec">§ 3</span>Los cuatro gráficos de diagnóstico</h2>
-      <p>R los produce con <code>plot(modelo)</code> y conviene mirarlos siempre, en este orden:</p>
+      <h2 id="diag-graf"><span class="sec">§ 3</span>Residuos y los cuatro gráficos de diagnóstico</h2>
+      <p>¿Por qué graficar residuos contra <i>ajustados</i> y no contra \(y\)? Porque bajo el modelo correcto \(\mathrm{Cov}(\mathbf e, \hat{\mathbf y}) = \sigma^2(I-H)H = 0\): residuos y ajustados son incorrelacionados, así que cualquier patrón es señal de mala especificación. En cambio \(\mathrm{Cov}(\mathbf e, \mathbf y) = \sigma^2(I - H) \neq 0\), y un gráfico contra \(y\) siempre muestra una tendencia, aunque el modelo sea perfecto. R los produce con <code>plot(modelo)</code> y conviene mirarlos siempre, en este orden:</p>
       <div class="tablewrap"><table>
         <thead><tr><th>Gráfico</th><th>Qué debería verse</th><th>Señal de problema</th></tr></thead>
         <tbody>
@@ -62,9 +76,85 @@
           <tr><td>Residuos vs apalancamiento</td><td>Puntos lejos de las curvas de Cook</td><td>Puntos fuera de la curva \(D = 0{,}5\) o \(D = 1\): influyentes</td></tr>
         </tbody>
       </table></div>
-      <p>Los gráficos son más informativos que las pruebas formales. Con muestras grandes, una prueba de normalidad rechaza por desviaciones irrelevantes; con muestras pequeñas no detecta nada. El gráfico te muestra el tipo de problema y su tamaño.</p>
+      <p><b>El gráfico Q-Q.</b> Ordena los residuos estandarizados \(r_{(1)} \le \dots \le r_{(n)}\) y grafícalos contra los cuantiles teóricos \(\Phi^{-1}\big((i - 0{,}5)/n\big)\). Si los errores son normales, los puntos caen sobre la recta identidad. Una curva en forma de S (extremos por debajo a la izquierda y por encima a la derecha) indica colas más pesadas que la normal; una curva cóncava o convexa, asimetría. La escala-ubicación usa \(\sqrt{|r_i|}\) porque esa transformación reduce la asimetría de \(|r_i|\) y hace más visible una tendencia en la dispersión.</p>
+      <p><b>Independencia.</b> No se ve en estos cuatro gráficos. Si los datos tienen un orden (tiempo, espacio), grafica los residuos contra ese orden y calcula el estadístico de Durbin y Watson, \(DW = \sum_{i\ge 2}(e_i - e_{i-1})^2/\sum e_i^2 \approx 2(1 - \hat\rho_1)\), con \(\hat\rho_1\) la autocorrelación de orden 1 de los residuos. Valores cercanos a 2 indican independencia; cercanos a 0, autocorrelación positiva, típica en <a href="#ts">series de tiempo</a>.</p>
+      <p>Los gráficos son más informativos que las pruebas formales. Con muestras grandes, una prueba de normalidad rechaza por desviaciones irrelevantes; con muestras pequeñas no detecta nada. El gráfico te muestra el tipo de problema y su tamaño. Recuerda además el orden de gravedad: la no linealidad sesga los coeficientes; la heterocedasticidad y la dependencia invalidan los errores estándar; la no normalidad importa poco con \(n\) moderado, salvo para intervalos de predicción.</p>
 
-      <h2 id="diag-lab"><span class="sec">§ 4</span>Laboratorio</h2>
+      <h2 id="diag-infl"><span class="sec">§ 4</span>Apalancamiento e influencia</h2>
+      <p>Un punto puede ser raro de tres maneras distintas, que no conviene mezclar:</p>
+      <ul>
+        <li><b>Atípico</b>: residuo estudentizado grande. Está lejos de la recta en la dirección de \(y\).</li>
+        <li><b>Alto apalancamiento</b>: \(h_{ii}\) grande. Su combinación de predictores es inusual (lejos del centro de los \(x\)). Como el promedio de los \(h_{ii}\) es \((p+1)/n\), la regla habitual marca \(h_{ii} &gt; 2(p+1)/n\).</li>
+        <li><b>Influyente</b>: si lo quitas, los coeficientes cambian mucho. Hace falta apalancamiento <i>y</i> residuo a la vez.</li>
+      </ul>
+      <p><b>Eliminar una observación sin reajustar.</b> Con la fórmula de Sherman y Morrison para \((X^\top X - \mathbf x_i\mathbf x_i^\top)^{-1}\) se obtiene, sin volver a estimar el modelo:</p>
+      <div class="eq">\[ \hat{\boldsymbol\beta} - \hat{\boldsymbol\beta}_{(i)} = \frac{(X^\top X)^{-1}\mathbf x_i\,e_i}{1 - h_{ii}}, \qquad y_i - \hat y_{i(i)} = \frac{e_i}{1 - h_{ii}} \]
+        <div class="note">El segundo resultado es el <b>residuo de eliminación</b> (o PRESS): el error de predecir \(y_i\) con un modelo que no lo vio. Si \(h_{ii}\) se acerca a 1, el punto “se predice a sí mismo” y su residuo crudo engaña.</div>
+      </div>
+      <p>La <b>distancia de Cook</b> resume la influencia. Sustituyendo la fórmula anterior en su definición, \(\sum_j(\hat y_j - \hat y_{j(i)})^2 = (\hat{\boldsymbol\beta} - \hat{\boldsymbol\beta}_{(i)})^\top X^\top X(\hat{\boldsymbol\beta} - \hat{\boldsymbol\beta}_{(i)}) = \frac{e_i^2 h_{ii}}{(1-h_{ii})^2}\). Dividiendo entre \((p+1)s^2\) y usando \(r_i^2 = e_i^2/[s^2(1-h_{ii})]\):</p>
+      <div class="eq">\[ D_i = \frac{\sum_j(\hat y_j - \hat y_{j(i)})^2}{(p+1)\,s^2} = \frac{r_i^2}{p+1}\cdot\frac{h_{ii}}{1 - h_{ii}} \]
+        <div class="note">La influencia es el producto de dos piezas: el tamaño del residuo y el apalancamiento. Criterios usuales: \(D_i &gt; 1\) es influyente; \(D_i &gt; 4/n\) merece revisión. Otras medidas relacionadas: DFFITS (cambio en el propio ajuste) y DFBETAS (cambio en cada coeficiente, en errores estándar).</div>
+      </div>
+      <p><b>Ejemplo resuelto.</b> En los hogares, \(2(p+1)/n = 4/16 = 0{,}25\). El hogar de ingreso 110 tiene \(h = 0{,}473\), residuo crudo \(e = 1{,}63\) y \(s = 1{,}14\), así que \(r = 1{,}63/(1{,}14\sqrt{0{,}527}) = 1{,}97\) y \(D = \frac{1{,}97^2}{2}\cdot\frac{0{,}473}{0{,}527} = 1{,}94 \cdot 0{,}896 = 1{,}73\): muy influyente. Su residuo de eliminación es \(1{,}63/0{,}527 = 3{,}10\): el modelo sin él predice 23,2 en lugar de 26,3. Sin él, la pendiente pasa de 0,203 a 0,185. El de ingreso 85 tiene \(D = 0{,}57\), alto pero bajo 1.</p>
+      <div class="callout"><b>Qué hacer con un punto influyente:</b> primero, comprobar que no sea un error de captura. Si es real, no lo borres en silencio: reporta el modelo con y sin él, y pregúntate si indica que el modelo está mal especificado. Aquí el punto de 110 no es un error: es el embudo. Con la transformación adecuada (§ 6) deja de ser influyente.</div>
+
+      <h2 id="diag-het"><span class="sec">§ 5</span>Heterocedasticidad y errores robustos</h2>
+      <p>Si \(\operatorname{Var}(\varepsilon_i) = \sigma_i^2\) cambia con los predictores, \(\hat{\boldsymbol\beta} = \boldsymbol\beta + (X^\top X)^{-1}X^\top\boldsymbol\varepsilon\) sigue siendo insesgado, pero su varianza ya no es \(\sigma^2(X^\top X)^{-1}\). Con \(\Omega = \operatorname{diag}(\sigma_1^2, \dots, \sigma_n^2)\):</p>
+      <div class="eq">\[ \operatorname{Var}(\hat{\boldsymbol\beta}) = (X^\top X)^{-1}\,X^\top\Omega X\,(X^\top X)^{-1}, \qquad \widehat{\operatorname{Var}}_{HC0} = (X^\top X)^{-1}\Big(\sum_i e_i^2\,\mathbf x_i\mathbf x_i^\top\Big)(X^\top X)^{-1} \]
+        <div class="note">Es el estimador “sándwich” de White: el “pan” \((X^\top X)^{-1}\) y el “relleno” estimado con los residuos al cuadrado. HC3 reemplaza \(e_i^2\) por \(e_i^2/(1-h_{ii})^2\) (residuos de eliminación), lo que corrige que los residuos de puntos con mucho apalancamiento sean pequeños. Es la recomendada con muestras pequeñas.</div>
+      </div>
+      <p>Los <b>errores estándar clásicos son incorrectos</b> (casi siempre demasiado pequeños cuando la varianza crece donde los \(x\) están lejos de la media), y con ellos los intervalos y los valores p. Además, MCO deja de ser el estimador más eficiente: Gauss y Markov ya no aplica.</p>
+      <p>La prueba de <b>Breusch-Pagan</b> regresa los residuos al cuadrado sobre los predictores. Si los predictores explican parte de \(e_i^2\), la varianza no es constante:</p>
+      <div class="eq">\[ e_i^2 = \gamma_0 + \gamma_1 x_{i1} + \cdots + \gamma_p x_{ip} + u_i, \qquad LM = n\,R^2_{\text{aux}} \sim \chi^2_p \text{ bajo } H_0 \text{: homocedasticidad} \]
+        <div class="note">En los hogares, \(LM = 6{,}46\) con 1 gl y \(p = 0{,}011\): se rechaza la homocedasticidad. La prueba de White agrega cuadrados e interacciones de los predictores para detectar formas más generales.</div>
+      </div>
+      <p>Tres remedios, según el objetivo:</p>
+      <ul>
+        <li><b>Errores estándar robustos</b> (HC0 a HC3): mantienen los coeficientes de MCO y corrigen solo la incertidumbre. En los hogares, el error estándar de la pendiente pasa de 0,0107 a 0,0217: el doble.</li>
+        <li><b>Mínimos cuadrados ponderados</b> (WLS): si sabes cómo crece la varianza, por ejemplo \(\operatorname{Var}(\varepsilon_i) = \sigma^2 v_i\), minimiza \(\sum w_i(y_i - \mathbf x_i^\top\mathbf b)^2\) con \(w_i = 1/v_i\): \(\hat{\boldsymbol\beta}_{W} = (X^\top WX)^{-1}X^\top W\mathbf y\). Equivale a MCO sobre los datos divididos entre \(\sqrt{v_i}\), que sí son homocedásticos, y por eso es MELI.</li>
+        <li><b>Transformar la respuesta</b>, típicamente con logaritmos, cuando la dispersión es proporcional al nivel.</li>
+      </ul>
+
+      <h2 id="diag-trans"><span class="sec">§ 6</span>Transformaciones</h2>
+      <p>Muchas variables económicas, biológicas o de tiempos son positivas, asimétricas y con variabilidad proporcional a su tamaño: un hogar rico varía su gasto en cientos de dólares, uno pobre en decenas. <b>¿Por qué el logaritmo estabiliza la varianza?</b> Por el método delta: si \(\operatorname{sd}(y \mid \mu) = c\,\mu\), entonces \(\operatorname{Var}(g(y)) \approx g'(\mu)^2c^2\mu^2\), que es constante cuando \(g'(\mu) \propto 1/\mu\), es decir \(g = \log\). Si la varianza es proporcional a la media (conteos), \(g'(\mu) \propto \mu^{-1/2}\) y conviene \(\sqrt y\). El logaritmo convierte la variación multiplicativa en aditiva y suele arreglar a la vez el embudo, la asimetría y la curvatura.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Modelo</th><th>Interpretación de \(\beta_1\)</th></tr></thead>
+        <tbody>
+          <tr><td>\(y = \beta_0 + \beta_1 x\)</td><td>+1 en \(x\) → \(+\beta_1\) unidades en \(y\)</td></tr>
+          <tr><td>\(\log y = \beta_0 + \beta_1 x\)</td><td>+1 en \(x\) → \(y\) se multiplica por \(e^{\beta_1}\) (≈ \(100\beta_1\) % si \(\beta_1\) es pequeño)</td></tr>
+          <tr><td>\(y = \beta_0 + \beta_1 \log x\)</td><td>+1 % en \(x\) → \(+\beta_1/100\) unidades en \(y\)</td></tr>
+          <tr><td>\(\log y = \beta_0 + \beta_1 \log x\)</td><td>+1 % en \(x\) → ≈ \(+\beta_1\) % en \(y\) (<b>elasticidad</b>)</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con los hogares, el modelo log-log da \(\widehat{\log \text{gasto}} = -0{,}45 + 0{,}765\log\text{ingreso}\), con IC 95 % para la elasticidad de \([0{,}67;\ 0{,}86]\). Un ingreso 10 % mayor se asocia con un gasto en alimentos \(1{,}1^{0{,}765} - 1 \approx 7{,}6\,\%\) mayor: los alimentos son un bien necesario, su peso en el presupuesto baja al subir el ingreso (ley de Engel). Breusch-Pagan pasa a \(p = 0{,}61\) y el punto de 110 deja de destacar.</p>
+      <p>La familia de <b>Box-Cox</b> busca la potencia que mejor normaliza y estabiliza \(y &gt; 0\):</p>
+      <div class="eq">\[ y^{(\lambda)} = \begin{cases} \dfrac{y^\lambda - 1}{\lambda} &amp; \lambda \ne 0 \\[6pt] \log y &amp; \lambda = 0 \end{cases} \]
+        <div class="note">\(\lambda = 1\) no transforma, \(\lambda = 0{,}5\) es la raíz, \(\lambda = 0\) el logaritmo y \(\lambda = -1\) el inverso. La forma \((y^\lambda - 1)/\lambda\) hace la familia continua en \(\lambda = 0\), porque \(\lim_{\lambda\to 0}(y^\lambda - 1)/\lambda = \log y\). Se elige \(\lambda\) maximizando la log-verosimilitud perfilada \(\ell(\lambda) = -\frac n2\log SSE_\lambda + (\lambda - 1)\sum\log y_i\) (el segundo término es el jacobiano) y se redondea a un valor interpretable: para el gasto, \(\hat\lambda \approx -0{,}2\), cerca de 0, lo que respalda el logaritmo.</div>
+      </div>
+      <div class="callout"><b>Ojo al volver a la escala original:</b> \(e^{\widehat{\log y}}\) estima la <i>mediana</i> de \(y\), no su media. Si \(\log y\) es normal con varianza \(\sigma^2\), \(E(y) = e^{\mu + \sigma^2/2}\), así que para la media multiplica por \(e^{s^2/2}\) o por el factor de Duan, \(\frac1n\sum e^{e_i}\). Y si \(y\) tiene ceros, el logaritmo no sirve directamente: considera \(\log(y+1)\) con cuidado o, mejor, un <a href="#glm">modelo lineal generalizado</a>.</div>
+
+      <h2 id="diag-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Varianza de los residuos.</b> \(\operatorname{Var}(\mathbf e) = \sigma^2(I - H)\), porque \(\mathbf e = (I-H)\boldsymbol\varepsilon\) e \(I - H\) es simétrica e idempotente.</li>
+        <li><b>Cotas del apalancamiento.</b> \(1/n \le h_{ii} \le 1\) y \(\sum h_{ii} = p+1\): \(H\) es idempotente, así que \(h_{ii} = \sum_j h_{ij}^2 \ge h_{ii}^2\); y con intercepto, \(H\) contiene la proyección sobre \(\mathbf 1\), que aporta \(1/n\).</li>
+        <li><b>Ortogonalidad residuos-ajustados.</b> \(\mathrm{Cov}(\mathbf e, \hat{\mathbf y}) = \sigma^2(I-H)H = 0\): por eso se grafican residuos contra ajustados.</li>
+        <li><b>Residuo de eliminación.</b> \(y_i - \hat y_{i(i)} = e_i/(1 - h_{ii})\), por Sherman y Morrison; con él, \(PRESS = \sum e_i^2/(1-h_{ii})^2\) es una validación cruzada dejando uno fuera sin reajustar.</li>
+        <li><b>Descomposición de Cook.</b> \(D_i = \frac{r_i^2}{p+1}\cdot\frac{h_{ii}}{1-h_{ii}}\): sin residuo o sin apalancamiento no hay influencia.</li>
+        <li><b>Estudentizado externo.</b> \(t_i = r_i\sqrt{\frac{n-p-2}{n-p-1-r_i^2}} \sim t_{n-p-2}\) bajo normalidad, porque \(s_{(i)}\) es independiente de \(e_i\).</li>
+        <li><b>Sándwich.</b> \(\operatorname{Var}(\hat{\boldsymbol\beta}) = (X^\top X)^{-1}X^\top\Omega X(X^\top X)^{-1}\); se reduce a \(\sigma^2(X^\top X)^{-1}\) solo si \(\Omega = \sigma^2 I\).</li>
+        <li><b>Estabilización por método delta.</b> Si \(\operatorname{sd}(y) \propto \mu^k\), la transformación \(y^{1-k}\) (o \(\log y\) si \(k = 1\)) tiene varianza aproximadamente constante.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Graficar residuos contra \(y\) observada en lugar de contra los ajustados.</li>
+          <li>Eliminar todos los puntos con \(|r_i| &gt; 2\): en 100 datos esperas unos 5 por azar.</li>
+          <li>Creer que la heterocedasticidad sesga los coeficientes (solo invalida sus errores estándar).</li>
+          <li>Volver de \(\log y\) a \(y\) con \(e^{\hat\mu}\) y reportarlo como media.</li>
+          <li>Comparar el \(R^2\) de un modelo en \(y\) con el de un modelo en \(\log y\): miden variaciones distintas.</li>
+        </ul>
+      </div>
+
+      <h2 id="diag-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
       <p>Elige un escenario y un gráfico de diagnóstico. El punto rojo grande lo controlas tú: arrástralo (o toca donde quieras ponerlo) y mira cómo cambian su apalancamiento, su distancia de Cook y la recta. La recta punteada es la que se obtiene sin ese punto.</p>
       <figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · diagnóstico de residuos</span><span class="num" id="diag-head">–</span></div>
@@ -105,7 +195,7 @@
               <canvas class="plot" id="diag-c-xy" height="260" aria-label="Diagrama de dispersión con la recta ajustada y un punto que se puede arrastrar"></canvas>
             </div>
             <div>
-              <div class="plot-label"><span id="diag-lbl-p">Residuos vs ajustados</span><span id="diag-lbl-p2">— cero</span></div>
+              <div class="plot-label"><span id="diag-lbl-p">Residuos vs ajustados</span><span id="diag-lbl-p2">─ cero</span></div>
               <canvas class="plot" id="diag-c-diag" height="260" aria-label="Gráfico de diagnóstico elegido"></canvas>
             </div>
           </div>
@@ -119,53 +209,29 @@
         </div>
         <figcaption>Lleva el punto al extremo derecho y súbelo o bájalo: con x lejos de la media, su h supera el umbral de 0,10 y Cook pasa de 1 con facilidad. En el centro, el mismo desvío vertical casi no importa. Luego elige “Embudo” y cambia a “log y”: el valor p de Breusch-Pagan sube y la escala-ubicación se aplana.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>En “Bien”, con el gráfico de apalancamiento, lleva el punto rojo al centro de los x y súbelo mucho. Luego llévalo al extremo derecho a la misma altura relativa.
+          <details><summary>Qué deberías observar</summary><p>En el centro, h queda cerca de 1/n y Cook se mantiene bajo aunque el residuo sea grande. En el extremo, h supera 0,10 y Cook pasa de 1 con facilidad: la misma distancia vertical pesa mucho más lejos del centro, como dice \(D = \frac{r^2}{p+1}\cdot\frac{h}{1-h}\).</p></details></li>
+        <li>En el extremo derecho, coloca el punto justo sobre la recta.
+          <details><summary>Qué deberías observar</summary><p>h sigue alto, pero Cook es casi cero y las dos rectas coinciden: apalancamiento sin influencia. Un punto así incluso mejora la precisión de la pendiente.</p></details></li>
+        <li>Elige “Curvatura” con el gráfico de residuos, y luego “Colas pesadas” con el Q-Q.
+          <details><summary>Qué deberías observar</summary><p>Con curvatura, los residuos forman una U clara. Con colas pesadas, el Q-Q se despega de la diagonal en ambos extremos en forma de S, mientras el gráfico de residuos parece casi normal: cada gráfico detecta un problema distinto.</p></details></li>
+        <li>Elige “Embudo”, mira la escala-ubicación y el valor p de Breusch-Pagan, y después cambia a “log y”.
+          <details><summary>Qué deberías observar</summary><p>En escala original la escala-ubicación sube y Breusch-Pagan da un p pequeño. Con log y la franja se aplana y el p sube: el logaritmo estabilizó la varianza, como predice el método delta cuando la desviación es proporcional a la media.</p></details></li>
+      </ol>
 
-      <h2 id="diag-infl"><span class="sec">§ 5</span>Apalancamiento e influencia</h2>
-      <p>Un punto puede ser raro de tres maneras distintas, que no conviene mezclar:</p>
-      <ul>
-        <li><b>Atípico</b>: residuo estudentizado grande. Está lejos de la recta en la dirección de \(y\).</li>
-        <li><b>Alto apalancamiento</b>: \(h_{ii}\) grande. Su combinación de predictores es inusual (lejos del centro de los \(x\)). La regla habitual marca \(h_{ii} &gt; 2(p+1)/n\).</li>
-        <li><b>Influyente</b>: si lo quitas, los coeficientes cambian mucho. Hace falta apalancamiento <i>y</i> residuo a la vez.</li>
-      </ul>
-      <p>La <b>distancia de Cook</b> resume la influencia: cuánto se mueven todos los valores ajustados al eliminar la observación \(i\), y se descompone en esas dos piezas:</p>
-      <div class="eq">\[ D_i = \frac{\sum_j(\hat y_j - \hat y_{j(i)})^2}{(p+1)\,s^2} = \frac{r_i^2}{p+1}\cdot\frac{h_{ii}}{1 - h_{ii}} \]
-        <div class="note">\(\hat y_{j(i)}\) es el ajuste sin la observación \(i\). Criterios usuales: \(D_i &gt; 1\) es influyente; \(D_i &gt; 4/n\) merece revisión. Otras medidas relacionadas: DFFITS (cambio en el propio ajuste) y DFBETAS (cambio en cada coeficiente, en errores estándar).</div>
-      </div>
-      <p>En los hogares, \(2(p+1)/n = 4/16 = 0{,}25\). El hogar de ingreso 110 tiene \(h = 0{,}47\) y \(D = 1{,}73\): es muy influyente. Sin él, la pendiente pasa de 0,203 a 0,185. El de ingreso 85 tiene \(D = 0{,}57\), alto pero bajo 1.</p>
-      <div class="callout"><b>Qué hacer con un punto influyente:</b> primero, comprobar que no sea un error de captura. Si es real, no lo borres en silencio: reporta el modelo con y sin él, y pregúntate si indica que el modelo está mal especificado. Aquí el punto de 110 no es un error: es el embudo. Con la transformación adecuada (§ 7) deja de ser influyente.</div>
+      <h2 id="diag-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Economía: la ley de Engel</h3>
+      <p>Ernst Engel observó en 1857, con presupuestos de familias belgas, que la proporción del ingreso gastada en alimentos cae al subir el ingreso. Con datos de hogares, la regresión del gasto sobre el ingreso en escala original muestra siempre el embudo de esta sesión; el modelo log-log da una elasticidad menor que 1, típicamente entre 0,4 y 0,8. La decisión que permite: clasificar bienes como necesarios o de lujo y calibrar índices de precios y líneas de pobreza.</p>
+      <h3>Biología: cerebro y cuerpo de los mamíferos</h3>
+      <p>El conjunto <code>mammals</code> del paquete MASS de R tiene el peso corporal y cerebral de 62 especies. En escala original es imposible de modelar: el elefante africano y el asiático tienen apalancamiento cercano a 1 y deciden toda la recta. En log-log la nube es lineal, con pendiente cercana a 0,75: el cerebro crece como el cuerpo elevado a 3/4. Los residuos de esa recta son el “cociente de encefalización”, y el ser humano es el residuo positivo más destacado. La decisión: comparar especies corrigiendo por tamaño.</p>
+      <h3>Ciencias sociales: prestigio de ocupaciones</h3>
+      <p>Los datos de Duncan (1961) sobre 45 ocupaciones de Estados Unidos, que John Fox usa en sus libros de regresión (paquete <code>carData</code>), regresan el prestigio sobre el ingreso y la educación de cada ocupación. Los gráficos de influencia señalan a los ministros religiosos (prestigio alto para su ingreso) y a los conductores de trenes (ingreso alto para su educación) como observaciones influyentes; al quitarlas, el coeficiente del ingreso cambia de forma apreciable. La decisión: reportar ambas versiones y discutir por qué esas ocupaciones no siguen el patrón general.</p>
+      <h3>Toxicología: el ejemplo de Box y Cox</h3>
+      <p>En su artículo de 1964, Box y Cox analizaron tiempos de supervivencia de animales expuestos a 3 venenos con 4 tratamientos. En escala original los residuos mostraban fuerte heterocedasticidad; la verosimilitud perfilada indicaba \(\lambda \approx -1\), es decir, modelar el inverso del tiempo, que se interpreta como la <i>tasa</i> de muerte. Con esa transformación la varianza se estabiliza y la interacción veneno × tratamiento desaparece. La decisión: comparar antídotos con una escala en la que los efectos son aditivos.</p>
 
-      <h2 id="diag-het"><span class="sec">§ 6</span>Heterocedasticidad</h2>
-      <p>Si \(\operatorname{Var}(\varepsilon_i)\) cambia con los predictores, los coeficientes de MCO siguen siendo insesgados, pero sus <b>errores estándar clásicos son incorrectos</b> (casi siempre demasiado pequeños donde hay más dispersión), y con ellos los intervalos y los valores p. Además, MCO deja de ser el estimador más eficiente.</p>
-      <p>La prueba de <b>Breusch-Pagan</b> regresa los residuos al cuadrado sobre los predictores. Si los predictores explican parte de \(e_i^2\), la varianza no es constante:</p>
-      <div class="eq">\[ e_i^2 = \gamma_0 + \gamma_1 x_{i1} + \cdots + \gamma_p x_{ip} + u_i, \qquad LM = n\,R^2_{\text{aux}} \sim \chi^2_p \text{ bajo } H_0 \text{: homocedasticidad} \]
-        <div class="note">En los hogares, \(LM = 6{,}46\) con 1 gl y \(p = 0{,}011\): se rechaza la homocedasticidad. La prueba de White agrega cuadrados e interacciones de los predictores para detectar formas más generales.</div>
-      </div>
-      <p>Tres remedios, según el objetivo:</p>
-      <ul>
-        <li><b>Errores estándar robustos</b> (de White o “sándwich”, versiones HC0 a HC3): mantienen los coeficientes de MCO y corrigen solo la incertidumbre. HC3 es la recomendada con muestras pequeñas. En los hogares, el error estándar de la pendiente pasa de 0,0107 a 0,0217: el doble.</li>
-        <li><b>Mínimos cuadrados ponderados</b> (WLS): si sabes cómo crece la varianza, por ejemplo \(\operatorname{Var}(\varepsilon_i) \propto x_i^2\), pondera cada observación por \(w_i = 1/x_i^2\). Da estimaciones más eficientes.</li>
-        <li><b>Transformar la respuesta</b>, típicamente con logaritmos, cuando la dispersión es proporcional al nivel.</li>
-      </ul>
-
-      <h2 id="diag-trans"><span class="sec">§ 7</span>Transformaciones</h2>
-      <p>Muchas variables económicas, biológicas o de tiempos son positivas, asimétricas y con variabilidad proporcional a su tamaño: un hogar rico varía su gasto en cientos de dólares, uno pobre en decenas. El logaritmo convierte esa variación multiplicativa en aditiva y suele arreglar a la vez el embudo, la asimetría y la curvatura.</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Modelo</th><th>Interpretación de \(\beta_1\)</th></tr></thead>
-        <tbody>
-          <tr><td>\(y = \beta_0 + \beta_1 x\)</td><td>+1 en \(x\) → \(+\beta_1\) unidades en \(y\)</td></tr>
-          <tr><td>\(\log y = \beta_0 + \beta_1 x\)</td><td>+1 en \(x\) → \(y\) se multiplica por \(e^{\beta_1}\) (≈ \(100\beta_1\) % si \(\beta_1\) es pequeño)</td></tr>
-          <tr><td>\(y = \beta_0 + \beta_1 \log x\)</td><td>+1 % en \(x\) → \(+\beta_1/100\) unidades en \(y\)</td></tr>
-          <tr><td>\(\log y = \beta_0 + \beta_1 \log x\)</td><td>+1 % en \(x\) → ≈ \(+\beta_1\) % en \(y\) (<b>elasticidad</b>)</td></tr>
-        </tbody>
-      </table></div>
-      <p>Con los hogares, el modelo log-log da \(\widehat{\log \text{gasto}} = -0{,}45 + 0{,}765\log\text{ingreso}\), con IC 95 % para la elasticidad de \([0{,}67;\ 0{,}86]\). Un ingreso 10 % mayor se asocia con un gasto en alimentos \(1{,}1^{0{,}765} - 1 \approx 7{,}6\,\%\) mayor: los alimentos son un bien necesario, su peso en el presupuesto baja al subir el ingreso (ley de Engel). Breusch-Pagan pasa a \(p = 0{,}61\) y el punto de 110 deja de destacar.</p>
-      <p>La familia de <b>Box-Cox</b> busca la potencia que mejor normaliza y estabiliza \(y &gt; 0\):</p>
-      <div class="eq">\[ y^{(\lambda)} = \begin{cases} \dfrac{y^\lambda - 1}{\lambda} & \lambda \ne 0 \\[6pt] \log y & \lambda = 0 \end{cases} \]
-        <div class="note">\(\lambda = 1\) no transforma, \(\lambda = 0{,}5\) es la raíz, \(\lambda = 0\) el logaritmo y \(\lambda = -1\) el inverso. Se elige por máxima verosimilitud y se redondea a un valor interpretable: para el gasto, \(\hat\lambda \approx -0{,}2\), cerca de 0, lo que respalda el logaritmo.</div>
-      </div>
-      <div class="callout"><b>Ojo al volver a la escala original:</b> \(e^{\widehat{\log y}}\) estima la <i>mediana</i> de \(y\), no su media. Si necesitas la media (por ejemplo, para presupuestar), multiplica por un factor de corrección como \(e^{s^2/2}\) o el de Duan. Y si \(y\) tiene ceros, el logaritmo no sirve directamente: considera \(\log(y+1)\) con cuidado o, mejor, un modelo lineal generalizado.</div>
-
-      <h2 id="diag-code"><span class="sec">§ 8</span>En R y Python</h2>
+      <h2 id="diag-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>Diagnóstico completo de los 16 hogares: influencia, heterocedasticidad, errores robustos y modelo log-log.</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
@@ -231,8 +297,9 @@ ml &lt;- <span class="f">lm</span>(<span class="f">log</span>(gasto) ~ <span cla
 <span class="f">coef</span>(ml); <span class="f">confint</span>(ml)                   <span class="c"># elasticidad ≈ 0.765 [0.67, 0.86]</span>
 lmtest::<span class="f">bptest</span>(ml)                      <span class="c"># p ≈ 0.61</span></code></pre>
       </div>
+      <p>Resumen de la salida: \(h = 0{,}47\) y \(D = 1{,}73\) para el hogar de 110; Breusch-Pagan con \(LM = 6{,}46\), \(p = 0{,}011\); el error estándar de la pendiente pasa de 0,0107 a 0,0217 con HC3; Box-Cox sugiere \(\hat\lambda \approx -0{,}2\); y el modelo log-log tiene elasticidad 0,765 con Breusch-Pagan \(p = 0{,}61\).</p>
 
-      <h2 id="diag-quiz"><span class="sec">§ 9</span>Comprueba</h2>
+      <h2 id="diag-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="La influencia necesita las dos cosas: x inusual (apalancamiento) y un residuo grande. Un punto con x extremo que cae justo sobre la recta tiene mucho apalancamiento pero casi no la mueve." data-wrong="Recuerda la fórmula de Cook: D = r²/(p+1) · h/(1 − h). ¿Qué pasa con D si el residuo r es casi cero, aunque h sea grande?">
         <h3>Un punto tiene apalancamiento h = 0,6 pero cae casi exactamente sobre la recta ajustada. ¿Qué puedes decir?</h3>
         <div class="opts">
@@ -263,38 +330,75 @@ lmtest::<span class="f">bptest</span>(ml)                      <span class="c">#
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="D = r²/(p+1) · h/(1 − h) = (2,5²/2) · (0,3/0,7) ≈ 3,125 · 0,429 ≈ 1,34. Supera 1: es influyente." data-wrong="Usa D = r²/(p+1) · h/(1 − h) con p + 1 = 2 en una regresión simple.">
+        <h3>En una regresión simple, un punto tiene residuo estandarizado 2,5 y apalancamiento 0,3. ¿Cuánto vale su distancia de Cook?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,16</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>1,34</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>0,75</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>2,68</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Si la desviación estándar de y es proporcional a su media, el método delta dice que log y tiene varianza aproximadamente constante." data-wrong="Aplica el método delta: Var(g(y)) ≈ g′(μ)²·Var(y). ¿Qué g hace constante esa cantidad si sd(y) = c·μ?">
+        <h3>La desviación estándar de y crece en proporción a su media. ¿Qué transformación estabiliza la varianza?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>log y</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>√y</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>y²</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Ninguna: hay que usar WLS siempre</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="diag-ej"><span class="sec">§ 10</span>Ejercicios propuestos</h2>
+      <h2 id="diag-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Intenta resolverlas antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>Un modelo con \(n = 40\) observaciones y \(p = 3\) predictores tiene tres puntos con apalancamientos 0,08, 0,25 y 0,50. ¿Cuáles superan la regla \(2(p+1)/n\)? ¿Cuánto vale el apalancamiento promedio?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Umbral: \(2 \cdot 4/40 = 0{,}2\). Superan la regla el de 0,25 y el de 0,50. El promedio de los \(h_{ii}\) es siempre \((p+1)/n = 4/40 = 0{,}1\), así que el punto de 0,50 tiene cinco veces el apalancamiento típico.</p>
-            <p>Que superen el umbral no los hace influyentes: falta mirar su residuo y su distancia de Cook.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que \(0 \le h_{ii} \le 1\) usando que \(H\) es simétrica e idempotente, y que con intercepto \(h_{ii} \ge 1/n\). (b) Demuestra que el promedio de los \(h_{ii}\) es \((p+1)/n\). (c) Si \(h_{ii} = 1\), ¿cuánto vale \(e_i\) y qué significa?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(H = H^2 = HH^\top\), así que \(h_{ii} = \sum_j h_{ij}^2 = h_{ii}^2 + \sum_{j\ne i}h_{ij}^2 \ge h_{ii}^2\), de donde \(0 \le h_{ii} \le 1\). Con intercepto, el espacio columna de \(X\) contiene a \(\mathbf 1\), y \(H = H_{\mathbf 1} + H_\perp\), donde \(H_{\mathbf 1} = \mathbf 1\mathbf 1^\top/n\) y \(H_\perp\) es la proyección sobre el complemento ortogonal de \(\mathbf 1\) dentro de ese espacio. Los diagonales de \(H_\perp\) son \(\ge 0\), así que \(h_{ii} \ge 1/n\).</p><p>(b) \(\sum h_{ii} = \operatorname{tr}(H) = p + 1\); dividiendo entre \(n\), el promedio es \((p+1)/n\).</p><p>(c) \(V(e_i) = \sigma^2(1 - h_{ii}) = 0\), así que \(e_i = 0\) siempre: el modelo pasa exactamente por ese punto, que tiene un parámetro “dedicado” (por ejemplo, la única observación de una categoría). Su residuo no dice nada y su influencia no se puede medir con Cook (el denominador se anula).</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>En una regresión simple, una observación tiene residuo estandarizado \(r_i = 2{,}5\) y apalancamiento \(h_{ii} = 0{,}3\). Calcula su distancia de Cook. ¿Y si estuviera en el centro de los datos con \(h_{ii} = 0{,}05\)?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Con \(p + 1 = 2\): \(D = \tfrac{2{,}5^2}{2}\cdot\tfrac{0{,}3}{0{,}7} = 3{,}125 \cdot 0{,}429 = 1{,}34\). Supera 1: influyente.</p>
-            <p>Con \(h = 0{,}05\): \(D = 3{,}125 \cdot 0{,}05/0{,}95 = 0{,}16\). El mismo residuo en el centro de los datos casi no mueve la recta.</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Usa la fórmula de Sherman y Morrison, \((A - \mathbf u\mathbf u^\top)^{-1} = A^{-1} + \frac{A^{-1}\mathbf u\mathbf u^\top A^{-1}}{1 - \mathbf u^\top A^{-1}\mathbf u}\), para demostrar (a) \(\hat{\boldsymbol\beta} - \hat{\boldsymbol\beta}_{(i)} = (X^\top X)^{-1}\mathbf x_ie_i/(1-h_{ii})\), (b) \(y_i - \hat y_{i(i)} = e_i/(1-h_{ii})\) y (c) la descomposición de Cook.</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Sea \(A = X^\top X\), \(\mathbf u = \mathbf x_i\); entonces \(X_{(i)}^\top X_{(i)} = A - \mathbf x_i\mathbf x_i^\top\) y \(X_{(i)}^\top\mathbf y_{(i)} = X^\top\mathbf y - \mathbf x_iy_i\). Con \(h_{ii} = \mathbf x_i^\top A^{-1}\mathbf x_i\): \(\hat{\boldsymbol\beta}_{(i)} = \big[A^{-1} + \frac{A^{-1}\mathbf x_i\mathbf x_i^\top A^{-1}}{1-h_{ii}}\big](X^\top\mathbf y - \mathbf x_iy_i)\). Desarrollando y usando \(\mathbf x_i^\top\hat{\boldsymbol\beta} = \hat y_i\): \(\hat{\boldsymbol\beta}_{(i)} = \hat{\boldsymbol\beta} - A^{-1}\mathbf x_iy_i + \frac{A^{-1}\mathbf x_i(\hat y_i - h_{ii}y_i)}{1 - h_{ii}} = \hat{\boldsymbol\beta} - \frac{A^{-1}\mathbf x_i(y_i - \hat y_i)}{1-h_{ii}}\).</p><p>(b) \(\hat y_{i(i)} = \mathbf x_i^\top\hat{\boldsymbol\beta}_{(i)} = \hat y_i - \frac{h_{ii}e_i}{1-h_{ii}}\), así que \(y_i - \hat y_{i(i)} = e_i + \frac{h_{ii}e_i}{1-h_{ii}} = \frac{e_i}{1-h_{ii}}\).</p><p>(c) \(\sum_j(\hat y_j - \hat y_{j(i)})^2 = \lVert X(\hat{\boldsymbol\beta} - \hat{\boldsymbol\beta}_{(i)})\rVert^2 = \frac{e_i^2}{(1-h_{ii})^2}\mathbf x_i^\top A^{-1}AA^{-1}\mathbf x_i = \frac{e_i^2h_{ii}}{(1-h_{ii})^2}\). Dividiendo entre \((p+1)s^2\) y escribiendo \(e_i^2 = r_i^2s^2(1-h_{ii})\), sale \(D_i = \frac{r_i^2}{p+1}\cdot\frac{h_{ii}}{1-h_{ii}}\).</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Con el modelo log-log de los hogares (\(\hat\beta_1 = 0{,}765\)), ¿cuánto cambia el gasto en alimentos esperado si el ingreso se duplica? Y en un modelo \(\log(\text{salario}) = 1{,}8 + 0{,}05\,\text{educ}\), ¿cuánto sube el salario por cada año extra de educación?</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Si el ingreso se multiplica por 2, el gasto (mediano) se multiplica por \(2^{0{,}765} = 1{,}70\): sube un 70 %, menos que el ingreso, porque la elasticidad es menor que 1.</p>
-            <p>En el modelo log-nivel, cada año multiplica el salario por \(e^{0{,}05} = 1{,}051\): un 5,1 % más. La aproximación “\(100\beta\) %” (5 %) funciona bien para coeficientes pequeños; con \(\beta = 0{,}4\) ya fallaría (49 % real frente a 40 %).</p>
-          </div></details>
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Con el método delta, encuentra la transformación estabilizadora si \(\operatorname{Var}(y) = \mu\) (conteos de Poisson) y si \(\operatorname{Var}(y) = \mu(1-\mu)/m\) (proporciones). (b) Si \(\log y \sim \mathcal N(\mu, \sigma^2)\), demuestra que \(E(y) = e^{\mu + \sigma^2/2}\) y que la mediana es \(e^\mu\). (c) En el modelo log-log de los hogares, \(s = 0{,}093\). Para un ingreso de 50, ¿cuál es el gasto mediano y el gasto medio estimados?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) Se pide \(g'(\mu) \propto 1/\operatorname{sd}(y)\). Poisson: \(g'(\mu) \propto \mu^{-1/2}\), \(g = \sqrt y\). Proporciones: \(g'(\mu) \propto [\mu(1-\mu)]^{-1/2}\), \(g = \arcsin\sqrt y\).</p><p>(b) \(E(y) = E(e^{Z})\) con \(Z \sim \mathcal N(\mu,\sigma^2)\) es la generadora de momentos en 1: \(e^{\mu + \sigma^2/2}\). Como \(\log\) es creciente, la mediana de \(y\) es \(e^{\text{mediana}(Z)} = e^\mu\).</p><p>(c) \(\widehat{\log\text{gasto}} = -0{,}451 + 0{,}765\log 50 = -0{,}451 + 2{,}993 = 2{,}542\); mediana \(e^{2{,}542} \approx 12{,}7\) (1 270 dólares). Media: \(12{,}7\cdot e^{0{,}093^2/2} = 12{,}7 \cdot 1{,}0043 \approx 12{,}76\). Aquí la corrección es pequeña porque \(s\) es pequeño; con \(s = 0{,}8\) sería de 38 %.</p></div></details>
         </div>
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
-          <p>Diseña una simulación para comprobar el efecto de la heterocedasticidad sobre la inferencia. Genera 2 000 muestras de \(n = 50\) con \(y = 2 + 0{,}5x + \varepsilon\), \(x \sim U(0, 10)\) y \(\operatorname{sd}(\varepsilon) = 0{,}05\,x^2\). En cada muestra calcula el IC 95 % de la pendiente con errores clásicos y con HC3, y estima la cobertura real de cada uno.</p>
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con los 16 hogares (\(n = 16\), \(p = 1\)), el hogar de ingreso 110 tiene residuo crudo 1,63, \(h = 0{,}473\) y \(s = 1{,}143\). (a) Calcula su residuo estandarizado, su residuo estudentizado con \(t_i = r_i\sqrt{(n-p-2)/(n-p-1-r_i^2)}\) y su distancia de Cook. (b) Calcula cuánto cambia su propio valor ajustado al eliminarlo. (c) ¿Qué valor p de Bonferroni tendría como atípico, con 16 pruebas? (d) ¿Qué harías?</p>
+          <details><summary>Ver solución</summary><div class="sol"><p>(a) \(r = 1{,}633/(1{,}143\sqrt{0{,}527}) = 1{,}633/0{,}830 = 1{,}97\). \(t = 1{,}97\sqrt{13/(14 - 3{,}87)} = 1{,}97\cdot 1{,}133 \approx 2{,}23\). \(D = (3{,}87/2)(0{,}473/0{,}527) = 1{,}73\).</p><p>(b) \(\hat y_i - \hat y_{i(i)} = h_{ii}e_i/(1 - h_{ii}) = 0{,}473 \cdot 1{,}633/0{,}527 \approx 1{,}46\): de 24,67 a 23,20. El residuo de eliminación es \(1{,}633/0{,}527 = 3{,}10\).</p><p>(c) Con \(t_{13}\), \(P(|T| &gt; 2{,}23) \approx 0{,}044\); multiplicado por 16, \(p \approx 0{,}70\). No es un atípico significativo: su problema es la influencia, no el residuo.</p><p>(d) No eliminarlo: es real y encaja con el embudo. Reportar el modelo con HC3 o, mejor, el log-log, en el que deja de ser influyente.</p>
+<div class="codetabs">
+  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+n, p, e, h, s = <span class="n">16</span>, <span class="n">1</span>, <span class="n">1.633</span>, <span class="n">0.4726</span>, <span class="n">1.1433</span>
+r = e / (s * np.<span class="f">sqrt</span>(<span class="n">1</span> - h))
+t = r * np.<span class="f">sqrt</span>((n - p - <span class="n">2</span>) / (n - p - <span class="n">1</span> - r**<span class="n">2</span>))
+D = r**<span class="n">2</span> / (p + <span class="n">1</span>) * h / (<span class="n">1</span> - h)
+pb = <span class="f">min</span>(<span class="n">1</span>, n * <span class="n">2</span> * stats.t.<span class="f">sf</span>(<span class="f">abs</span>(t), n - p - <span class="n">2</span>))
+<span class="f">print</span>(r, t, D, h * e / (<span class="n">1</span> - h), pb)    <span class="c"># ≈ 1.97 2.23 1.73 1.46 0.71</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>n &lt;- <span class="n">16</span>; p &lt;- <span class="n">1</span>; e &lt;- <span class="n">1.633</span>; h &lt;- <span class="n">0.4726</span>; s &lt;- <span class="n">1.1433</span>
+r &lt;- e / (s * <span class="f">sqrt</span>(<span class="n">1</span> - h))
+t &lt;- r * <span class="f">sqrt</span>((n - p - <span class="n">2</span>) / (n - p - <span class="n">1</span> - r^<span class="n">2</span>))
+D &lt;- r^<span class="n">2</span> / (p + <span class="n">1</span>) * h / (<span class="n">1</span> - h)
+pb &lt;- <span class="f">min</span>(<span class="n">1</span>, n * <span class="n">2</span> * <span class="f">pt</span>(-<span class="f">abs</span>(t), n - p - <span class="n">2</span>))
+<span class="f">c</span>(r, t, D, h * e / (<span class="n">1</span> - h), pb)          <span class="c"># ≈ 1.97 2.23 1.73 1.46 0.71</span>
+<span class="c"># con el modelo completo: car::outlierTest(m) da la misma corrección de Bonferroni</span></code></pre>
+</div>
+</div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Diseña una simulación para comprobar el efecto de la heterocedasticidad sobre la inferencia. Genera 2 000 muestras de \(n = 50\) con \(y = 2 + 0{,}5x + \varepsilon\), \(x \sim U(0, 10)\) y \(\operatorname{sd}(\varepsilon) = 0{,}05\,x^2\). En cada muestra calcula el IC 95 % de la pendiente con errores clásicos y con HC3, y estima la cobertura real de cada uno. Explica con la fórmula del sándwich por qué el clásico falla en esta dirección.</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>La cobertura del intervalo clásico queda cerca del <b>89 %</b>, lejos del 95 % prometido: los puntos con \(x\) grande tienen mucho ruido y mucho apalancamiento, y la fórmula clásica no lo ve. Con HC3 la cobertura vuelve a cerca del <b>95 %</b>. Las estimaciones de la pendiente son insesgadas en ambos casos: solo cambia la incertidumbre.</p>
+            <p>La cobertura del intervalo clásico queda cerca del <b>89 %</b>, lejos del 95 % prometido; con HC3 vuelve a cerca del <b>95 %</b>. Las estimaciones de la pendiente son insesgadas en ambos casos: solo cambia la incertidumbre.</p>
+            <p>Por qué: en regresión simple, la varianza verdadera de la pendiente es \(\sum (x_i - \bar x)^2\sigma_i^2/S_{xx}^2\), un promedio de \(\sigma_i^2\) ponderado por \((x_i - \bar x)^2\). La fórmula clásica usa \(\bar\sigma^2/S_{xx}\), un promedio sin ponderar. Como aquí \(\sigma_i\) crece con \(x\), los puntos con \(x\) grande (más alejados de la media) tienen a la vez más ruido y más peso, y la fórmula clásica subestima.</p>
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np

@@ -5,34 +5,56 @@
     <div class="wrap">
       <div class="crumbs"></div>
       <h1>Modelos paramétricos: exponencial y Weibull</h1>
-      <p>Kaplan-Meier y Cox no dicen nada más allá del último dato. Si necesitas predecir cuántas piezas fallarán en cinco años con tres años de seguimiento, o una curva suave en lugar de escalones, necesitas suponer una forma para el riesgo. Aquí trabajas con los dos modelos paramétricos más usados, aprendes a ajustarlos con censura, a leerlos como modelos de tiempo de falla acelerado y a decidir cuándo convienen frente a Cox.</p>
-      <div class="lmeta"><span>45 min</span><span>Nivel avanzado</span><span>Requiere: regresión de Cox y máxima verosimilitud</span><span>R · Python</span></div>
+      <p>Cuando necesitas curvas suaves, medianas con fórmula o predecir más allá del seguimiento, tienes que suponer una forma para el riesgo. Aquí defines la exponencial y la Weibull, derivas su verosimilitud con censura y la verosimilitud perfil, aprendes a leer un modelo de tiempo de falla acelerado, a convertirlo en razón de riesgos y a comparar con Cox, y ves por qué extrapolar es la parte más delicada con datos reales de cáncer de pulmón y un estudio de simulación.</p>
+      <div class="lmeta"><span>90 min</span><span>Nivel avanzado</span><span>Requiere: Kaplan-Meier y regresión de Cox</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#weibull-idea" data-sec="weibull-idea">La idea</a></li>
-        <li><a href="#weibull-exp" data-sec="weibull-exp">El modelo exponencial</a></li>
-        <li><a href="#weibull-wb" data-sec="weibull-wb">El modelo de Weibull</a></li>
-        <li><a href="#weibull-lab" data-sec="weibull-lab">Laboratorio: forma y escala</a></li>
-        <li><a href="#weibull-mv" data-sec="weibull-mv">Ajuste con censura</a></li>
-        <li><a href="#weibull-lab-fit" data-sec="weibull-lab-fit">Laboratorio: ajustar y extrapolar</a></li>
+        <li><a href="#weibull-intro" data-sec="weibull-intro">Introducción</a></li>
+        <li><a href="#weibull-def" data-sec="weibull-def">Definición</a></li>
+        <li><a href="#weibull-formas" data-sec="weibull-formas">Forma del riesgo</a></li>
+        <li><a href="#weibull-mv" data-sec="weibull-mv">Máxima verosimilitud</a></li>
         <li><a href="#weibull-aft" data-sec="weibull-aft">Tiempo de falla acelerado</a></li>
         <li><a href="#weibull-cox" data-sec="weibull-cox">¿Paramétrico o Cox?</a></li>
+        <li><a href="#weibull-prop" data-sec="weibull-prop">Propiedades</a></li>
+        <li><a href="#weibull-lab" data-sec="weibull-lab">Ejercicios de simulación</a></li>
+        <li><a href="#weibull-apps" data-sec="weibull-apps">Aplicaciones reales</a></li>
         <li><a href="#weibull-code" data-sec="weibull-code">En R y Python</a></li>
-        <li><a href="#weibull-quiz" data-sec="weibull-quiz">Comprueba</a></li>
-        <li><a href="#weibull-ej" data-sec="weibull-ej">Ejercicios</a></li>
+        <li><a href="#weibull-quiz" data-sec="weibull-quiz">Quiz</a></li>
+        <li><a href="#weibull-ej" data-sec="weibull-ej">Preguntas propuestas</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="weibull-idea"><span class="sec">§ 1</span>La idea</h2>
+      <h2 id="weibull-intro"><span class="sec">§ 1</span>Introducción</h2>
       <p>Un fabricante de bombas de agua ofrece 3 años de garantía y quiere ampliarla a 5. Tiene datos de 200 bombas instaladas: algunas fallaron, la mayoría sigue funcionando al cierre del seguimiento. Para fijar el precio de la garantía extendida necesita estimar qué fracción fallará entre los años 3 y 5, un período que <b>todavía no ha observado</b>.</p>
       <p>Kaplan-Meier no puede ayudar: después del último tiempo observado no hay curva. Cox tampoco: el riesgo basal es libre y no se extrapola. La única salida honesta es suponer una forma para el riesgo, comprobar que encaja con lo observado y extrapolar con cautela. Es lo que hacen los <b>modelos paramétricos</b>, que además entregan curvas suaves, medianas con fórmula cerrada y estimaciones más precisas cuando la forma elegida es correcta.</p>
       <div class="callout"><b>Qué vas a aprender:</b> la exponencial supone riesgo constante; la Weibull permite que crezca o decrezca con un solo parámetro más. Ambos se pueden leer de dos maneras: como un efecto que multiplica el riesgo (como Cox) o como un efecto que estira o encoge el tiempo (tiempo de falla acelerado).</div>
+      <p>Un poco de historia. La distribución que hoy lleva el nombre de Weibull apareció primero en 1933, cuando Rosin y Rammler la usaron para describir el tamaño de partículas de carbón molido. El ingeniero sueco Waloddi Weibull la propuso en 1939 para la resistencia de materiales y la popularizó en 1951 con el artículo “A statistical distribution function of wide applicability”, mostrando que ajustaba datos tan distintos como la resistencia del acero, el tamaño de cenizas y la estatura de adultos. Su justificación teórica viene de la teoría de valores extremos: si un sistema falla cuando falla el más débil de muchos componentes, su tiempo de falla tiende a una Weibull. En los años cincuenta, Epstein y Sobel desarrollaron la teoría de pruebas de vida con la exponencial, y en los setenta Kalbfleisch y Prentice sistematizaron los modelos de tiempo de falla acelerado que verás aquí.</p>
+      <div class="callout"><b>En esta sesión aprenderás a:</b>
+        <ul>
+          <li>Definir las distribuciones exponencial y Weibull a través de \(h\), \(H\), \(S\) y \(f\), y leer la forma del riesgo en \(k\).</li>
+          <li>Escribir la verosimilitud con censura, derivar los estimadores y la verosimilitud perfil.</li>
+          <li>Diagnosticar el ajuste con el gráfico de Weibull y comparar modelos con razón de verosimilitudes y AIC.</li>
+          <li>Interpretar un modelo de tiempo de falla acelerado como razón de tiempos y convertirlo en razón de riesgos.</li>
+          <li>Decidir entre un modelo paramétrico y Cox, y reconocer los riesgos de extrapolar.</li>
+          <li>Ajustar en R y Python un Weibull AFT a los datos reales <code>lung</code>.</li>
+        </ul>
+      </div>
 
-      <h2 id="weibull-exp"><span class="sec">§ 2</span>El modelo exponencial</h2>
+      <h2 id="weibull-def"><span class="sec">§ 2</span>Definición</h2>
+      <p>Un modelo paramétrico de supervivencia especifica por completo la distribución de \(T\) con unos pocos parámetros. Basta dar una de las cuatro funciones, porque se relacionan así: \(H(t) = \int_0^t h(u)\,du\), \(S(t) = e^{-H(t)}\) y \(f(t) = h(t)\,S(t)\) (ver <a href="#superv">conceptos de supervivencia</a>).</p>
+      <div class="callout"><b>Definición (exponencial y Weibull).</b> \(T\) sigue una distribución <b>exponencial</b> con tasa \(\lambda &gt; 0\) si \(h(t) = \lambda\) para todo \(t \ge 0\). \(T\) sigue una distribución de <b>Weibull</b> con forma \(k &gt; 0\) y escala \(\lambda &gt; 0\), \(T \sim \text{Weibull}(k, \lambda)\), si
+        <div class="eq">\[ h(t) = \frac{k}{\lambda}\left(\frac{t}{\lambda}\right)^{k-1}, \qquad S(t) = \exp\!\left[-\left(\frac{t}{\lambda}\right)^{k}\right] \]</div>
+        La exponencial es el caso \(k = 1\) (con escala \(1/\lambda\)). El parámetro \(k\) determina la <b>forma</b> del riesgo y \(\lambda\) la <b>escala</b> del tiempo.
+      </div>
+      <p>Atención a las parametrizaciones: R (<code>dweibull</code>) y <code>numpy</code> usan forma y escala como aquí; algunos textos de fiabilidad escriben \(h(t) = \alpha\gamma t^{\gamma - 1}\) con \(\alpha = \lambda^{-k}\), y <code>survreg</code> reporta \(\sigma = 1/k\) y \(\ln\lambda\). Antes de comparar números, convierte.</p>
+      <p><b>Ejemplo numérico.</b> Un rodamiento con \(k = 2\) y \(\lambda = 10\,000\) horas: \(S(5\,000) = e^{-0{,}25} = 0{,}78\), \(S(10\,000) = e^{-1} = 0{,}37\) y \(h(10\,000)/h(5\,000) = 2^{k-1} = 2\). Si fuera exponencial con la misma escala, \(S(5\,000) = e^{-0{,}5} = 0{,}61\): la exponencial predice muchas más fallas tempranas y muchas menos tardías.</p>
+
+      <h2 id="weibull-formas"><span class="sec">§ 3</span>Exponencial y Weibull: la forma del riesgo</h2>
+      <p><b>El modelo exponencial.</b></p>
       <p>El modelo más simple supone riesgo constante \(h(t) = \lambda\):</p>
       <div class="eq">\[ h(t) = \lambda, \qquad H(t) = \lambda t, \qquad S(t) = e^{-\lambda t}, \qquad f(t) = \lambda e^{-\lambda t} \]
         <div class="note">Media \(1/\lambda\), mediana \(\ln 2/\lambda\). Su propiedad característica es la <b>falta de memoria</b>: \(P(T &gt; s + t \mid T &gt; s) = P(T &gt; t)\). Una bomba que lleva 3 años funcionando es, para el modelo, tan buena como una nueva.</div>
@@ -42,8 +64,7 @@
         <div class="note">Construir el intervalo en escala logarítmica evita límites negativos. Ejemplo: 20 fallas en 800 bombas-año dan \(\hat\lambda = 0{,}025\) por año, con IC \(0{,}025\,e^{\pm 0{,}438} = [0{,}016;\ 0{,}039]\).</div>
       </div>
       <p>La exponencial es atractiva por su sencillez y funciona bien para fallas aleatorias (golpes, picos de tensión) o en intervalos cortos. Pero casi nunca es verosímil durante toda la vida de un sistema: los equipos se desgastan, los pacientes envejecen y los clientes que pasan el primer mes tienden a quedarse.</p>
-
-      <h2 id="weibull-wb"><span class="sec">§ 3</span>El modelo de Weibull</h2>
+      <p><b>El modelo de Weibull.</b></p>
       <p>La distribución de Weibull agrega un <b>parámetro de forma</b> \(k &gt; 0\) a la escala \(\lambda &gt; 0\):</p>
       <div class="eq">\[ h(t) = \frac{k}{\lambda}\left(\frac{t}{\lambda}\right)^{k-1}, \qquad H(t) = \left(\frac{t}{\lambda}\right)^{k}, \qquad S(t) = \exp\!\left[-\left(\frac{t}{\lambda}\right)^{k}\right] \]
         <div class="note">\(k &lt; 1\): riesgo decreciente (mortalidad infantil, fallas por defectos de fabricación). \(k = 1\): exponencial. \(k &gt; 1\): riesgo creciente (desgaste); con \(k = 2\) el riesgo crece en línea recta. \(\lambda\) es la vida característica: \(S(\lambda) = e^{-1} \approx 0{,}37\) para cualquier \(k\).</div>
@@ -55,10 +76,92 @@
       <div class="eq">\[ \ln\big[-\ln S(t)\big] = k \ln t - k \ln \lambda \]
         <div class="note">Si los puntos \(\big(\ln t,\ \ln[-\ln \hat S_{\text{KM}}(t)]\big)\) caen sobre una recta, la Weibull es razonable; la pendiente estima \(k\). Si la pendiente es 1, basta la exponencial. Si hay curvatura clara, prueba otra distribución. Es el mismo gráfico log-log que usaste para revisar riesgos proporcionales en Cox.</div>
       </div>
+      <p><b>Derivación de la media y la mediana.</b> La mediana resuelve \(S(m) = 1/2\): \((m/\lambda)^k = \ln 2\), así que \(m = \lambda(\ln 2)^{1/k}\). Para la media, \(E[T] = \int_0^\infty S(t)\,dt = \int_0^\infty e^{-(t/\lambda)^k}dt\); con el cambio \(u = (t/\lambda)^k\), \(dt = (\lambda/k)u^{1/k - 1}du\), y queda \(\frac{\lambda}{k}\int_0^\infty u^{1/k-1}e^{-u}du = \frac{\lambda}{k}\Gamma(1/k) = \lambda\,\Gamma(1 + 1/k)\).</p>
 
-      <h2 id="weibull-lab"><span class="sec">§ 4</span>Laboratorio: forma y escala</h2>
-      <p>Mueve la forma \(k\) y la escala \(\lambda\). La línea punteada es la exponencial con la misma escala, como referencia. Busca el valor de \(k\) en que el riesgo se vuelve recto y fíjate en que todas las curvas de supervivencia pasan por 0,37 en \(t = \lambda\).</p>
-      <figure class="instrument lab">
+      <h2 id="weibull-mv"><span class="sec">§ 4</span>Ajuste por máxima verosimilitud con censura</h2>
+      <p>Con censura no informativa, la verosimilitud de una muestra \((y_i, \delta_i)\) es \(L = \prod_i f(y_i)^{\delta_i}S(y_i)^{1-\delta_i} = \prod_i h(y_i)^{\delta_i}S(y_i)\): un evento aporta la densidad y una censura solo la probabilidad de seguir vivo.</p>
+      <p>Como en cualquier modelo de supervivencia, cada evento aporta \(\ln h(y_i) + \ln S(y_i)\) y cada censura aporta \(\ln S(y_i)\). Para la Weibull:</p>
+      <div class="eq">\[ \ell(k, \lambda) = \sum_{i=1}^n \Big\{ \delta_i\big[\ln k - k\ln\lambda + (k - 1)\ln y_i\big] - \Big(\frac{y_i}{\lambda}\Big)^{k} \Big\} \]
+        <div class="note">Para \(k\) fijo, el máximo en \(\lambda\) tiene fórmula cerrada: \(\hat\lambda(k)^k = \sum_i y_i^k / d\). Sustituyendo queda una función de \(k\) solamente, la verosimilitud perfil, que se maximiza numéricamente. Es lo que hace el laboratorio de abajo.</div>
+      </div>
+      <p>Como la exponencial es la Weibull con \(k = 1\), los modelos están anidados y se comparan con una prueba de razón de verosimilitudes, \(2(\ell_{\text{W}} - \ell_{\text{E}}) \sim \chi^2_1\), o con el AIC, \(-2\ell + 2p\). Para modelos no anidados (Weibull frente a log-normal) solo sirve el AIC. En ambos casos, compara además las curvas ajustadas con el Kaplan-Meier: un buen AIC no garantiza un buen ajuste en la zona que te interesa.</p>
+      <div class="callout"><b>Cuidado con la extrapolación:</b> los datos solo informan sobre el rango observado. Dos distribuciones que ajustan igual de bien durante 3 años pueden dar predicciones muy distintas a los 5. Reporta la extrapolación como un escenario condicionado a la forma del modelo, compara varias formas y, si puedes, apóyate en conocimiento externo (física del desgaste, datos de otros productos).</div>
+      <p><b>Derivación para la exponencial.</b> \(\ell(\lambda) = d\ln\lambda - \lambda\sum y_i\). Derivando, \(\ell'(\lambda) = d/\lambda - \sum y_i = 0\), así que \(\hat\lambda = d/\sum y_i\). La información observada es \(-\ell''(\hat\lambda) = d/\hat\lambda^2\), de donde \(\operatorname{Var}(\hat\lambda) \approx \hat\lambda^2/d\) y, por el método delta, \(\operatorname{Var}(\ln\hat\lambda) \approx 1/d\). La precisión depende del número de eventos, no del número de unidades.</p>
+      <p><b>Derivación de la perfil de la Weibull.</b> Para \(k\) fijo, \(\partial\ell/\partial\lambda = -dk/\lambda + k\lambda^{-k-1}\sum y_i^k = 0\) da \(\hat\lambda(k)^k = \sum y_i^k/d\). Sustituyendo:</p>
+      <div class="eq">\[ \ell_p(k) = d\ln k - d\ln\!\Big(\frac{\sum_i y_i^k}{d}\Big) + (k-1)\sum_i \delta_i\ln y_i - d, \qquad \frac{\sum_i y_i^k\ln y_i}{\sum_i y_i^k} - \frac1k = \frac1d\sum_i \delta_i\ln y_i \]
+        <div class="note">La segunda expresión es la ecuación del score para \(k\); no tiene solución cerrada, pero es una sola ecuación monótona y se resuelve con bisección o Newton. Con \(k = 1\) se recupera la exponencial.</div>
+      </div>
+      <p><b>Ejemplo resuelto a mano.</b> Ocho bombas seguidas hasta 36 meses: 10, 18, 25, 30+, 33, 36+, 36+, 36+. Hay \(d = 4\) fallas y \(\sum y_i = 224\) meses-bomba.</p>
+      <ul>
+        <li><b>Exponencial:</b> \(\hat\lambda = 4/224 = 0{,}0179\) por mes, media 56 meses, \(\ell_E = 4\ln(0{,}0179) - 4 = -20{,}10\).</li>
+        <li><b>Weibull con \(k = 2\):</b> \(\sum y_i^2 = 100 + 324 + 625 + 900 + 1\,089 + 3(1\,296) = 6\,926\), \(\hat\lambda(2) = \sqrt{6\,926/4} = 41{,}6\) meses y \(\ell_p(2) = -19{,}15\).</li>
+        <li><b>Máximo numérico:</b> \(\hat k = 2{,}05\), \(\hat\lambda = 41{,}3\), \(\ell_W = -19{,}14\). La razón de verosimilitudes es \(2(-19{,}14 + 20{,}10) = 1{,}91\), \(p = 0{,}17\): con 4 fallas no se puede descartar la exponencial.</li>
+        <li><b>Extrapolación a 60 meses:</b> la Weibull da \(S(60) = e^{-(60/41{,}3)^{2{,}05}} = 0{,}12\) y la exponencial \(e^{-0{,}0179 \cdot 60} = 0{,}34\). Dos modelos que los datos no distinguen dan predicciones que difieren en un factor de tres.</li>
+      </ul>
+
+      <h2 id="weibull-aft"><span class="sec">§ 5</span>Modelos de tiempo de falla acelerado</h2>
+      <p>Para agregar covariables hay dos caminos. El de Cox multiplica el riesgo. El de <b>tiempo de falla acelerado</b> (AFT, por <i>accelerated failure time</i>) actúa sobre el tiempo mismo, como una regresión lineal para \(\ln T\):</p>
+      <div class="eq">\[ \ln T_i = \beta_0 + \gamma_1 x_{i1} + \dots + \gamma_p x_{ip} + \sigma W_i \qquad\Longleftrightarrow\qquad S(t \mid x) = S_0\!\big(t\,e^{-x^\top\gamma}\big) \]
+        <div class="note">\(W\) es un error con distribución fija y \(\sigma\) su escala. Si \(W\) sigue la distribución de valor extremo (mínimo), \(T\) es Weibull con \(k = 1/\sigma\) y \(\lambda = e^{\beta_0 + x^\top\gamma}\); si \(W\) es normal, \(T\) es log-normal; si es logística, log-logística.</div>
+      </div>
+      <p>El coeficiente se interpreta como una <b>razón de tiempos</b>: \(e^{\gamma}\) multiplica todos los cuantiles del tiempo. Si \(e^{\gamma} = 1{,}5\) para el modelo nuevo de bomba, su mediana, su percentil 10 y cualquier otro cuantil son 1,5 veces los del modelo viejo: el reloj de la bomba nueva corre más lento. Es una lectura muy natural para ingenieros y para clínicos (“el tratamiento alarga la mediana en 50 %”).</p>
+      <p>La Weibull es la única distribución que es a la vez de riesgos proporcionales y AFT. Las dos parametrizaciones se convierten así:</p>
+      <div class="eq">\[ h(t \mid x) = h_0(t)\,e^{x^\top\beta} \quad\text{con}\quad \beta = -\frac{\gamma}{\sigma} = -k\,\gamma, \qquad \text{HR} = (\text{razón de tiempos})^{-k} \]
+        <div class="note">Con \(k = 1{,}8\) y razón de tiempos 1,5: HR \(= 1{,}5^{-1{,}8} \approx 0{,}48\). Alargar la vida un 50 % equivale a reducir el riesgo un 52 %. Ojo con el signo: en AFT un coeficiente positivo es <b>bueno</b> (más tiempo); en Cox un coeficiente positivo es <b>malo</b> (más riesgo).</div>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Distribución</th><th>Forma del riesgo</th><th>¿PH?</th><th>¿AFT?</th><th>Cuándo usarla</th></tr></thead>
+        <tbody>
+          <tr><td>Exponencial</td><td>Constante</td><td>Sí</td><td>Sí</td><td>Fallas aleatorias, períodos cortos</td></tr>
+          <tr><td>Weibull</td><td>Monótona (sube o baja)</td><td>Sí</td><td>Sí</td><td>Desgaste, fiabilidad, la opción por defecto</td></tr>
+          <tr><td>Log-normal</td><td>Sube y luego baja</td><td>No</td><td>Sí</td><td>Tiempos de recuperación, procesos con un pico de riesgo</td></tr>
+          <tr><td>Log-logística</td><td>Sube y baja, o solo baja</td><td>No</td><td>Sí</td><td>Como la log-normal, con fórmula cerrada para S(t)</td></tr>
+          <tr><td>Gamma generalizada</td><td>Muy flexible</td><td>No</td><td>Sí</td><td>Contiene a las anteriores; útil para elegir entre ellas</td></tr>
+        </tbody>
+      </table></div>
+      <p>En R, <code>survreg</code> ajusta modelos AFT y reporta \(\beta_0, \gamma\) y <code>Scale</code> \(= \sigma\). El paquete <code>flexsurv</code> ofrece más distribuciones, splines para el riesgo basal y la parametrización PH directamente.</p>
+      <p><b>Derivación de la conversión.</b> Con \(\ln T = \beta_0 + x^\top\gamma + \sigma W\) y \(W\) de valor extremo mínimo, \(S(t \mid x) = \exp\big[-(t\,e^{-\beta_0 - x^\top\gamma})^{1/\sigma}\big]\). El riesgo acumulado es \(H(t \mid x) = (te^{-\beta_0})^{k}\,e^{-k\,x^\top\gamma}\) con \(k = 1/\sigma\): un riesgo basal \(H_0(t) = (te^{-\beta_0})^k\) multiplicado por \(e^{x^\top\beta}\) con \(\beta = -k\gamma\). Eso es exactamente un modelo de riesgos proporcionales.</p>
+
+      <h2 id="weibull-cox"><span class="sec">§ 6</span>¿Paramétrico o Cox?</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Criterio</th><th>Cox</th><th>Paramétrico (Weibull y otros)</th></tr></thead>
+        <tbody>
+          <tr><td>Supuesto sobre h₀(t)</td><td>Ninguno</td><td>Forma completa</td></tr>
+          <tr><td>Si la forma es correcta</td><td>Algo menos eficiente</td><td>Más preciso, sobre todo con pocos eventos</td></tr>
+          <tr><td>Si la forma es incorrecta</td><td>No le afecta</td><td>Sesgo en S(t), medianas y extrapolaciones</td></tr>
+          <tr><td>Extrapolar más allá del seguimiento</td><td>No puede</td><td>Puede (con cautela)</td></tr>
+          <tr><td>Curvas, medianas, media</td><td>Escalonadas, vía Breslow</td><td>Suaves, con fórmula cerrada</td></tr>
+          <tr><td>Interpretación</td><td>Razón de riesgos</td><td>Razón de riesgos o razón de tiempos</td></tr>
+          <tr><td>Uso típico</td><td>Ensayos clínicos, epidemiología</td><td>Fiabilidad, economía de la salud, simulación, censura por intervalo</td></tr>
+        </tbody>
+      </table></div>
+      <p>Una práctica sensata es ajustar ambos: si el HR de Cox y el HR implícito de la Weibull coinciden y la Weibull sigue al Kaplan-Meier, tienes un modelo paramétrico creíble para predecir. Si no coinciden, el desacuerdo te dice que la forma paramétrica no es adecuada.</p>
+      <p>Para elegir la forma, combina tres herramientas: el <b>gráfico de Weibull</b> \(\ln[-\ln\hat S_{\text{KM}}]\) contra \(\ln t\) (recta si es Weibull, pendiente 1 si es exponencial), el <b>AIC</b> entre distribuciones candidatas y la <b>superposición</b> de las curvas ajustadas sobre el <a href="#km">Kaplan-Meier</a>, mirando en especial el final del seguimiento, que es donde arranca cualquier extrapolación. Para modelos anidados dentro de la gamma generalizada (Weibull, log-normal, gamma) también sirven pruebas de razón de verosimilitudes.</p>
+
+      <h2 id="weibull-prop"><span class="sec">§ 7</span>Propiedades</h2>
+      <ol>
+        <li><b>Falta de memoria de la exponencial.</b> \(P(T &gt; s + t \mid T &gt; s) = e^{-\lambda(s+t)}/e^{-\lambda s} = e^{-\lambda t}\). Es la única distribución continua con esta propiedad.</li>
+        <li><b>Forma del riesgo de Weibull.</b> \(h(t) \propto t^{k-1}\): decreciente si \(k &lt; 1\), constante si \(k = 1\), creciente si \(k &gt; 1\); \(h(ct)/h(t) = c^{k-1}\).</li>
+        <li><b>Vida característica.</b> \(S(\lambda) = e^{-1} \approx 0{,}368\) para cualquier \(k\), porque \(H(\lambda) = 1\).</li>
+        <li><b>Linealización.</b> \(\ln[-\ln S(t)] = k\ln t - k\ln\lambda\): recta con pendiente \(k\) en el gráfico de Weibull.</li>
+        <li><b>Estimador exponencial.</b> \(\hat\lambda = d/\sum y_i\) con \(\operatorname{EE}(\ln\hat\lambda) = 1/\sqrt d\), por la información \(d/\lambda^2\).</li>
+        <li><b>Cierre bajo mínimos.</b> Si \(T_1, \dots, T_m\) son Weibull independientes con la misma \(k\) y escalas \(\lambda_j\), \(\min_j T_j\) es Weibull con forma \(k\) y \(\lambda^{-k} = \sum_j \lambda_j^{-k}\): los riesgos se suman. Es la base del modelo del “eslabón más débil”.</li>
+        <li><b>PH y AFT a la vez.</b> La Weibull es la única familia que es simultáneamente de riesgos proporcionales y de tiempo de falla acelerado, con \(\beta = -k\gamma\) y HR \(=\) (razón de tiempos)\(^{-k}\).</li>
+        <li><b>Transformación a valor extremo.</b> \(W = k(\ln T - \ln\lambda)\) tiene \(S_W(w) = \exp(-e^w)\), así que \(\ln T\) sigue un modelo de localización y escala.</li>
+      </ol>
+      <div class="callout"><b>Errores comunes</b>
+        <ul>
+          <li>Confundir parametrizaciones (escala frente a tasa, \(\sigma\) frente a \(k\)) al comparar resultados entre programas.</li>
+          <li>Leer el signo de un coeficiente AFT como si fuera de Cox: en AFT positivo significa más tiempo, en Cox más riesgo.</li>
+          <li>Elegir la distribución solo por AIC sin mirar el ajuste al final del seguimiento.</li>
+          <li>Presentar una extrapolación como si fuera un dato: depende por completo de la forma supuesta.</li>
+          <li>Usar la exponencial por comodidad cuando el gráfico de Weibull muestra una pendiente lejos de 1.</li>
+        </ul>
+      </div>
+
+      <h2 id="weibull-lab"><span class="sec">§ 8</span>Ejercicios de simulación</h2>
+      <p><b>Laboratorio 1: forma y escala.</b> Mueve la forma \(k\) y la escala \(\lambda\). La línea punteada es la exponencial con la misma escala, como referencia. Busca el valor de \(k\) en que el riesgo se vuelve recto y fíjate en que todas las curvas de supervivencia pasan por 0,37 en \(t = \lambda\).</p>
+<figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · distribución de Weibull</span><span class="num" id="weibull-sh-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
@@ -93,18 +196,17 @@
         </div>
         <figcaption>Con k &lt; 1 la media queda muy por encima de la mediana: unas pocas unidades duran muchísimo y estiran el promedio. Con k grande, casi todas fallan cerca de λ y la curva de supervivencia cae en picada, como una fecha de vencimiento.</figcaption>
       </figure>
-
-      <h2 id="weibull-mv"><span class="sec">§ 5</span>Ajuste por máxima verosimilitud con censura</h2>
-      <p>Como en cualquier modelo de supervivencia, cada evento aporta \(\ln h(y_i) + \ln S(y_i)\) y cada censura aporta \(\ln S(y_i)\). Para la Weibull:</p>
-      <div class="eq">\[ \ell(k, \lambda) = \sum_{i=1}^n \Big\{ \delta_i\big[\ln k - k\ln\lambda + (k - 1)\ln y_i\big] - \Big(\frac{y_i}{\lambda}\Big)^{k} \Big\} \]
-        <div class="note">Para \(k\) fijo, el máximo en \(\lambda\) tiene fórmula cerrada: \(\hat\lambda(k)^k = \sum_i y_i^k / d\). Sustituyendo queda una función de \(k\) solamente, la verosimilitud perfil, que se maximiza numéricamente. Es lo que hace el laboratorio de abajo.</div>
-      </div>
-      <p>Como la exponencial es la Weibull con \(k = 1\), los modelos están anidados y se comparan con una prueba de razón de verosimilitudes, \(2(\ell_{\text{W}} - \ell_{\text{E}}) \sim \chi^2_1\), o con el AIC, \(-2\ell + 2p\). Para modelos no anidados (Weibull frente a log-normal) solo sirve el AIC. En ambos casos, compara además las curvas ajustadas con el Kaplan-Meier: un buen AIC no garantiza un buen ajuste en la zona que te interesa.</p>
-      <div class="callout"><b>Cuidado con la extrapolación:</b> los datos solo informan sobre el rango observado. Dos distribuciones que ajustan igual de bien durante 3 años pueden dar predicciones muy distintas a los 5. Reporta la extrapolación como un escenario condicionado a la forma del modelo, compara varias formas y, si puedes, apóyate en conocimiento externo (física del desgaste, datos de otros productos).</div>
-
-      <h2 id="weibull-lab-fit"><span class="sec">§ 6</span>Laboratorio: ajustar y extrapolar</h2>
-      <p>Elige la distribución real, el tamaño de muestra y cuándo termina el seguimiento. A la izquierda, el gráfico de Weibull de los datos con la recta ajustada y la de pendiente 1 (exponencial). A la derecha, el Kaplan-Meier y las dos curvas ajustadas, extrapoladas hasta 60 meses (trazo más tenue después del fin del seguimiento), frente a la curva real.</p>
-      <figure class="instrument lab">
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Fija \(\lambda = 30\) y recorre los preajustes \(k = 0{,}5\), 1, 2 y 3,5. Anota la razón \(h(2t)/h(t)\) del readout.
+          <details><summary>Qué deberías observar</summary><p>La razón es \(2^{k-1}\): 0,71, 1, 2 y 11,3. Con \(k = 2\) el riesgo es una recta que pasa por el origen. Con \(k = 3{,}5\) casi no hay fallas al principio y después se concentran alrededor de \(\lambda\).</p></details></li>
+        <li>Con \(k = 2\), cambia \(\lambda\) de 15 a 45.
+          <details><summary>Qué deberías observar</summary><p>Las curvas se estiran horizontalmente sin cambiar de forma: la mediana y la media crecen en proporción a \(\lambda\). Cambiar la escala es exactamente lo que hace un efecto AFT.</p></details></li>
+        <li>Busca un \(k\) en que la media y la mediana casi coincidan.
+          <details><summary>Qué deberías observar</summary><p>Ocurre cerca de \(k \approx 3{,}4\), donde la Weibull es casi simétrica. Con \(k &lt; 1\) la media supera mucho a la mediana por la cola larga de supervivientes.</p></details></li>
+      </ol>
+      <p><b>Laboratorio 2: ajustar y extrapolar.</b> Elige la distribución real, el tamaño de muestra y cuándo termina el seguimiento. A la izquierda, el gráfico de Weibull de los datos con la recta ajustada y la de pendiente 1 (exponencial). A la derecha, el Kaplan-Meier y las dos curvas ajustadas, extrapoladas hasta 60 meses (trazo más tenue después del fin del seguimiento), frente a la curva real.</p>
+<figure class="instrument lab">
         <div class="instrument-head"><span><span class="dot"></span>simulador · ajuste paramétrico con censura</span><span class="num" id="weibull-fit-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
@@ -141,47 +243,31 @@
         </div>
         <figcaption>Con k real = 2,5 y seguimiento corto, la exponencial parece aceptable al principio pero subestima mucho las fallas a 48 meses. Acorta el seguimiento a 10 meses: el intervalo de k̂ se abre y la extrapolación se vuelve frágil incluso con el modelo correcto. Una diferencia de AIC mayor que 2 favorece a la Weibull.</figcaption>
       </figure>
+      <p><b>Experimentos guiados</b></p>
+      <ol>
+        <li>Distribución real “Weibull k = 2,5”, \(n = 120\), fin a los 24 meses. Compara el AIC de los dos modelos y la predicción de \(S(48)\).
+          <details><summary>Qué deberías observar</summary><p>Los puntos del gráfico de Weibull caen sobre una recta con pendiente cercana a 2,5, muy distinta de la recta de pendiente 1. El AIC favorece claramente a la Weibull y la exponencial sobreestima mucho \(S(48)\).</p></details></li>
+        <li>Cambia a “Exponencial” con el mismo \(n\).
+          <details><summary>Qué deberías observar</summary><p>El \(\hat k\) de la Weibull queda cerca de 1 y las dos curvas casi coinciden. El AIC suele preferir la exponencial por tener un parámetro menos: si la forma extra no aporta, se penaliza.</p></details></li>
+        <li>Vuelve a “Weibull k = 2,5” y baja el fin del seguimiento a 8 meses, con \(n = 40\). Pulsa “Nueva muestra” varias veces.
+          <details><summary>Qué deberías observar</summary><p>Con pocos eventos y seguimiento corto, \(\hat k\) varía mucho y la extrapolación a 48 meses salta de una muestra a otra. Es el escenario típico de una evaluación económica con datos inmaduros.</p></details></li>
+        <li>Con “Weibull k = 0,6”, mira la cola de la curva extrapolada.
+          <details><summary>Qué deberías observar</summary><p>Con riesgo decreciente, la exponencial subestima la supervivencia a largo plazo: predice que casi todos fallan, mientras la Weibull deja una cola larga de supervivientes.</p></details></li>
+      </ol>
 
-      <h2 id="weibull-aft"><span class="sec">§ 7</span>Modelos de tiempo de falla acelerado</h2>
-      <p>Para agregar covariables hay dos caminos. El de Cox multiplica el riesgo. El de <b>tiempo de falla acelerado</b> (AFT, por <i>accelerated failure time</i>) actúa sobre el tiempo mismo, como una regresión lineal para \(\ln T\):</p>
-      <div class="eq">\[ \ln T_i = \beta_0 + \gamma_1 x_{i1} + \dots + \gamma_p x_{ip} + \sigma W_i \qquad\Longleftrightarrow\qquad S(t \mid x) = S_0\!\big(t\,e^{-x^\top\gamma}\big) \]
-        <div class="note">\(W\) es un error con distribución fija y \(\sigma\) su escala. Si \(W\) sigue la distribución de valor extremo (mínimo), \(T\) es Weibull con \(k = 1/\sigma\) y \(\lambda = e^{\beta_0 + x^\top\gamma}\); si \(W\) es normal, \(T\) es log-normal; si es logística, log-logística.</div>
-      </div>
-      <p>El coeficiente se interpreta como una <b>razón de tiempos</b>: \(e^{\gamma}\) multiplica todos los cuantiles del tiempo. Si \(e^{\gamma} = 1{,}5\) para el modelo nuevo de bomba, su mediana, su percentil 10 y cualquier otro cuantil son 1,5 veces los del modelo viejo: el reloj de la bomba nueva corre más lento. Es una lectura muy natural para ingenieros y para clínicos (“el tratamiento alarga la mediana en 50 %”).</p>
-      <p>La Weibull es la única distribución que es a la vez de riesgos proporcionales y AFT. Las dos parametrizaciones se convierten así:</p>
-      <div class="eq">\[ h(t \mid x) = h_0(t)\,e^{x^\top\beta} \quad\text{con}\quad \beta = -\frac{\gamma}{\sigma} = -k\,\gamma, \qquad \text{HR} = (\text{razón de tiempos})^{-k} \]
-        <div class="note">Con \(k = 1{,}8\) y razón de tiempos 1,5: HR \(= 1{,}5^{-1{,}8} \approx 0{,}48\). Alargar la vida un 50 % equivale a reducir el riesgo un 52 %. Ojo con el signo: en AFT un coeficiente positivo es <b>bueno</b> (más tiempo); en Cox un coeficiente positivo es <b>malo</b> (más riesgo).</div>
-      </div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Distribución</th><th>Forma del riesgo</th><th>¿PH?</th><th>¿AFT?</th><th>Cuándo usarla</th></tr></thead>
-        <tbody>
-          <tr><td>Exponencial</td><td>Constante</td><td>Sí</td><td>Sí</td><td>Fallas aleatorias, períodos cortos</td></tr>
-          <tr><td>Weibull</td><td>Monótona (sube o baja)</td><td>Sí</td><td>Sí</td><td>Desgaste, fiabilidad, la opción por defecto</td></tr>
-          <tr><td>Log-normal</td><td>Sube y luego baja</td><td>No</td><td>Sí</td><td>Tiempos de recuperación, procesos con un pico de riesgo</td></tr>
-          <tr><td>Log-logística</td><td>Sube y baja, o solo baja</td><td>No</td><td>Sí</td><td>Como la log-normal, con fórmula cerrada para S(t)</td></tr>
-          <tr><td>Gamma generalizada</td><td>Muy flexible</td><td>No</td><td>Sí</td><td>Contiene a las anteriores; útil para elegir entre ellas</td></tr>
-        </tbody>
-      </table></div>
-      <p>En R, <code>survreg</code> ajusta modelos AFT y reporta \(\beta_0, \gamma\) y <code>Scale</code> \(= \sigma\). El paquete <code>flexsurv</code> ofrece más distribuciones, splines para el riesgo basal y la parametrización PH directamente.</p>
+      <h2 id="weibull-apps"><span class="sec">§ 9</span>Aplicaciones reales</h2>
+      <h3>Industria: garantía de bombas de agua</h3>
+      <p>Con las 200 bombas del ejemplo inicial (seguidas hasta 36 meses), una Weibull con \(\hat k \approx 1{,}9\) y \(\hat\lambda \approx 47\) meses predice que fallará el 45 % antes de los 3 años y el 80 % antes de los 5: unas 34 de cada 100 bombas fallarían entre los años 3 y 5. Si cada reparación cuesta 120 dólares, el costo esperado de la garantía extendida es de unos 41 dólares por bomba, y el precio debe sumar un margen por la incertidumbre de la extrapolación (repite el cálculo con una log-normal y con los extremos del IC de \(k\)). Una exponencial, que ignora el desgaste, daría una cifra muy distinta.</p>
+      <h3>Salud: cáncer de pulmón avanzado</h3>
+      <p>Un Weibull AFT para los 228 pacientes de <code>lung</code> con sexo y edad da \(\hat\sigma \approx 0{,}75\) (\(k \approx 1{,}33\), riesgo creciente) y una razón de tiempos de 1,47 para las mujeres: a igual edad, todos sus cuantiles de supervivencia son un 47 % mayores. El HR implícito, \(1{,}47^{-1{,}33} \approx 0{,}60\), coincide con el del Cox (0,60), señal de que la Weibull es razonable. La mediana a los 63 años pasa de unos 273 días en hombres a 400 en mujeres.</p>
+      <h3>Economía de la salud: extrapolación para costo-efectividad</h3>
+      <p>Las agencias de evaluación de tecnologías necesitan la supervivencia media de toda la vida, no solo la de los 2 o 3 años del ensayo. La guía técnica TSD 14 de la Unidad de Apoyo a Decisiones del NICE (Latimer, 2011) recomienda ajustar varias distribuciones (exponencial, Weibull, log-normal, log-logística, Gompertz, gamma generalizada), comparar AIC y gráficos, y justificar la plausibilidad clínica de la cola. La elección puede cambiar los años de vida ganados en un factor de dos, y con ello si un fármaco se financia.</p>
+      <h3>Ambiente y energía: viento y turbinas eólicas</h3>
+      <p>La velocidad del viento en un sitio se modela típicamente con una Weibull con \(k \approx 2\) (el caso \(k = 2\) se llama distribución de Rayleigh). Con \(\lambda = 7\) m/s, la velocidad media es \(7\,\Gamma(1{,}5) = 6{,}2\) m/s, el 17 % del tiempo el viento está por debajo de 3 m/s (la turbina no arranca) y la probabilidad de superar 25 m/s (parada por seguridad) es del orden de \(3 \times 10^{-6}\). Con estos números se estima la energía anual y se compara el rendimiento de distintos emplazamientos.</p>
 
-      <h2 id="weibull-cox" ><span class="sec">§ 8</span>¿Paramétrico o Cox?</h2>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Criterio</th><th>Cox</th><th>Paramétrico (Weibull y otros)</th></tr></thead>
-        <tbody>
-          <tr><td>Supuesto sobre h₀(t)</td><td>Ninguno</td><td>Forma completa</td></tr>
-          <tr><td>Si la forma es correcta</td><td>Algo menos eficiente</td><td>Más preciso, sobre todo con pocos eventos</td></tr>
-          <tr><td>Si la forma es incorrecta</td><td>No le afecta</td><td>Sesgo en S(t), medianas y extrapolaciones</td></tr>
-          <tr><td>Extrapolar más allá del seguimiento</td><td>No puede</td><td>Puede (con cautela)</td></tr>
-          <tr><td>Curvas, medianas, media</td><td>Escalonadas, vía Breslow</td><td>Suaves, con fórmula cerrada</td></tr>
-          <tr><td>Interpretación</td><td>Razón de riesgos</td><td>Razón de riesgos o razón de tiempos</td></tr>
-          <tr><td>Uso típico</td><td>Ensayos clínicos, epidemiología</td><td>Fiabilidad, economía de la salud, simulación, censura por intervalo</td></tr>
-        </tbody>
-      </table></div>
-      <p>Una práctica sensata es ajustar ambos: si el HR de Cox y el HR implícito de la Weibull coinciden y la Weibull sigue al Kaplan-Meier, tienes un modelo paramétrico creíble para predecir. Si no coinciden, el desacuerdo te dice que la forma paramétrica no es adecuada.</p>
-
-      <h2 id="weibull-code"><span class="sec">§ 9</span>Ejemplo resuelto en R y Python</h2>
+      <h2 id="weibull-code"><span class="sec">§ 10</span>En R y Python</h2>
       <p>Simulamos 200 bombas, la mitad de un modelo nuevo que dura 1,5 veces más (AFT), con forma real \(k = 1{,}8\) y escala de 40 meses para el modelo viejo. El seguimiento termina a los 36 meses. Ajustamos Weibull sin y con covariable, comparamos con la exponencial, convertimos a razón de riesgos y contrastamos con Cox. En Python escribimos la verosimilitud con <code>scipy</code> (con <code>lifelines</code>, <code>WeibullAFTFitter</code> lo hace en una línea).</p>
-      <div class="codetabs">
+<div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
 <span class="k">import</span> pandas <span class="k">as</span> pd
@@ -253,8 +339,59 @@ esc &lt;- <span class="f">predict</span>(fw, newdata = nuevos, type = <span clas
 <span class="f">plot</span>(<span class="f">survfit</span>(<span class="f">Surv</span>(t, d) ~ x, data = df), fun = <span class="s">"cloglog"</span>)   <span class="c"># rectas paralelas</span>
 <span class="c"># con flexsurv: flexsurvreg(Surv(t, d) ~ x, data = df, dist = "weibullPH")</span></code></pre>
       </div>
+      <p><b>Caso aplicado completo: Weibull AFT para cáncer de pulmón.</b> Ajustamos Weibull y log-normal con sexo y edad, comparamos AIC, convertimos a HR y contrastamos con Cox.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np, pandas <span class="k">as</span> pd
+<span class="k">from</span> scipy.optimize <span class="k">import</span> minimize
+<span class="k">from</span> scipy.stats <span class="k">import</span> norm
+<span class="k">from</span> statsmodels.duration.hazard_regression <span class="k">import</span> PHReg
 
-      <h2 id="weibull-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+url = <span class="s">"https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/survival/cancer.csv"</span>
+d = pd.<span class="f">read_csv</span>(url)                                  <span class="c"># datos lung</span>
+y = d.time.values.<span class="f">astype</span>(<span class="f">float</span>); e = (d.status == <span class="n">2</span>).<span class="f">astype</span>(<span class="f">int</span>).values
+X = np.<span class="f">c_</span>[np.<span class="f">ones</span>(<span class="f">len</span>(d)), (d.sex == <span class="n">2</span>).<span class="f">astype</span>(<span class="f">float</span>), d.age.values]   <span class="c"># mujer = 1</span>
+
+<span class="k">def</span> <span class="f">nll</span>(p, dist):
+    beta, s = p[:-<span class="n">1</span>], np.<span class="f">exp</span>(p[-<span class="n">1</span>])                  <span class="c"># log T = Xβ + σW</span>
+    z = (np.<span class="f">log</span>(y) - X @ beta) / s
+    <span class="k">if</span> dist == <span class="s">"weibull"</span>:                            <span class="c"># W valor extremo mínimo</span>
+        logf, logS = z - np.<span class="f">exp</span>(z), -np.<span class="f">exp</span>(z)
+    <span class="k">else</span>:                                            <span class="c"># log-normal</span>
+        logf, logS = norm.<span class="f">logpdf</span>(z), norm.<span class="f">logsf</span>(z)
+    <span class="k">return</span> -np.<span class="f">sum</span>(e * (logf - np.<span class="f">log</span>(s) - np.<span class="f">log</span>(y)) + (<span class="n">1</span> - e) * logS)
+
+res = {}
+<span class="k">for</span> dist <span class="k">in</span> (<span class="s">"weibull"</span>, <span class="s">"lognormal"</span>):
+    r = <span class="f">minimize</span>(nll, np.<span class="f">r_</span>[np.<span class="f">log</span>(y.<span class="f">mean</span>()), <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>], args=(dist,), method=<span class="s">"BFGS"</span>)
+    res[dist] = r
+    <span class="f">print</span>(dist, np.<span class="f">round</span>(r.x[:-<span class="n">1</span>], <span class="n">4</span>), <span class="s">"Scale ="</span>, <span class="f">round</span>(np.<span class="f">exp</span>(r.x[-<span class="n">1</span>]), <span class="n">3</span>), <span class="s">"AIC ="</span>, <span class="f">round</span>(<span class="n">2</span> * r.fun + <span class="n">8</span>, <span class="n">1</span>))
+<span class="c"># weibull [6.657 0.3821 -0.0123] Scale = 0.754 AIC = 2302.1</span>
+<span class="c"># lognormal [6.9273 0.5193 -0.0234] Scale = 1.053 AIC = 2325.5</span>
+
+b, s = res[<span class="s">"weibull"</span>].x[:-<span class="n">1</span>], np.<span class="f">exp</span>(res[<span class="s">"weibull"</span>].x[-<span class="n">1</span>])
+se = np.<span class="f">sqrt</span>(np.<span class="f">diag</span>(res[<span class="s">"weibull"</span>].hess_inv))           <span class="c"># EE aproximados (BFGS)</span>
+<span class="f">print</span>(<span class="s">"razón de tiempos mujer:"</span>, <span class="f">round</span>(np.<span class="f">exp</span>(b[<span class="n">1</span>]), <span class="n">3</span>))             <span class="c"># 1.465</span>
+<span class="f">print</span>(<span class="s">"k ="</span>, <span class="f">round</span>(<span class="n">1</span> / s, <span class="n">3</span>), <span class="s">" HR implícito ="</span>, <span class="f">round</span>(np.<span class="f">exp</span>(-b[<span class="n">1</span>] / s), <span class="n">3</span>))   <span class="c"># 1.326 0.602</span>
+cox = <span class="f">PHReg</span>(y, X[:, <span class="n">1</span>:], status=e).<span class="f">fit</span>()
+<span class="f">print</span>(<span class="s">"HR de Cox (mujer, edad):"</span>, np.<span class="f">round</span>(np.<span class="f">exp</span>(cox.params), <span class="n">3</span>))      <span class="c"># 0.599 1.017</span>
+<span class="k">for</span> sexo <span class="k">in</span> (<span class="n">0</span>, <span class="n">1</span>):
+    lam = np.<span class="f">exp</span>(b[<span class="n">0</span>] + b[<span class="n">1</span>] * sexo + b[<span class="n">2</span>] * <span class="n">63</span>)
+    <span class="f">print</span>(<span class="s">"mediana a los 63 años:"</span>, <span class="f">round</span>(lam * np.<span class="f">log</span>(<span class="n">2</span>) ** s, <span class="n">1</span>))     <span class="c"># 272.7 y 399.6 días</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="c"># en lung, sex vale 1 (hombre) o 2 (mujer): el intercepto cambia, el coeficiente no</span>
+fw &lt;- <span class="f">survreg</span>(<span class="f">Surv</span>(time, status) ~ sex + age, data = lung, dist = <span class="s">"weibull"</span>)
+fl &lt;- <span class="f">survreg</span>(<span class="f">Surv</span>(time, status) ~ sex + age, data = lung, dist = <span class="s">"lognormal"</span>)
+<span class="f">summary</span>(fw)                          <span class="c"># sex ≈ 0.38, age ≈ -0.012, Scale ≈ 0.75</span>
+<span class="f">AIC</span>(fw, fl)                           <span class="c"># Weibull ≈ 2302, log-normal ≈ 2326</span>
+<span class="f">exp</span>(<span class="f">coef</span>(fw)[<span class="s">"sex"</span>])                 <span class="c"># razón de tiempos ≈ 1.47</span>
+<span class="f">exp</span>(-<span class="f">coef</span>(fw)[<span class="s">"sex"</span>] / fw$scale)      <span class="c"># HR implícito ≈ 0.60</span>
+<span class="f">coxph</span>(<span class="f">Surv</span>(time, status) ~ sex + age, data = lung)   <span class="c"># HR sexo ≈ 0.60</span>
+<span class="f">predict</span>(fw, newdata = <span class="f">data.frame</span>(sex = <span class="n">1</span>:<span class="n">2</span>, age = <span class="n">63</span>), type = <span class="s">"quantile"</span>, p = <span class="n">0.5</span>)
+<span class="c"># con flexsurv: flexsurvreg(Surv(time, status) ~ sex + age, data = lung, dist = "weibullPH")</span></code></pre>
+      </div>
+
+      <h2 id="weibull-quiz"><span class="sec">§ 11</span>Quiz</h2>
       <div class="quiz" data-right="Correcto. Con k &gt; 1 el riesgo h(t) crece con el tiempo: es el patrón de desgaste. Con k = 3, el riesgo a los 2t es 2² = 4 veces el riesgo en t." data-wrong="Revisa h(t) = (k/λ)(t/λ)^(k−1). ¿Qué signo tiene el exponente k − 1 cuando k = 3?">
         <h3>Un rodamiento sigue una Weibull con forma k = 3. ¿Qué dice eso del riesgo de falla?</h3>
         <div class="opts">
@@ -285,40 +422,131 @@ esc &lt;- <span class="f">predict</span>(fw, newdata = nuevos, type = <span clas
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
+      <div class="quiz" data-right="Correcto. Con 20 fallas, EE(ln λ) = 1/√20 ≈ 0,22, sin importar si hay 100 o 10 000 unidades en prueba. La información la dan los eventos." data-wrong="Recuerda que EE(ln λ̂) = 1/√d. ¿De qué cantidad depende: de las unidades, del tiempo total o de los eventos?">
+        <h3>En una prueba de vida exponencial con 20 fallas, ¿de qué depende el error estándar de ln λ̂?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Solo del número de fallas: es 1/√20 ≈ 0,22</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Del número de unidades en prueba</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Del tiempo total acumulado en prueba</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>De la proporción de censuras</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Exacto. Dos modelos que ajustan bien el rango observado pueden diferir mucho fuera de él. Hay que comparar varias formas, mirar la cola y justificarla con conocimiento externo." data-wrong="Piensa qué información tienen los datos sobre lo que pasa después del último seguimiento. ¿Un AIC pequeño garantiza que la cola sea correcta?">
+        <h3>Weibull y log-normal tienen AIC casi iguales con 2 años de seguimiento, pero predicen supervivencias a 10 años de 5 % y 18 %. ¿Qué haces?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Reportar la de menor AIC, aunque sea por 0,5 puntos</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Promediar las dos predicciones y no mencionar la diferencia</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>Presentar ambas como escenarios y justificar la cola con conocimiento externo</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Usar Cox, que extrapola sin supuestos</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
 
-      <h2 id="weibull-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
-      <p>Los dos primeros se hacen con calculadora; usa el primer laboratorio para comprobarlos.</p>
+      <h2 id="weibull-ej"><span class="sec">§ 12</span>Preguntas propuestas (nivel avanzado)</h2>
+      <p>Demostraciones, derivaciones, simulación y análisis de datos reales. Intenta cada una antes de abrir la solución.</p>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
-          <p>En 1 200 lámparas-mes de operación se registraron 30 fallas. Con un modelo exponencial, estima λ con su IC al 95 %, la mediana de vida y la probabilidad de que una lámpara dure más de 24 meses.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>\(\hat\lambda = 30/1\,200 = 0{,}025\) por mes. IC: \(0{,}025\,e^{\pm 1{,}96/\sqrt{30}} = 0{,}025\,e^{\pm 0{,}358}\) = <b>[0,017; 0,036]</b>. Mediana = ln 2 / 0,025 ≈ <b>27,7 meses</b>. \(S(24) = e^{-0{,}025 \cdot 24} = e^{-0{,}6} \approx\) <b>0,55</b>.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
-          <p>Un componente sigue una Weibull con k = 2 y λ = 50 000 km. Calcula la mediana, la media y la proporción que falla antes de 20 000 km. ¿Cuánto mayor es el riesgo a los 40 000 km que a los 20 000?</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>Mediana = 50 000 × (ln 2)^(1/2) = 50 000 × 0,833 ≈ <b>41 600 km</b>. Media = 50 000 × Γ(1,5) = 50 000 × 0,886 ≈ <b>44 300 km</b>. F(20 000) = 1 − exp(−(0,4)²) = 1 − e^(−0,16) ≈ <b>0,148</b>: casi el 15 %. h(40 000)/h(20 000) = 2^(k−1) = <b>2</b>: con k = 2 el riesgo crece en línea recta con el kilometraje.</p></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
-          <p>Un <code>survreg</code> de Weibull para el tiempo hasta la reincidencia (semanas) da: Intercept = 4,80, programa de reinserción (sí = 1) = 0,35 (EE 0,12), Scale = 0,72. (a) Interpreta el coeficiente como razón de tiempos con su IC. (b) Calcula la forma k y el HR implícito. (c) Calcula la mediana para quienes participan en el programa.</p>
-          <details><summary>Ver solución</summary><div class="sol"><p>(a) e^0,35 ≈ <b>1,42</b>, IC e^(0,35 ± 0,235) = [1,12; 1,79]: el programa estira el tiempo hasta la reincidencia en 42 % (todos los cuantiles). (b) k = 1/0,72 ≈ <b>1,39</b> (riesgo creciente). β = −0,35/0,72 = −0,486, HR = e^(−0,486) ≈ <b>0,62</b>: un 38 % menos de riesgo en cada momento. (c) Escala de los participantes: e^(4,80 + 0,35) = e^5,15 ≈ 172,4 semanas. Mediana = 172,4 × (ln 2)^0,72 = 172,4 × 0,768 ≈ <b>132 semanas</b>.</p><div class="codetabs">
-  <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-b0, g, ee, s = <span class="n">4.80</span>, <span class="n">0.35</span>, <span class="n">0.12</span>, <span class="n">0.72</span>
-<span class="f">print</span>(np.<span class="f">exp</span>(g), np.<span class="f">exp</span>(g + np.<span class="f">array</span>([-<span class="n">1.96</span>, <span class="n">1.96</span>]) * ee))   <span class="c"># 1.42 [1.12 1.79]</span>
-<span class="f">print</span>(<span class="n">1</span> / s, np.<span class="f">exp</span>(-g / s))                                 <span class="c"># 1.39 0.62</span>
-<span class="f">print</span>(np.<span class="f">exp</span>(b0 + g) * np.<span class="f">log</span>(<span class="n">2</span>) ** s)                       <span class="c"># 132</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>b0 &lt;- <span class="n">4.80</span>; g &lt;- <span class="n">0.35</span>; ee &lt;- <span class="n">0.12</span>; s &lt;- <span class="n">0.72</span>
-<span class="f">exp</span>(g); <span class="f">exp</span>(g + <span class="f">c</span>(-<span class="n">1.96</span>, <span class="n">1.96</span>) * ee)    <span class="c"># 1.42 (1.12 a 1.79)</span>
-<span class="n">1</span> / s; <span class="f">exp</span>(-g / s)                       <span class="c"># 1.39 0.62</span>
-<span class="f">exp</span>(b0 + g) * <span class="f">log</span>(<span class="n">2</span>)^s                  <span class="c"># 132</span></code></pre>
-</div></div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Desafío</span></div>
+          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
           <p>Demuestra que si T es Weibull(k, λ), entonces W = (ln T − ln λ)·k tiene distribución de valor extremo mínimo, con S<sub>W</sub>(w) = exp(−e<sup>w</sup>). Usa ese resultado para explicar por qué un modelo AFT de Weibull con coeficiente γ es también un modelo de riesgos proporcionales con β = −kγ.</p>
           <details><summary>Ver solución</summary><div class="sol"><p>\(P(W &gt; w) = P\big(\ln T &gt; \ln\lambda + w/k\big) = P\big(T &gt; \lambda e^{w/k}\big) = \exp\big[-(e^{w/k})^k\big] = \exp(-e^{w})\). Entonces \(\ln T = \ln\lambda + \sigma W\) con \(\sigma = 1/k\). Si \(\ln\lambda = \beta_0 + \gamma x\), la supervivencia es \(S(t \mid x) = \exp\big[-(t\,e^{-\beta_0-\gamma x})^k\big] = \exp\big[-(t e^{-\beta_0})^k\, e^{-k\gamma x}\big]\). Derivando \(H(t \mid x) = (t e^{-\beta_0})^k e^{-k\gamma x}\), el riesgo es \(h(t \mid x) = h_0(t)\, e^{-k\gamma x}\), con \(h_0\) el riesgo Weibull de \(x = 0\). Es un modelo de riesgos proporcionales con \(\beta = -k\gamma\). Para otras distribuciones de \(W\) (normal, logística) la \(x\) no se separa como factor de \(t\) en \(H\), y por eso no son PH.</p></div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Deriva \(\hat\lambda\), la información de Fisher y el EE de \(\ln\hat\lambda\) para la exponencial con censura. (b) Deriva la ecuación del score de \(k\) en la Weibull a partir de la verosimilitud perfil. (c) Con los datos 10, 18, 25, 30+, 33, 36+, 36+, 36+ resuelve numéricamente, da el IC al 95 % de \(\lambda\) exponencial y prueba \(H_0: k = 1\).</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> \(\ell = d\ln\lambda - \lambda\sum y_i\), \(\ell' = d/\lambda - \sum y_i\), \(\hat\lambda = d/\sum y_i\); \(-\ell'' = d/\lambda^2\), así que \(\operatorname{Var}(\hat\lambda) \approx \lambda^2/d\) y por delta \(\operatorname{Var}(\ln\hat\lambda) = \operatorname{Var}(\hat\lambda)/\lambda^2 = 1/d\).</p>
+            <p><b>(b)</b> \(\ell_p(k) = d\ln k - d\ln(\sum y_i^k/d) + (k-1)\sum\delta_i\ln y_i - d\). Derivando: \(d/k - d\,\frac{\sum y_i^k\ln y_i}{\sum y_i^k} + \sum\delta_i\ln y_i = 0\); dividiendo entre \(d\) queda la ecuación del texto.</p>
+            <p><b>(c)</b> \(\hat\lambda = 0{,}0179\) por mes, IC \(0{,}0179\,e^{\pm 1{,}96/2} = [0{,}0067;\ 0{,}048]\). Weibull: \(\hat k = 2{,}05\), \(\hat\lambda = 41{,}3\). Razón de verosimilitudes \(= 1{,}91\), \(p = 0{,}17\): no se rechaza la exponencial con 4 fallas, aunque las extrapolaciones difieren mucho.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy.optimize <span class="k">import</span> minimize_scalar
+<span class="k">from</span> scipy.stats <span class="k">import</span> chi2
+y = np.<span class="f">array</span>([<span class="n">10</span>, <span class="n">18</span>, <span class="n">25</span>, <span class="n">30</span>, <span class="n">33</span>, <span class="n">36</span>, <span class="n">36</span>, <span class="n">36.</span>]); d = np.<span class="f">array</span>([<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>])
+D = d.<span class="f">sum</span>()
+lam = D / y.<span class="f">sum</span>(); <span class="f">print</span>(lam, lam * np.<span class="f">exp</span>(np.<span class="f">array</span>([-<span class="n">1.96</span>, <span class="n">1.96</span>]) / np.<span class="f">sqrt</span>(D)))
+prof = <span class="k">lambda</span> k: D * np.<span class="f">log</span>(k) - D * np.<span class="f">log</span>((y ** k).<span class="f">sum</span>() / D) + (k - <span class="n">1</span>) * (d * np.<span class="f">log</span>(y)).<span class="f">sum</span>() - D
+r = <span class="f">minimize_scalar</span>(<span class="k">lambda</span> k: -<span class="f">prof</span>(k), bounds=(<span class="n">0.1</span>, <span class="n">10</span>), method=<span class="s">"bounded"</span>)
+k = r.x; lw = <span class="f">prof</span>(k); le = <span class="f">prof</span>(<span class="n">1</span>)
+<span class="f">print</span>(k, ((y ** k).<span class="f">sum</span>() / D) ** (<span class="n">1</span> / k), <span class="n">2</span> * (lw - le), chi2.<span class="f">sf</span>(<span class="n">2</span> * (lw - le), <span class="n">1</span>))
+<span class="c"># 0.0179 [0.0067 0.0476] · k ≈ 2.05, λ ≈ 41.3, LR ≈ 1.91, p ≈ 0.17</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+y &lt;- <span class="f">c</span>(<span class="n">10</span>, <span class="n">18</span>, <span class="n">25</span>, <span class="n">30</span>, <span class="n">33</span>, <span class="n">36</span>, <span class="n">36</span>, <span class="n">36</span>); d &lt;- <span class="f">c</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>)
+fe &lt;- <span class="f">survreg</span>(<span class="f">Surv</span>(y, d) ~ <span class="n">1</span>, dist = <span class="s">"exponential"</span>)
+fw &lt;- <span class="f">survreg</span>(<span class="f">Surv</span>(y, d) ~ <span class="n">1</span>, dist = <span class="s">"weibull"</span>)
+<span class="f">exp</span>(-<span class="f">coef</span>(fe))                         <span class="c"># λ ≈ 0.0179</span>
+<span class="f">c</span>(k = <span class="n">1</span> / fw$scale, lambda = <span class="f">exp</span>(<span class="f">coef</span>(fw)))   <span class="c"># ≈ 2.05 y 41.3</span>
+<span class="f">anova</span>(fe, fw)                          <span class="c"># LR ≈ 1.9, p ≈ 0.17</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Estudio de simulación sobre extrapolación. Genera 300 muestras de 200 tiempos log-normales (mediana 30 meses, σ = 1), censura todo en 24 meses y ajusta Weibull y log-normal. Compara la \(S(60)\) estimada por cada modelo con la verdadera y cuenta en cuántas réplicas el AIC elige la distribución equivocada. ¿Qué concluyes sobre usar la Weibull “por defecto”?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(S(60)\) verdadera \(= 1 - \Phi(\ln 2) = 0{,}244\). Resultados de una corrida (semilla 5): la log-normal da en promedio 0,246 (rango 90 % de 0,18 a 0,32); la Weibull da 0,106 (0,04 a 0,18), un sesgo de más de la mitad. El AIC elige la Weibull en un 12 % de las réplicas. Conclusión: con datos inmaduros el ajuste en el rango observado es parecido, pero la cola depende de la forma. La Weibull fuerza un riesgo monótono creciente cuando el verdadero sube y luego baja, y por eso subestima a los supervivientes de largo plazo. Hay que comparar varias distribuciones, mirar la forma del riesgo empírico y justificar la cola.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy.optimize <span class="k">import</span> minimize
+<span class="k">from</span> scipy.stats <span class="k">import</span> norm
+rng = np.random.<span class="f">default_rng</span>(<span class="n">5</span>)
+mu, sd, n, fin, reps = np.<span class="f">log</span>(<span class="n">30</span>), <span class="n">1.0</span>, <span class="n">200</span>, <span class="n">24</span>, <span class="n">300</span>
+S60_real = norm.<span class="f">sf</span>((np.<span class="f">log</span>(<span class="n">60</span>) - mu) / sd)
+
+<span class="k">def</span> <span class="f">ajusta</span>(y, e, dist):
+    <span class="k">def</span> <span class="f">nll</span>(p):
+        z = (np.<span class="f">log</span>(y) - p[<span class="n">0</span>]) / np.<span class="f">exp</span>(p[<span class="n">1</span>])
+        <span class="k">if</span> dist == <span class="s">"weibull"</span>: lf, lS = z - np.<span class="f">exp</span>(z), -np.<span class="f">exp</span>(z)
+        <span class="k">else</span>:                 lf, lS = norm.<span class="f">logpdf</span>(z), norm.<span class="f">logsf</span>(z)
+        <span class="k">return</span> -np.<span class="f">sum</span>(e * (lf - p[<span class="n">1</span>] - np.<span class="f">log</span>(y)) + (<span class="n">1</span> - e) * lS)
+    r = <span class="f">minimize</span>(nll, [np.<span class="f">log</span>(np.<span class="f">mean</span>(y)), <span class="n">0.0</span>], method=<span class="s">"Nelder-Mead"</span>)
+    b, s = r.x[<span class="n">0</span>], np.<span class="f">exp</span>(r.x[<span class="n">1</span>]); z60 = (np.<span class="f">log</span>(<span class="n">60</span>) - b) / s
+    S60 = np.<span class="f">exp</span>(-np.<span class="f">exp</span>(z60)) <span class="k">if</span> dist == <span class="s">"weibull"</span> <span class="k">else</span> norm.<span class="f">sf</span>(z60)
+    <span class="k">return</span> <span class="n">2</span> * r.fun + <span class="n">4</span>, S60
+
+out = {<span class="s">"weibull"</span>: [], <span class="s">"lognormal"</span>: []}; elige_w = <span class="n">0</span>
+<span class="k">for</span> _ <span class="k">in</span> <span class="f">range</span>(reps):
+    T = rng.<span class="f">lognormal</span>(mu, sd, n)
+    y, e = np.<span class="f">minimum</span>(T, fin), (T &lt;= fin).<span class="f">astype</span>(<span class="f">int</span>)
+    aw, sw = <span class="f">ajusta</span>(y, e, <span class="s">"weibull"</span>); al, sl = <span class="f">ajusta</span>(y, e, <span class="s">"lognormal"</span>)
+    out[<span class="s">"weibull"</span>].<span class="f">append</span>(sw); out[<span class="s">"lognormal"</span>].<span class="f">append</span>(sl); elige_w += aw &lt; al
+<span class="f">print</span>(<span class="s">"S(60) real:"</span>, <span class="f">round</span>(S60_real, <span class="n">3</span>))
+<span class="k">for</span> k, v <span class="k">in</span> out.<span class="f">items</span>():
+    <span class="f">print</span>(k, <span class="f">round</span>(np.<span class="f">mean</span>(v), <span class="n">3</span>), np.<span class="f">round</span>(np.<span class="f">percentile</span>(v, [<span class="n">5</span>, <span class="n">95</span>]), <span class="n">3</span>))
+<span class="f">print</span>(<span class="s">"AIC elige Weibull:"</span>, elige_w / reps)
+<span class="c"># real 0.244 · weibull 0.106 [0.044 0.181] · lognormal 0.246 [0.176 0.317] · 0.12</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">library</span>(survival)
+<span class="f">set.seed</span>(<span class="n">5</span>)
+S60_real &lt;- <span class="f">plnorm</span>(<span class="n">60</span>, <span class="f">log</span>(<span class="n">30</span>), <span class="n">1</span>, lower.tail = <span class="k">FALSE</span>)
+r &lt;- <span class="f">replicate</span>(<span class="n">300</span>, {
+  T &lt;- <span class="f">rlnorm</span>(<span class="n">200</span>, <span class="f">log</span>(<span class="n">30</span>), <span class="n">1</span>); y &lt;- <span class="f">pmin</span>(T, <span class="n">24</span>); e &lt;- T &lt;= <span class="n">24</span>
+  fw &lt;- <span class="f">survreg</span>(<span class="f">Surv</span>(y, e) ~ <span class="n">1</span>, dist = <span class="s">"weibull"</span>)
+  fl &lt;- <span class="f">survreg</span>(<span class="f">Surv</span>(y, e) ~ <span class="n">1</span>, dist = <span class="s">"lognormal"</span>)
+  <span class="f">c</span>(w = <span class="f">exp</span>(-(<span class="n">60</span> / <span class="f">exp</span>(<span class="f">coef</span>(fw)))^(<span class="n">1</span> / fw$scale)),
+    l = <span class="f">plnorm</span>(<span class="n">60</span>, <span class="f">coef</span>(fl), fl$scale, lower.tail = <span class="k">FALSE</span>),
+    elige_w = <span class="f">AIC</span>(fw) &lt; <span class="f">AIC</span>(fl))
+})
+<span class="f">rowMeans</span>(r); S60_real     <span class="c"># ≈ 0.11, 0.25, 0.12 y 0.244</span></code></pre>
+            </div>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Con los datos <code>lung</code>, ajusta un Weibull AFT con sexo y edad. (a) Interpreta la razón de tiempos de las mujeres con su IC. (b) Calcula \(k\) y el HR implícito, y compáralo con el HR de Cox. (c) Construye el gráfico de Weibull por sexo y explica qué esperarías ver si el modelo es adecuado. (d) Calcula la mediana predicha para un hombre y una mujer de 63 años.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> \(\hat\gamma_{\text{mujer}} = 0{,}382\), razón de tiempos \(e^{0{,}382} = 1{,}47\) (IC aproximado 1,11 a 1,93): a igual edad, cada cuantil del tiempo de supervivencia de una mujer es un 47 % mayor que el de un hombre. <b>(b)</b> \(\hat\sigma = 0{,}754\), \(k = 1{,}33\) (riesgo creciente moderado); HR \(= e^{-0{,}382/0{,}754} = 0{,}60\), prácticamente igual al de Cox (0,60). <b>(c)</b> Las dos nubes de puntos \(\big(\ln t, \ln[-\ln\hat S_{\text{KM}}]\big)\) deberían ser rectas aproximadamente paralelas con pendiente cercana a 1,3; el paralelismo comprueba PH y la linealidad comprueba la forma Weibull. <b>(d)</b> Unos 273 días para el hombre y 400 para la mujer. Ver el código de la sección “En R y Python”.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
+          <p>Interpretación crítica. Un informe de costo-efectividad de un fármaco oncológico, con 24 meses de seguimiento y la mitad de los pacientes aún vivos, extrapola con una exponencial “porque tiene el mejor AIC” y concluye una ganancia media de 3,1 años de vida. (a) Señala al menos tres debilidades. (b) Explica por qué la elección de distribución cambia tanto la media de vida. (c) Diseña un análisis de sensibilidad defendible.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p><b>(a)</b> El AIC solo mide el ajuste en los 24 meses observados, no la cola; la exponencial supone riesgo constante para siempre, algo poco plausible en cáncer (riesgo que cambia con la respuesta al tratamiento); con la mitad vivos la mediana apenas se estimó, así que la media depende casi por completo de la extrapolación; además se supone que el efecto del tratamiento dura indefinidamente.</p>
+            <p><b>(b)</b> La media es \(\int_0^\infty S(t)\,dt\): el área de la cola más allá de 24 meses puede ser mayor que la observada. Distribuciones con colas pesadas (log-normal, log-logística) dan mucha área tardía; la Weibull con \(k &gt; 1\) o la Gompertz la recortan. Diferencias pequeñas en el riesgo tardío se acumulan durante décadas.</p>
+            <p><b>(c)</b> Ajustar las seis distribuciones estándar (exponencial, Weibull, Gompertz, log-normal, log-logística, gamma generalizada) por brazo, mostrar AIC y curvas sobre KM, comparar la cola con datos externos (registros, tablas de vida) y con opinión clínica, reportar la ganancia de vida bajo cada distribución plausible y bajo supuestos de efecto que se desvanece (HR que vuelve a 1 a los 5 años), y presentar la ganancia como un rango, no como un único número. Es lo que recomienda la guía TSD 14 del NICE.</p>
+          </div></details>
         </div>
       </div>
       <div class="next"></div>
