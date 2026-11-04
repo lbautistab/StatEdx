@@ -4,448 +4,369 @@
   <section class="lesson-head paper">
     <div class="wrap">
       <div class="crumbs"></div>
-      <h1>Medidas de tendencia central y dispersión</h1>
-      <p>Antes de cualquier modelo hay que resumir los datos: dónde está el centro, qué tan dispersos están y qué forma tienen. Aquí aprendes a calcular e interpretar media, mediana, varianza, cuartiles y diagramas de caja, a demostrar sus propiedades y a elegir la medida que no te engañe cuando aparecen valores atípicos.</p>
-      <div class="lmeta"><span>90 min</span><span>Nivel básico</span><span>Requiere: ninguno</span><span>R · Python</span></div>
+      <h1>Medidas de dispersión</h1>
+      <p>Dos grupos pueden tener la misma media y ser completamente distintos. Las medidas de dispersión dicen qué tan separados están los datos: rango, rango intercuartílico, varianza, desviación típica y coeficiente de variación. Aquí aprendes a calcularlas, a interpretarlas y a saber cuántos datos caben a cierta distancia de la media.</p>
+      <div class="lmeta"><span>60 min</span><span>Nivel básico</span><span>Requiere: tendencia central y posición</span><span>R · Python</span></div>
     </div>
   </section>
   <div class="wrap lesson">
     <aside class="toc" aria-label="Contenido de la clase">
       <div class="eyebrow">En esta clase</div>
       <ol>
-        <li><a href="#desc-intro" data-sec="desc-intro">Introducción</a></li>
-        <li><a href="#desc-def" data-sec="desc-def">Definición</a></li>
-        <li><a href="#desc-centro" data-sec="desc-centro">El centro como optimización</a></li>
-        <li><a href="#desc-disp" data-sec="desc-disp">Varianza y grados de libertad</a></li>
-        <li><a href="#desc-pos" data-sec="desc-pos">Cuantiles, caja y robustez</a></li>
-        <li><a href="#desc-prop" data-sec="desc-prop">Propiedades</a></li>
-        <li><a href="#desc-lab" data-sec="desc-lab">Ejercicios de simulación</a></li>
-        <li><a href="#desc-apl" data-sec="desc-apl">Aplicaciones reales</a></li>
+        <li><a href="#desc-idea" data-sec="desc-idea">La idea</a></li>
+        <li><a href="#desc-rango" data-sec="desc-rango">Rango y rango intercuartílico</a></li>
+        <li><a href="#desc-var" data-sec="desc-var">Varianza y desviación típica</a></li>
+        <li><a href="#desc-cv" data-sec="desc-cv">Coeficiente de variación</a></li>
+        <li><a href="#desc-cheb" data-sec="desc-cheb">Regla empírica y Chebyshev</a></li>
+        <li><a href="#desc-lab" data-sec="desc-lab">Laboratorio</a></li>
+        <li><a href="#desc-errores" data-sec="desc-errores">Errores comunes</a></li>
+        <li><a href="#desc-practica" data-sec="desc-practica">En la práctica</a></li>
         <li><a href="#desc-code" data-sec="desc-code">En R y Python</a></li>
-        <li><a href="#desc-quiz" data-sec="desc-quiz">Quiz</a></li>
-        <li><a href="#desc-ej" data-sec="desc-ej">Preguntas propuestas</a></li>
+        <li><a href="#desc-quiz" data-sec="desc-quiz">Comprueba</a></li>
+        <li><a href="#desc-ej" data-sec="desc-ej">Ejercicios</a></li>
       </ol>
     </aside>
     <article class="prose">
-      <h2 id="desc-intro"><span class="sec">§ 1</span>Introducción</h2>
-      <p>Una pequeña empresa tiene 10 personas trabajando. Nueve ganan entre 18 y 30 mil pesos al mes y la dueña se asigna 150 mil. Si alguien anuncia “el salario promedio aquí es de 37 mil”, dice algo verdadero y, aun así, engañoso: ninguna de las nueve personas gana eso. Si en cambio dice “la mitad gana menos de 24 mil”, describe mucho mejor la experiencia típica.</p>
-      <p>Esa es la pregunta de esta clase: <b>¿qué número resume bien un conjunto de datos?</b> Necesitas al menos dos: uno que diga dónde está el <b>centro</b> y otro que diga qué tan <b>dispersos</b> están los valores alrededor de ese centro. Dos grupos pueden tener la misma media y ser completamente distintos: en uno todos ganan 25 mil; en otro, la mitad gana 5 mil y la otra mitad 45 mil.</p>
-      <p>Promediar mediciones es una idea que los astrónomos adoptaron en los siglos XVII y XVIII para combinar observaciones imperfectas de una misma estrella; Thomas Simpson argumentó en 1755 que el promedio reduce el error. Al mismo tiempo, Roger Boscovich (1757) y después Laplace propusieron minimizar la suma de errores <i>absolutos</i>, que lleva a la mediana, mientras que Legendre (1805) y Gauss (1809) eligieron minimizar los errores <i>al cuadrado</i>, que lleva a la media y a los mínimos cuadrados. El término “mediana” lo popularizó Francis Galton a fines del siglo XIX. Ya en el siglo XX, John Tukey inventó el diagrama de caja (<i>Exploratory Data Analysis</i>, 1977) y Peter Huber (1964) fundó la estadística <b>robusta</b>, que estudia qué medidas resisten datos contaminados. Verás que estas dos tradiciones, cuadrados frente a valores absolutos, explican casi todo lo que distingue a la media de la mediana.</p>
-      <div class="callout"><b>En esta sesión aprenderás:</b>
+      <h2 id="desc-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Dos cursos rindieron la misma prueba (escala de 0 a 20) y ambos tienen <b>media 14</b>:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Curso</th><th>Notas</th><th>Media</th><th>Rango</th><th>Desviación típica</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>10, 12, 14, 16, 18</td><td>14</td><td>8</td><td>3,16</td></tr>
+          <tr><td>B</td><td>13, 14, 14, 14, 15</td><td>14</td><td>2</td><td>0,71</td></tr>
+        </tbody>
+      </table></div>
+      <p>Con solo la media dirías que son iguales, pero no lo son: en B todos rindieron parecido; en A hay estudiantes que van muy bien y otros que necesitan apoyo. La diferencia está en la <b>dispersión</b>, la variabilidad de los datos alrededor del centro. Una medida de centro sin una de dispersión cuenta la mitad de la historia.</p>
+      <p>La dispersión importa en casi todo: un proceso industrial con poca dispersión produce piezas confiables, una inversión con mucha dispersión es riesgosa, y un tratamiento médico cuya respuesta varía mucho entre pacientes es difícil de dosificar.</p>
+      <div class="callout"><b>Al terminar esta clase sabrás:</b>
         <ul>
-          <li>a definir con precisión media, mediana, moda, media recortada, varianza, desviación típica, CV, RIC y MAD;</li>
-          <li>a demostrar que la media y la mediana son las soluciones de dos problemas de optimización distintos;</li>
-          <li>por qué la varianza muestral divide entre \(n - 1\), con la demostración completa;</li>
-          <li>a calcular cuantiles, construir un diagrama de caja y aplicar la regla de 1,5 RIC;</li>
-          <li>a medir la robustez de un resumen con el punto de ruptura y a elegir qué reportar.</li>
+          <li>calcular e interpretar el rango, el rango intercuartílico, la desviación media, la varianza y la desviación típica;</li>
+          <li>explicar por qué la varianza muestral divide entre \(n - 1\);</li>
+          <li>calcular la varianza desde una tabla de frecuencias;</li>
+          <li>comparar dispersiones de variables distintas con el coeficiente de variación;</li>
+          <li>usar la regla empírica y la desigualdad de Chebyshev para saber cuántos datos caben cerca de la media.</li>
         </ul>
       </div>
-      <div class="callout"><b>Para recordar:</b> un resumen numérico siempre pierde información. Por eso conviene acompañarlo de un gráfico (histograma, diagrama de puntos o de caja) y elegir medidas que sigan siendo honestas cuando los datos son asimétricos o tienen atípicos.</div>
 
-      <h2 id="desc-def"><span class="sec">§ 2</span>Definición</h2>
-      <p>Trabajaremos con una muestra de \(n\) observaciones \(x_1, x_2, \dots, x_n\). Cuando las ordenamos de menor a mayor las escribimos \(x_{(1)} \le x_{(2)} \le \dots \le x_{(n)}\) (<b>estadísticos de orden</b>). Un <b>estadístico</b> es cualquier función \(T(x_1, \dots, x_n)\) de los datos.</p>
-      <div class="callout"><b>Definición (medida de posición y de escala).</b> Un estadístico \(T\) es una <b>medida de posición</b> (de centro) si es equivariante: \(T(a + b x_1, \dots, a + b x_n) = a + b\,T(x_1, \dots, x_n)\) para todo \(a\) y todo \(b\). Un estadístico \(S \ge 0\) es una <b>medida de escala</b> (de dispersión) si \(S(a + b x_1, \dots, a + b x_n) = |b|\,S(x_1, \dots, x_n)\): no cambia al desplazar los datos y se multiplica por \(|b|\) al cambiar la unidad.</div>
-      <p>Las medidas de centro más usadas:</p>
-      <div class="eq">\[ \bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i, \qquad \operatorname{Me} = \begin{cases} x_{((n+1)/2)} & n \text{ impar} \\[4pt] \tfrac{1}{2}\big(x_{(n/2)} + x_{(n/2+1)}\big) & n \text{ par} \end{cases}, \qquad \bar x_\alpha = \frac{1}{n - 2g}\sum_{i=g+1}^{n-g} x_{(i)},\ g = \lfloor n\alpha \rfloor \]
-        <div class="note">\(\bar x\) es la <b>media</b>, \(\operatorname{Me}\) la <b>mediana</b> y \(\bar x_\alpha\) la <b>media recortada</b> al \(\alpha\): quitas los \(g\) datos más bajos y los \(g\) más altos y promedias el resto. La <b>moda</b> es el valor más frecuente; es la única medida de centro válida para variables nominales (ver <a href="#tipos">tipos de variables</a>).</div>
+      <h2 id="desc-rango"><span class="sec">§ 2</span>Rango y rango intercuartílico</h2>
+      <p>El <b>rango</b> (o recorrido) es la distancia entre el máximo y el mínimo:</p>
+      <div class="eq">\[ R = x_{(n)} - x_{(1)} = \max - \min \]
+        <div class="note">Con los tiempos de traslado de las clases anteriores (12, 15, 18, 20, 22, 25, 25, 28, 35, 90): \(R = 90 - 12 = 78\) minutos.</div>
       </div>
-      <p>Y las de dispersión:</p>
-      <div class="eq">\[ s^2 = \frac{1}{n-1}\sum_{i=1}^{n}(x_i - \bar x)^2, \quad s = \sqrt{s^2}, \quad CV = \frac{s}{\bar x}, \quad R = x_{(n)} - x_{(1)}, \quad RIC = Q_3 - Q_1, \quad \operatorname{MAD} = \operatorname{Me}\big(|x_i - \operatorname{Me}|\big) \]
-        <div class="note">\(s^2\) es la <b>varianza muestral</b>; si tienes la población completa de tamaño \(N\) con media \(\mu\), la varianza poblacional es \(\sigma^2 = \frac1N\sum (x_i - \mu)^2\). \(s\) es la <b>desviación típica</b>, en las mismas unidades que los datos. El <b>CV</b> solo tiene sentido en escala de razón. \(Q_1, Q_3\) son los cuartiles y la <b>MAD</b> es la mediana de las desviaciones absolutas a la mediana.</div>
+      <p>Es fácil de calcular y de explicar, pero depende solo de dos datos, los más extremos. Un único atípico lo dispara: sin el 90, el rango de los traslados baja de 78 a 23 minutos. Además tiende a crecer con el tamaño de la muestra, porque más datos dan más oportunidades de observar un valor extremo.</p>
+      <p>El <b>rango intercuartílico</b> mide la amplitud del 50 % central de los datos, usando los cuartiles que viste en <a href="#posicion">medidas de posición</a>:</p>
+      <div class="eq">\[ RIC = Q_3 - Q_1 \]
+        <div class="note">Traslados: \(RIC = 27{,}25 - 18{,}5 = 8{,}75\) minutos. Cambiar el 90 por 900 no lo mueve: es una medida <b>robusta</b>, con punto de ruptura del 25 %.</div>
       </div>
-      <p><b>Ejemplo numérico.</b> Tiempo de traslado al trabajo, en minutos, de 10 personas:</p>
-      <div class="eq">\[ 12,\ 15,\ 18,\ 20,\ 22,\ 25,\ 25,\ 28,\ 35,\ 90 \]
-        <div class="note">\(\bar{x} = 290/10 = 29\) min. Mediana \(= (22+25)/2 = 23{,}5\) min. Moda \(= 25\) min. Media recortada al 10 % (\(g = 1\)) \(= (290 - 12 - 90)/8 = 23{,}5\) min. Rango \(= 90 - 12 = 78\) min. Desviaciones absolutas a la mediana: 11,5; 8,5; 5,5; 3,5; 1,5; 1,5; 1,5; 4,5; 11,5; 66,5, cuya mediana es \(\operatorname{MAD} = (4{,}5 + 5{,}5)/2 = 5\) min.</div>
+      <p>Usa el RIC junto con la mediana cuando los datos son asimétricos o tienen atípicos. Es la dispersión que dibuja la caja del diagrama de caja.</p>
+
+      <h2 id="desc-var"><span class="sec">§ 3</span>Varianza y desviación típica</h2>
+      <p>Para medir la dispersión usando todos los datos, parece natural promediar cuánto se aleja cada uno de la media, la <b>desviación</b> \(x_i - \bar x\). Pero las desviaciones con signo siempre suman cero (unas positivas compensan a otras negativas), así que hay que quitarles el signo. Hay dos formas.</p>
+      <p><b>Desviación media.</b> Promedia los valores absolutos:</p>
+      <div class="eq">\[ DM = \frac{1}{n}\sum_{i=1}^{n} |x_i - \bar x| \]
+        <div class="note">Curso A: desviaciones −4, −2, 0, 2, 4; \(DM = (4 + 2 + 0 + 2 + 4)/5 = 2{,}4\) puntos. Es muy intuitiva, pero el valor absoluto es incómodo para el álgebra y casi no se usa en teoría.</div>
       </div>
-      <p>Una sola persona que tarda 90 minutos jala la media hasta 29, por encima de 8 de los 10 datos. La mediana y la media recortada ni se enteran.</p>
+      <p><b>Varianza.</b> Promedia los <b>cuadrados</b> de las desviaciones. Para una población de tamaño \(N\) se divide entre \(N\); para una muestra, entre \(n - 1\):</p>
+      <div class="eq">\[ \sigma^2 = \frac{1}{N}\sum_{i=1}^{N} (x_i - \mu)^2 \qquad\qquad s^2 = \frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar{x})^2 \]
+        <div class="note">\(\sigma^2\) es la varianza <b>poblacional</b> (un parámetro); \(s^2\), la varianza <b>muestral</b> (un estadístico). En la práctica casi siempre trabajas con muestras y usas \(s^2\).</div>
+      </div>
+      <p><b>Desviación típica</b> (o estándar). La varianza está en unidades al cuadrado (minutos², puntos²), difíciles de interpretar. Su raíz vuelve a las unidades originales:</p>
+      <div class="eq">\[ s = \sqrt{s^2} \]
+        <div class="note">Se interpreta como la distancia “típica” de un dato a la media. Si las notas tienen media 14 y \(s = 3\), la mayoría de los estudiantes está a unos 3 puntos o menos de 14.</div>
+      </div>
+      <p><b>Ejemplo paso a paso</b> con el curso A:</p>
       <div class="tablewrap"><table>
-        <thead><tr><th>Medida</th><th>Usa</th><th>Tipo de variable</th><th>Sensible a atípicos</th></tr></thead>
+        <thead><tr><th>\(x_i\)</th><th>\(x_i - \bar x\)</th><th>\((x_i - \bar x)^2\)</th></tr></thead>
         <tbody>
-          <tr><td>Media</td><td>todos los valores</td><td>cuantitativa</td><td>mucho</td></tr>
-          <tr><td>Media recortada</td><td>el centro de los datos</td><td>cuantitativa</td><td>poco</td></tr>
-          <tr><td>Mediana</td><td>solo el orden</td><td>cuantitativa u ordinal</td><td>casi nada</td></tr>
-          <tr><td>Moda</td><td>frecuencias</td><td>cualquiera, incluso nominal</td><td>no</td></tr>
+          <tr><td>10</td><td>−4</td><td>16</td></tr>
+          <tr><td>12</td><td>−2</td><td>4</td></tr>
+          <tr><td>14</td><td>0</td><td>0</td></tr>
+          <tr><td>16</td><td>2</td><td>4</td></tr>
+          <tr><td>18</td><td>4</td><td>16</td></tr>
+          <tr><td><b>Suma</b></td><td><b>0</b></td><td><b>40</b></td></tr>
         </tbody>
       </table></div>
-
-      <h2 id="desc-centro"><span class="sec">§ 3</span>El centro como solución de un problema de optimización</h2>
-      <p>Supón que debes resumir todos los datos con un único número \(c\) y que pagas una “pérdida” por cada dato según lo lejos que quede de \(c\). Cada forma de medir esa pérdida produce una medida de centro distinta.</p>
-      <p><b>Teorema 1 (la media minimiza los cuadrados).</b> La función \(Q(c) = \sum_{i=1}^{n} (x_i - c)^2\) tiene un único mínimo en \(c = \bar x\), y además</p>
-      <div class="eq">\[ \sum_{i=1}^{n} (x_i - c)^2 = \sum_{i=1}^{n} (x_i - \bar x)^2 + n(\bar x - c)^2 \]
-        <div class="note">Es la descomposición de König-Huygens. El segundo término es el “castigo” por alejarse de la media.</div>
+      <p>\(s^2 = 40/4 = 10\) puntos² y \(s = \sqrt{10} = 3{,}16\) puntos. Para el curso B, la suma de cuadrados es \(1 + 0 + 0 + 0 + 1 = 2\), así que \(s^2 = 0{,}5\) y \(s = 0{,}71\): cuatro veces y media menos dispersión con la misma media.</p>
+      <p><b>¿Por qué \(n - 1\)?</b> Las desviaciones se miden respecto de \(\bar x\), que se calculó con los mismos datos y por eso queda, en promedio, más cerca de ellos que la media verdadera \(\mu\). Dividir entre \(n\) subestimaría la varianza de la población. Dividir entre \(n - 1\) corrige ese sesgo exactamente: en promedio sobre muchas muestras, \(s^2\) acierta a \(\sigma^2\). Otra forma de verlo: como las \(n\) desviaciones suman cero, conocidas \(n - 1\) la última queda determinada; hay \(n - 1\) <b>grados de libertad</b>. Con muestras grandes la diferencia es mínima. (Lo compruebas por simulación en el ejercicio 5.)</p>
+      <p><b>Fórmula abreviada.</b> Para calcular a mano es más rápido usar</p>
+      <div class="eq">\[ s^2 = \frac{\sum x_i^2 - n\,\bar x^2}{n - 1} \]
+        <div class="note">Curso A: \(\sum x_i^2 = 100 + 144 + 196 + 256 + 324 = 1\,020\) y \(n\bar x^2 = 5 \cdot 196 = 980\), así que \(s^2 = 40/4 = 10\). Cuidado: con números grandes y parecidos, esta fórmula pierde precisión en la computadora; los programas usan la definición.</div>
       </div>
-      <p><i>Demostración.</i> Escribe \(x_i - c = (x_i - \bar x) + (\bar x - c)\) y eleva al cuadrado: \(\sum (x_i - c)^2 = \sum (x_i - \bar x)^2 + 2(\bar x - c)\sum (x_i - \bar x) + n(\bar x - c)^2\). El término cruzado se anula porque \(\sum (x_i - \bar x) = \sum x_i - n\bar x = 0\). Como \(n(\bar x - c)^2 \ge 0\) con igualdad solo en \(c = \bar x\), ese es el mínimo. También se ve derivando: \(Q'(c) = -2\sum(x_i - c) = 0 \iff c = \bar x\). \(\square\)</p>
-      <p>Físicamente, \(\bar x\) es el punto de equilibrio: si pusieras pesos iguales sobre una regla en cada valor, la regla se equilibraría en \(\bar x\), porque las desviaciones con signo suman cero.</p>
-      <p><b>Teorema 2 (la mediana minimiza los valores absolutos).</b> La función \(A(c) = \sum_{i=1}^{n} |x_i - c|\) alcanza su mínimo en la mediana. Si \(n\) es par, cualquier \(c\) en \([x_{(n/2)}, x_{(n/2+1)}]\) es mínimo.</p>
-      <p><i>Demostración.</i> \(A\) es continua y lineal a trozos. Si \(c\) no coincide con ningún dato, su pendiente es \(A'(c) = \#\{x_i &lt; c\} - \#\{x_i &gt; c\}\): cada dato a la izquierda suma \(+1\) al crecer \(c\) y cada dato a la derecha resta 1. La pendiente es negativa mientras haya más datos a la derecha que a la izquierda, y positiva cuando hay más a la izquierda. El mínimo está donde cambia de signo, es decir, donde quedan tantos datos a cada lado: la mediana. Con \(n\) par, entre los dos centrales la pendiente es exactamente 0 y todo ese intervalo es mínimo. \(\square\)</p>
-      <p>Hay una tercera y una cuarta respuesta. La <b>moda</b> minimiza la pérdida “todo o nada” \(\sum \mathbf 1\{x_i \ne c\}\), que solo cuenta si acertaste. El <b>rango medio</b> \((x_{(1)} + x_{(n)})/2\) minimiza el peor caso \(\max_i |x_i - c|\).</p>
-      <p><b>Ejemplo resuelto a mano.</b> Con los traslados, compara las pérdidas en \(c = 29\) (media) y \(c = 23{,}5\) (mediana):</p>
+      <p><b>Varianza desde una tabla de frecuencias.</b> Si el valor \(x_i\) aparece \(n_i\) veces, se pondera:</p>
+      <div class="eq">\[ s^2 = \frac{\sum_{i=1}^{k} n_i\,(x_i - \bar x)^2}{n - 1} \]
+        <div class="note">Hijos por hogar (0: 6 hogares, 1: 9, 2: 7, 3: 2, 4: 1; \(\bar x = 1{,}32\)): \(\sum n_i x_i^2 = 0 + 9 + 28 + 18 + 16 = 71\), y \(s^2 = (71 - 25 \cdot 1{,}32^2)/24 = 27{,}44/24 = 1{,}14\), \(s = 1{,}07\) hijos. Con datos agrupados se usan las marcas de clase en lugar de \(x_i\).</div>
+      </div>
+      <p><b>Sensibilidad a atípicos.</b> En los traslados, \(\sum (x_i - 29)^2 = 4\,526\), así que \(s^2 = 502{,}9\) y \(s = 22{,}4\) minutos. Solo el dato de 90 aporta \(61^2 = 3\,721\), más del 80 % del total. La desviación típica, como la media, tiene punto de ruptura 0 %. Su alternativa robusta es la <b>desviación absoluta mediana</b>, \(MAD = \operatorname{Me}\big(|x_i - \operatorname{Me}|\big)\), que con los traslados vale 5 minutos.</p>
+      <p><b>Propiedades bajo transformaciones.</b> Si a todos los datos les <b>sumas</b> una constante, la dispersión no cambia (todo se desplaza junto). Si los <b>multiplicas</b> por \(b\), la desviación típica se multiplica por \(|b|\) y la varianza por \(b^2\):</p>
+      <div class="eq">\[ y_i = a + b\,x_i \quad\Longrightarrow\quad s_y = |b|\,s_x, \qquad s_y^2 = b^2 s_x^2, \qquad RIC_y = |b|\,RIC_x \]</div>
+
+      <h2 id="desc-cv"><span class="sec">§ 4</span>Coeficiente de variación</h2>
+      <p>¿Qué varía más, el peso de los adultos o el de los recién nacidos? Comparar desviaciones típicas no sirve: 10 kg entre adultos y 0,5 kg entre bebés están en escalas muy distintas. El <b>coeficiente de variación</b> expresa la dispersión como fracción de la media, sin unidades:</p>
+      <div class="eq">\[ CV = \frac{s}{\bar x} \times 100\,\% \]
+        <div class="note">Adultos: media 70 kg, \(s = 10\) kg, \(CV = 14{,}3\,\%\). Recién nacidos: media 3,3 kg, \(s = 0{,}5\) kg, \(CV = 15{,}2\,\%\). En términos relativos, el peso de los recién nacidos varía un poco más.</div>
+      </div>
+      <p>Como regla práctica, un CV menor que 10 % indica datos muy homogéneos, entre 10 % y 30 % una variabilidad moderada y más de 30 % datos muy heterogéneos (los traslados tienen \(CV = 22{,}4/29 = 77\,\%\)). Estos cortes son orientativos y dependen del campo: en un laboratorio clínico se exige CV de pocos puntos.</p>
+      <div class="callout"><b>Solo para escala de razón.</b> El CV necesita un cero absoluto y valores positivos (peso, ingreso, tiempo). No lo uses con temperaturas en °C ni con variables que toman valores negativos: si la media está cerca de cero el CV se dispara sin significar nada, y cambia si cambias de unidad (lo viste en <a href="#tipos">tipos de variables</a>).</div>
+
+      <h2 id="desc-cheb"><span class="sec">§ 5</span>Regla empírica y Chebyshev</h2>
+      <p>La desviación típica permite responder una pregunta muy práctica: <b>¿qué fracción de los datos está a menos de \(k\) desviaciones de la media?</b> Hay dos respuestas, una para datos con forma de campana y otra que vale siempre.</p>
+      <p><b>Regla empírica (68-95-99,7).</b> Si los datos tienen forma aproximadamente <a href="#normal">normal</a>:</p>
       <ul>
-        <li>Cuadrados: \(Q(29) = 4\,526\) y, por König-Huygens, \(Q(23{,}5) = 4\,526 + 10 \cdot 5{,}5^2 = 4\,828{,}5\). Gana la media.</li>
-        <li>Absolutos: \(A(23{,}5) = 11{,}5 + 8{,}5 + 5{,}5 + 3{,}5 + 1{,}5 + 1{,}5 + 1{,}5 + 4{,}5 + 11{,}5 + 66{,}5 = 116\). En \(c = 29\): \(17 + 14 + 11 + 9 + 7 + 4 + 4 + 1 + 6 + 61 = 134\). Gana la mediana.</li>
-        <li>Peor caso: el rango medio es \(51\), con error máximo \(39\); la media tiene error máximo \(61\). El rango medio “sacrifica” a 9 personas para no alejarse del atípico.</li>
+        <li>cerca del <b>68 %</b> está entre \(\bar x - s\) y \(\bar x + s\);</li>
+        <li>cerca del <b>95 %</b> está entre \(\bar x - 2s\) y \(\bar x + 2s\);</li>
+        <li>casi todos, el <b>99,7 %</b>, están entre \(\bar x - 3s\) y \(\bar x + 3s\).</li>
       </ul>
-      <p>La lección: elegir una medida de centro es elegir cómo castigar los errores. El cuadrado castiga muchísimo los errores grandes, y por eso la media se acerca a los atípicos.</p>
-
-      <h2 id="desc-disp"><span class="sec">§ 4</span>Varianza, grados de libertad y desviación típica</h2>
-      <p>La varianza promedia las desviaciones al cuadrado respecto a la media. Elevamos al cuadrado porque las desviaciones con signo siempre suman cero. ¿Por qué dividir entre \(n-1\) y no entre \(n\)? Porque así el estimador es insesgado.</p>
-      <p><b>Teorema 3.</b> Si \(X_1, \dots, X_n\) son independientes con media \(\mu\) y varianza \(\sigma^2\), entonces \(\mathbb E[S^2] = \sigma^2\), donde \(S^2 = \frac{1}{n-1}\sum (X_i - \bar X)^2\).</p>
-      <p><i>Demostración.</i> Aplica König-Huygens con \(c = \mu\):</p>
-      <div class="eq">\[ \sum_{i=1}^{n}(X_i - \bar X)^2 = \sum_{i=1}^{n}(X_i - \mu)^2 - n(\bar X - \mu)^2 \]</div>
-      <p>Toma esperanzas. Cada \(\mathbb E[(X_i - \mu)^2] = \sigma^2\), así que el primer término vale \(n\sigma^2\). Para el segundo, \(\operatorname{Var}(\bar X) = \frac{1}{n^2}\sum \operatorname{Var}(X_i) = \sigma^2/n\) por independencia, de modo que \(\mathbb E[n(\bar X - \mu)^2] = \sigma^2\). Entonces</p>
-      <div class="eq">\[ \mathbb E\Big[\sum (X_i - \bar X)^2\Big] = n\sigma^2 - \sigma^2 = (n-1)\sigma^2 \quad\Longrightarrow\quad \mathbb E[S^2] = \sigma^2 \qquad \square \]
-        <div class="note">Dividir entre \(n\) da esperanza \(\frac{n-1}{n}\sigma^2\): subestima. La intuición: \(\bar X\) se calculó con los mismos datos y está, en promedio, más cerca de ellos que \(\mu\). Como las \(n\) desviaciones suman cero, solo \(n-1\) son libres: hay \(n-1\) <b>grados de libertad</b>.</div>
+      <p><b>Desigualdad de Chebyshev.</b> Para <b>cualquier</b> conjunto de datos, sin importar su forma, la fracción que está a menos de \(k\) desviaciones típicas de la media es al menos</p>
+      <div class="eq">\[ 1 - \frac{1}{k^2} \qquad (k &gt; 1) \]
+        <div class="note">Con \(k = 2\), al menos el 75 %; con \(k = 3\), al menos el 88,9 %; con \(k = 4\), al menos el 93,75 %.</div>
       </div>
-      <p>Ojo: aunque \(S^2\) es insesgado para \(\sigma^2\), \(S\) <b>no</b> es insesgado para \(\sigma\). Como la raíz es cóncava, por la desigualdad de Jensen \(\mathbb E[S] \le \sqrt{\mathbb E[S^2]} = \sigma\). Con datos normales y \(n = 5\), \(\mathbb E[S] \approx 0{,}94\,\sigma\).</p>
-      <p>Para calcular a mano conviene la <b>fórmula computacional</b> \(\sum (x_i - \bar x)^2 = \sum x_i^2 - n\bar x^2\) (König-Huygens con \(c = 0\)). En los traslados, \(\sum x_i^2 = 12\,936\) y \(n\bar x^2 = 10 \cdot 841 = 8\,410\):</p>
-      <div class="eq">\[ \sum (x_i - 29)^2 = 12\,936 - 8\,410 = 4\,526 \quad\Rightarrow\quad s^2 = \frac{4\,526}{9} \approx 502{,}9 \quad\Rightarrow\quad s \approx 22{,}4 \text{ min} \]
-        <div class="note">Si dividieras entre \(n = 10\) obtendrías 452,6 y una desviación de 21,3 min. De los 4 526, el dato de 90 min aporta \(61^2 = 3\,721\): más del 80 %. En computadora, la fórmula computacional puede perder precisión con números grandes; las librerías usan algoritmos más estables.</div>
-      </div>
-      <p><b>Cómo interpretar \(s\): la desigualdad de Chebyshev.</b> Para cualquier conjunto de datos y cualquier \(k &gt; 1\), la proporción de datos a menos de \(k\) desviaciones de la media es al menos \(1 - 1/k^2\). Al menos el 75 % está a menos de \(2s\) y al menos el 89 % a menos de \(3s\), sin suponer nada sobre la forma. Si los datos son aproximadamente normales, las proporciones son mucho mayores: 95 % y 99,7 % (ver <a href="#normal">la distribución normal</a>).</p>
-      <p><i>Demostración (versión poblacional).</i> Sea \(A = \{|X - \mu| \ge k\sigma\}\). Entonces \(\sigma^2 = \mathbb E[(X-\mu)^2] \ge \mathbb E[(X-\mu)^2 \mathbf 1_A] \ge k^2\sigma^2 P(A)\), así que \(P(A) \le 1/k^2\). \(\square\)</p>
-      <p><b>Coeficiente de variación.</b> Compara dispersiones entre variables con unidades o escalas distintas, porque expresa la desviación como fracción de la media. En un hospital, el peso de los recién nacidos tiene media 3,2 kg y \(s = 0{,}45\) kg; el de las madres, media 72 kg y \(s = 9\) kg. Las desviaciones no se comparan directamente, pero \(CV_{\text{bebés}} = 14{,}1\,\%\) y \(CV_{\text{madres}} = 12{,}5\,\%\): los bebés son un poco más variables en términos relativos, y la conclusión no cambia en libras.</p>
+      <p><b>Por qué funciona.</b> Supón que una fracción \(q\) de los datos está a \(k\,s\) o más de la media. Cada uno de esos datos aporta al menos \(k^2 s^2\) a la suma de cuadrados, y la suma completa vale \((n-1)\,s^2\). Entonces \(q\,n\,k^2 s^2 \le (n-1)\,s^2\), de donde \(q \le \frac{n-1}{n\,k^2} &lt; \frac{1}{k^2}\). Los datos lejanos “gastan” demasiada varianza como para ser muchos.</p>
+      <p>Chebyshev es una garantía de peor caso, por eso es más conservadora que la regla empírica (75 % frente a 95 % con \(k = 2\)). Úsala cuando no sabes nada de la forma; usa la regla empírica cuando un histograma muestra una campana. En los traslados, el 90 % de los datos cae a menos de \(2s\) de la media, por encima del 75 % que garantiza Chebyshev.</p>
 
-      <h2 id="desc-pos"><span class="sec">§ 5</span>Cuantiles, diagrama de caja y robustez</h2>
-      <p>El <b>cuantil</b> \(Q(p)\) es un valor que deja aproximadamente una fracción \(p\) de los datos por debajo; el <b>percentil</b> \(100p\) es lo mismo en porcentaje. La mediana es \(Q(0{,}5)\) y los <b>cuartiles</b> son \(Q_1 = Q(0{,}25)\), \(Q_2 = \operatorname{Me}\) y \(Q_3 = Q(0{,}75)\). Hay nueve definiciones en uso (Hyndman y Fan, 1996). R (por defecto, <code>type = 7</code>) y NumPy usan la misma: ubican la posición \(h = 1 + (n-1)\,p\) entre los datos ordenados e interpolan linealmente.</p>
-      <div class="eq">\[ Q(p) = x_{(\lfloor h \rfloor)} + \big(h - \lfloor h \rfloor\big)\big(x_{(\lfloor h \rfloor + 1)} - x_{(\lfloor h \rfloor)}\big), \qquad h = 1 + (n-1)\,p \]
-        <div class="note">Traslados: para \(Q_1\), \(h = 3{,}25\) y \(Q_1 = 18 + 0{,}25 \cdot 2 = 18{,}5\). Para \(Q_3\), \(h = 7{,}75\) y \(Q_3 = 25 + 0{,}75 \cdot 3 = 27{,}25\). Otros programas pueden dar valores ligeramente distintos; no es un error.</div>
-      </div>
-      <p>El <b>rango intercuartílico</b> \(RIC = Q_3 - Q_1\) mide la dispersión del 50 % central de los datos, así que los extremos no lo afectan. En los traslados, \(RIC = 8{,}75\) min, frente a una desviación típica de 22,4 min inflada por el atípico.</p>
-      <p>El <b>diagrama de caja</b> dibuja el resumen de cinco números: mínimo, \(Q_1\), mediana, \(Q_3\) y máximo. La caja va de \(Q_1\) a \(Q_3\), la línea interior es la mediana y los “bigotes” llegan hasta el dato más extremo que no se aleje más de \(1{,}5 \cdot RIC\) de la caja. Lo que queda fuera se marca como posible atípico:</p>
-      <div class="eq">\[ \text{atípico si } x &lt; Q_1 - 1{,}5\,RIC \quad\text{o}\quad x &gt; Q_3 + 1{,}5\,RIC \]
-        <div class="note">Traslados: las vallas son \(18{,}5 - 13{,}1 = 5{,}4\) y \(27{,}25 + 13{,}1 = 40{,}4\). El dato de 90 min queda fuera. ¿Por qué 1,5? En una normal, \(Q_3 = \mu + 0{,}674\sigma\) y \(RIC = 1{,}349\sigma\), así que la valla superior está en \(\mu + 2{,}698\sigma\): solo el 0,7 % de los datos normales queda fuera de las vallas.</div>
-      </div>
-      <p><b>Una escala robusta: la MAD.</b> Para datos normales, \(\operatorname{MAD} \approx 0{,}674\,\sigma\), así que \(1{,}4826 \cdot \operatorname{MAD}\) estima \(\sigma\) sin dejarse arrastrar por los atípicos. Con ella se define el <b>z robusto</b> \(z_i = (x_i - \operatorname{Me})/(1{,}4826 \cdot \operatorname{MAD})\); un criterio usual (Iglewicz y Hoaglin) marca \(|z_i| &gt; 3{,}5\). En los traslados, \(1{,}4826 \cdot 5 = 7{,}41\) y el dato de 90 tiene \(z = (90 - 23{,}5)/7{,}41 = 8{,}97\).</p>
-      <p><b>Punto de ruptura.</b> Una medida es <b>robusta</b> si un pequeño número de datos extremos no puede cambiarla mucho. El punto de ruptura es la menor fracción de datos que tendrías que reemplazar por valores arbitrarios para llevar la medida tan lejos como quieras.</p>
-      <div class="tablewrap"><table>
-        <thead><tr><th>Centro</th><th>Ruptura</th><th>Dispersión</th><th>Ruptura</th></tr></thead>
-        <tbody>
-          <tr><td>Media</td><td>0 %</td><td>Rango, varianza, s</td><td>0 %</td></tr>
-          <tr><td>Media recortada \(\alpha\)</td><td>\(\alpha\)</td><td>RIC</td><td>25 %</td></tr>
-          <tr><td>Mediana</td><td>50 %</td><td>MAD</td><td>50 %</td></tr>
-        </tbody>
-      </table></div>
-      <p>Para la media basta un dato: si reemplazas \(x_1\) por \(x_1 + t\), la media cambia en \(t/n\), que crece sin límite. Para mover la mediana sin límite necesitas que más de la mitad de los datos se vaya al infinito. La robustez tiene un precio: con datos normales la mediana es menos precisa que la media (su varianza es cerca de \(\pi/2 \approx 1{,}57\) veces mayor), pero con colas pesadas gana con holgura (pregunta propuesta 4).</p>
-      <p><b>La forma.</b> La posición relativa de media y mediana da una pista de la asimetría: simétrica si media ≈ mediana, cola a la derecha (ingresos, tiempos de espera) si media &gt; mediana, cola a la izquierda si media &lt; mediana. Es una regla empírica, no un teorema: con distribuciones discretas o multimodales puede fallar. Lo que sí es un teorema es que \(|\mu - \operatorname{Me}| \le \sigma\) (pregunta 3). La asimetría y la curtosis se miden con momentos en <a href="#forma">medidas de forma</a>, y los atípicos se tratan a fondo en <a href="#atipicos">detección de atípicos</a>.</p>
-      <div class="callout"><b>Atípico no significa error.</b> La regla de 1,5 RIC solo señala valores que merecen revisión. Si el dato es real (alguien que vive lejos), no lo borres: decide qué medidas son adecuadas y repórtalo.</div>
-
-      <h2 id="desc-prop"><span class="sec">§ 6</span>Propiedades</h2>
-      <ol>
-        <li><b>Las desviaciones a la media suman cero.</b> \(\sum (x_i - \bar x) = 0\). <i>Demostración:</i> \(\sum x_i - n\bar x = n\bar x - n\bar x = 0\).</li>
-        <li><b>Equivariancia.</b> Si \(y_i = a + bx_i\): \(\bar y = a + b\bar x\), \(\operatorname{Me}_y = a + b\operatorname{Me}_x\), \(s_y = |b|s_x\), \(s_y^2 = b^2 s_x^2\), \(RIC_y = |b|RIC_x\); si \(a = 0\) y \(b &gt; 0\), \(CV_y = CV_x\). <i>Demostración:</i> \(y_i - \bar y = b(x_i - \bar x)\); para la mediana y los cuartiles, una afín creciente conserva el orden.</li>
-        <li><b>König-Huygens.</b> \(\sum (x_i - c)^2 = \sum (x_i - \bar x)^2 + n(\bar x - c)^2\) para todo \(c\). <i>Demostración:</i> Teorema 1. Con \(c = 0\) da la fórmula computacional.</li>
-        <li><b>Insesgadez de \(S^2\).</b> \(\mathbb E[S^2] = \sigma^2\), y \(\mathbb E[S] &lt; \sigma\) salvo que \(S\) sea constante. <i>Demostración:</i> Teorema 3 y desigualdad de Jensen.</li>
-        <li><b>Varianza de la media.</b> \(\operatorname{Var}(\bar X) = \sigma^2/n\), y el error estándar es \(\sigma/\sqrt n\). <i>Demostración:</i> la varianza de una suma de independientes es la suma de varianzas. Es la base del <a href="#tlc">teorema del límite central</a>.</li>
-        <li><b>Chebyshev.</b> \(P(|X - \mu| \ge k\sigma) \le 1/k^2\), y en una muestra, la proporción de datos con \(|x_i - \bar x| \ge k s\) es a lo sumo \(1/k^2\) (de hecho, \((n-1)/(nk^2)\)). <i>Demostración:</i> ver sección 4.</li>
-        <li><b>Media y mediana están cerca.</b> \(|\mu - \operatorname{Me}| \le \sigma\). <i>Demostración:</i> pregunta propuesta 3.</li>
-        <li><b>Desigualdad de las medias.</b> Para datos positivos, \(\bar x_{\text{arm}} \le \bar x_{\text{geom}} \le \bar x\), con igualdad solo si todos los datos son iguales. <i>Justificación:</i> Jensen con \(\ln\) (cóncava) da la segunda; aplicada a \(1/x_i\) da la primera.</li>
-      </ol>
-      <p><b>Errores comunes</b></p>
-      <ul>
-        <li><b>Reportar la media de datos muy asimétricos sin la mediana.</b> El salario “promedio” de la empresa de la introducción no describe a nadie.</li>
-        <li><b>Mezclar \(n\) y \(n-1\) entre programas.</b> NumPy usa \(n\) por defecto (<code>ddof=0</code>); R y pandas, \(n-1\).</li>
-        <li><b>Borrar atípicos automáticamente.</b> La regla de 1,5 RIC señala, no decide. Un dato real borrado sesga todos los resúmenes.</li>
-        <li><b>Usar el CV con variables de intervalo o con media cercana a cero.</b> Con temperaturas en °C el CV no significa nada.</li>
-        <li><b>Comparar desviaciones típicas de variables con unidades distintas.</b> Usa el CV o estandariza.</li>
-      </ul>
-
-      <h2 id="desc-lab"><span class="sec">§ 7</span>Ejercicios de simulación</h2>
-      <p>Tienes los salarios mensuales, en miles de pesos, de 24 personas de una empresa, más uno o varios salarios que tú controlas. Arriba ves cada dato como un punto; abajo, el diagrama de caja. Lleva el salario atípico de 40 a 200 mil y observa qué medidas se mueven y cuáles casi no.</p>
+      <h2 id="desc-lab"><span class="sec">§ 6</span>Laboratorio</h2>
+      <p>Una máquina llena bolsas de café con un objetivo de 250 g. Tienes el peso de 60 bolsas. Cambia la dispersión del proceso y la forma de la distribución, y elige una banda de \(\bar x \pm k\,s\): verás qué porcentaje de bolsas cae dentro y cómo se compara con lo que garantizan la regla empírica y Chebyshev.</p>
       <figure class="instrument lab">
-        <div class="instrument-head"><span><span class="dot"></span>simulador · media frente a mediana</span><span class="num" id="desc-head">–</span></div>
+        <div class="instrument-head"><span><span class="dot"></span>simulador · cuánta dispersión</span><span class="num" id="desc-head">–</span></div>
         <div class="lab-body">
           <div class="controls">
-            <div class="ctrl"><label for="desc-v">SALARIO ATÍPICO · <b id="desc-v-v" class="num">40</b> mil</label><input id="desc-v" type="range" min="15" max="200" value="40"></div>
+            <div class="ctrl"><label for="desc-sd">DISPERSIÓN DEL PROCESO · σ = <b id="desc-sd-v" class="num">4</b> g</label><input id="desc-sd" type="range" min="1" max="12" step="0.5" value="4"></div>
             <div class="ctrl">
-              <label id="desc-k-label">VALORES ATÍPICOS</label>
-              <div class="seg" id="desc-k" role="group" aria-labelledby="desc-k-label">
-                <button data-k="0" aria-pressed="false">Ninguno</button>
-                <button data-k="1" aria-pressed="true">Uno</button>
-                <button data-k="3" aria-pressed="false">Tres</button>
+              <label id="desc-forma-label">FORMA</label>
+              <div class="seg" id="desc-forma" role="group" aria-labelledby="desc-forma-label">
+                <button data-f="normal" aria-pressed="true">Normal</button>
+                <button data-f="unif" aria-pressed="false">Uniforme</button>
+                <button data-f="atip" aria-pressed="false">Con atípicos</button>
               </div>
             </div>
-            <button class="btn btn-ghost btn-sm" id="desc-again" type="button">Otra empresa</button>
           </div>
-          <div class="plot-label"><span>Salario mensual (miles)</span><span>┄ media · │ mediana</span></div>
-          <canvas class="plot" id="desc-plot" height="240" aria-label="Diagrama de puntos de los salarios con la media y la mediana marcadas, y un diagrama de caja debajo"></canvas>
+          <div class="controls">
+            <div class="ctrl">
+              <label id="desc-k-label">BANDA MEDIA ± k·s</label>
+              <div class="seg" id="desc-k" role="group" aria-labelledby="desc-k-label">
+                <button data-k="1" aria-pressed="false">k = 1</button>
+                <button data-k="2" aria-pressed="true">k = 2</button>
+                <button data-k="3" aria-pressed="false">k = 3</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="desc-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="plot-label"><span>Peso de cada bolsa (g)</span><span>banda media ± k·s · ┆ Q₁ y Q₃</span></div>
+          <canvas class="plot" id="desc-plot" height="250" aria-label="Diagrama de puntos de los pesos de 60 bolsas con la banda de la media más y menos k desviaciones típicas y los cuartiles marcados"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>dentro de la banda</span><span><i style="background:var(--hot)"></i>fuera de la banda</span><span><i style="background:var(--ink)"></i>media y cuartiles</span></div>
           <div class="readout">
-            <div><span>media x̄</span><b id="desc-mean">–</b></div>
-            <div><span>mediana</span><b id="desc-med">–</b></div>
-            <div><span>desviación típica s</span><b id="desc-sd">–</b></div>
-            <div><span>rango intercuartílico</span><b id="desc-iqr">–</b></div>
+            <div><span>desviación típica s</span><b id="desc-r-s">–</b></div>
+            <div><span>rango intercuartílico</span><b id="desc-r-iqr">–</b></div>
+            <div><span>coeficiente de variación</span><b id="desc-r-cv">–</b></div>
+            <div><span>dentro de media ± k·s</span><b id="desc-r-in">–</b></div>
           </div>
         </div>
-        <figcaption>Con un solo atípico de 200 mil la media sube varios miles y la desviación típica se multiplica, mientras que la mediana y el RIC apenas cambian. Prueba con tres atípicos: la mediana empieza a moverse, pero poco.</figcaption>
+        <figcaption>La cabecera muestra el rango y lo que garantiza Chebyshev para la banda elegida. Con datos normales, la última celda debería rondar 68 %, 95 % y 99,7 % para k = 1, 2 y 3.</figcaption>
       </figure>
-      <p><b>Experimentos guiados</b></p>
+      <p><b>Prueba tú mismo</b></p>
       <ol>
-        <li>Elige “Ninguno” y anota las cuatro celdas. Luego elige “Uno” y lleva el salario atípico a 200.
-          <details><summary>Qué deberías observar</summary><p>Sin atípicos: media cerca de 23,8, mediana 23, \(s \approx 5{,}8\) y RIC 7,5. Con un atípico de 200: la media sube a unos 30,8 (casi 7 mil más), \(s\) se multiplica por 6 (cerca de 35,7), mientras que la mediana sigue en 23 y el RIC apenas pasa a 8. Es el punto de ruptura en acción: un solo dato basta para mover la media y \(s\).</p></details></li>
-        <li>Con “Uno”, mueve el control lentamente de 40 a 200 y mira la media.
-          <details><summary>Qué deberías observar</summary><p>La media sube en línea recta: cada 25 mil adicionales del atípico suben la media en \(25/25 = 1\) mil, porque hay 25 datos. Es la fórmula \(\Delta\bar x = t/n\). La mediana no se mueve nada una vez que el atípico está por encima del centro.</p></details></li>
-        <li>Elige “Tres” con el control en 200.
-          <details><summary>Qué deberías observar</summary><p>Con tres atípicos (cerca de 172, 200 y 224) la media llega a unos 43 y \(s\) a unos 57, mientras que la mediana solo pasa de 23 a 24 y el RIC a 9,5. Tres atípicos de 27 datos son el 11 %: aún muy lejos del 50 % que necesitaría la mediana para romperse.</p></details></li>
-        <li>Con “Tres”, pon el control en 40 y compara la media recortada (en la cabecera) con la media y la mediana. Luego súbelo poco a poco hasta 200.
-          <details><summary>Qué deberías observar</summary><p>Con valores moderados (34, 40 y 45) todos los resúmenes están cerca: media 25,5, mediana 24. Al subir el control, la media recortada al 10 % (que quita 2 datos de cada lado con 27 datos) elimina dos de los tres atípicos, pero el tercero sigue dentro y la arrastra hacia arriba, aunque mucho menos que a la media. Su punto de ruptura es su porcentaje de recorte: 2 de 27 datos.</p></details></li>
+        <li>Con forma “Normal”, mueve σ de 1 a 12 g y mira el gráfico y la celda del CV.
+          <details><summary>Qué deberías observar</summary><p>La nube de puntos se ensancha y la desviación típica muestral sigue de cerca al σ elegido. El CV pasa de menos de 1 % a cerca de 5 %: incluso con σ = 12 g el proceso es homogéneo en términos relativos, porque 12 g es poco frente a 250 g.</p></details></li>
+        <li>Con “Normal”, cambia entre k = 1, 2 y 3 y pulsa “Nueva muestra” varias veces.
+          <details><summary>Qué deberías observar</summary><p>El porcentaje dentro de la banda ronda 68 %, 95 % y 100 %, con algo de variación por ser solo 60 bolsas. Chebyshev garantiza solo 0 %, 75 % y 89 %: la regla empírica es mucho más precisa cuando los datos tienen forma de campana.</p></details></li>
+        <li>Elige “Con atípicos” (algunas bolsas mal selladas, mucho más livianas) y compara s con el RIC. Luego elige “Uniforme”.
+          <details><summary>Qué deberías observar</summary><p>Con atípicos, s se infla bastante más que el RIC, y el porcentaje dentro de \(\bar x \pm s\) puede superar el 68 %, porque la desviación típica quedó grande por culpa de unos pocos datos. Con la uniforme, la banda de k = 2 contiene el 100 % de los datos: no hay colas. La regla empírica solo vale para campanas; Chebyshev se cumple siempre.</p></details></li>
       </ol>
 
-      <h2 id="desc-apl"><span class="sec">§ 8</span>Aplicaciones reales</h2>
-      <h3>Economía: la inflación “media recortada”</h3>
-      <p>Los bancos centrales necesitan saber si la inflación es persistente o si la empuja un puñado de precios volátiles (combustibles, alimentos frescos). El Banco de la Reserva Federal de Dallas publica la <b>inflación PCE de media recortada</b>: cada mes ordena las variaciones de precio de cerca de 180 componentes del gasto, descarta una fracción de los extremos de cada lado (ponderando por su peso en el gasto) y promedia el resto. Si un mes la gasolina sube 15 % y casi todo lo demás sube entre 0,1 % y 0,4 %, la inflación general salta, pero la recortada apenas se mueve. La decisión que permite: no subir las tasas de interés por un choque transitorio. Es exactamente la media recortada de esta sesión, usada en política monetaria.</p>
-      <h3>Salud: percentiles en las curvas de crecimiento</h3>
-      <p>Los patrones de crecimiento infantil de la OMS (2006) se expresan en <b>percentiles</b> y puntajes z de peso, talla e índice de masa corporal por edad y sexo. Un pediatra no compara a una niña de 2 años con la “media” y ya: ubica su peso en la curva. Si está por debajo del percentil 3 (o de \(z = -2\)), se evalúa desnutrición; si cruza dos líneas de percentil hacia abajo entre consultas, es una señal de alerta aunque siga en un rango “normal”. Los percentiles funcionan aquí porque las distribuciones de peso son asimétricas y lo que importa es la posición relativa.</p>
-      <h3>Industria: la capacidad de un proceso</h3>
-      <p>Una máquina fabrica ejes cuyo diámetro debe estar entre 9,95 y 10,05 mm. En 200 piezas, la media es 10,004 mm y \(s = 0{,}012\) mm. El <b>índice de capacidad</b> \(C_p = (LSE - LIE)/(6s) = 0{,}10/0{,}072 = 1{,}39\) compara el ancho de la tolerancia con la dispersión del proceso; \(C_{pk} = \min(LSE - \bar x, \bar x - LIE)/(3s) = 0{,}046/0{,}036 = 1{,}28\) además penaliza que el proceso no esté centrado. Muchas industrias exigen \(C_{pk} \ge 1{,}33\). La decisión: centrar la máquina (bajar la media 4 micras) antes de aceptar el pedido. Media y desviación típica son aquí la herramienta, porque el diámetro suele ser casi normal y sin atípicos.</p>
-      <h3>Ambiente: el percentil 98 de la contaminación</h3>
-      <p>La norma de calidad del aire de 24 horas para partículas finas PM2.5 de la Agencia de Protección Ambiental de Estados Unidos (EPA) no se evalúa con la media ni con el máximo, sino con el <b>percentil 98</b> anual de los promedios diarios (promediado en tres años), comparado con 35 µg/m³. ¿Por qué? La media ignora los episodios de contaminación que dañan la salud, y el máximo depende de un único día excepcional (un incendio). El percentil 98 permite unos 7 días “malos” por año sin incumplir. Con 365 promedios diarios, \(h = 1 + 364 \cdot 0{,}98 = 357{,}7\): se interpola entre el día 357 y el 358 de la lista ordenada.</p>
+      <h2 id="desc-errores"><span class="sec">§ 7</span>Errores comunes</h2>
+      <ul>
+        <li><b>Confundir varianza con desviación típica.</b> La varianza está en unidades al cuadrado; para interpretar, usa \(s\).</li>
+        <li><b>Mezclar \(n\) y \(n - 1\).</b> Excel tiene <code>VAR.P</code> y <code>VAR.S</code>, NumPy usa \(n\) por defecto (<code>ddof=0</code>) y pandas y R usan \(n - 1\). Revisa qué calcula tu programa.</li>
+        <li><b>Comparar desviaciones típicas de variables con escalas distintas.</b> Para eso está el CV.</li>
+        <li><b>Usar el CV con variables de intervalo o con media cercana a cero.</b> El resultado no significa nada.</li>
+        <li><b>Aplicar la regla 68-95-99,7 a cualquier distribución.</b> Solo vale para datos con forma de campana. Para lo demás, Chebyshev.</li>
+        <li><b>Reportar solo \(s\) con datos asimétricos o con atípicos.</b> Acompáñala del RIC o usa la MAD.</li>
+      </ul>
+
+      <h2 id="desc-practica"><span class="sec">§ 8</span>En la práctica</h2>
+      <ul>
+        <li><b>Industria.</b> El control estadístico de procesos vigila la desviación típica de cada lote. Un proceso “seis sigma” es tan poco disperso que los límites de especificación quedan a 6 desviaciones de la media, con muy pocas piezas defectuosas por millón.</li>
+        <li><b>Finanzas.</b> La <b>volatilidad</b> de una acción es la desviación típica de sus rendimientos. Dos fondos con el mismo rendimiento medio no son iguales si uno tiene el doble de volatilidad: es más riesgoso.</li>
+        <li><b>Salud.</b> Los laboratorios clínicos expresan la precisión de un análisis con el CV de mediciones repetidas de una misma muestra: un CV de 2 % indica que el resultado es muy reproducible.</li>
+        <li><b>Clima.</b> Dos ciudades pueden tener la misma temperatura media anual y climas muy distintos: una costera con poca variación entre estaciones y otra continental con inviernos fríos y veranos calurosos. La diferencia está en la desviación típica.</li>
+      </ul>
 
       <h2 id="desc-code"><span class="sec">§ 9</span>En R y Python</h2>
-      <p>Resumen completo del ejemplo de traslados: centro, dispersión clásica y robusta, dos reglas de atípicos, la cota de Chebyshev y una tabla “con y sin el atípico”. Fíjate en el argumento que controla \(n\) frente a \(n-1\): R usa \(n-1\) siempre; NumPy usa \(n\) a menos que pidas <code>ddof=1</code>, y pandas usa \(n-1\) por defecto.</p>
+      <p>Todas las medidas de dispersión de la clase. Fíjate en el argumento <code>ddof</code> de NumPy: <code>ddof=1</code> divide entre \(n - 1\).</p>
       <div class="codetabs">
         <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-<span class="k">import</span> pandas <span class="k">as</span> pd
 <span class="k">from</span> scipy <span class="k">import</span> stats
 
 x = np.<span class="f">array</span>([<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">35</span>, <span class="n">90</span>])   <span class="c"># minutos de traslado</span>
 
-<span class="c"># 1. centro</span>
-<span class="f">print</span>(x.<span class="f">mean</span>(), np.<span class="f">median</span>(x))            <span class="c"># 29.0  23.5</span>
-<span class="f">print</span>(stats.<span class="f">mode</span>(x).mode)                <span class="c"># 25</span>
-<span class="f">print</span>(stats.<span class="f">trim_mean</span>(x, <span class="n">0.1</span>))           <span class="c"># 23.5 (quita 10 % de cada lado)</span>
+<span class="f">print</span>(np.<span class="f">ptp</span>(x))                          <span class="c"># rango: 78</span>
+<span class="f">print</span>(stats.<span class="f">iqr</span>(x))                       <span class="c"># RIC: 8.75</span>
+<span class="f">print</span>(x.<span class="f">var</span>(ddof=<span class="n">1</span>), x.<span class="f">std</span>(ddof=<span class="n">1</span>))       <span class="c"># ≈ 502.9  ≈ 22.43  (muestral: n − 1)</span>
+<span class="f">print</span>(x.<span class="f">var</span>(ddof=<span class="n">0</span>), x.<span class="f">std</span>(ddof=<span class="n">0</span>))       <span class="c"># ≈ 452.6  ≈ 21.27  (poblacional: n)</span>
+<span class="f">print</span>(np.<span class="f">mean</span>(np.<span class="f">abs</span>(x - x.<span class="f">mean</span>())))      <span class="c"># desviación media: 13.4</span>
+<span class="f">print</span>(stats.<span class="f">median_abs_deviation</span>(x))      <span class="c"># MAD: 5.0</span>
+<span class="f">print</span>(x.<span class="f">std</span>(ddof=<span class="n">1</span>) / x.<span class="f">mean</span>())           <span class="c"># CV ≈ 0.773</span>
 
-<span class="c"># 2. dispersión: cuidado con n frente a n - 1</span>
-<span class="f">print</span>(x.<span class="f">var</span>(ddof=<span class="n">1</span>), x.<span class="f">std</span>(ddof=<span class="n">1</span>))      <span class="c"># ≈ 502.89  ≈ 22.43  (con n - 1)</span>
-<span class="f">print</span>(x.<span class="f">std</span>())                           <span class="c"># ≈ 21.27  (¡numpy usa n por defecto!)</span>
-<span class="f">print</span>(x.<span class="f">std</span>(ddof=<span class="n">1</span>) / x.<span class="f">mean</span>())          <span class="c"># CV ≈ 0.773</span>
-q1, q3 = np.<span class="f">percentile</span>(x, [<span class="n">25</span>, <span class="n">75</span>])      <span class="c"># método 7, igual que R</span>
-<span class="f">print</span>(q1, q3, q3 - q1)                   <span class="c"># 18.5  27.25  8.75</span>
+<span class="c"># dos cursos con la misma media y distinta dispersión</span>
+A = np.<span class="f">array</span>([<span class="n">10</span>, <span class="n">12</span>, <span class="n">14</span>, <span class="n">16</span>, <span class="n">18</span>]); B = np.<span class="f">array</span>([<span class="n">13</span>, <span class="n">14</span>, <span class="n">14</span>, <span class="n">14</span>, <span class="n">15</span>])
+<span class="f">print</span>(A.<span class="f">mean</span>(), B.<span class="f">mean</span>(), A.<span class="f">std</span>(ddof=<span class="n">1</span>), B.<span class="f">std</span>(ddof=<span class="n">1</span>))   <span class="c"># 14 14 ≈ 3.16 ≈ 0.71</span>
 
-<span class="c"># 3. dispersión robusta: MAD escalada para que estime σ en datos normales</span>
-mad = stats.<span class="f">median_abs_deviation</span>(x, scale=<span class="s">"normal"</span>)   <span class="c"># 1.4826 · mediana|x - Me|</span>
-<span class="f">print</span>(<span class="f">round</span>(mad, <span class="n">2</span>))                     <span class="c"># 7.41</span>
+<span class="c"># varianza desde una tabla de frecuencias (hijos por hogar)</span>
+v, f = np.<span class="f">array</span>([<span class="n">0</span>, <span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>]), np.<span class="f">array</span>([<span class="n">6</span>, <span class="n">9</span>, <span class="n">7</span>, <span class="n">2</span>, <span class="n">1</span>])
+m = np.<span class="f">average</span>(v, weights=f)
+s2 = np.<span class="f">sum</span>(f * (v - m) ** <span class="n">2</span>) / (f.<span class="f">sum</span>() - <span class="n">1</span>)
+<span class="f">print</span>(m, s2, np.<span class="f">sqrt</span>(s2))                 <span class="c"># 1.32  ≈ 1.143  ≈ 1.069</span>
 
-<span class="c"># 4. dos reglas para señalar atípicos</span>
-ric = q3 - q1
-<span class="f">print</span>(x[(x &lt; q1 - <span class="n">1.5</span> * ric) | (x &gt; q3 + <span class="n">1.5</span> * ric)])        <span class="c"># [90]  (vallas de Tukey)</span>
-z_rob = (x - np.<span class="f">median</span>(x)) / mad
-<span class="f">print</span>(x[np.<span class="f">abs</span>(z_rob) &gt; <span class="n">3.5</span>])                                 <span class="c"># [90]  (z robusto, |z| &gt; 3,5)</span>
-
-<span class="c"># 5. Chebyshev: al menos 1 - 1/k² de los datos a menos de k desviaciones</span>
-<span class="k">for</span> k <span class="k">in</span> (<span class="n">1.5</span>, <span class="n">2</span>, <span class="n">3</span>):
-    <span class="f">print</span>(k, np.<span class="f">mean</span>(np.<span class="f">abs</span>(x - x.<span class="f">mean</span>()) &lt; k * x.<span class="f">std</span>(ddof=<span class="n">1</span>)), <span class="n">1</span> - <span class="n">1</span> / k**<span class="n">2</span>)
-<span class="c"># 1.5: 0.9 ≥ 0.556 · 2: 0.9 ≥ 0.75 · 3: 1.0 ≥ 0.889</span>
-
-<span class="c"># 6. el mismo resumen con y sin el atípico</span>
-resumen = <span class="k">lambda</span> v: pd.<span class="f">Series</span>({<span class="s">"media"</span>: v.<span class="f">mean</span>(), <span class="s">"mediana"</span>: np.<span class="f">median</span>(v),
-                              <span class="s">"s"</span>: v.<span class="f">std</span>(ddof=<span class="n">1</span>), <span class="s">"RIC"</span>: np.<span class="f">subtract</span>(*np.<span class="f">percentile</span>(v, [<span class="n">75</span>, <span class="n">25</span>]))})
-<span class="f">print</span>(pd.<span class="f">DataFrame</span>({<span class="s">"con 90"</span>: <span class="f">resumen</span>(x), <span class="s">"sin 90"</span>: <span class="f">resumen</span>(x[x &lt; <span class="n">90</span>])}).<span class="f">round</span>(<span class="n">2</span>))
-<span class="c">#          con 90  sin 90</span>
-<span class="c"># media     29.00   22.22</span>
-<span class="c"># mediana   23.50   22.00</span>
-<span class="c"># s         22.43    7.00</span>
-<span class="c"># RIC        8.75    7.00</span></code></pre>
+<span class="c"># ¿qué fracción cae a menos de k desviaciones de la media?</span>
+<span class="k">for</span> k <span class="k">in</span> (<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>):
+    dentro = np.<span class="f">mean</span>(np.<span class="f">abs</span>(x - x.<span class="f">mean</span>()) &lt; k * x.<span class="f">std</span>(ddof=<span class="n">1</span>))
+    <span class="f">print</span>(k, dentro, <span class="s">"Chebyshev ≥"</span>, <span class="f">max</span>(<span class="n">0</span>, <span class="n">1</span> - <span class="n">1</span> / k**<span class="n">2</span>))</code></pre>
 <pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">35</span>, <span class="n">90</span>)   <span class="c"># minutos de traslado</span>
 
-<span class="c"># 1. centro</span>
-<span class="f">mean</span>(x); <span class="f">median</span>(x)                <span class="c"># 29  23.5</span>
-<span class="f">mean</span>(x, trim = <span class="n">0.1</span>)               <span class="c"># 23.5</span>
-moda &lt;- <span class="k">function</span>(v) {             <span class="c"># R no trae la moda estadística</span>
-  tab &lt;- <span class="f">table</span>(v)
-  <span class="f">as.numeric</span>(<span class="f">names</span>(tab)[tab == <span class="f">max</span>(tab)])
-}
-<span class="f">moda</span>(x)                           <span class="c"># 25</span>
+<span class="f">diff</span>(<span class="f">range</span>(x))                  <span class="c"># rango: 78</span>
+<span class="f">IQR</span>(x)                          <span class="c"># RIC: 8.75</span>
+<span class="f">var</span>(x); <span class="f">sd</span>(x)                   <span class="c"># ≈ 502.9  ≈ 22.43  (R siempre usa n − 1)</span>
+n &lt;- <span class="f">length</span>(x)
+<span class="f">var</span>(x) * (n - <span class="n">1</span>) / n            <span class="c"># ≈ 452.6  varianza poblacional</span>
+<span class="f">mean</span>(<span class="f">abs</span>(x - <span class="f">mean</span>(x)))          <span class="c"># desviación media: 13.4</span>
+<span class="f">mad</span>(x, constant = <span class="n">1</span>)            <span class="c"># MAD: 5  (sin el factor 1.4826 que R pone por defecto)</span>
+<span class="f">sd</span>(x) / <span class="f">mean</span>(x)                 <span class="c"># CV ≈ 0.773</span>
 
-<span class="c"># 2. dispersión (R usa siempre n - 1)</span>
-<span class="f">var</span>(x); <span class="f">sd</span>(x)                     <span class="c"># ≈ 502.89  ≈ 22.43</span>
-<span class="f">sd</span>(x) / <span class="f">mean</span>(x)                   <span class="c"># CV ≈ 0.773</span>
-<span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.75</span>)); <span class="f">IQR</span>(x)   <span class="c"># 18.5 27.25 · 8.75</span>
+<span class="c"># dos cursos con la misma media y distinta dispersión</span>
+A &lt;- <span class="f">c</span>(<span class="n">10</span>, <span class="n">12</span>, <span class="n">14</span>, <span class="n">16</span>, <span class="n">18</span>); B &lt;- <span class="f">c</span>(<span class="n">13</span>, <span class="n">14</span>, <span class="n">14</span>, <span class="n">14</span>, <span class="n">15</span>)
+<span class="f">c</span>(<span class="f">mean</span>(A), <span class="f">mean</span>(B), <span class="f">sd</span>(A), <span class="f">sd</span>(B))                <span class="c"># 14 14 ≈ 3.16 ≈ 0.71</span>
 
-<span class="c"># 3. dispersión robusta: mad() ya incluye la constante 1.4826</span>
-<span class="f">mad</span>(x)                            <span class="c"># 7.413</span>
+<span class="c"># varianza desde una tabla de frecuencias (hijos por hogar)</span>
+v &lt;- <span class="n">0</span>:<span class="n">4</span>; f &lt;- <span class="f">c</span>(<span class="n">6</span>, <span class="n">9</span>, <span class="n">7</span>, <span class="n">2</span>, <span class="n">1</span>)
+m &lt;- <span class="f">weighted.mean</span>(v, f)
+s2 &lt;- <span class="f">sum</span>(f * (v - m)^<span class="n">2</span>) / (<span class="f">sum</span>(f) - <span class="n">1</span>)
+<span class="f">c</span>(m, s2, <span class="f">sqrt</span>(s2))                               <span class="c"># 1.32  ≈ 1.143  ≈ 1.069</span>
 
-<span class="c"># 4. dos reglas para señalar atípicos</span>
-q &lt;- <span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.75</span>)); ric &lt;- <span class="f">diff</span>(q)
-x[x &lt; q[<span class="n">1</span>] - <span class="n">1.5</span> * ric | x &gt; q[<span class="n">2</span>] + <span class="n">1.5</span> * ric]   <span class="c"># 90 (vallas de Tukey)</span>
-z_rob &lt;- (x - <span class="f">median</span>(x)) / <span class="f">mad</span>(x)
-x[<span class="f">abs</span>(z_rob) &gt; <span class="n">3.5</span>]                               <span class="c"># 90 (z robusto)</span>
-
-<span class="c"># 5. Chebyshev: proporción observada frente a la cota 1 - 1/k^2</span>
-k &lt;- <span class="f">c</span>(<span class="n">1.5</span>, <span class="n">2</span>, <span class="n">3</span>)
-<span class="f">rbind</span>(observada = <span class="f">sapply</span>(k, <span class="k">function</span>(k) <span class="f">mean</span>(<span class="f">abs</span>(x - <span class="f">mean</span>(x)) &lt; k * <span class="f">sd</span>(x))),
-      cota = <span class="n">1</span> - <span class="n">1</span> / k^<span class="n">2</span>)        <span class="c"># 0.9 0.9 1.0 frente a 0.556 0.75 0.889</span>
-
-<span class="c"># 6. el mismo resumen con y sin el atípico</span>
-resumen &lt;- <span class="k">function</span>(v) <span class="f">c</span>(media = <span class="f">mean</span>(v), mediana = <span class="f">median</span>(v), s = <span class="f">sd</span>(v), RIC = <span class="f">IQR</span>(v))
-<span class="f">round</span>(<span class="f">cbind</span>(con90 = <span class="f">resumen</span>(x), sin90 = <span class="f">resumen</span>(x[x &lt; <span class="n">90</span>])), <span class="n">2</span>)
-<span class="f">summary</span>(x)                        <span class="c"># cinco números + media</span>
-<span class="f">boxplot</span>(x, horizontal = <span class="k">TRUE</span>, xlab = <span class="s">"minutos"</span>)</code></pre>
+<span class="c"># ¿qué fracción cae a menos de k desviaciones de la media?</span>
+<span class="k">for</span> (k <span class="k">in</span> <span class="n">1</span>:<span class="n">3</span>) <span class="f">cat</span>(k, <span class="f">mean</span>(<span class="f">abs</span>(x - <span class="f">mean</span>(x)) &lt; k * <span class="f">sd</span>(x)), <span class="s">"Chebyshev &gt;="</span>, <span class="f">max</span>(<span class="n">0</span>, <span class="n">1</span> - <span class="n">1</span> / k^<span class="n">2</span>), <span class="s">"\n"</span>)</code></pre>
       </div>
-      <p>Un detalle: <code>boxplot.stats</code> de R calcula las vallas con las “bisagras” de Tukey, que pueden diferir un poco de los cuartiles de <code>quantile</code>. En muestras grandes da lo mismo. Y <code>mad()</code> de R ya multiplica por 1,4826; en SciPy hay que pedirlo con <code>scale="normal"</code>.</p>
+      <p>En R, <code>mad()</code> multiplica por defecto por 1,4826 para que, con datos normales, la MAD estime a σ. Si quieres la MAD “pura” usa <code>constant = 1</code>; en SciPy, <code>median_abs_deviation(x, scale="normal")</code> aplica el mismo factor.</p>
 
-      <h2 id="desc-quiz"><span class="sec">§ 10</span>Quiz</h2>
-      <div class="quiz" data-right="La mediana solo depende del orden de los datos: el valor nuevo cae por encima y desplaza la posición central a lo sumo medio dato. La media, la desviación típica y el rango sí lo absorben completo." data-wrong="Piensa en qué medida usa la magnitud de cada dato y cuál solo usa su posición en la lista ordenada.">
-        <h3>1. A un grupo de 50 salarios le agregas el sueldo de un directivo, 20 veces mayor que el resto. ¿Qué medida cambia menos?</h3>
-        <div class="opts">
-          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La media</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>La desviación típica</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>El rango</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>La mediana</button>
-        </div>
-        <div class="feedback" aria-live="polite"></div>
-      </div>
-      <div class="quiz" data-right="Una media mayor que la mediana indica que unos pocos valores altos jalan el promedio hacia arriba: una cola larga a la derecha, típica de los precios y los ingresos." data-wrong="La media se va hacia donde está la cola larga. Si la media supera a la mediana, ¿dónde están los valores extremos?">
-        <h3>2. En una ciudad, el precio medio de las casas es 2,4 millones y el precio mediano es 1,6 millones. ¿Qué describe mejor la distribución?</h3>
-        <div class="opts">
-          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Asimétrica a la derecha: pocas casas muy caras</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Asimétrica a la izquierda: pocas casas muy baratas</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Simétrica, porque ambas medidas están en millones</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No se puede decir nada sin la moda</button>
-        </div>
-        <div class="feedback" aria-live="polite"></div>
-      </div>
-      <div class="quiz" data-right="Sumar una constante desplaza todos los datos por igual: la media sube 5 puntos, pero las distancias entre los datos y la media no cambian, así que s sigue siendo 8." data-wrong="La desviación típica mide distancias a la media. Si todos los datos y la media se mueven 5 puntos, ¿cambian esas distancias?">
-        <h3>3. Las notas de un examen tienen media 62 y desviación típica 8. El profesor suma 5 puntos a todos. ¿Cuál es la nueva desviación típica?</h3>
+      <h2 id="desc-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="Sumar una constante desplaza todos los datos sin cambiar las distancias entre ellos ni a la media: la desviación típica sigue siendo 8." data-wrong="Piensa qué le pasa a cada desviación xᵢ − media si sumas 5 a todos los datos y la media también sube 5.">
+        <h3>Las notas de un examen tienen media 62 y desviación típica 8. El profesor suma 5 puntos a todos. ¿Cuál es la nueva desviación típica?</h3>
         <div class="opts">
           <button class="opt" type="button" data-ok="0"><span class="letter">A</span>13</button>
           <button class="opt" type="button" data-ok="1"><span class="letter">B</span>8</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>8 × 5 = 40</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>√(64 + 25) ≈ 9,4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>8,4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>3</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="Por König-Huygens, Σ(x − c)² = Σ(x − x̄)² + n(x̄ − c)² = 9·25 + 10·4 = 225 + 40 = 265. Alejarse 2 unidades de la media cuesta n·2² = 40." data-wrong="Usa la descomposición Σ(x − c)² = Σ(x − x̄)² + n(x̄ − c)². Primero obtén Σ(x − x̄)² a partir de s² y n − 1.">
-        <h3>4. Diez datos tienen media 50 y varianza muestral s² = 25. ¿Cuánto vale la suma de cuadrados Σ(xᵢ − 52)²?</h3>
+      <div class="quiz" data-right="Desviaciones −2, 0, 2; cuadrados 4, 0, 4; suma 8; s² = 8/2 = 4 y s = 2." data-wrong="Calcula la media, luego las desviaciones al cuadrado, súmalas y divide entre n − 1 = 2.">
+        <h3>¿Cuál es la desviación típica muestral de los datos 4, 6, 8?</h3>
         <div class="opts">
-          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>225</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>250</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>265</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>290</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>1,63</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>2</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>2,67</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
-      <div class="quiz" data-right="Chebyshev garantiza que a lo sumo 1/k² = 1/9 ≈ 11 % de los datos está a 3 o más desviaciones de la media, para cualquier forma de la distribución. El 0,3 % solo vale si los datos son normales." data-wrong="La pregunta no dice que los datos sean normales. ¿Qué cota vale para cualquier distribución?">
-        <h3>5. Sin saber nada de la forma de una distribución, ¿qué fracción máxima de los datos puede estar a 3 o más desviaciones típicas de la media?</h3>
+      <div class="quiz" data-right="CV del sueldo = 300/1 500 = 20 %; CV de la edad = 4/40 = 10 %. En términos relativos, el sueldo es el doble de variable." data-wrong="Las unidades son distintas (dólares y años). Divide cada desviación típica entre su media.">
+        <h3>En una empresa, el sueldo tiene media 1 500 dólares y s = 300; la edad tiene media 40 años y s = 4. ¿Qué variable es más dispersa en términos relativos?</h3>
         <div class="opts">
-          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>0,3 %</button>
-          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Alrededor del 11 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>La edad, con CV = 10 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Ninguna: no se pueden comparar</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Las dos por igual</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>El sueldo, con CV = 20 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Sin saber la forma solo vale Chebyshev: con k = 3, al menos 1 − 1/9 = 88,9 % está dentro, así que como máximo 1/9 ≈ 11,1 % puede estar a 3 o más desviaciones." data-wrong="No sabes si los datos son normales, así que no puedes usar 99,7 %. ¿Qué garantiza Chebyshev con k = 3?">
+        <h3>Sin saber nada de la forma de una distribución, ¿qué fracción máxima de los datos puede estar a 3 o más desviaciones típicas de la media?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Alrededor de 11,1 %</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>0,3 %</button>
           <button class="opt" type="button" data-ok="0"><span class="letter">C</span>5 %</button>
-          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No hay ninguna cota</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>33 %</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="El RIC depende solo de los cuartiles, que casi no se mueven si un dato extremo cambia. La desviación típica, el rango y la varianza usan los valores extremos y se disparan." data-wrong="Piensa qué medida no usa el valor del máximo, sino solo la posición del 25 % y el 75 % de los datos.">
+        <h3>Un dato de una muestra grande se registra por error con tres ceros de más. ¿Qué medida de dispersión se ve menos afectada?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>El rango</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>El rango intercuartílico</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>La varianza</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>La desviación típica</button>
         </div>
         <div class="feedback" aria-live="polite"></div>
       </div>
 
-      <h2 id="desc-ej"><span class="sec">§ 11</span>Preguntas propuestas (nivel avanzado)</h2>
+      <h2 id="desc-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
       <div class="exercises">
         <div class="ex">
-          <div class="ex-head"><span class="ex-n">Pregunta 1</span><span class="ex-lvl">Avanzado</span></div>
-          <p>(a) Demuestra que \(\mathbb E\big[\frac1n\sum (X_i - \bar X)^2\big] = \frac{n-1}{n}\sigma^2\) sin usar König-Huygens, desarrollando \(X_i - \bar X = (1 - \tfrac1n)(X_i - \mu) - \tfrac1n\sum_{j\ne i}(X_j - \mu)\). (b) Comprueba por simulación, con muestras normales de tamaño 5, que \(S^2\) es insesgado, que la versión con \(n\) no lo es y que \(\mathbb E[S] \approx 0{,}94\sigma\).</p>
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Los minutos que 6 personas dedicaron al ejercicio un día son: 4, 8, 6, 5, 3, 10. Calcula el rango, la desviación media, la varianza muestral y la desviación típica. Interpreta \(s\).</p>
           <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) Por independencia, \(\operatorname{Var}(X_i - \bar X) = (1 - \tfrac1n)^2\sigma^2 + \tfrac{n-1}{n^2}\sigma^2 = \sigma^2\big(\tfrac{(n-1)^2 + (n-1)}{n^2}\big) = \tfrac{n-1}{n}\sigma^2\). Como \(\mathbb E[X_i - \bar X] = 0\), \(\mathbb E[(X_i - \bar X)^2] = \tfrac{n-1}{n}\sigma^2\) para cada \(i\); sumando las \(n\) y dividiendo entre \(n\) sale el resultado. Dividiendo entre \(n-1\) en lugar de \(n\) se obtiene \(\sigma^2\).</p>
-            <p>(b) Con 200 000 réplicas, la media de \(S^2\) es ≈ 1,00, la de la versión con \(n\) ≈ 0,80 = 4/5, y la media de \(S\) ≈ 0,94. Para normales, \(\mathbb E[S] = c_4\sigma\) con \(c_4 = \sqrt{2/(n-1)}\,\Gamma(n/2)/\Gamma((n-1)/2) = 0{,}940\) para \(n = 5\); esa constante se usa en control de calidad.</p>
+            <p>Media \(= 36/6 = 6\). Rango \(= 10 - 3 = 7\). Desviaciones: −2, 2, 0, −1, −3, 4. Desviación media \(= 12/6 = 2\). Cuadrados: 4, 4, 0, 1, 9, 16, que suman 34. \(s^2 = 34/5 = 6{,}8\) y \(s = 2{,}61\) minutos.</p>
+            <p>Interpretación: los tiempos se alejan de la media de 6 minutos en unos 2,6 minutos típicamente.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>En un mes, el precio diario de un pan tuvo media 1,20 dólares y desviación típica 0,15; el de un televisor, media 450 y desviación 40. ¿Qué precio fue más variable? Justifica con la medida adecuada.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Las desviaciones típicas no son comparables (0,15 frente a 40 dólares, sobre precios muy distintos). Con el CV: pan \(0{,}15/1{,}20 = 12{,}5\,\%\); televisor \(40/450 = 8{,}9\,\%\). En términos relativos el precio del pan fue más variable, aunque su desviación típica sea mucho menor.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Las veces que 40 estudiantes llegaron tarde en un mes: 0 veces (14 estudiantes), 1 (11), 2 (8), 3 (4), 4 (2), 5 (1). (a) Calcula la media, la varianza y la desviación típica desde la tabla. (b) ¿Qué porcentaje garantiza Chebyshev dentro de \(\bar x \pm 2s\)? (c) ¿Qué porcentaje cae realmente en ese intervalo?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\bar x = (0 + 11 + 16 + 12 + 8 + 5)/40 = 52/40 = 1{,}3\). \(\sum n_i x_i^2 = 0 + 11 + 32 + 36 + 32 + 25 = 136\). \(s^2 = (136 - 40 \cdot 1{,}69)/39 = 68{,}4/39 = 1{,}754\) y \(s = 1{,}32\).</p>
+            <p>(b) Al menos 75 %.</p>
+            <p>(c) El intervalo es \(1{,}3 \pm 2{,}65 = [-1{,}35;\ 3{,}95]\), que contiene los valores 0, 1, 2 y 3: \(14 + 11 + 8 + 4 = 37\) estudiantes, el 92,5 %. Supera holgadamente la garantía de Chebyshev.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra la fórmula abreviada \(\sum (x_i - \bar x)^2 = \sum x_i^2 - n\bar x^2\). (b) Demuestra que si \(y_i = a + b\,x_i\), entonces \(s_y = |b|\,s_x\). (c) Un curso A de 30 estudiantes tiene media 14 y \(s = 2\); un curso B de 20 tiene media 16 y \(s = 3\). Calcula la desviación típica de los 50 juntos.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\sum (x_i - \bar x)^2 = \sum x_i^2 - 2\bar x \sum x_i + n\bar x^2 = \sum x_i^2 - 2n\bar x^2 + n\bar x^2 = \sum x_i^2 - n\bar x^2\), usando \(\sum x_i = n\bar x\).</p>
+            <p>(b) \(\bar y = a + b\bar x\), así que \(y_i - \bar y = b(x_i - \bar x)\). Entonces \(s_y^2 = \frac{1}{n-1}\sum b^2 (x_i - \bar x)^2 = b^2 s_x^2\) y \(s_y = |b|\,s_x\).</p>
+            <p>(c) Media total: \((30 \cdot 14 + 20 \cdot 16)/50 = 14{,}8\). La suma de cuadrados total se descompone en la de dentro de cada grupo más la de entre grupos: dentro, \(29 \cdot 4 + 19 \cdot 9 = 116 + 171 = 287\); entre, \(30(14 - 14{,}8)^2 + 20(16 - 14{,}8)^2 = 19{,}2 + 28{,}8 = 48\). Total 335, así que \(s^2 = 335/49 = 6{,}84\) y \(s = 2{,}62\). Es mayor que la de cada curso porque además de la variación interna está la diferencia entre sus medias. Es la idea que usa el <a href="#anova">ANOVA</a>.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 5</span><span class="ex-lvl">Desafío</span></div>
+          <p>Comprueba por simulación por qué la varianza muestral divide entre \(n - 1\). Genera 100 000 muestras de tamaño 5 de una normal con σ = 2 (varianza 4). Para cada una calcula la varianza dividiendo entre \(n - 1\) y entre \(n\), y promedia. Calcula también el promedio de \(\sum (x_i - \bar x)^2\) y de \(\sum (x_i - \mu)^2\). ¿Qué observas?</p>
+          <details><summary>Ver solución</summary><div class="sol">
             <div class="codetabs">
               <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
 <pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-rng = np.random.<span class="f">default_rng</span>(<span class="n">0</span>)
-n, R, sigma = <span class="n">5</span>, 200_000, <span class="n">1.0</span>
-X = rng.<span class="f">normal</span>(<span class="n">0</span>, sigma, size=(R, n))
-s2 = X.<span class="f">var</span>(axis=<span class="n">1</span>, ddof=<span class="n">1</span>)            <span class="c"># divide entre n - 1</span>
-s2n = X.<span class="f">var</span>(axis=<span class="n">1</span>, ddof=<span class="n">0</span>)           <span class="c"># divide entre n</span>
-<span class="f">print</span>(s2.<span class="f">mean</span>(), s2n.<span class="f">mean</span>())          <span class="c"># ≈ 1.00 (insesgado)  ≈ 0.80 = (n-1)/n</span>
-<span class="f">print</span>(np.<span class="f">sqrt</span>(s2).<span class="f">mean</span>())             <span class="c"># ≈ 0.94: s subestima σ (constante c4)</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">0</span>)
-n &lt;- <span class="n">5</span>; R &lt;- <span class="n">200000</span>
-X &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(R * n), nrow = R)
-s2 &lt;- <span class="f">apply</span>(X, <span class="n">1</span>, var)                 <span class="c"># n - 1</span>
-<span class="f">c</span>(<span class="f">mean</span>(s2), <span class="f">mean</span>(s2) * (n - <span class="n">1</span>) / n)    <span class="c"># ≈ 1.00  ≈ 0.80</span>
-<span class="f">mean</span>(<span class="f">sqrt</span>(s2))                         <span class="c"># ≈ 0.94 (c4)</span></code></pre>
-            </div>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Pregunta 2</span><span class="ex-lvl">Avanzado</span></div>
-          <p>Generaliza el Teorema 2. (a) Demuestra que el cuantil \(p\) minimiza la pérdida “pinball” \(L_p(c) = \sum_i \rho_p(x_i - c)\), donde \(\rho_p(u) = u\,(p - \mathbf 1\{u &lt; 0\})\). (b) Verifica que con \(p = 0{,}5\) recuperas la mediana. (c) Para los traslados, ¿qué valores de \(c\) minimizan \(L_{0{,}9}\)? Relaciónalo con la regresión cuantílica.</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) \(\rho_p(u) = p\,u\) si \(u \ge 0\) y \((p - 1)u = (1-p)|u|\) si \(u &lt; 0\): los datos por encima de \(c\) pesan \(p\) y los de abajo \(1 - p\). Fuera de los datos, \(L_p'(c) = (1-p)\,\#\{x_i &lt; c\} - p\,\#\{x_i &gt; c\}\). La pendiente cambia de negativa a positiva cuando \(\#\{x_i &lt; c\} \ge p\,n\) (dividiendo por \(n\): \(F_n(c) \approx p\)), es decir, en el cuantil \(p\).</p>
-            <p>(b) Con \(p = 0{,}5\), \(\rho_{0{,}5}(u) = |u|/2\): es la mitad de la pérdida absoluta, cuyo mínimo es la mediana.</p>
-            <p>(c) Con \(n = 10\) y \(p = 0{,}9\), la pendiente es \(0{,}1\,\#\{&lt;c\} - 0{,}9\,\#\{&gt;c\}\). Entre \(x_{(9)} = 35\) y \(x_{(10)} = 90\): \(0{,}1 \cdot 9 - 0{,}9 \cdot 1 = 0\). Cualquier \(c \in [35, 90]\) minimiza, igual que la mediana con \(n\) par. La <b>regresión cuantílica</b> (Koenker y Bassett, 1978) reemplaza \(c\) por \(\beta_0 + \beta_1 x\) y minimiza la misma pérdida: estima cómo cambia el percentil 90 de \(y\) con \(x\).</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Pregunta 3</span><span class="ex-lvl">Avanzado</span></div>
-          <p>Demuestra que para cualquier variable aleatoria con media \(\mu\), mediana \(m\) y desviación \(\sigma\) finita se cumple \(|\mu - m| \le \sigma\). Usa: (i) la desigualdad de Jensen para la función valor absoluto, (ii) el hecho de que la mediana minimiza \(\mathbb E|X - c|\) y (iii) la desigualdad de Cauchy-Schwarz (o Jensen con la raíz). Da un ejemplo donde la diferencia se acerque a \(\sigma\).</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>\(|\mu - m| = |\mathbb E[X - m]| \le \mathbb E|X - m|\) (Jensen, el valor absoluto es convexo). Como la mediana minimiza \(\mathbb E|X - c|\), \(\mathbb E|X - m| \le \mathbb E|X - \mu|\). Finalmente, \(\mathbb E|X - \mu| \le \sqrt{\mathbb E[(X - \mu)^2]} = \sigma\) (Jensen con la raíz cóncava, o Cauchy-Schwarz). Encadenando: \(|\mu - m| \le \sigma\). \(\square\)</p>
-            <p>Ejemplo: una variable que vale 0 con probabilidad \(1/2 + \varepsilon\) y 1 con probabilidad \(1/2 - \varepsilon\). Su mediana es 0, su media \(1/2 - \varepsilon\) y su desviación \(\sqrt{(1/2-\varepsilon)(1/2+\varepsilon)} \to 1/2\). Cuando \(\varepsilon \to 0\), \(|\mu - m|/\sigma \to 1\): la cota es ajustada. En los traslados, \(|29 - 23{,}5| = 5{,}5 \le 22{,}4\).</p>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Pregunta 4</span><span class="ex-lvl">Avanzado</span></div>
-          <p>La <b>eficiencia relativa</b> de la mediana respecto de la media es \(\operatorname{Var}(\bar X)/\operatorname{Var}(\operatorname{Me})\). Estímala por simulación con \(n = 51\) para tres poblaciones: normal estándar, \(t\) de Student con 3 grados de libertad y una normal contaminada (95 % \(\mathcal N(0,1)\), 5 % \(\mathcal N(0, 10^2)\)). Compara el caso normal con el valor teórico asintótico \(2/\pi\) e interpreta qué medida recomendarías en cada caso.</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>Resultados aproximados: normal ≈ 0,64 (teórico \(2/\pi = 0{,}637\)): la media es más precisa, la mediana necesita cerca de un 57 % más de datos para igualarla. Con \(t_3\) ≈ 1,6 y con la contaminada ≈ 3,4: la mediana es mucho más precisa, porque los datos extremos inflan la varianza de la media. Si sospechas colas pesadas o contaminación, la mediana (o una media recortada, que suele quedar en un buen punto intermedio) es la opción prudente.</p>
-            <div class="codetabs">
-              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-rng = np.random.<span class="f">default_rng</span>(<span class="n">42</span>)
-n, R = <span class="n">51</span>, 20_000
-<span class="k">def</span> <span class="f">eficiencia</span>(gen):
-    X = <span class="f">gen</span>((R, n))
-    <span class="k">return</span> X.<span class="f">mean</span>(axis=<span class="n">1</span>).<span class="f">var</span>() / np.<span class="f">median</span>(X, axis=<span class="n">1</span>).<span class="f">var</span>()   <span class="c"># Var(media) / Var(mediana)</span>
 
-normal = <span class="k">lambda</span> size: rng.<span class="f">normal</span>(size=size)
-t3 = <span class="k">lambda</span> size: rng.<span class="f">standard_t</span>(<span class="n">3</span>, size=size)
-<span class="k">def</span> <span class="f">contaminada</span>(size):                  <span class="c"># 95 % N(0, 1) y 5 % N(0, 10²)</span>
-    z = rng.<span class="f">normal</span>(size=size)
-    <span class="k">return</span> np.<span class="f">where</span>(rng.<span class="f">random</span>(size) &lt; <span class="n">0.05</span>, <span class="n">10</span> * z, z)
+rng = np.random.<span class="f">default_rng</span>(<span class="n">11</span>)
+R, n, sigma = <span class="n">100_000</span>, <span class="n">5</span>, <span class="n">2.0</span>                     <span class="c"># varianza verdadera: 4</span>
+X = rng.<span class="f">normal</span>(<span class="n">10</span>, sigma, (R, n))
+s2_n1 = X.<span class="f">var</span>(axis=<span class="n">1</span>, ddof=<span class="n">1</span>)                     <span class="c"># divide entre n − 1</span>
+s2_n = X.<span class="f">var</span>(axis=<span class="n">1</span>, ddof=<span class="n">0</span>)                      <span class="c"># divide entre n</span>
+<span class="f">print</span>(s2_n1.<span class="f">mean</span>(), s2_n.<span class="f">mean</span>())                  <span class="c"># ≈ 4.0  ≈ 3.2</span>
+<span class="f">print</span>(np.<span class="f">sqrt</span>(s2_n1).<span class="f">mean</span>())                      <span class="c"># ≈ 1.88: s sigue algo sesgada</span>
 
-<span class="k">for</span> nombre, g <span class="k">in</span> [(<span class="s">"normal"</span>, normal), (<span class="s">"t con 3 gl"</span>, t3), (<span class="s">"contaminada"</span>, contaminada)]:
-    <span class="f">print</span>(nombre, <span class="f">round</span>(<span class="f">eficiencia</span>(g), <span class="n">2</span>))
-<span class="c"># normal ≈ 0.64 (teórico 2/π ≈ 0.64: gana la media)</span>
-<span class="c"># t con 3 gl ≈ 1.6 y contaminada ≈ 3.4: gana la mediana</span></code></pre>
-<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">42</span>)
-n &lt;- <span class="n">51</span>; R &lt;- <span class="n">20000</span>
-eficiencia &lt;- <span class="k">function</span>(gen) {
-  X &lt;- <span class="f">matrix</span>(<span class="f">gen</span>(R * n), nrow = R)
-  <span class="f">var</span>(<span class="f">rowMeans</span>(X)) / <span class="f">var</span>(<span class="f">apply</span>(X, <span class="n">1</span>, median))   <span class="c"># Var(media) / Var(mediana)</span>
-}
-contaminada &lt;- <span class="k">function</span>(m) <span class="f">ifelse</span>(<span class="f">runif</span>(m) &lt; <span class="n">0.05</span>, <span class="n">10</span>, <span class="n">1</span>) * <span class="f">rnorm</span>(m)
-<span class="f">round</span>(<span class="f">c</span>(normal = <span class="f">eficiencia</span>(rnorm),
-        t3 = <span class="f">eficiencia</span>(<span class="k">function</span>(m) <span class="f">rt</span>(m, df = <span class="n">3</span>)),
-        contaminada = <span class="f">eficiencia</span>(contaminada)), <span class="n">2</span>)   <span class="c"># ≈ 0.64  ≈ 1.6  ≈ 3.4</span></code></pre>
+<span class="c"># las desviaciones respecto de la media muestral son menores que respecto de μ</span>
+d_xbar = ((X - X.<span class="f">mean</span>(axis=<span class="n">1</span>, keepdims=<span class="k">True</span>)) ** <span class="n">2</span>).<span class="f">sum</span>(axis=<span class="n">1</span>).<span class="f">mean</span>()
+d_mu = ((X - <span class="n">10</span>) ** <span class="n">2</span>).<span class="f">sum</span>(axis=<span class="n">1</span>).<span class="f">mean</span>()
+<span class="f">print</span>(d_xbar, d_mu)                               <span class="c"># ≈ 16 = (n − 1)σ²   ≈ 20 = nσ²</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">11</span>)
+R &lt;- <span class="n">100000</span>; n &lt;- <span class="n">5</span>; sigma &lt;- <span class="n">2</span>                   <span class="c"># varianza verdadera: 4</span>
+X &lt;- <span class="f">matrix</span>(<span class="f">rnorm</span>(R * n, <span class="n">10</span>, sigma), R, n)
+s2_n1 &lt;- <span class="f">apply</span>(X, <span class="n">1</span>, var)                         <span class="c"># divide entre n − 1</span>
+s2_n &lt;- s2_n1 * (n - <span class="n">1</span>) / n                       <span class="c"># divide entre n</span>
+<span class="f">c</span>(<span class="f">mean</span>(s2_n1), <span class="f">mean</span>(s2_n))                        <span class="c"># ≈ 4.0  ≈ 3.2</span>
+<span class="f">mean</span>(<span class="f">sqrt</span>(s2_n1))                                 <span class="c"># ≈ 1.88: s sigue algo sesgada</span>
+
+d_xbar &lt;- <span class="f">mean</span>(<span class="f">rowSums</span>((X - <span class="f">rowMeans</span>(X))^<span class="n">2</span>))
+d_mu &lt;- <span class="f">mean</span>(<span class="f">rowSums</span>((X - <span class="n">10</span>)^<span class="n">2</span>))
+<span class="f">c</span>(d_xbar, d_mu)                                   <span class="c"># ≈ 16 = (n − 1)σ²   ≈ 20 = nσ²</span></code></pre>
             </div>
-          </div></details>
-        </div>
-        <div class="ex">
-          <div class="ex-head"><span class="ex-n">Pregunta 5</span><span class="ex-lvl">Avanzado</span></div>
-          <p>Estas son las edades de los 12 asistentes a un taller: 31, 35, 36, 38, 40, 41, 42, 44, 45, 47, 49, 78. (a) Calcula el resumen de cinco números con el método de R y NumPy y las vallas de 1,5 RIC. (b) Calcula la MAD escalada y el z robusto del mayor dato. (c) Compara media, mediana y media recortada al 10 % con y sin el atípico. (d) Un colega propone “eliminar los atípicos y reportar la media”. Escribe una crítica de tres o cuatro líneas.</p>
-          <details><summary>Ver solución</summary><div class="sol">
-            <p>(a) \(Q_1\): \(h = 3{,}75\), \(Q_1 = 36 + 0{,}75 \cdot 2 = 37{,}5\). Mediana \((41+42)/2 = 41{,}5\). \(Q_3\): \(h = 9{,}25\), \(Q_3 = 45 + 0{,}25 \cdot 2 = 45{,}5\). Resumen: 31; 37,5; 41,5; 45,5; 78. \(RIC = 8\), vallas 25,5 y 57,5: solo 78 queda fuera.</p>
-            <p>(b) Desviaciones absolutas a 41,5: 10,5; 6,5; 5,5; 3,5; 1,5; 0,5; 0,5; 2,5; 3,5; 5,5; 7,5; 36,5. Ordenadas, las dos centrales (6.ª y 7.ª) son 3,5 y 5,5, así que \(\operatorname{MAD} = 4{,}5\) y \(1{,}4826 \cdot 4{,}5 = 6{,}67\). El z robusto de 78 es \((78 - 41{,}5)/6{,}67 = 5{,}47 &gt; 3{,}5\).</p>
-            <p>(c) Con el atípico: media 43,83, mediana 41,5, recortada 41,7. Sin él: media 40,73, mediana 41. La media se movió 3,1 años; la mediana medio año; la recortada ya lo había neutralizado.</p>
-            <p>(d) Eliminar datos reales cambia la población que describes (“asistentes menores de 58 años”) y subestima la variabilidad. Antes hay que verificar si el 78 es un error de registro. Si es real, lo honesto es reportar mediana y RIC (o la media recortada) junto con la media completa, y decir explícitamente que hay un asistente mucho mayor.</p>
-            <div class="codetabs">
-              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
-<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
-<span class="k">from</span> scipy <span class="k">import</span> stats
-edad = np.<span class="f">array</span>([<span class="n">31</span>, <span class="n">35</span>, <span class="n">36</span>, <span class="n">38</span>, <span class="n">40</span>, <span class="n">41</span>, <span class="n">42</span>, <span class="n">44</span>, <span class="n">45</span>, <span class="n">47</span>, <span class="n">49</span>, <span class="n">78</span>])
-q1, me, q3 = np.<span class="f">percentile</span>(edad, [<span class="n">25</span>, <span class="n">50</span>, <span class="n">75</span>])
-ric = q3 - q1
-<span class="f">print</span>(edad.<span class="f">min</span>(), q1, me, q3, edad.<span class="f">max</span>())          <span class="c"># 31 37.5 41.5 45.5 78</span>
-<span class="f">print</span>(edad[(edad &lt; q1 - <span class="n">1.5</span> * ric) | (edad &gt; q3 + <span class="n">1.5</span> * ric)])   <span class="c"># [78]</span>
-mad = stats.<span class="f">median_abs_deviation</span>(edad, scale=<span class="s">"normal"</span>)
-z = (edad - me) / mad
-<span class="f">print</span>(<span class="f">round</span>(mad, <span class="n">2</span>), z.<span class="f">round</span>(<span class="n">2</span>)[-<span class="n">1</span>])               <span class="c"># 6.67  5.47</span>
-<span class="f">print</span>(edad.<span class="f">mean</span>(), edad[:-<span class="n">1</span>].<span class="f">mean</span>())               <span class="c"># ≈ 43.83  ≈ 40.73</span>
-<span class="f">print</span>(stats.<span class="f">trim_mean</span>(edad, <span class="n">0.1</span>))                  <span class="c"># 41.7 (quita 1 de cada lado)</span></code></pre>
-<pre class="code" data-lang="r" hidden><code>edad &lt;- <span class="f">c</span>(<span class="n">31</span>, <span class="n">35</span>, <span class="n">36</span>, <span class="n">38</span>, <span class="n">40</span>, <span class="n">41</span>, <span class="n">42</span>, <span class="n">44</span>, <span class="n">45</span>, <span class="n">47</span>, <span class="n">49</span>, <span class="n">78</span>)
-q &lt;- <span class="f">quantile</span>(edad, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.5</span>, <span class="n">0.75</span>)); ric &lt;- q[<span class="n">3</span>] - q[<span class="n">1</span>]
-<span class="f">c</span>(<span class="f">min</span>(edad), q, <span class="f">max</span>(edad))                          <span class="c"># 31 37.5 41.5 45.5 78</span>
-edad[edad &lt; q[<span class="n">1</span>] - <span class="n">1.5</span> * ric | edad &gt; q[<span class="n">3</span>] + <span class="n">1.5</span> * ric]   <span class="c"># 78</span>
-z &lt;- (edad - <span class="f">median</span>(edad)) / <span class="f">mad</span>(edad)
-<span class="f">round</span>(<span class="f">c</span>(<span class="f">mad</span>(edad), z[<span class="n">12</span>]), <span class="n">2</span>)                       <span class="c"># 6.67 5.47</span>
-<span class="f">c</span>(<span class="f">mean</span>(edad), <span class="f">mean</span>(edad[-<span class="n">12</span>]), <span class="f">mean</span>(edad, trim = <span class="n">0.1</span>))   <span class="c"># 43.83 40.73 41.7</span></code></pre>
-            </div>
+            <p>Dividiendo entre \(n - 1\) el promedio es ≈ 4, la varianza verdadera; dividiendo entre \(n\) es ≈ 3,2, es decir \(\frac{n-1}{n}\sigma^2\): subestima un 20 % con \(n = 5\). La razón aparece en la última línea: la suma de cuadrados respecto de \(\bar x\) promedia \((n-1)\sigma^2 = 16\), mientras que respecto de \(\mu\) promedia \(n\sigma^2 = 20\). Medir desde \(\bar x\) “roba” un grado de libertad. Curiosamente, \(s\) sigue siendo un poco sesgada (≈ 1,88 en vez de 2), porque la raíz no conserva los promedios.</p>
           </div></details>
         </div>
       </div>

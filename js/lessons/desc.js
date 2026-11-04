@@ -1,102 +1,86 @@
-/* StatEdx · clase 1, medidas de tendencia central y dispersión */
+/* StatEdx · sesión desc: Medidas de dispersión */
 (() => {
-  // ---------- lesson: desc ----------
+  const { fit, tok, fmt, randn, segBind, axisTicks } = M;
   const $ = id => document.getElementById(id);
-  const DS = {
-    base: [14, 16, 17, 18, 18, 19, 20, 20, 21, 22, 22, 23, 23, 24, 25, 25, 26, 27, 28, 29, 30, 32, 34, 37],
-    v: 40, k: 1,
-  };
+
+  // ---------- laboratorio: dispersión, bandas x̄ ± k·s y Chebyshev ----------
+  const N = 60, MU = 250;
+  const D = { sd: 4, f: 'normal', k: 2, z: [] };
   const q7 = (s, p) => { const h = (s.length - 1) * p, i = Math.floor(h), j = Math.min(i + 1, s.length - 1); return s[i] + (h - i) * (s[j] - s[i]); };
-  function dsExtra() {
-    if (DS.k === 0) return [];
-    if (DS.k === 1) return [DS.v];
-    return [Math.round(DS.v * 0.86), DS.v, Math.round(DS.v * 1.12)];
-  }
-  function dsStats() {
-    const extra = dsExtra(), xs = DS.base.concat(extra), s = xs.slice().sort((a, b) => a - b), n = xs.length;
-    const mean = xs.reduce((a, b) => a + b, 0) / n;
-    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
-    const q1 = q7(s, 0.25), med = q7(s, 0.5), q3 = q7(s, 0.75), iqr = q3 - q1;
-    const lo = q1 - 1.5 * iqr, hi = q3 + 1.5 * iqr;
-    const wl = s.find(x => x >= lo), wh = [...s].reverse().find(x => x <= hi);
-    const cut = Math.floor(n * 0.1), tr = s.slice(cut, n - cut), trim = tr.reduce((a, b) => a + b, 0) / tr.length;
-    return { xs: s, extra, n, mean, sd, q1, med, q3, iqr, lo, hi, wl, wh, trim };
-  }
-  function niceStep(range, px) {
-    const target = range / Math.max(3, Math.floor(px / 56));
-    for (const s of [1, 2, 5, 10, 20, 25, 50, 100]) if (s >= target) return s;
-    return 100;
-  }
-  function drawDesc() {
-    const S = dsStats();
-    $('desc-mean').textContent = M.fmt(S.mean, 1) + ' mil';
-    $('desc-med').textContent = M.fmt(S.med, 1) + ' mil';
-    $('desc-sd').textContent = M.fmt(S.sd, 1) + ' mil';
-    $('desc-iqr').textContent = M.fmt(S.iqr, 1) + ' mil';
-    $('desc-head').textContent = `n = ${S.n} · media recortada 10 % = ${M.fmt(S.trim, 1)}`;
-    const cv = $('desc-plot'), f = M.fit(cv); if (!f) return; const { ctx, w, h } = f;
-    const accent = M.tok('--accent'), hot = M.tok('--hot'), ink = M.tok('--ink'), muted = M.tok('--muted'), line = M.tok('--line'), bg = M.tok('--surface');
-    const mono = M.tok('--f-mono');
-    ctx.clearRect(0, 0, w, h);
-    const pad = { l: 14, r: 18, t: 38, b: 26 };
-    const hi = Math.max(60, Math.ceil((S.xs[S.n - 1] + 6) / 10) * 10), lo = hi > 100 ? 0 : 10;
-    const X = v => pad.l + (v - lo) / (hi - lo) * (w - pad.l - pad.r);
-    const step = niceStep(hi - lo, w - pad.l - pad.r);
-    const boxY = h - pad.b - 34, boxH = 24, dotBase = boxY - boxH / 2 - 16;
-    // grid
-    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
-    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) { const x = Math.round(X(v)) + .5; ctx.beginPath(); ctx.moveTo(x, pad.t - 6); ctx.lineTo(x, h - pad.b); ctx.stroke(); }
-    ctx.globalAlpha = 1;
-    // dot plot (stacked)
-    const r = Math.max(3, Math.min(5, (w - pad.l - pad.r) / 90));
-    const placed = [];
-    const outl = x => x < S.lo || x > S.hi;
-    const extraLeft = S.extra.slice();
-    S.xs.forEach(v => {
-      const x = X(v); let lv = 0;
-      while (placed.some(p => p.lv === lv && Math.abs(p.x - x) < 2 * r + 1)) lv++;
-      placed.push({ x, lv });
-      const y = dotBase - lv * (2 * r + 1) - r;
-      const ei = extraLeft.indexOf(v), isExtra = ei >= 0; if (isExtra) extraLeft.splice(ei, 1);
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-      if (isExtra) { ctx.fillStyle = hot; ctx.fill(); }
-      else if (outl(v)) { ctx.fillStyle = bg; ctx.fill(); ctx.strokeStyle = hot; ctx.lineWidth = 1.5; ctx.stroke(); }
-      else { ctx.fillStyle = muted; ctx.globalAlpha = .6; ctx.fill(); ctx.globalAlpha = 1; }
+  // valores estandarizados de base; la dispersión solo los reescala
+  function gen() {
+    D.z = Array.from({ length: N }, (_, i) => {
+      if (D.f === 'unif') return (Math.random() * 2 - 1) * Math.sqrt(3);
+      if (D.f === 'atip' && i < 4) return -4.5 - 2.5 * Math.random();
+      return randn();
     });
-    // box plot
-    ctx.strokeStyle = ink; ctx.lineWidth = 1.5;
-    ctx.fillStyle = accent; ctx.globalAlpha = .18; ctx.fillRect(X(S.q1), boxY - boxH / 2, X(S.q3) - X(S.q1), boxH); ctx.globalAlpha = 1;
-    ctx.strokeRect(Math.round(X(S.q1)) + .5, boxY - boxH / 2 + .5, X(S.q3) - X(S.q1), boxH);
-    ctx.beginPath();
-    ctx.moveTo(X(S.wl), boxY); ctx.lineTo(X(S.q1), boxY); ctx.moveTo(X(S.q3), boxY); ctx.lineTo(X(S.wh), boxY);
-    ctx.moveTo(X(S.wl), boxY - 7); ctx.lineTo(X(S.wl), boxY + 7); ctx.moveTo(X(S.wh), boxY - 7); ctx.lineTo(X(S.wh), boxY + 7);
-    ctx.stroke();
-    S.xs.filter(outl).forEach(v => { ctx.beginPath(); ctx.arc(X(v), boxY, 3.5, 0, Math.PI * 2); ctx.strokeStyle = hot; ctx.lineWidth = 1.5; ctx.stroke(); });
-    // mean & median lines
-    const xm = X(S.mean), xd = X(S.med), top = pad.t - 4, bot = boxY + boxH / 2 + 4;
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = accent; ctx.beginPath(); ctx.moveTo(Math.round(xd) + .5, top); ctx.lineTo(Math.round(xd) + .5, bot); ctx.stroke();
-    ctx.strokeStyle = hot; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.moveTo(Math.round(xm) + .5, top); ctx.lineTo(Math.round(xm) + .5, bot); ctx.stroke(); ctx.setLineDash([]);
-    ctx.font = '600 12px ' + mono; ctx.textBaseline = 'alphabetic';
-    const meanRight = S.mean >= S.med;
-    const lab = (txt, x, right) => { const tw = ctx.measureText(txt).width; let x0 = right ? x + 4 : x - 4 - tw; x0 = Math.max(2, Math.min(w - 2 - tw, x0)); return { txt, x0, tw }; };
-    const Lm = lab('media ' + M.fmt(S.mean, 1), xm, meanRight), Ld = lab('mediana ' + M.fmt(S.med, 1), xd, !meanRight);
-    const clash = Lm.x0 < Ld.x0 + Ld.tw + 6 && Ld.x0 < Lm.x0 + Lm.tw + 6;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = hot; ctx.fillText(Lm.txt, Lm.x0, 14);
-    ctx.fillStyle = accent; ctx.fillText(Ld.txt, Ld.x0, clash ? 29 : 14);
-    // axis
-    ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, h - pad.b + .5); ctx.lineTo(w - pad.r, h - pad.b + .5); ctx.stroke();
-    M.axisTicks(ctx, X, Math.ceil(lo / step) * step, hi, step, h - 8, muted);
   }
-  const dsv = $('desc-v');
-  function dsSync() { $('desc-v-v').textContent = DS.v; dsv.disabled = DS.k === 0; drawDesc(); }
-  dsv.addEventListener('input', () => { DS.v = +dsv.value; dsSync(); });
-  M.segBind('desc-k', b => { DS.k = +b.dataset.k; dsSync(); });
-  $('desc-again').addEventListener('click', () => {
-    DS.base = Array.from({ length: 24 }, () => Math.min(48, Math.max(12, Math.round(Math.exp(Math.log(23) + 0.22 * M.randn()))))).sort((a, b) => a - b);
-    drawDesc();
-  });
-  M.draw['desc'] = drawDesc;
-  M.init.push(dsSync);
+  function data() { return D.z.map(z => Math.round((MU + D.sd * z) * 10) / 10).sort((a, b) => a - b); }
+  function draw() {
+    const xs = data(), n = xs.length;
+    const mean = xs.reduce((a, b) => a + b, 0) / n;
+    const s = Math.sqrt(xs.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
+    const q1 = q7(xs, .25), q3 = q7(xs, .75);
+    const lo = mean - D.k * s, hi = mean + D.k * s;
+    const inside = xs.filter(v => v > lo && v < hi).length;
+    const cheb = Math.max(0, 1 - 1 / (D.k * D.k));
+    $('desc-r-s').textContent = fmt(s, 2) + ' g';
+    $('desc-r-iqr').textContent = fmt(q3 - q1, 2) + ' g';
+    $('desc-r-cv').textContent = fmt(100 * s / mean, 2) + ' %';
+    $('desc-r-in').textContent = fmt(100 * inside / n, 1) + ' %';
+    $('desc-head').textContent = `rango = ${fmt(xs[n - 1] - xs[0], 1)} g · Chebyshev ≥ ${fmt(100 * cheb, 1)} %`;
+
+    const f = fit($('desc-plot')); if (!f) return; const { ctx, w, h } = f;
+    const accent = tok('--accent'), hot = tok('--hot'), ink = tok('--ink'), muted = tok('--muted'), line = tok('--line'), mono = tok('--f-mono');
+    ctx.clearRect(0, 0, w, h);
+    const span = Math.max(20, Math.ceil(Math.max(Math.abs(xs[0] - MU), Math.abs(xs[n - 1] - MU), 3.2 * s) / 10) * 10);
+    const vlo = MU - span, vhi = MU + span;
+    const pad = { l: 16, r: 16, t: 30, b: 26 };
+    const X = v => pad.l + (v - vlo) / (vhi - vlo) * (w - pad.l - pad.r);
+    const step = [5, 10, 20, 25, 50].find(st => (vhi - vlo) / st <= Math.max(4, Math.floor((w - 40) / 60))) || 50;
+    const base = h - pad.b - 8;
+    // rejilla
+    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
+    for (let v = Math.ceil(vlo / step) * step; v <= vhi; v += step) { const xx = Math.round(X(v)) + .5; ctx.beginPath(); ctx.moveTo(xx, pad.t - 6); ctx.lineTo(xx, h - pad.b); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    // banda
+    ctx.fillStyle = accent; ctx.globalAlpha = .12; ctx.fillRect(X(lo), pad.t - 6, X(hi) - X(lo), base - pad.t + 6); ctx.globalAlpha = 1;
+    ctx.strokeStyle = accent; ctx.lineWidth = 1.5;
+    for (const b of [lo, hi]) { const xx = Math.round(X(b)) + .5; ctx.beginPath(); ctx.moveTo(xx, pad.t - 6); ctx.lineTo(xx, base); ctx.stroke(); }
+    // puntos apilados
+    const r = Math.max(2.6, Math.min(4.5, (w - pad.l - pad.r) / 130));
+    const placed = [];
+    xs.forEach(v => {
+      const xx = X(v); let lv = 0;
+      while (placed.some(q => q.lv === lv && Math.abs(q.x - xx) < 2 * r + 1)) lv++;
+      placed.push({ x: xx, lv });
+      const y = base - lv * (2 * r + 1) - r;
+      if (y < pad.t) return;
+      ctx.beginPath(); ctx.arc(xx, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = v > lo && v < hi ? accent : hot; ctx.fill();
+    });
+    // media y cuartiles
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; const xm = Math.round(X(mean)) + .5;
+    ctx.beginPath(); ctx.moveTo(xm, pad.t - 6); ctx.lineTo(xm, base); ctx.stroke();
+    ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    for (const q of [q1, q3]) { const xx = Math.round(X(q)) + .5; ctx.beginPath(); ctx.moveTo(xx, pad.t + 10); ctx.lineTo(xx, base); ctx.stroke(); }
+    ctx.setLineDash([]);
+    ctx.font = '600 12px ' + mono; ctx.textAlign = 'center';
+    ctx.fillStyle = ink; ctx.fillText('media', xm, pad.t - 12);
+    ctx.fillStyle = accent;
+    const kl = `−${D.k}s`, kr = `+${D.k}s`;
+    if (X(lo) > 14) ctx.fillText(kl, X(lo), pad.t - 12);
+    if (X(hi) < w - 14) ctx.fillText(kr, X(hi), pad.t - 12);
+    // eje
+    ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, h - pad.b + .5); ctx.lineTo(w - pad.r, h - pad.b + .5); ctx.stroke();
+    axisTicks(ctx, X, Math.ceil(vlo / step) * step, vhi, step, h - 8, muted);
+  }
+  const sdEl = $('desc-sd');
+  sdEl.addEventListener('input', () => { D.sd = +sdEl.value; $('desc-sd-v').textContent = fmt(D.sd, D.sd % 1 ? 1 : 0); draw(); });
+  segBind('desc-forma', b => { D.f = b.dataset.f; gen(); draw(); });
+  segBind('desc-k', b => { D.k = +b.dataset.k; draw(); });
+  $('desc-again').addEventListener('click', () => { gen(); draw(); });
+  gen();
+  M.draw['desc'] = draw;
+  M.init.push(draw);
 })();

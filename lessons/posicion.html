@@ -1,0 +1,348 @@
+<!-- StatEdx · sesión: posicion -->
+<div id="view-posicion" data-view="posicion" class="lesson-view" hidden>
+  <div class="progress" aria-hidden="true"><i></i></div>
+  <section class="lesson-head paper">
+    <div class="wrap">
+      <div class="crumbs"></div>
+      <h1>Medidas de posición</h1>
+      <p>Sacaste 16 en un examen: ¿es una buena nota? Depende de cómo les fue a los demás. Las medidas de posición dicen dónde se ubica un valor dentro del conjunto: cuartiles, deciles, percentiles y puntuaciones z. Con ellas se construye el diagrama de caja, una de las herramientas más útiles para comparar grupos y detectar atípicos.</p>
+      <div class="lmeta"><span>55 min</span><span>Nivel básico</span><span>Requiere: tendencia central</span><span>R · Python</span></div>
+    </div>
+  </section>
+  <div class="wrap lesson">
+    <aside class="toc" aria-label="Contenido de la clase">
+      <div class="eyebrow">En esta clase</div>
+      <ol>
+        <li><a href="#posicion-idea" data-sec="posicion-idea">La idea</a></li>
+        <li><a href="#posicion-cuantiles" data-sec="posicion-cuantiles">Cuartiles, deciles y percentiles</a></li>
+        <li><a href="#posicion-rango" data-sec="posicion-rango">Rango percentil</a></li>
+        <li><a href="#posicion-z" data-sec="posicion-z">Puntuaciones z</a></li>
+        <li><a href="#posicion-caja" data-sec="posicion-caja">Cinco números y diagrama de caja</a></li>
+        <li><a href="#posicion-lab" data-sec="posicion-lab">Laboratorio</a></li>
+        <li><a href="#posicion-errores" data-sec="posicion-errores">Errores comunes</a></li>
+        <li><a href="#posicion-practica" data-sec="posicion-practica">En la práctica</a></li>
+        <li><a href="#posicion-code" data-sec="posicion-code">En R y Python</a></li>
+        <li><a href="#posicion-quiz" data-sec="posicion-quiz">Comprueba</a></li>
+        <li><a href="#posicion-ej" data-sec="posicion-ej">Ejercicios</a></li>
+      </ol>
+    </aside>
+    <article class="prose">
+      <h2 id="posicion-idea"><span class="sec">§ 1</span>La idea</h2>
+      <p>Cuando un pediatra dice que un bebé “está en el percentil 80 de peso”, no está dando su peso: dice que pesa más que el 80 % de los bebés de su edad. Cuando un examen de admisión informa que quedaste “en el decil superior”, te ubica entre el 10 % más alto. Esa es la idea de las <b>medidas de posición</b>: en lugar de resumir el centro, dicen <b>dónde queda un valor respecto de los demás</b>.</p>
+      <p>Las medidas de posición dividen los datos ordenados en partes iguales. La más conocida ya la viste: la <a href="#central">mediana</a> parte los datos en dos mitades. Si los partes en cuatro obtienes los <b>cuartiles</b>, en diez los <b>deciles</b> y en cien los <b>percentiles</b>. Junto con las <b>puntuaciones z</b>, que miden la posición en desviaciones típicas, permiten comparar valores de escalas distintas.</p>
+      <div class="callout"><b>Al terminar esta clase sabrás:</b>
+        <ul>
+          <li>calcular cuartiles, deciles y percentiles con datos sueltos y con datos agrupados;</li>
+          <li>calcular el rango percentil de un valor y explicar la diferencia con el percentil;</li>
+          <li>estandarizar con puntuaciones z para comparar valores de distintas escalas;</li>
+          <li>construir el resumen de cinco números y el diagrama de caja;</li>
+          <li>detectar posibles atípicos con las cercas de Tukey.</li>
+        </ul>
+      </div>
+      <p>Seguimos con los tiempos de traslado de la clase anterior, ya ordenados (\(n = 10\)):</p>
+      <div class="eq">\[ 12,\ 15,\ 18,\ 20,\ 22,\ 25,\ 25,\ 28,\ 35,\ 90 \]</div>
+
+      <h2 id="posicion-cuantiles"><span class="sec">§ 2</span>Cuartiles, deciles y percentiles</h2>
+      <p>Un <b>cuantil</b> de orden \(p\) (con \(0 &lt; p &lt; 1\)) es un valor \(Q(p)\) que deja aproximadamente una proporción \(p\) de los datos por debajo y \(1 - p\) por encima. Según en cuántas partes dividas los datos reciben nombres distintos:</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Nombre</th><th>Divide en</th><th>Notación</th><th>Equivalencias</th></tr></thead>
+        <tbody>
+          <tr><td>Cuartiles</td><td>4 partes</td><td>\(Q_1, Q_2, Q_3\)</td><td>\(Q_1 = P_{25}\), \(Q_2 = P_{50} = \operatorname{Me}\), \(Q_3 = P_{75}\)</td></tr>
+          <tr><td>Quintiles</td><td>5 partes</td><td>\(K_1, \dots, K_4\)</td><td>\(K_1 = P_{20}\), \(K_2 = P_{40}\)…</td></tr>
+          <tr><td>Deciles</td><td>10 partes</td><td>\(D_1, \dots, D_9\)</td><td>\(D_1 = P_{10}\), \(D_5 = \operatorname{Me}\), \(D_9 = P_{90}\)</td></tr>
+          <tr><td>Percentiles</td><td>100 partes</td><td>\(P_1, \dots, P_{99}\)</td><td>todos los anteriores son percentiles</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Cómo se calculan.</b> Con muestras pequeñas casi nunca hay un dato que deje exactamente el 25 % por debajo, así que hay que <b>interpolar</b>. Existen varios métodos; el más usado, que es el predeterminado de R (<code>type = 7</code>), de NumPy y de Excel (<code>PERCENTIL.INC</code>), ubica la posición</p>
+      <div class="eq">\[ h = 1 + (n - 1)\,p \qquad\Longrightarrow\qquad Q(p) = x_{(\lfloor h \rfloor)} + \big(h - \lfloor h \rfloor\big)\,\big(x_{(\lfloor h \rfloor + 1)} - x_{(\lfloor h \rfloor)}\big) \]
+        <div class="note">\(\lfloor h \rfloor\) es la parte entera de \(h\). En palabras: avanza hasta la posición \(h\) en la lista ordenada; si cae entre dos datos, toma el de abajo y súmale la fracción de la distancia que falta.</div>
+      </div>
+      <p><b>Ejemplo paso a paso</b> con los traslados (\(n = 10\)):</p>
+      <ul>
+        <li>\(Q_1\): \(h = 1 + 9 \cdot 0{,}25 = 3{,}25\). Entre el 3.º dato (18) y el 4.º (20): \(Q_1 = 18 + 0{,}25 \cdot (20 - 18) = 18{,}5\).</li>
+        <li>\(Q_2\): \(h = 1 + 9 \cdot 0{,}5 = 5{,}5\). Entre 22 y 25: \(Q_2 = 22 + 0{,}5 \cdot 3 = 23{,}5\), la mediana.</li>
+        <li>\(Q_3\): \(h = 7{,}75\). Entre 25 y 28: \(Q_3 = 25 + 0{,}75 \cdot 3 = 27{,}25\).</li>
+        <li>\(P_{90}\): \(h = 9{,}1\). Entre 35 y 90: \(P_{90} = 35 + 0{,}1 \cdot 55 = 40{,}5\).</li>
+      </ul>
+      <p>Interpretación: una cuarta parte de las personas tarda 18,5 minutos o menos; tres cuartas partes, 27,25 o menos; y el 10 % que más tarda supera los 40,5 minutos.</p>
+      <div class="callout"><b>Distintos programas, distintos valores.</b> Muchos textos usan la posición \((n + 1)\,p\) en lugar de \(1 + (n-1)\,p\), y otros toman el dato más cercano sin interpolar. Con los traslados, \((n + 1)\,p\) da \(Q_1 = 17{,}25\). No es un error: con muestras pequeñas los métodos difieren un poco, y con muestras grandes coinciden. Lo importante es decir cuál usaste y no mezclar métodos al comparar.</div>
+      <p><b>Percentiles con datos agrupados.</b> Si solo tienes una tabla por intervalos, se usa la misma interpolación que para la mediana agrupada, cambiando \(n/2\) por \(p\,n\):</p>
+      <div class="eq">\[ P_p \approx L + \frac{p\,n - N_{\text{ant}}}{n_i}\, a \]
+        <div class="note">\(L\) es el límite inferior del intervalo que contiene la posición \(p\,n\), \(n_i\) su frecuencia, \(a\) su amplitud y \(N_{\text{ant}}\) la frecuencia acumulada antes de ese intervalo. Lo aplicarás en <a href="#frecuencias">tablas de frecuencia</a>.</div>
+      </div>
+
+      <h2 id="posicion-rango"><span class="sec">§ 3</span>Rango percentil</h2>
+      <p>El percentil responde “¿qué valor deja el \(p\) % por debajo?”. La pregunta inversa es “este valor, ¿qué porcentaje deja por debajo?”, y la responde el <b>rango percentil</b>:</p>
+      <div class="eq">\[ RP(x) = 100 \cdot \frac{\#\{x_i &lt; x\} + \tfrac{1}{2}\,\#\{x_i = x\}}{n} \]
+        <div class="note">Los empates cuentan la mitad, para que un valor repetido quede “en medio” de sus copias. Traslados: para \(x = 28\) hay 7 datos menores y 1 igual, así que \(RP(28) = 100 \cdot (7 + 0{,}5)/10 = 75\). Quien tarda 28 minutos está en el percentil 75.</div>
+      </div>
+      <p>Así se informan los resultados de muchas pruebas estandarizadas: “tu puntaje está en el percentil 92” significa que superaste aproximadamente al 92 % de quienes rindieron la prueba. Fíjate que el rango percentil no dice cuánto más alto es tu puntaje, solo cuántos quedaron por debajo: dos personas en los percentiles 50 y 60 pueden estar a un punto de distancia si hay muchos puntajes concentrados en el centro.</p>
+
+      <h2 id="posicion-z"><span class="sec">§ 4</span>Puntuaciones z</h2>
+      <p>Los percentiles ubican un valor por orden. Las <b>puntuaciones z</b> (o puntuaciones estándar) lo ubican por <b>distancia</b>: cuántas desviaciones típicas está por encima o por debajo de la media.</p>
+      <div class="eq">\[ z_i = \frac{x_i - \bar x}{s} \]
+        <div class="note">Un \(z = 2\) significa “dos desviaciones típicas por encima de la media”; un \(z = -0{,}5\), “media desviación por debajo”. En los traslados (\(\bar x = 29\), \(s = 22{,}4\)), el dato de 90 minutos tiene \(z = (90 - 29)/22{,}4 = 2{,}72\).</div>
+      </div>
+      <p><b>Para qué sirven.</b> Permiten comparar valores medidos en escalas distintas. Ana sacó 16 en matemáticas, donde la media del curso fue 12 y la desviación típica 2. Luis sacó 75 en historia, con media 65 y desviación 8. ¿A quién le fue mejor en relación con su curso?</p>
+      <div class="eq">\[ z_{\text{Ana}} = \frac{16 - 12}{2} = 2{,}0 \qquad\qquad z_{\text{Luis}} = \frac{75 - 65}{8} = 1{,}25 \]
+        <div class="note">Aunque 75 es un número mayor que 16, Ana se destacó más: está dos desviaciones por encima de su curso; Luis, una y cuarto.</div>
+      </div>
+      <p><b>Propiedades.</b> Las puntuaciones z de cualquier conjunto de datos tienen media 0 y desviación típica 1, y no tienen unidades. Estandarizar no cambia la forma de la distribución ni el orden de los datos: solo la traslada y la reescala.</p>
+      <p><b>De z a percentil.</b> Si los datos tienen forma aproximadamente <a href="#normal">normal</a>, cada z corresponde a un percentil conocido: \(z = 0\) es el percentil 50, \(z = 1\) el 84, \(z = 2\) el 97,7 y \(z = -1\) el 16. Por eso se dice que alrededor del 95 % de los datos tiene \(|z| &lt; 2\) y casi todos \(|z| &lt; 3\). Un valor con \(|z| &gt; 3\) suele considerarse atípico, aunque esta regla falla con datos muy asimétricos: el propio atípico infla \(s\) y puede esconderse (el 90 de los traslados tiene \(z = 2{,}72\), menos de 3).</p>
+
+      <h2 id="posicion-caja"><span class="sec">§ 5</span>Cinco números y diagrama de caja</h2>
+      <p>El <b>resumen de cinco números</b> describe una distribución con cinco medidas de posición: mínimo, \(Q_1\), mediana, \(Q_3\) y máximo. Con los traslados: 12; 18,5; 23,5; 27,25; 90. De ahí sale el <b>rango intercuartílico</b>, la amplitud del 50 % central de los datos:</p>
+      <div class="eq">\[ RIC = Q_3 - Q_1 = 27{,}25 - 18{,}5 = 8{,}75 \text{ minutos} \]</div>
+      <p>El <b>diagrama de caja</b> (boxplot), propuesto por John Tukey en 1977, dibuja ese resumen:</p>
+      <ul>
+        <li>La <b>caja</b> va de \(Q_1\) a \(Q_3\) y contiene el 50 % central de los datos; una línea interior marca la mediana.</li>
+        <li>Los <b>bigotes</b> se extienden hasta el dato más extremo que todavía esté dentro de las <b>cercas</b>.</li>
+        <li>Los datos fuera de las cercas se dibujan uno por uno como <b>posibles atípicos</b>.</li>
+      </ul>
+      <div class="eq">\[ \text{cerca inferior} = Q_1 - 1{,}5\,RIC \qquad\qquad \text{cerca superior} = Q_3 + 1{,}5\,RIC \]
+        <div class="note">Traslados: \(1{,}5 \cdot 8{,}75 = 13{,}125\), así que las cercas son \(18{,}5 - 13{,}125 = 5{,}375\) y \(27{,}25 + 13{,}125 = 40{,}375\). El bigote inferior llega a 12, el superior a 35, y el 90 se marca como atípico. Algunos programas llaman “atípico extremo” a lo que supera \(3\,RIC\) desde la caja.</div>
+      </div>
+      <p><b>Cómo leer una caja:</b></p>
+      <ul>
+        <li><b>Centro:</b> la línea de la mediana.</li>
+        <li><b>Dispersión:</b> el largo de la caja (el RIC) y de los bigotes.</li>
+        <li><b>Asimetría:</b> si la mediana está cerca del borde izquierdo de la caja y el bigote derecho es más largo, hay cola a la derecha. Con los traslados, la mediana está a 5 minutos de \(Q_1\) y a 3,75 de \(Q_3\), pero el bigote derecho es más largo y hay un atípico arriba.</li>
+        <li><b>Comparación de grupos:</b> varias cajas lado a lado, en la misma escala, permiten comparar centros y dispersiones de un vistazo. Si las cajas no se solapan, la diferencia entre grupos es grande respecto de la variabilidad.</li>
+      </ul>
+      <div class="callout"><b>Atípico no significa error.</b> La regla de 1,5 RIC solo señala valores que merecen revisión. Con datos normales marca cerca del 0,7 % de los datos aunque no haya nada raro; con datos muy asimétricos, mucho más. Si el dato es real, no lo borres: repórtalo y usa medidas robustas.</div>
+
+      <h2 id="posicion-lab"><span class="sec">§ 6</span>Laboratorio</h2>
+      <p>Tienes las notas de 40 estudiantes (escala de 0 a 20) o los tiempos de espera de 40 clientes. Con el primer deslizador eliges un percentil y ves qué valor le corresponde; con el segundo eliges un estudiante o cliente y ves su rango percentil y su puntuación z. Debajo, el diagrama de caja con sus cercas.</p>
+      <figure class="instrument lab">
+        <div class="instrument-head"><span><span class="dot"></span>simulador · percentiles y puntuaciones z</span><span class="num" id="posicion-head">–</span></div>
+        <div class="lab-body">
+          <div class="controls">
+            <div class="ctrl">
+              <label id="posicion-dat-label">DATOS</label>
+              <div class="seg" id="posicion-dat" role="group" aria-labelledby="posicion-dat-label">
+                <button data-d="notas" aria-pressed="true">Notas</button>
+                <button data-d="espera" aria-pressed="false">Tiempos de espera</button>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="posicion-again" type="button">Nueva muestra</button>
+          </div>
+          <div class="controls">
+            <div class="ctrl"><label for="posicion-p">PERCENTIL · p = <b id="posicion-p-v" class="num">75</b></label><input id="posicion-p" type="range" min="1" max="99" value="75"></div>
+            <div class="ctrl"><label for="posicion-i">DATO ELEGIDO · puesto <b id="posicion-i-v" class="num">30</b> de 40</label><input id="posicion-i" type="range" min="1" max="40" value="30"></div>
+          </div>
+          <div class="plot-label"><span id="posicion-unit">Nota (0 a 20)</span><span>│ percentil p · ● dato elegido</span></div>
+          <canvas class="plot" id="posicion-plot" height="270" aria-label="Diagrama de puntos de los datos con el percentil elegido marcado, el dato elegido resaltado y un diagrama de caja con sus cercas debajo"></canvas>
+          <div class="legend"><span><i style="background:var(--accent)"></i>datos por debajo del percentil</span><span><i style="background:var(--hot)"></i>dato elegido</span><span><i style="background:var(--ink)"></i>caja y cercas de Tukey</span></div>
+          <div class="readout">
+            <div><span>valor del percentil p</span><b id="posicion-r-p">–</b></div>
+            <div><span>dato elegido</span><b id="posicion-r-x">–</b></div>
+            <div><span>su rango percentil</span><b id="posicion-r-rp">–</b></div>
+            <div><span>su puntuación z</span><b id="posicion-r-z">–</b></div>
+          </div>
+        </div>
+        <figcaption>El percentil se calcula con el método lineal de R y NumPy (type = 7). Las cercas punteadas están a 1,5 RIC de la caja; los puntos fuera de ellas son posibles atípicos.</figcaption>
+      </figure>
+      <p><b>Prueba tú mismo</b></p>
+      <ol>
+        <li>Con “Notas”, lleva el percentil a 25, 50 y 75 y compara con los bordes de la caja.
+          <details><summary>Qué deberías observar</summary><p>La línea del percentil coincide con el borde izquierdo de la caja en p = 25, con la mediana en p = 50 y con el borde derecho en p = 75: la caja está hecha de percentiles. Entre p = 25 y p = 75 la línea recorre poca distancia, porque ahí se concentra la mitad de los datos.</p></details></li>
+        <li>Mueve el dato elegido del puesto 20 al 30 y luego del 30 al 40. Mira cómo cambian el rango percentil y la z.
+          <details><summary>Qué deberías observar</summary><p>El rango percentil sube unos 25 puntos cada 10 puestos (exactamente 25 si no hay empates), porque solo depende del orden. La z, en cambio, sube poco en el centro (los datos están juntos) y mucho en los extremos: es una medida de distancia, no de orden.</p></details></li>
+        <li>Cambia a “Tiempos de espera” y pulsa “Nueva muestra” varias veces. Elige el puesto 40.
+          <details><summary>Qué deberías observar</summary><p>La distribución tiene cola a la derecha: el bigote derecho es largo y suelen aparecer uno o varios atípicos arriba, aunque los datos se generaron sin errores. El dato mayor tiene z de 2,5 a 4 según la muestra: la regla de |z| &gt; 3 y la de las cercas no siempre coinciden.</p></details></li>
+      </ol>
+
+      <h2 id="posicion-errores"><span class="sec">§ 7</span>Errores comunes</h2>
+      <ul>
+        <li><b>Confundir percentil con porcentaje de aciertos.</b> Estar en el percentil 90 de un examen no significa haber respondido bien el 90 % de las preguntas, sino haber superado al 90 % de los participantes.</li>
+        <li><b>Calcular cuartiles sin ordenar.</b> Las posiciones se cuentan en la lista ordenada de menor a mayor.</li>
+        <li><b>Leer distancias en los percentiles.</b> Del percentil 50 al 60 puede haber un punto de diferencia y del 90 al 99, veinte. Los percentiles miden orden, no distancia.</li>
+        <li><b>Usar z para detectar atípicos en datos muy asimétricos o con varios atípicos.</b> Los atípicos inflan la media y la desviación típica, y así se esconden. Las cercas de Tukey, basadas en cuartiles, son más robustas.</li>
+        <li><b>Borrar todo lo que el boxplot marca.</b> Un punto fuera de las cercas es una alerta, no una sentencia.</li>
+      </ul>
+
+      <h2 id="posicion-practica"><span class="sec">§ 8</span>En la práctica</h2>
+      <ul>
+        <li><b>Salud.</b> Las curvas de crecimiento de la OMS muestran, para cada edad, los percentiles 3, 15, 50, 85 y 97 del peso y la talla. Un niño que cae bajo el percentil 3, o que cruza varias curvas hacia abajo entre controles, se deriva a evaluación.</li>
+        <li><b>Educación.</b> Las pruebas estandarizadas de admisión reportan puntajes escalados (una transformación de z) y percentiles, para que un mismo puntaje signifique lo mismo en distintos años y versiones de la prueba.</li>
+        <li><b>Tecnología.</b> Los equipos de sitios web vigilan el percentil 95 o 99 del tiempo de respuesta, no la media: el promedio puede verse bien mientras el 1 % de los usuarios espera varios segundos.</li>
+        <li><b>Ambiente.</b> Varias normas de calidad del aire se fijan sobre un percentil alto de las mediciones diarias (por ejemplo, el percentil 98 del año), porque lo que daña la salud son los episodios de contaminación alta, no el promedio.</li>
+      </ul>
+
+      <h2 id="posicion-code"><span class="sec">§ 9</span>En R y Python</h2>
+      <p>Cuartiles, percentiles, rango percentil, puntuaciones z y el diagrama de caja de los traslados.</p>
+      <div class="codetabs">
+        <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> scipy <span class="k">import</span> stats
+
+x = np.<span class="f">array</span>([<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">35</span>, <span class="n">90</span>])   <span class="c"># minutos de traslado</span>
+
+<span class="c"># cuartiles y percentil 90 (método lineal, igual al type = 7 de R)</span>
+q1, me, q3 = np.<span class="f">percentile</span>(x, [<span class="n">25</span>, <span class="n">50</span>, <span class="n">75</span>])
+<span class="f">print</span>(q1, me, q3)                              <span class="c"># 18.5 23.5 27.25</span>
+<span class="f">print</span>(np.<span class="f">percentile</span>(x, <span class="n">90</span>))                    <span class="c"># 40.5</span>
+
+<span class="c"># rango percentil de un valor: % de datos por debajo (los empates cuentan la mitad)</span>
+<span class="f">print</span>(stats.<span class="f">percentileofscore</span>(x, <span class="n">28</span>, kind=<span class="s">"mean"</span>))   <span class="c"># 75.0</span>
+
+<span class="c"># puntuaciones z (con la desviación típica muestral)</span>
+z = (x - x.<span class="f">mean</span>()) / x.<span class="f">std</span>(ddof=<span class="n">1</span>)
+<span class="f">print</span>(np.<span class="f">round</span>(z, <span class="n">2</span>))                          <span class="c"># el 90 tiene z ≈ 2.72</span>
+
+<span class="c"># resumen de cinco números y cercas de Tukey</span>
+ric = q3 - q1
+lo, hi = q1 - <span class="n">1.5</span> * ric, q3 + <span class="n">1.5</span> * ric
+<span class="f">print</span>(x.<span class="f">min</span>(), q1, me, q3, x.<span class="f">max</span>())            <span class="c"># 12 18.5 23.5 27.25 90</span>
+<span class="f">print</span>(lo, hi, x[(x &lt; lo) | (x &gt; hi)])          <span class="c"># 5.375 40.375 [90]</span></code></pre>
+<pre class="code" data-lang="r" hidden><code>x &lt;- <span class="f">c</span>(<span class="n">12</span>, <span class="n">15</span>, <span class="n">18</span>, <span class="n">20</span>, <span class="n">22</span>, <span class="n">25</span>, <span class="n">25</span>, <span class="n">28</span>, <span class="n">35</span>, <span class="n">90</span>)   <span class="c"># minutos de traslado</span>
+
+<span class="c"># cuartiles y percentil 90 (type = 7 es el método por defecto)</span>
+<span class="f">quantile</span>(x, <span class="f">c</span>(<span class="n">0.25</span>, <span class="n">0.50</span>, <span class="n">0.75</span>))               <span class="c"># 18.5 23.5 27.25</span>
+<span class="f">quantile</span>(x, <span class="n">0.90</span>)                              <span class="c"># 40.5</span>
+
+<span class="c"># rango percentil de un valor: % por debajo (los empates cuentan la mitad)</span>
+<span class="n">100</span> * (<span class="f">mean</span>(x &lt; <span class="n">28</span>) + <span class="f">mean</span>(x == <span class="n">28</span>) / <span class="n">2</span>)       <span class="c"># 75</span>
+
+<span class="c"># puntuaciones z</span>
+<span class="f">round</span>(<span class="f">as.vector</span>(<span class="f">scale</span>(x)), <span class="n">2</span>)                  <span class="c"># el 90 tiene z ≈ 2.72</span>
+
+<span class="c"># resumen de cinco números y cercas de Tukey</span>
+<span class="f">summary</span>(x)                                     <span class="c"># mín, Q1, mediana, media, Q3, máx</span>
+ric &lt;- <span class="f">IQR</span>(x)
+<span class="f">c</span>(<span class="f">quantile</span>(x, <span class="n">0.25</span>) - <span class="n">1.5</span> * ric, <span class="f">quantile</span>(x, <span class="n">0.75</span>) + <span class="n">1.5</span> * ric)   <span class="c"># 5.375 40.375</span>
+<span class="f">boxplot.stats</span>(x)$out                           <span class="c"># 90</span>
+<span class="f">boxplot</span>(x, horizontal = <span class="k">TRUE</span>, xlab = <span class="s">"minutos"</span>)</code></pre>
+      </div>
+      <p>Un detalle de R: <code>fivenum()</code> y <code>boxplot()</code> usan las “bisagras” de Tukey, que con \(n\) par pueden diferir un poco de <code>quantile()</code>. Con los traslados, <code>fivenum(x)</code> da 18 y 28 como cuartos inferior y superior, en vez de 18,5 y 27,25.</p>
+
+      <h2 id="posicion-quiz"><span class="sec">§ 10</span>Comprueba</h2>
+      <div class="quiz" data-right="El percentil 70 deja aproximadamente el 70 % de los datos por debajo. No dice nada sobre el porcentaje de preguntas correctas." data-wrong="Recuerda que un percentil ubica a una persona respecto de las demás, no respecto del total de puntos posibles.">
+        <h3>En una prueba nacional quedaste en el percentil 70. ¿Qué significa?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Que respondiste bien el 70 % de las preguntas</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>Que obtuviste un puntaje mayor o igual que el de alrededor del 70 % de los participantes</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Que el 70 % de los participantes te superó</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Que tu nota es 70 sobre 100</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Con n = 9 la posición es h = 1 + 8 · 0,25 = 3, justo el tercer dato ordenado: Q₁ = 7." data-wrong="Ordena los datos y calcula h = 1 + (n − 1)·p con n = 9 y p = 0,25. ¿Cae justo en un dato?">
+        <h3>Datos ordenados: 2, 4, 7, 8, 10, 12, 15, 18, 30. Con el método h = 1 + (n − 1)p, ¿cuánto vale Q₁?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>4</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>5,5</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">C</span>7</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>10</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="z de Sofía = (720 − 600)/80 = 1,5; z de Mateo = (28 − 24)/4 = 1,0. Sofía está más lejos de la media de su prueba, medida en desviaciones típicas." data-wrong="Las escalas son distintas, así que no compares 720 con 28. Calcula cuántas desviaciones típicas está cada uno sobre su media.">
+        <h3>Sofía sacó 720 en una prueba con media 600 y desviación 80. Mateo sacó 28 en otra con media 24 y desviación 4. ¿Quién se destacó más en su prueba?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="1"><span class="letter">A</span>Sofía, con z = 1,5</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Mateo, con z = 1,5</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Los dos por igual</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>No se pueden comparar escalas distintas</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="RIC = 60 − 40 = 20, así que la cerca superior es 60 + 1,5 · 20 = 90. Un valor de 95 queda fuera y se marca como posible atípico." data-wrong="Calcula el RIC y luego la cerca superior Q₃ + 1,5·RIC. ¿El 95 queda dentro o fuera?">
+        <h3>Un conjunto tiene Q₁ = 40 y Q₃ = 60. ¿Qué pasa con un dato igual a 95 en el diagrama de caja?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Queda dentro del bigote superior</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">B</span>Queda dentro de la caja</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Se elimina de los datos</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">D</span>Se marca como posible atípico, porque la cerca superior es 90</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+      <div class="quiz" data-right="Sumar una constante desplaza todos los datos igual: la media sube 5 y cada distancia a la media no cambia, así que la desviación típica tampoco. Las z quedan idénticas." data-wrong="Piensa qué le pasa a x − media si sumas 5 a x y también a la media. ¿Y a la desviación típica?">
+        <h3>Un profesor suma 5 puntos a todas las notas de un curso. ¿Qué pasa con la puntuación z de cada estudiante?</h3>
+        <div class="opts">
+          <button class="opt" type="button" data-ok="0"><span class="letter">A</span>Sube 5 unidades</button>
+          <button class="opt" type="button" data-ok="1"><span class="letter">B</span>No cambia</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">C</span>Sube en proporción a la nota de cada uno</button>
+          <button class="opt" type="button" data-ok="0"><span class="letter">D</span>Se vuelve cero para todos</button>
+        </div>
+        <div class="feedback" aria-live="polite"></div>
+      </div>
+
+      <h2 id="posicion-ej"><span class="sec">§ 11</span>Ejercicios propuestos</h2>
+      <div class="exercises">
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 1</span><span class="ex-lvl">Básico</span></div>
+          <p>Los minutos de espera de 11 pacientes en una consulta son: 3, 5, 7, 8, 9, 11, 13, 15, 18, 21, 40. Calcula el resumen de cinco números con el método \(h = 1 + (n-1)p\), el RIC y las cercas de Tukey. ¿Hay atípicos? Describe cómo se vería el diagrama de caja.</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>\(Q_1\): \(h = 1 + 10 \cdot 0{,}25 = 3{,}5\), entre 7 y 8: \(Q_1 = 7{,}5\). Mediana: \(h = 6\), el 6.º dato: 11. \(Q_3\): \(h = 8{,}5\), entre 15 y 18: \(Q_3 = 16{,}5\). Resumen: 3; 7,5; 11; 16,5; 40.</p>
+            <p>\(RIC = 9\). Cercas: \(7{,}5 - 13{,}5 = -6\) y \(16{,}5 + 13{,}5 = 30\). El 40 queda fuera: es un posible atípico. La caja va de 7,5 a 16,5 con la mediana en 11, el bigote izquierdo llega a 3, el derecho a 21, y el 40 aparece como un punto aislado: una distribución con cola a la derecha.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 2</span><span class="ex-lvl">Básico</span></div>
+          <p>Carla obtuvo 68 puntos en un examen de química (media 60, desviación típica 5) y Diego 82 en uno de física (media 75, desviación 6). (a) Calcula las puntuaciones z. ¿Quién tuvo un mejor desempeño relativo? (b) Si las notas de química tienen forma aproximadamente normal, ¿en qué percentil aproximado está Carla?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(z_{\text{Carla}} = (68 - 60)/5 = 1{,}6\) y \(z_{\text{Diego}} = (82 - 75)/6 = 1{,}17\). Carla se destacó más en su curso.</p>
+            <p>(b) Para una normal, \(z = 1{,}6\) corresponde al percentil 94,5 aproximadamente (\(\Phi(1{,}6) = 0{,}945\)): superó a cerca del 94 % de su curso. Lo verás en <a href="#normal">distribución normal</a>.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 3</span><span class="ex-lvl">Intermedio</span></div>
+          <p>Los puntajes de 200 postulantes se publican agrupados: [0, 20): 10; [20, 40): 30; [40, 60): 70; [60, 80): 60; [80, 100]: 30. (a) Estima el percentil 75. (b) Estima el rango percentil de un puntaje de 50. (c) La universidad admite al 15 % superior: ¿desde qué puntaje aproximado se entra?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>Acumuladas: 10, 40, 110, 170, 200.</p>
+            <p>(a) Posición \(0{,}75 \cdot 200 = 150\), en [60, 80): \(P_{75} \approx 60 + \frac{150 - 110}{60} \cdot 20 = 73{,}3\).</p>
+            <p>(b) Bajo 50 hay 40 postulantes de los intervalos anteriores y, suponiendo reparto uniforme, la mitad de los 70 de [40, 60), es decir 35. En total 75 de 200: rango percentil ≈ 37,5.</p>
+            <p>(c) Se busca \(P_{85}\): posición 170, que coincide con la acumulada al final de [60, 80). El corte es 80 puntos.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 4</span><span class="ex-lvl">Avanzado</span></div>
+          <p>(a) Demuestra que las puntuaciones z de cualquier conjunto de datos (con \(s &gt; 0\)) tienen media 0 y desviación típica 1. (b) Demuestra que si \(y_i = a + b\,x_i\) con \(b &gt; 0\), entonces cualquier percentil cumple \(P_p(y) = a + b\,P_p(x)\) y las puntuaciones z son las mismas. (c) ¿Qué cambia si \(b &lt; 0\)?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) \(\bar z = \frac{1}{n}\sum \frac{x_i - \bar x}{s} = \frac{1}{s}\cdot\frac{1}{n}\sum (x_i - \bar x) = 0\), porque las desviaciones suman cero. Y \(s_z^2 = \frac{1}{n-1}\sum z_i^2 = \frac{1}{s^2}\cdot\frac{1}{n-1}\sum (x_i - \bar x)^2 = \frac{s^2}{s^2} = 1\).</p>
+            <p>(b) Con \(b &gt; 0\) la transformación conserva el orden, así que \(y_{(k)} = a + b\,x_{(k)}\) para todo \(k\). La fórmula de interpolación es lineal en los datos ordenados, de modo que \(P_p(y) = a + b\,P_p(x)\). Además \(\bar y = a + b\bar x\) y \(s_y = b\,s_x\), así que \(z_i^{(y)} = \frac{a + b x_i - a - b\bar x}{b\,s_x} = z_i^{(x)}\).</p>
+            <p>(c) Con \(b &lt; 0\) el orden se invierte: \(P_p(y) = a + b\,P_{1-p}(x)\) (el percentil 90 de \(y\) sale del percentil 10 de \(x\)), \(s_y = |b|\,s_x\) y las z cambian de signo.</p>
+          </div></details>
+        </div>
+        <div class="ex">
+          <div class="ex-head"><span class="ex-n">Ejercicio 5</span><span class="ex-lvl">Desafío</span></div>
+          <p>¿Qué proporción de los datos marca como atípicos la regla de 1,5 RIC cuando <i>no hay</i> ningún error? (a) Calcula el valor teórico para una población normal y para una exponencial. (b) Comprueba por simulación con muestras de tamaño 20, 100 y 1 000. (c) ¿Qué consecuencia práctica tiene?</p>
+          <details><summary>Ver solución</summary><div class="sol">
+            <p>(a) Normal estándar: \(Q_1 = -0{,}674\), \(Q_3 = 0{,}674\), \(RIC = 1{,}349\), cercas en \(\pm 2{,}698\). La proporción fuera es \(2\,(1 - \Phi(2{,}698)) = 0{,}0070\): 0,7 %. Exponencial de media 1: \(Q_1 = \ln(4/3) = 0{,}288\), \(Q_3 = \ln 4 = 1{,}386\), \(RIC = 1{,}099\); la cerca superior es 3,034 y la inferior es negativa, así que la proporción fuera es \(e^{-3{,}034} = 0{,}048\): casi 5 %.</p>
+            <div class="codetabs">
+              <div class="tabbar"><button type="button" data-lang="py" aria-pressed="true">Python</button><button type="button" data-lang="r" aria-pressed="false">R</button></div>
+<pre class="code" data-lang="py"><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+rng = np.random.<span class="f">default_rng</span>(<span class="n">5</span>)
+<span class="k">for</span> n <span class="k">in</span> [<span class="n">20</span>, <span class="n">100</span>, <span class="n">1000</span>]:
+    <span class="k">for</span> nombre, gen <span class="k">in</span> [(<span class="s">"normal"</span>, rng.normal), (<span class="s">"exponencial"</span>, rng.exponential)]:
+        X = <span class="f">gen</span>(size=(<span class="n">2000</span>, n))                       <span class="c"># 2 000 muestras de tamaño n</span>
+        q1, q3 = np.<span class="f">percentile</span>(X, [<span class="n">25</span>, <span class="n">75</span>], axis=<span class="n">1</span>)
+        ric = q3 - q1
+        fuera = (X &lt; (q1 - <span class="n">1.5</span> * ric)[:, <span class="k">None</span>]) | (X &gt; (q3 + <span class="n">1.5</span> * ric)[:, <span class="k">None</span>])
+        <span class="f">print</span>(n, nombre, <span class="f">round</span>(fuera.<span class="f">mean</span>(), <span class="n">4</span>))
+<span class="c"># normal:      ≈ 0.023 (n = 20), ≈ 0.0095 (100), ≈ 0.0072 (1 000)</span>
+<span class="c"># exponencial: ≈ 0.055,          ≈ 0.050,        ≈ 0.048</span></code></pre>
+<pre class="code" data-lang="r" hidden><code><span class="f">set.seed</span>(<span class="n">5</span>)
+<span class="k">for</span> (n <span class="k">in</span> <span class="f">c</span>(<span class="n">20</span>, <span class="n">100</span>, <span class="n">1000</span>)) {
+  <span class="k">for</span> (dist <span class="k">in</span> <span class="f">c</span>(<span class="s">"normal"</span>, <span class="s">"exponencial"</span>)) {
+    prop &lt;- <span class="f">replicate</span>(<span class="n">2000</span>, {
+      x &lt;- <span class="k">if</span> (dist == <span class="s">"normal"</span>) <span class="f">rnorm</span>(n) <span class="k">else</span> <span class="f">rexp</span>(n)
+      <span class="f">length</span>(<span class="f">boxplot.stats</span>(x)$out) / n           <span class="c"># boxplot.stats usa las bisagras de Tukey</span>
+    })
+    <span class="f">cat</span>(n, dist, <span class="f">round</span>(<span class="f">mean</span>(prop), <span class="n">4</span>), <span class="s">"\n"</span>)
+  }
+}
+<span class="c"># resultados parecidos: ≈ 0.007 para la normal con n grande, ≈ 0.048 para la exponencial</span></code></pre>
+            </div>
+            <p>(b) Con muestras pequeñas la proporción es mayor (≈ 2,3 % con \(n = 20\) en la normal), porque los cuartiles estimados varían mucho; con \(n\) grande se acerca al valor teórico.</p>
+            <p>(c) En una base de 10 000 registros normales sin errores, el boxplot marcará unos 70 “atípicos”; con datos exponenciales (tiempos de espera, ingresos), unos 480. Por eso la regla sirve para revisar, no para borrar automáticamente: con datos asimétricos conviene transformar (por ejemplo, con logaritmo) o usar cercas ajustadas a la asimetría.</p>
+          </div></details>
+        </div>
+      </div>
+
+      <div class="next"></div>
+    </article>
+  </div>
+</div>

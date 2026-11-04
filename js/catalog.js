@@ -6,9 +6,9 @@
 window.CATALOG = (() => {
   const BLOCKS = [
     { id: 'descriptiva', name: 'Estadística Descriptiva', fam: 'fund', glyph: 'hist', desc: 'Resumir y describir datos con tablas, gráficos y medidas numéricas.',
-      sessions: ['tipos', 'frecuencias', 'desc', 'forma', 'bivar'] },
+      sessions: ['tipos', 'central', 'posicion', 'desc', 'forma', 'frecuencias', 'graficos'] },
     { id: 'exploratorio', name: 'Análisis Exploratorio', fam: 'ds', glyph: 'scatter', desc: 'Inspeccionar, limpiar, transformar y visualizar un conjunto de datos real.',
-      sessions: ['eda', 'viz', 'atipicos', 'transform', 'multivar'] },
+      sessions: ['eda', 'viz', 'bivar', 'atipicos', 'transform', 'multivar'] },
     { id: 'probabilidad', name: 'Teoría de Probabilidades', fam: 'fund', glyph: 'bell', desc: 'Azar, variables aleatorias, distribuciones y teoremas límite.',
       sessions: ['prob', 'condicional', 'discretas', 'continuas', 'normal', 'tlc'] },
     { id: 'inferencial', name: 'Estadística Inferencial', fam: 'inf', glyph: 'ci', desc: 'Estimar parámetros y contrastar hipótesis a partir de una muestra.',
@@ -33,14 +33,17 @@ window.CATALOG = (() => {
 
   const SESSIONS = {
     // Estadística Descriptiva
-    tipos: { t: 'Tipos de variables y escalas de medición', l: 1, m: 45, d: 'Variables cualitativas y cuantitativas, escalas nominal, ordinal, de intervalo y de razón, y qué resumen usar en cada una.', ready: true },
-    frecuencias: { t: 'Tablas de frecuencia e histogramas', l: 1, m: 50, d: 'Frecuencias absolutas, relativas y acumuladas, y cómo elegir los intervalos de un histograma.', ready: true },
-    desc: { t: 'Medidas de tendencia central y dispersión', l: 1, m: 90, d: 'Media, mediana, varianza y por qué la mediana resiste a los valores atípicos.', ready: true },
+    tipos: { t: 'Estadística descriptiva, tipos de variables y escalas de medición', l: 1, m: 55, d: 'Qué estudia la estadística descriptiva, población y muestra, variables cualitativas y cuantitativas, y las escalas nominal, ordinal, de intervalo y de razón.', ready: true },
+    central: { t: 'Medidas de tendencia central', l: 1, m: 60, d: 'Media, mediana, moda, media ponderada, recortada, geométrica y armónica, y cuándo conviene cada una.', ready: true },
+    posicion: { t: 'Medidas de posición', l: 1, m: 55, d: 'Cuartiles, deciles y percentiles, puntuaciones z, resumen de cinco números y diagrama de caja.', ready: true },
+    desc: { t: 'Medidas de dispersión', l: 1, m: 60, d: 'Rango, rango intercuartílico, varianza, desviación típica, coeficiente de variación y la regla de Chebyshev.', ready: true },
     forma: { t: 'Medidas de forma: asimetría y curtosis', l: 1, m: 85, d: 'Describir la forma de una distribución y qué dicen la asimetría y la curtosis.', ready: true },
-    bivar: { t: 'Descriptiva bivariada: correlación y tablas cruzadas', l: 2, m: 95, d: 'Covarianza, correlación de Pearson y de Spearman, y tablas de contingencia.', ready: true },
+    frecuencias: { t: 'Tablas de frecuencia', l: 1, m: 50, d: 'Frecuencias absolutas, relativas y acumuladas, datos agrupados en intervalos y su histograma.', ready: true },
+    graficos: { t: 'Gráficos descriptivos', l: 1, m: 60, d: 'Barras, sectores, Pareto, histograma, polígono, ojiva, tallo y hoja, caja y dispersión: qué gráfico usar para cada tipo de variable.', ready: true },
     // Análisis Exploratorio
     eda: { t: 'Análisis exploratorio de datos', l: 1, m: 100, d: 'Cargar, limpiar y resumir un conjunto de datos real con pandas y dplyr.', ready: true },
     viz: { t: 'Visualización de datos', l: 1, m: 85, d: 'Elegir el gráfico correcto y contar una historia con ggplot2 y seaborn.', ready: true },
+    bivar: { t: 'Descriptiva bivariada: correlación y tablas cruzadas', l: 2, m: 95, d: 'Covarianza, correlación de Pearson y de Spearman, y tablas de contingencia.', ready: true },
     atipicos: { t: 'Detección y tratamiento de valores atípicos', l: 2, m: 90, d: 'Reglas del RIC y de z, métodos robustos y cuándo un atípico es un error o un hallazgo.', ready: true },
     transform: { t: 'Transformación y escalamiento de variables', l: 2, m: 90, d: 'Logaritmos, Box-Cox, estandarización, normalización y codificación de categorías.', ready: true },
     multivar: { t: 'Exploración multivariada', l: 2, m: 90, d: 'Matrices de correlación, gráficos de pares, mapas de calor y coordenadas paralelas.', ready: true },
