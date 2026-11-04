@@ -33,8 +33,8 @@ window.CATALOG = (() => {
 
   const SESSIONS = {
     // Estadística Descriptiva
-    tipos: { t: 'Tipos de variables y escalas de medición', l: 1, m: 80, d: 'Variables cualitativas y cuantitativas, escalas nominal, ordinal, de intervalo y de razón, y qué resumen usar en cada una.', ready: true },
-    frecuencias: { t: 'Tablas de frecuencia e histogramas', l: 1, m: 85, d: 'Frecuencias absolutas, relativas y acumuladas, y cómo elegir los intervalos de un histograma.', ready: true },
+    tipos: { t: 'Tipos de variables y escalas de medición', l: 1, m: 45, d: 'Variables cualitativas y cuantitativas, escalas nominal, ordinal, de intervalo y de razón, y qué resumen usar en cada una.', ready: true },
+    frecuencias: { t: 'Tablas de frecuencia e histogramas', l: 1, m: 50, d: 'Frecuencias absolutas, relativas y acumuladas, y cómo elegir los intervalos de un histograma.', ready: true },
     desc: { t: 'Medidas de tendencia central y dispersión', l: 1, m: 90, d: 'Media, mediana, varianza y por qué la mediana resiste a los valores atípicos.', ready: true },
     forma: { t: 'Medidas de forma: asimetría y curtosis', l: 1, m: 85, d: 'Describir la forma de una distribución y qué dicen la asimetría y la curtosis.', ready: true },
     bivar: { t: 'Descriptiva bivariada: correlación y tablas cruzadas', l: 2, m: 95, d: 'Covarianza, correlación de Pearson y de Spearman, y tablas de contingencia.', ready: true },
